@@ -276,17 +276,17 @@ footer a:hover{color:var(--sky);}
 <nav>
   <a href="#" class="logo"><div class="logo-star">&#9733;</div>LAVAALL</a>
   <ul class="nav-links">
-    <li><a href="#services">Services</a></li>
-    <li><a href="#products">Products</a></li>
-    <li><a href="#reviews">Reviews</a></li>
-    <li><a href="#coverage">Coverage</a></li>
+    <li><a href="#services" data-i18n="nav.services">Services</a></li>
+    <li><a href="#products" data-i18n="nav.products">Products</a></li>
+    <li><a href="#reviews" data-i18n="nav.reviews">Reviews</a></li>
+    <li><a href="#coverage" data-i18n="nav.coverage">Coverage</a></li>
   </ul>
   <div class="nav-r">
     <div class="lang-wrap">
       <button class="lb on" onclick="setLang('en')">EN</button>
       <button class="lb" onclick="setLang('fr')">FR</button>
     </div>
-    <a href="#signup" class="nav-cta">Request Quote</a>
+    <a href="#signup" class="nav-cta" data-i18n="nav.cta">Request Quote</a>
   </div>
 </nav>
 
@@ -296,22 +296,22 @@ footer a:hover{color:var(--sky);}
   <div class="ring" style="width:320px;height:320px;top:50%;left:28%;margin:-160px 0 0 -160px;animation-delay:1.8s"></div>
   <div class="sun-ball">
     <div class="sun-inner">
-      <div class="sun-label">Enterprise<br/>IT<br/>Partner</div>
+      <div class="sun-label" data-i18n="hero.sunlabel">Enterprise<br/>IT<br/>Partner</div>
       <div class="odot" style="--s:0deg;--r:145px;animation-duration:6s"></div>
       <div class="odot" style="--s:120deg;--r:145px;animation-duration:9s;background:#00C2FF"></div>
       <div class="odot" style="--s:240deg;--r:145px;animation-duration:12s;background:#00F5A0"></div>
     </div>
   </div>
   <div class="hero-content">
-    <div class="badge"><div class="blip"></div><span>B2B Enterprise IT Hardware &amp; Solutions</span></div>
-    <h1>Equip Your<br/><span class="hl">Business</span><br/>For Tomorrow</h1>
-    <p class="reveal" style="transition-delay:.12s">We supply, install, and procure enterprise IT equipment — routers, servers, computers, and fiber optic cabling — for businesses across West Africa.</p>
+    <div class="badge"><div class="blip"></div><span data-i18n="hero.badge">B2B Enterprise IT Hardware &amp; Solutions</span></div>
+    <h1 data-i18n="hero.h1">Equip Your<br/><span class="hl">Business</span><br/>For Tomorrow</h1>
+    <p class="reveal" style="transition-delay:.12s" data-i18n="hero.p">We supply, install, and procure enterprise IT equipment — routers, servers, computers, and fiber optic cabling — for businesses across West Africa.</p>
     <div class="btns">
-      <a href="#signup" class="bp">Request a Quote</a>
-      <a href="#products" class="bs">Browse Equipment</a>
+      <a href="#signup" class="bp" data-i18n="hero.btn1">Request a Quote</a>
+      <a href="#products" class="bs" data-i18n="hero.btn2">Browse Equipment</a>
     </div>
   </div>
-  <div class="scrollhint"><div class="scrollbar"></div><span>SCROLL</span></div>
+  <div class="scrollhint"><div class="scrollbar"></div><span data-i18n="hero.scroll">SCROLL</span></div>
 </section>
 
 <!-- TICKER -->
@@ -332,101 +332,71 @@ footer a:hover{color:var(--sky);}
 <!-- SERVICES -->
 <section id="services">
   <div class="sw">
-    <p class="tag reveal">What We Do</p>
-    <h2 class="stitle reveal">Complete IT Solutions<br/>For Your Business</h2>
-    <p class="ssub reveal">From equipment procurement and hardware supply to full-scale fiber optic installations and server deployments — your end-to-end technology partner.</p>
+    <p class="tag reveal" data-i18n="srv.tag">What We Do</p>
+    <h2 class="stitle reveal" data-i18n="srv.h2">Complete IT Solutions<br/>For Your Business</h2>
+    <p class="ssub reveal" data-i18n="srv.sub">From equipment procurement and hardware supply to full-scale fiber optic installations and server deployments — your end-to-end technology partner.</p>
   </div>
   <div class="srv-grid">
     <div class="sc reveal" style="cursor:pointer;" onclick="window.location.href='#signup'">
       <div class="sico">&#128225;</div>
-      <h3>Routers &amp; Networking</h3>
-      <p>Supply and professional installation of enterprise-grade routers, switches, and wireless access points for offices of any size.</p>
-      <ul class="sclist">
-        <li>Cisco, MikroTik &amp; Ubiquiti routers</li>
-        <li>Managed &amp; unmanaged switches</li>
-        <li>Wireless access points &amp; controllers</li>
-        <li>Firewall &amp; UTM appliances</li>
-      </ul>
+      <h3 data-i18n="srv1.h3">Routers &amp; Networking</h3>
+      <p data-i18n="srv1.p">Supply and professional installation of enterprise-grade routers, switches, and wireless access points for offices of any size.</p>
+      <ul class="sclist" data-i18n="srv1.ul"><li>Cisco, MikroTik &amp; Ubiquiti routers</li><li>Managed &amp; unmanaged switches</li><li>Wireless access points &amp; controllers</li><li>Firewall &amp; UTM appliances</li></ul>
     </div>
     <div class="sc reveal" style="transition-delay:.12s;cursor:pointer;" onclick="window.location.href='#signup'">
       <div class="sico">&#128421;</div>
-      <h3>Servers &amp; Infrastructure</h3>
-      <p>Procurement and deployment of enterprise servers, NAS storage, and full data room setup for mission-critical operations.</p>
-      <ul class="sclist">
-        <li>Dell PowerEdge rack &amp; tower servers</li>
-        <li>HP ProLiant server series</li>
-        <li>NAS &amp; SAN storage systems</li>
-        <li>Server room build-out &amp; racking</li>
-      </ul>
+      <h3 data-i18n="srv2.h3">Servers &amp; Infrastructure</h3>
+      <p data-i18n="srv2.p">Procurement and deployment of enterprise servers, NAS storage, and full data room setup for mission-critical operations.</p>
+      <ul class="sclist" data-i18n="srv2.ul"><li>Dell PowerEdge rack &amp; tower servers</li><li>HP ProLiant server series</li><li>NAS &amp; SAN storage systems</li><li>Server room build-out &amp; racking</li></ul>
     </div>
     <div class="sc reveal" style="transition-delay:.24s;cursor:pointer;" onclick="window.location.href='#signup'">
       <div class="sico">&#128279;</div>
-      <h3>Fiber Optic Cabling</h3>
-      <p>End-to-end fiber optic and structured cabling installations for offices, campuses, warehouses, and industrial facilities.</p>
-      <ul class="sclist">
-        <li>Single-mode &amp; multi-mode fiber</li>
-        <li>Cat6 / Cat6A structured cabling</li>
-        <li>Fiber termination &amp; testing</li>
-        <li>Cable trays &amp; management systems</li>
-      </ul>
+      <h3 data-i18n="srv3.h3">Fiber Optic Cabling</h3>
+      <p data-i18n="srv3.p">End-to-end fiber optic and structured cabling installations for offices, campuses, warehouses, and industrial facilities.</p>
+      <ul class="sclist" data-i18n="srv3.ul"><li>Single-mode &amp; multi-mode fiber</li><li>Cat6 / Cat6A structured cabling</li><li>Fiber termination &amp; testing</li><li>Cable trays &amp; management systems</li></ul>
     </div>
     <div class="sc reveal" style="transition-delay:.06s;cursor:pointer;" onclick="window.location.href='#signup'">
       <div class="sico">&#128187;</div>
-      <h3>Computers &amp; Workstations</h3>
-      <p>Business-grade desktops, laptops, and workstations sourced and configured for corporate environments. Bulk orders welcome.</p>
-      <ul class="sclist">
-        <li>Dell OptiPlex &amp; Precision desktops</li>
-        <li>HP ProBook &amp; EliteBook laptops</li>
-        <li>Lenovo ThinkCentre &amp; ThinkPad</li>
-        <li>Pre-configured bulk deployments</li>
-      </ul>
+      <h3 data-i18n="srv4.h3">Computers &amp; Workstations</h3>
+      <p data-i18n="srv4.p">Business-grade desktops, laptops, and workstations sourced and configured for corporate environments. Bulk orders welcome.</p>
+      <ul class="sclist" data-i18n="srv4.ul"><li>Dell OptiPlex &amp; Precision desktops</li><li>HP ProBook &amp; EliteBook laptops</li><li>Lenovo ThinkCentre &amp; ThinkPad</li><li>Pre-configured bulk deployments</li></ul>
     </div>
     <div class="sc reveal" style="transition-delay:.18s;cursor:pointer;" onclick="window.location.href='#signup'">
       <div class="sico">&#128230;</div>
-      <h3>Equipment Procurement</h3>
-      <p>We source and procure any IT equipment for your company — directly from global distributors and manufacturers at competitive prices.</p>
-      <ul class="sclist">
-        <li>Global supplier &amp; distributor network</li>
-        <li>Custom equipment sourcing</li>
-        <li>Bulk &amp; volume order management</li>
-        <li>Logistics &amp; last-mile delivery</li>
-      </ul>
+      <h3 data-i18n="srv5.h3">Equipment Procurement</h3>
+      <p data-i18n="srv5.p">We source and procure any IT equipment for your company — directly from global distributors and manufacturers at competitive prices.</p>
+      <ul class="sclist" data-i18n="srv5.ul"><li>Global supplier &amp; distributor network</li><li>Custom equipment sourcing</li><li>Bulk &amp; volume order management</li><li>Logistics &amp; last-mile delivery</li></ul>
     </div>
     <div class="sc reveal" style="transition-delay:.3s;cursor:pointer;" onclick="window.location.href='#signup'">
       <div class="sico">&#128736;</div>
-      <h3>IT Installation &amp; Deployment</h3>
-      <p>Professional on-site installation and commissioning of all IT infrastructure — from single-office setups to multi-site enterprise rollouts.</p>
-      <ul class="sclist">
-        <li>On-site project management</li>
-        <li>Network commissioning &amp; testing</li>
-        <li>Multi-site &amp; remote deployments</li>
-        <li>Post-installation support &amp; training</li>
-      </ul>
+      <h3 data-i18n="srv6.h3">IT Installation &amp; Deployment</h3>
+      <p data-i18n="srv6.p">Professional on-site installation and commissioning of all IT infrastructure — from single-office setups to multi-site enterprise rollouts.</p>
+      <ul class="sclist" data-i18n="srv6.ul"><li>On-site project management</li><li>Network commissioning &amp; testing</li><li>Multi-site &amp; remote deployments</li><li>Post-installation support &amp; training</li></ul>
     </div>
   </div>
 </section>
 
 <!-- STATS -->
 <div class="stats">
-  <div class="si reveal"><div class="sn">200+</div><div class="sl">Enterprise Clients</div></div>
-  <div class="si reveal" style="transition-delay:.1s"><div class="sn">500+</div><div class="sl">Projects Completed</div></div>
-  <div class="si reveal" style="transition-delay:.2s"><div class="sn">4</div><div class="sl">Countries Served</div></div>
-  <div class="si reveal" style="transition-delay:.3s"><div class="sn">24/7</div><div class="sl">After-Sales Support</div></div>
+  <div class="si reveal"><div class="sn">200+</div><div class="sl" data-i18n="stat1">Enterprise Clients</div></div>
+  <div class="si reveal" style="transition-delay:.1s"><div class="sn">500+</div><div class="sl" data-i18n="stat2">Projects Completed</div></div>
+  <div class="si reveal" style="transition-delay:.2s"><div class="sn">4</div><div class="sl" data-i18n="stat3">Countries Served</div></div>
+  <div class="si reveal" style="transition-delay:.3s"><div class="sn">24/7</div><div class="sl" data-i18n="stat4">After-Sales Support</div></div>
 </div>
 
 <!-- PRODUCTS -->
 <section id="products">
   <div class="sw">
-    <p class="tag reveal">Hardware Catalogue</p>
-    <h2 class="stitle reveal">Enterprise-Grade Equipment</h2>
-    <p class="ssub reveal">Routers, servers, computers, fiber cables, and more — sourced from the world's leading manufacturers. Contact us to request a quote for any item.</p>
+    <p class="tag reveal" data-i18n="prod.tag">Hardware Catalogue</p>
+    <h2 class="stitle reveal" data-i18n="prod.h2">Enterprise-Grade Equipment</h2>
+    <p class="ssub reveal" data-i18n="prod.sub">Routers, servers, computers, fiber cables, and more — sourced from the world's leading manufacturers. Contact us to request a quote for any item.</p>
 
     <div class="hw-filters reveal">
-      <button class="chat-chip hw-f on" onclick="filterHw('all')">All Equipment</button>
-      <button class="chat-chip hw-f" onclick="filterHw('routers')">Routers &amp; Switches</button>
-      <button class="chat-chip hw-f" onclick="filterHw('servers')">Servers</button>
-      <button class="chat-chip hw-f" onclick="filterHw('computers')">Computers</button>
-      <button class="chat-chip hw-f" onclick="filterHw('fiber')">Fiber &amp; Cabling</button>
+      <button class="chat-chip hw-f on" onclick="filterHw('all')" data-i18n="filt.all">All Equipment</button>
+      <button class="chat-chip hw-f" onclick="filterHw('routers')" data-i18n="filt.routers">Routers &amp; Switches</button>
+      <button class="chat-chip hw-f" onclick="filterHw('servers')" data-i18n="filt.servers">Servers</button>
+      <button class="chat-chip hw-f" onclick="filterHw('computers')" data-i18n="filt.computers">Computers</button>
+      <button class="chat-chip hw-f" onclick="filterHw('fiber')" data-i18n="filt.fiber">Fiber &amp; Cabling</button>
     </div>
 
     <div class="prod-grid">
@@ -435,9 +405,9 @@ footer a:hover{color:var(--sky);}
       <div class="prod-card hw-item routers reveal" data-name="Cisco ISR 4000 Series Router">
         <img class="prod-img" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80" alt="Cisco Enterprise Router">
         <div class="prod-info">
-          <h3>Cisco ISR 4000 Series</h3>
-          <p>Enterprise-grade router for WAN aggregation, SD-WAN, and branch office deployments. Supports advanced security and QoS.</p>
-          <button class="pbtn dd-togg" style="width:100%" data-name="Cisco ISR 4000 Series Router">Request Quote &#9662;</button>
+          <h3 data-i18n="p1.h3">Cisco ISR 4000 Series</h3>
+          <p data-i18n="p1.p">Enterprise-grade router for WAN aggregation, SD-WAN, and branch office deployments. Supports advanced security and QoS.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Cisco ISR 4000 Series Router" data-i18n="quote.btn">Request Quote &#9662;</button>
         </div>
       </div>
 
@@ -445,9 +415,9 @@ footer a:hover{color:var(--sky);}
       <div class="prod-card hw-item routers reveal" style="transition-delay:.12s" data-name="MikroTik RouterBoard">
         <img class="prod-img" src="https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=800&q=80" alt="MikroTik RouterBoard">
         <div class="prod-info">
-          <h3>MikroTik RouterBoard</h3>
-          <p>High-performance enterprise routing and switching at an excellent price point. Ideal for ISPs, SMEs, and multi-site networks.</p>
-          <button class="pbtn dd-togg" style="width:100%" data-name="MikroTik RouterBoard">Request Quote &#9662;</button>
+          <h3 data-i18n="p2.h3">MikroTik RouterBoard</h3>
+          <p data-i18n="p2.p">High-performance enterprise routing and switching at an excellent price point. Ideal for ISPs, SMEs, and multi-site networks.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="MikroTik RouterBoard" data-i18n="quote.btn">Request Quote &#9662;</button>
         </div>
       </div>
 
@@ -455,9 +425,9 @@ footer a:hover{color:var(--sky);}
       <div class="prod-card hw-item routers reveal" style="transition-delay:.24s" data-name="Cisco Catalyst Managed Switch">
         <img class="prod-img" src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80" alt="Network Switch">
         <div class="prod-info">
-          <h3>Cisco Catalyst Switch</h3>
-          <p>Managed gigabit switches for enterprise LAN infrastructure. Available in 24-port and 48-port with PoE+ configurations.</p>
-          <button class="pbtn dd-togg" style="width:100%" data-name="Cisco Catalyst Managed Switch">Request Quote &#9662;</button>
+          <h3 data-i18n="p3.h3">Cisco Catalyst Switch</h3>
+          <p data-i18n="p3.p">Managed gigabit switches for enterprise LAN infrastructure. Available in 24-port and 48-port with PoE+ configurations.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Cisco Catalyst Managed Switch" data-i18n="quote.btn">Request Quote &#9662;</button>
         </div>
       </div>
 
@@ -465,9 +435,9 @@ footer a:hover{color:var(--sky);}
       <div class="prod-card hw-item servers reveal" data-name="Dell PowerEdge Server">
         <img class="prod-img" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80" alt="Dell PowerEdge Server">
         <div class="prod-info">
-          <h3>Dell PowerEdge Server</h3>
-          <p>High-performance rack and tower servers for enterprise workloads. Available in 1U, 2U, and tower. Custom configurations on request.</p>
-          <button class="pbtn dd-togg" style="width:100%" data-name="Dell PowerEdge Server">Request Quote &#9662;</button>
+          <h3 data-i18n="p4.h3">Dell PowerEdge Server</h3>
+          <p data-i18n="p4.p">High-performance rack and tower servers for enterprise workloads. Available in 1U, 2U, and tower. Custom configurations on request.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Dell PowerEdge Server" data-i18n="quote.btn">Request Quote &#9662;</button>
         </div>
       </div>
 
@@ -475,9 +445,9 @@ footer a:hover{color:var(--sky);}
       <div class="prod-card hw-item servers reveal" style="transition-delay:.12s" data-name="HP ProLiant Server">
         <img class="prod-img" src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80" alt="HP ProLiant Server">
         <div class="prod-info">
-          <h3>HP ProLiant Server</h3>
-          <p>Reliable ProLiant rack and tower servers for virtualization, databases, and business applications. HPE iLO remote management included.</p>
-          <button class="pbtn dd-togg" style="width:100%" data-name="HP ProLiant Server">Request Quote &#9662;</button>
+          <h3 data-i18n="p5.h3">HP ProLiant Server</h3>
+          <p data-i18n="p5.p">Reliable ProLiant rack and tower servers for virtualization, databases, and business applications. HPE iLO remote management included.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="HP ProLiant Server" data-i18n="quote.btn">Request Quote &#9662;</button>
         </div>
       </div>
 
@@ -485,9 +455,9 @@ footer a:hover{color:var(--sky);}
       <div class="prod-card hw-item computers reveal" style="transition-delay:.24s" data-name="Dell OptiPlex Workstation">
         <img class="prod-img" src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&w=800&q=80" alt="Dell OptiPlex Desktop">
         <div class="prod-info">
-          <h3>Dell OptiPlex Desktop</h3>
-          <p>Enterprise desktop computers for corporate teams. Slim form factor with powerful Intel Core processors. Bulk orders with pre-configuration available.</p>
-          <button class="pbtn dd-togg" style="width:100%" data-name="Dell OptiPlex Workstation">Request Quote &#9662;</button>
+          <h3 data-i18n="p6.h3">Dell OptiPlex Desktop</h3>
+          <p data-i18n="p6.p">Enterprise desktop computers for corporate teams. Slim form factor with powerful Intel Core processors. Bulk orders with pre-configuration available.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Dell OptiPlex Workstation" data-i18n="quote.btn">Request Quote &#9662;</button>
         </div>
       </div>
 
@@ -495,9 +465,9 @@ footer a:hover{color:var(--sky);}
       <div class="prod-card hw-item computers reveal" data-name="HP ProBook Business Laptop">
         <img class="prod-img" src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80" alt="HP ProBook Laptop">
         <div class="prod-info">
-          <h3>HP ProBook Business Laptop</h3>
-          <p>Professional-grade laptops built for corporate use. MIL-STD durability, all-day battery, and enterprise security features for your team.</p>
-          <button class="pbtn dd-togg" style="width:100%" data-name="HP ProBook Business Laptop">Request Quote &#9662;</button>
+          <h3 data-i18n="p7.h3">HP ProBook Business Laptop</h3>
+          <p data-i18n="p7.p">Professional-grade laptops built for corporate use. MIL-STD durability, all-day battery, and enterprise security features for your team.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="HP ProBook Business Laptop" data-i18n="quote.btn">Request Quote &#9662;</button>
         </div>
       </div>
 
@@ -505,9 +475,9 @@ footer a:hover{color:var(--sky);}
       <div class="prod-card hw-item fiber reveal" style="transition-delay:.12s" data-name="Fiber Optic Cable (Single-Mode & Multi-Mode)">
         <img class="prod-img" src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80" alt="Fiber Optic Cable">
         <div class="prod-info">
-          <h3>Fiber Optic Cable</h3>
-          <p>Single-mode and multi-mode fiber optic cables for indoor and outdoor runs. Available in custom lengths, armoured options, and bulk drums.</p>
-          <button class="pbtn dd-togg" style="width:100%" data-name="Fiber Optic Cable">Request Quote &#9662;</button>
+          <h3 data-i18n="p8.h3">Fiber Optic Cable</h3>
+          <p data-i18n="p8.p">Single-mode and multi-mode fiber optic cables for indoor and outdoor runs. Available in custom lengths, armoured options, and bulk drums.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Fiber Optic Cable" data-i18n="quote.btn">Request Quote &#9662;</button>
         </div>
       </div>
 
@@ -515,9 +485,9 @@ footer a:hover{color:var(--sky);}
       <div class="prod-card hw-item fiber reveal" style="transition-delay:.24s" data-name="Structured Cabling (Cat6/Cat6A)">
         <img class="prod-img" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80" alt="Structured Cabling">
         <div class="prod-info">
-          <h3>Structured Cabling (Cat6/Cat6A)</h3>
-          <p>Complete structured cabling kits — Cat6, Cat6A, patch panels, keystones, face plates, and cable trays. Supply only or full installation available.</p>
-          <button class="pbtn dd-togg" style="width:100%" data-name="Structured Cabling Cat6/Cat6A">Request Quote &#9662;</button>
+          <h3 data-i18n="p9.h3">Structured Cabling (Cat6/Cat6A)</h3>
+          <p data-i18n="p9.p">Complete structured cabling kits — Cat6, Cat6A, patch panels, keystones, face plates, and cable trays. Supply only or full installation available.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Structured Cabling Cat6/Cat6A" data-i18n="quote.btn">Request Quote &#9662;</button>
         </div>
       </div>
 
@@ -528,8 +498,8 @@ footer a:hover{color:var(--sky);}
 <!-- REVIEWS -->
 <section id="reviews">
   <div class="sw">
-    <p class="tag reveal" style="background:var(--sun);color:var(--ink);">Client Reviews</p>
-    <h2 class="stitle reveal" style="color:var(--white)">What Our Clients Say</h2>
+    <p class="tag reveal" style="background:var(--sun);color:var(--ink);" data-i18n="rev.tag">Client Reviews</p>
+    <h2 class="stitle reveal" style="color:var(--white)" data-i18n="rev.h2">What Our Clients Say</h2>
     <div class="google-badge reveal">
       <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Google Reviews <span>4.9 &#9733;</span>
@@ -537,28 +507,28 @@ footer a:hover{color:var(--sky);}
     <div class="rev-grid">
       <div class="rev-card reveal">
         <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"LAVAALL equipped our entire head office with Dell workstations and deployed a full Cisco network. The installation was fast, professional, and exactly on specification."</p>
-        <div class="rev-author"><div class="rev-avatar">AK</div><div><div class="rev-name">Aminata Koroma</div><div class="rev-loc">IT Director, Freetown</div></div></div>
+        <p class="rev-text" data-i18n="rev1">"LAVAALL equipped our entire head office with Dell workstations and deployed a full Cisco network. The installation was fast, professional, and exactly on specification."</p>
+        <div class="rev-author"><div class="rev-avatar">AK</div><div><div class="rev-name">Aminata Koroma</div><div class="rev-loc" data-i18n="rloc1">IT Director, Freetown</div></div></div>
       </div>
       <div class="rev-card reveal" style="transition-delay:.12s">
         <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"They sourced 30 HP servers and ran fiber optic cabling throughout our 5-floor building. Outstanding project management from survey to commissioning. Highly recommended."</p>
-        <div class="rev-author"><div class="rev-avatar">MD</div><div><div class="rev-name">Mohamed Diallo</div><div class="rev-loc">Operations Manager, Conakry</div></div></div>
+        <p class="rev-text" data-i18n="rev2">"They sourced 30 HP servers and ran fiber optic cabling throughout our 5-floor building. Outstanding project management from survey to commissioning. Highly recommended."</p>
+        <div class="rev-author"><div class="rev-avatar">MD</div><div><div class="rev-name">Mohamed Diallo</div><div class="rev-loc" data-i18n="rloc2">Operations Manager, Conakry</div></div></div>
       </div>
       <div class="rev-card reveal" style="transition-delay:.24s">
         <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"LAVAALL procured and installed a complete MikroTik network infrastructure and structured cabling for our new campus. On time, on budget, with excellent post-installation support."</p>
-        <div class="rev-author"><div class="rev-avatar">EK</div><div><div class="rev-name">Emmanuel Kamara</div><div class="rev-loc">CEO, Freetown</div></div></div>
+        <p class="rev-text" data-i18n="rev3">"LAVAALL procured and installed a complete MikroTik network infrastructure and structured cabling for our new campus. On time, on budget, with excellent post-installation support."</p>
+        <div class="rev-author"><div class="rev-avatar">EK</div><div><div class="rev-name">Emmanuel Kamara</div><div class="rev-loc" data-i18n="rloc3">CEO, Freetown</div></div></div>
       </div>
       <div class="rev-card reveal">
         <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"We urgently needed 50 workstations and a server room built out. LAVAALL delivered everything in under two weeks. Very professional team, clear communication throughout the project."</p>
-        <div class="rev-author"><div class="rev-avatar" style="background:var(--coral);">AS</div><div><div class="rev-name">Alassane Sylla</div><div class="rev-loc">Procurement Director, Conakry</div></div></div>
+        <p class="rev-text" data-i18n="rev4">"We urgently needed 50 workstations and a server room built out. LAVAALL delivered everything in under two weeks. Very professional team, clear communication throughout the project."</p>
+        <div class="rev-author"><div class="rev-avatar" style="background:var(--coral);">AS</div><div><div class="rev-name">Alassane Sylla</div><div class="rev-loc" data-i18n="rloc4">Procurement Director, Conakry</div></div></div>
       </div>
       <div class="rev-card reveal" style="border-left-color:var(--lime);transition-delay:.12s">
         <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"The fiber optic cabling across our facility is flawless — clean routing, proper labelling, and full test reports provided. These are true professionals who take pride in their work."</p>
-        <div class="rev-author"><div class="rev-avatar" style="background:var(--sky);">DB</div><div><div class="rev-name">David Brooks</div><div class="rev-loc">Facilities Manager, Monrovia</div></div></div>
+        <p class="rev-text" data-i18n="rev5">"The fiber optic cabling across our facility is flawless — clean routing, proper labelling, and full test reports provided. These are true professionals who take pride in their work."</p>
+        <div class="rev-author"><div class="rev-avatar" style="background:var(--sky);">DB</div><div><div class="rev-name">David Brooks</div><div class="rev-loc" data-i18n="rloc5">Facilities Manager, Monrovia</div></div></div>
       </div>
     </div>
   </div>
@@ -567,14 +537,13 @@ footer a:hover{color:var(--sky);}
 <!-- COVERAGE -->
 <section id="coverage">
   <div class="sw">
-    <p class="tag reveal">Markets</p>
-    <h2 class="stitle reveal">Where We Operate</h2>
-    <p class="ssub reveal">Delivering enterprise IT hardware, professional installations, and equipment procurement services across West Africa.</p>
+    <p class="tag reveal" data-i18n="cov.tag">Markets</p>
+    <h2 class="stitle reveal" data-i18n="cov.h2">Where We Operate</h2>
+    <p class="ssub reveal" data-i18n="cov.sub">Delivering enterprise IT hardware, professional installations, and equipment procurement services across West Africa.</p>
     <div class="countries reveal">
-      <div class="ctry on" onclick="pickCountry(this,'sl')"><span class="flag">&#127480;&#127473;</span><span>Sierra Leone</span></div>
-      <div class="ctry" onclick="pickCountry(this,'gn')"><span class="flag">&#127468;&#127475;</span><span>Guinea</span></div>
-      <div class="ctry" onclick="pickCountry(this,'gw')"><span class="flag">&#127468;&#127484;</span><span>Guinea-Bissau</span></div>
-      <div class="ctry" onclick="pickCountry(this,'wa')"><span class="flag">&#127757;</span><span>West Africa</span></div>
+      <div class="ctry on" data-code="sl" onclick="pickCountry(this,'sl')"><span class="flag">&#127480;&#127473;</span><span data-i18n="cov.sl">Sierra Leone</span></div>
+      <div class="ctry" data-code="gn" onclick="pickCountry(this,'gn')"><span class="flag">&#127468;&#127475;</span><span data-i18n="cov.gn">Guinea</span></div>
+      <div class="ctry" data-code="wa" onclick="pickCountry(this,'wa')"><span class="flag">&#127757;</span><span data-i18n="cov.wa">West Africa</span></div>
     </div>
     <div class="cnote reveal" id="cnote">&#127480;&#127473; <strong>Sierra Leone</strong> &#8212; Full service available. Hardware supply, fiber optic installation &amp; IT deployment across Freetown and all major cities.</div>
   </div>
@@ -583,17 +552,17 @@ footer a:hover{color:var(--sky);}
 <!-- INDUSTRIES -->
 <section style="background:var(--offwhite);border-bottom:2px solid var(--ink);">
   <div class="sw">
-    <p class="tag reveal">Industries</p>
-    <h2 class="stitle reveal">Industries We Serve</h2>
-    <p class="ssub reveal">We work with organizations of all sizes — from growing SMEs to large enterprises and government institutions.</p>
+    <p class="tag reveal" data-i18n="ind.tag">Industries</p>
+    <h2 class="stitle reveal" data-i18n="ind.h2">Industries We Serve</h2>
+    <p class="ssub reveal" data-i18n="ind.sub">We work with organizations of all sizes — from growing SMEs to large enterprises and government institutions.</p>
     <div style="display:flex;flex-wrap:wrap;gap:14px;" class="reveal">
-      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Banks &amp; Financial Services</span></div>
-      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Government &amp; Public Sector</span></div>
-      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Telecoms &amp; ISPs</span></div>
-      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Healthcare Facilities</span></div>
-      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Schools &amp; Universities</span></div>
-      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Mining &amp; Industrial</span></div>
-      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>NGOs &amp; International Orgs</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span data-i18n="ind1">Banks &amp; Financial Services</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span data-i18n="ind2">Government &amp; Public Sector</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span data-i18n="ind3">Telecoms &amp; ISPs</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span data-i18n="ind4">Healthcare Facilities</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span data-i18n="ind5">Schools &amp; Universities</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span data-i18n="ind6">Mining &amp; Industrial</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span data-i18n="ind7">NGOs &amp; International Orgs</span></div>
     </div>
   </div>
 </section>
@@ -602,46 +571,45 @@ footer a:hover{color:var(--sky);}
 <section id="signup">
   <div class="sw su-wrap">
     <div class="su-left reveal-l">
-      <h2>Get a <span>Free Quote</span> Today</h2>
-      <p>Tell us what your business needs and our team will get back to you within 24 hours with pricing and availability.</p>
+      <h2 data-i18n="form.h2">Get a <span>Free Quote</span> Today</h2>
+      <p data-i18n="form.p">Tell us what your business needs and our team will get back to you within 24 hours with pricing and availability.</p>
       <div class="perks">
-        <div class="perk"><div class="perkd">&#128230;</div><span>Global equipment procurement &amp; sourcing</span></div>
-        <div class="perk"><div class="perkd">&#128736;</div><span>Professional on-site installation</span></div>
-        <div class="perk"><div class="perkd">&#128222;</div><span>Response within 24 hours</span></div>
-        <div class="perk"><div class="perkd">&#128179;</div><span>Flexible payment &amp; financing options</span></div>
+        <div class="perk"><div class="perkd">&#128230;</div><span data-i18n="perk1">Global equipment procurement &amp; sourcing</span></div>
+        <div class="perk"><div class="perkd">&#128736;</div><span data-i18n="perk2">Professional on-site installation</span></div>
+        <div class="perk"><div class="perkd">&#128222;</div><span data-i18n="perk3">Response within 24 hours</span></div>
+        <div class="perk"><div class="perkd">&#128179;</div><span data-i18n="perk4">Flexible payment &amp; financing options</span></div>
       </div>
     </div>
     <div class="reveal-r">
       <div class="fcard">
-        <div class="ftitle">Request a Quote</div>
+        <div class="ftitle" data-i18n="form.title">Request a Quote</div>
         <div class="sbox" id="sbox">
           <div class="si2">&#128640;</div>
-          <h3>Quote Request Received!</h3>
-          <p>We will contact you within 24 hours with pricing and availability.</p>
+          <h3 data-i18n="form.ok.h3">Quote Request Received!</h3>
+          <p data-i18n="form.ok.p">We will contact you within 24 hours with pricing and availability.</p>
         </div>
         <form name="signup" method="POST" data-netlify="true" id="sform" onsubmit="doSubmit(event)">
           <input type="hidden" name="form-name" value="signup"/>
           <div class="fgrow">
-            <div class="fg"><label>Full Name</label><input type="text" name="name" required placeholder="Jean Kamara"/></div>
-            <div class="fg"><label>Phone / WhatsApp</label><input type="tel" name="phone" required placeholder="+232 76 000 000"/></div>
+            <div class="fg"><label data-i18n="lbl.name">Full Name</label><input type="text" name="name" required data-i18n-ph="ph.name" placeholder="Jean Kamara"/></div>
+            <div class="fg"><label data-i18n="lbl.phone">Phone / WhatsApp</label><input type="tel" name="phone" required placeholder="+232 76 000 000"/></div>
           </div>
-          <div class="fg"><label>Email Address</label><input type="email" name="email" required placeholder="you@company.com"/></div>
-          <div class="fg"><label>Company Name</label><input type="text" name="company" required placeholder="Your Company Ltd"/></div>
+          <div class="fg"><label data-i18n="lbl.email">Email Address</label><input type="email" name="email" required data-i18n-ph="ph.email" placeholder="you@company.com"/></div>
+          <div class="fg"><label data-i18n="lbl.company">Company Name</label><input type="text" name="company" required data-i18n-ph="ph.company" placeholder="Your Company Ltd"/></div>
           <div class="fgrow">
             <div class="fg">
-              <label>Country</label>
-              <select name="country" required>
+              <label data-i18n="lbl.country">Country</label>
+              <select name="country" required id="sel-country">
                 <option value="">Select country</option>
                 <option>Sierra Leone</option>
                 <option>Guinea</option>
-                <option>Guinea-Bissau</option>
                 <option>Liberia</option>
                 <option>Other West Africa</option>
               </select>
             </div>
             <div class="fg">
-              <label>Request Type</label>
-              <select name="request_type" required>
+              <label data-i18n="lbl.reqtype">Request Type</label>
+              <select name="request_type" required id="sel-reqtype">
                 <option value="">Select type</option>
                 <optgroup label="Hardware Supply">
                   <option>Routers &amp; Network Switches</option>
@@ -661,9 +629,9 @@ footer a:hover{color:var(--sky);}
               </select>
             </div>
           </div>
-          <div class="fg"><label>Project Details</label><textarea name="message" placeholder="Describe your requirements, quantities, site location, and any other details..."></textarea></div>
-          <button type="submit" class="fsub" id="fsub">Send Quote Request &#8594;</button>
-          <p class="fnote">We will only contact you regarding your quote request. No spam.</p>
+          <div class="fg"><label data-i18n="lbl.details">Project Details</label><textarea name="message" data-i18n-ph="ph.details" placeholder="Describe your requirements, quantities, site location, and any other details..."></textarea></div>
+          <button type="submit" class="fsub" id="fsub" data-i18n="form.submit">Send Quote Request &#8594;</button>
+          <p class="fnote" data-i18n="form.note">We will only contact you regarding your quote request. No spam.</p>
         </form>
       </div>
     </div>
@@ -675,7 +643,7 @@ footer a:hover{color:var(--sky);}
   <div class="ft">
     <div>
       <div class="flogo"><div class="flogod"></div>LAVAALL</div>
-      <p class="fdesc">Enterprise IT hardware supplier and installation company serving West Africa. Routers, servers, computers, fiber optic cabling, and full-scale IT installations for businesses.</p>
+      <p class="fdesc" data-i18n="ft.desc">Enterprise IT hardware supplier and installation company serving West Africa. Routers, servers, computers, fiber optic cabling, and full-scale IT installations for businesses.</p>
       <div class="social-row">
         <a href="https://wa.me/23276000000" target="_blank" class="social-icon" style="background:#25D366;">WA</a>
         <a href="https://t.me/lavaall" target="_blank" class="social-icon" style="background:#0088cc;">TG</a>
@@ -683,32 +651,31 @@ footer a:hover{color:var(--sky);}
       </div>
     </div>
     <div>
-      <h4>Services</h4>
-      <a href="#services">Routers &amp; Networking</a>
-      <a href="#services">Servers &amp; Infrastructure</a>
-      <a href="#services">Fiber Optic Cabling</a>
-      <a href="#services">Computers &amp; Workstations</a>
-      <a href="#services">Equipment Procurement</a>
-      <a href="#services">IT Installations</a>
+      <h4 data-i18n="ft.srv.h4">Services</h4>
+      <a href="#services" data-i18n="ft.srv1">Routers &amp; Networking</a>
+      <a href="#services" data-i18n="ft.srv2">Servers &amp; Infrastructure</a>
+      <a href="#services" data-i18n="ft.srv3">Fiber Optic Cabling</a>
+      <a href="#services" data-i18n="ft.srv4">Computers &amp; Workstations</a>
+      <a href="#services" data-i18n="ft.srv5">Equipment Procurement</a>
+      <a href="#services" data-i18n="ft.srv6">IT Installations</a>
     </div>
     <div>
-      <h4>Markets</h4>
-      <a href="#coverage">Sierra Leone</a>
-      <a href="#coverage">Guinea</a>
-      <a href="#coverage">Guinea-Bissau</a>
-      <a href="#coverage">West Africa</a>
+      <h4 data-i18n="ft.mkt.h4">Markets</h4>
+      <a href="#coverage" data-i18n="cov.sl">Sierra Leone</a>
+      <a href="#coverage" data-i18n="cov.gn">Guinea</a>
+      <a href="#coverage" data-i18n="cov.wa">West Africa</a>
     </div>
     <div>
-      <h4>Contact Us</h4>
+      <h4 data-i18n="ft.ct.h4">Contact Us</h4>
       <a href="mailto:hello@lavaall.com">hello@lavaall.com</a>
       <a href="tel:+23276000000">SL: +232 76 000 000</a>
       <a href="tel:+224620000000">GN: +224 62 000 0000</a>
-      <a href="#signup" style="margin-top:10px;color:var(--sky);">Request a Quote &#8594;</a>
+      <a href="#signup" style="margin-top:10px;color:var(--sky);" data-i18n="ft.cta">Request a Quote &#8594;</a>
     </div>
   </div>
   <div class="fb">
-    <span>&#169; 2026 LAVAALL. All rights reserved.</span>
-    <span>Enterprise IT Hardware &amp; Solutions &middot; West Africa</span>
+    <span data-i18n="ft.copy">&#169; 2026 LAVAALL. All rights reserved.</span>
+    <span data-i18n="ft.tag">Enterprise IT Hardware &amp; Solutions &middot; West Africa</span>
   </div>
 </footer>
 
@@ -724,16 +691,15 @@ buildTicker();
 
 // COVERAGE
 const covData={
-  sl:{flag:'&#127480;&#127473;',name:'Sierra Leone',text:'Full service available. Hardware supply, fiber optic installation &amp; IT deployment across Freetown and all major cities.'},
-  gn:{flag:'&#127468;&#127475;',name:'Guinea',text:'Full service available. Equipment procurement and installation in Conakry and major regional cities.'},
-  gw:{flag:'&#127468;&#127484;',name:'Guinea-Bissau',text:'Service available. Enterprise hardware supply and IT installation in Bissau and surrounding areas.'},
-  wa:{flag:'&#127757;',name:'West Africa',text:'Regional availability. We deliver equipment and deploy installation teams across West Africa. Contact us for your location.'}
+  sl:{flag:'&#127480;&#127473;',en:{name:'Sierra Leone',text:'Full service available. Hardware supply, fiber optic installation &amp; IT deployment across Freetown and all major cities.'},fr:{name:'Sierra Leone',text:'Service complet disponible. Fourniture de matériel, installation fibre optique et déploiement IT à travers Freetown et toutes les grandes villes.'}},
+  gn:{flag:'&#127468;&#127475;',en:{name:'Guinea',text:'Full service available. Equipment procurement and installation in Conakry and major regional cities.'},fr:{name:'Guinée',text:'Service complet disponible. Approvisionnement en équipements et installation à Conakry et dans les principales villes régionales.'}},
+  wa:{flag:'&#127757;',en:{name:'West Africa',text:'Regional availability. We deliver equipment and deploy installation teams across West Africa. Contact us for your location.'},fr:{name:'Afrique de l\'Ouest',text:'Disponibilité régionale. Nous livrons des équipements et déployons des équipes d\'installation à travers l\'Afrique de l\'Ouest. Contactez-nous pour votre localisation.'}}
 };
 function pickCountry(el,code){
   document.querySelectorAll('.ctry').forEach(c=>c.classList.remove('on'));
   el.classList.add('on');
-  const d=covData[code];
-  document.getElementById('cnote').innerHTML=d.flag+' <strong>'+d.name+'</strong> &#8212; '+d.text;
+  const d=covData[code][currentLang];
+  document.getElementById('cnote').innerHTML=covData[code].flag+' <strong>'+d.name+'</strong> &#8212; '+d.text;
 }
 
 // SCROLL REVEAL
@@ -801,8 +767,147 @@ function doSubmit(e){
 }
 
 // LANGUAGE (EN/FR toggle)
+let currentLang='en';
+const translations={
+  en:{
+    'nav.services':'Services','nav.products':'Products','nav.reviews':'Reviews','nav.coverage':'Coverage','nav.cta':'Request Quote',
+    'hero.sunlabel':'Enterprise<br/>IT<br/>Partner',
+    'hero.badge':'B2B Enterprise IT Hardware &amp; Solutions',
+    'hero.h1':'Equip Your<br/><span class="hl">Business</span><br/>For Tomorrow',
+    'hero.p':'We supply, install, and procure enterprise IT equipment — routers, servers, computers, and fiber optic cabling — for businesses across West Africa.',
+    'hero.btn1':'Request a Quote','hero.btn2':'Browse Equipment','hero.scroll':'SCROLL',
+    'srv.tag':'What We Do','srv.h2':'Complete IT Solutions<br/>For Your Business',
+    'srv.sub':'From equipment procurement and hardware supply to full-scale fiber optic installations and server deployments — your end-to-end technology partner.',
+    'srv1.h3':'Routers &amp; Networking','srv1.p':'Supply and professional installation of enterprise-grade routers, switches, and wireless access points for offices of any size.',
+    'srv1.ul':'<li>Cisco, MikroTik &amp; Ubiquiti routers</li><li>Managed &amp; unmanaged switches</li><li>Wireless access points &amp; controllers</li><li>Firewall &amp; UTM appliances</li>',
+    'srv2.h3':'Servers &amp; Infrastructure','srv2.p':'Procurement and deployment of enterprise servers, NAS storage, and full data room setup for mission-critical operations.',
+    'srv2.ul':'<li>Dell PowerEdge rack &amp; tower servers</li><li>HP ProLiant server series</li><li>NAS &amp; SAN storage systems</li><li>Server room build-out &amp; racking</li>',
+    'srv3.h3':'Fiber Optic Cabling','srv3.p':'End-to-end fiber optic and structured cabling installations for offices, campuses, warehouses, and industrial facilities.',
+    'srv3.ul':'<li>Single-mode &amp; multi-mode fiber</li><li>Cat6 / Cat6A structured cabling</li><li>Fiber termination &amp; testing</li><li>Cable trays &amp; management systems</li>',
+    'srv4.h3':'Computers &amp; Workstations','srv4.p':'Business-grade desktops, laptops, and workstations sourced and configured for corporate environments. Bulk orders welcome.',
+    'srv4.ul':'<li>Dell OptiPlex &amp; Precision desktops</li><li>HP ProBook &amp; EliteBook laptops</li><li>Lenovo ThinkCentre &amp; ThinkPad</li><li>Pre-configured bulk deployments</li>',
+    'srv5.h3':'Equipment Procurement','srv5.p':'We source and procure any IT equipment for your company — directly from global distributors and manufacturers at competitive prices.',
+    'srv5.ul':'<li>Global supplier &amp; distributor network</li><li>Custom equipment sourcing</li><li>Bulk &amp; volume order management</li><li>Logistics &amp; last-mile delivery</li>',
+    'srv6.h3':'IT Installation &amp; Deployment','srv6.p':'Professional on-site installation and commissioning of all IT infrastructure — from single-office setups to multi-site enterprise rollouts.',
+    'srv6.ul':'<li>On-site project management</li><li>Network commissioning &amp; testing</li><li>Multi-site &amp; remote deployments</li><li>Post-installation support &amp; training</li>',
+    'stat1':'Enterprise Clients','stat2':'Projects Completed','stat3':'Countries Served','stat4':'After-Sales Support',
+    'prod.tag':'Hardware Catalogue','prod.h2':'Enterprise-Grade Equipment',
+    'prod.sub':'Routers, servers, computers, fiber cables, and more — sourced from the world\'s leading manufacturers. Contact us to request a quote for any item.',
+    'filt.all':'All Equipment','filt.routers':'Routers &amp; Switches','filt.servers':'Servers','filt.computers':'Computers','filt.fiber':'Fiber &amp; Cabling',
+    'p1.h3':'Cisco ISR 4000 Series','p1.p':'Enterprise-grade router for WAN aggregation, SD-WAN, and branch office deployments. Supports advanced security and QoS.',
+    'p2.h3':'MikroTik RouterBoard','p2.p':'High-performance enterprise routing and switching at an excellent price point. Ideal for ISPs, SMEs, and multi-site networks.',
+    'p3.h3':'Cisco Catalyst Switch','p3.p':'Managed gigabit switches for enterprise LAN infrastructure. Available in 24-port and 48-port with PoE+ configurations.',
+    'p4.h3':'Dell PowerEdge Server','p4.p':'High-performance rack and tower servers for enterprise workloads. Available in 1U, 2U, and tower. Custom configurations on request.',
+    'p5.h3':'HP ProLiant Server','p5.p':'Reliable ProLiant rack and tower servers for virtualization, databases, and business applications. HPE iLO remote management included.',
+    'p6.h3':'Dell OptiPlex Desktop','p6.p':'Enterprise desktop computers for corporate teams. Slim form factor with powerful Intel Core processors. Bulk orders with pre-configuration available.',
+    'p7.h3':'HP ProBook Business Laptop','p7.p':'Professional-grade laptops built for corporate use. MIL-STD durability, all-day battery, and enterprise security features for your team.',
+    'p8.h3':'Fiber Optic Cable','p8.p':'Single-mode and multi-mode fiber optic cables for indoor and outdoor runs. Available in custom lengths, armoured options, and bulk drums.',
+    'p9.h3':'Structured Cabling (Cat6/Cat6A)','p9.p':'Complete structured cabling kits — Cat6, Cat6A, patch panels, keystones, face plates, and cable trays. Supply only or full installation available.',
+    'quote.btn':'Request Quote &#9662;',
+    'rev.tag':'Client Reviews','rev.h2':'What Our Clients Say',
+    'rev1':'"LAVAALL equipped our entire head office with Dell workstations and deployed a full Cisco network. The installation was fast, professional, and exactly on specification."',
+    'rev2':'"They sourced 30 HP servers and ran fiber optic cabling throughout our 5-floor building. Outstanding project management from survey to commissioning. Highly recommended."',
+    'rev3':'"LAVAALL procured and installed a complete MikroTik network infrastructure and structured cabling for our new campus. On time, on budget, with excellent post-installation support."',
+    'rev4':'"We urgently needed 50 workstations and a server room built out. LAVAALL delivered everything in under two weeks. Very professional team, clear communication throughout the project."',
+    'rev5':'"The fiber optic cabling across our facility is flawless — clean routing, proper labelling, and full test reports provided. These are true professionals who take pride in their work."',
+    'rloc1':'IT Director, Freetown','rloc2':'Operations Manager, Conakry','rloc3':'CEO, Freetown','rloc4':'Procurement Director, Conakry','rloc5':'Facilities Manager, Monrovia',
+    'cov.tag':'Markets','cov.h2':'Where We Operate','cov.sub':'Delivering enterprise IT hardware, professional installations, and equipment procurement services across West Africa.',
+    'cov.sl':'Sierra Leone','cov.gn':'Guinea','cov.wa':'West Africa',
+    'ind.tag':'Industries','ind.h2':'Industries We Serve','ind.sub':'We work with organizations of all sizes — from growing SMEs to large enterprises and government institutions.',
+    'ind1':'Banks &amp; Financial Services','ind2':'Government &amp; Public Sector','ind3':'Telecoms &amp; ISPs','ind4':'Healthcare Facilities','ind5':'Schools &amp; Universities','ind6':'Mining &amp; Industrial','ind7':'NGOs &amp; International Orgs',
+    'form.h2':'Get a <span>Free Quote</span> Today','form.p':'Tell us what your business needs and our team will get back to you within 24 hours with pricing and availability.',
+    'perk1':'Global equipment procurement &amp; sourcing','perk2':'Professional on-site installation','perk3':'Response within 24 hours','perk4':'Flexible payment &amp; financing options',
+    'form.title':'Request a Quote','form.ok.h3':'Quote Request Received!','form.ok.p':'We will contact you within 24 hours with pricing and availability.',
+    'lbl.name':'Full Name','lbl.phone':'Phone / WhatsApp','lbl.email':'Email Address','lbl.company':'Company Name','lbl.country':'Country','lbl.reqtype':'Request Type','lbl.details':'Project Details',
+    'ph.name':'Jean Kamara','ph.email':'you@company.com','ph.company':'Your Company Ltd','ph.details':'Describe your requirements, quantities, site location, and any other details...',
+    'form.submit':'Send Quote Request &#8594;','form.note':'We will only contact you regarding your quote request. No spam.',
+    'ft.desc':'Enterprise IT hardware supplier and installation company serving West Africa. Routers, servers, computers, fiber optic cabling, and full-scale IT installations for businesses.',
+    'ft.srv.h4':'Services','ft.mkt.h4':'Markets','ft.ct.h4':'Contact Us',
+    'ft.srv1':'Routers &amp; Networking','ft.srv2':'Servers &amp; Infrastructure','ft.srv3':'Fiber Optic Cabling','ft.srv4':'Computers &amp; Workstations','ft.srv5':'Equipment Procurement','ft.srv6':'IT Installations',
+    'ft.cta':'Request a Quote &#8594;','ft.copy':'&#169; 2026 LAVAALL. All rights reserved.','ft.tag':'Enterprise IT Hardware &amp; Solutions &middot; West Africa',
+    'sel.country':'<option value="">Select country</option><option>Sierra Leone</option><option>Guinea</option><option>Liberia</option><option>Other West Africa</option>',
+    'sel.reqtype':'<option value="">Select type</option><optgroup label="Hardware Supply"><option>Routers &amp; Network Switches</option><option>Servers (Dell / HP / Other)</option><option>Computers &amp; Workstations</option><option>Fiber Optic Cables</option><option>Structured Cabling (Cat6/Cat6A)</option><option>Network Accessories</option></optgroup><optgroup label="Services"><option>Fiber Optic Installation</option><option>Network Infrastructure Setup</option><option>Server Deployment</option><option>IT Installation &amp; Deployment</option><option>Equipment Procurement</option></optgroup>'
+  },
+  fr:{
+    'nav.services':'Services','nav.products':'Produits','nav.reviews':'Avis Clients','nav.coverage':'Couverture','nav.cta':'Demander un Devis',
+    'hero.sunlabel':'Partenaire IT<br/>Entreprise',
+    'hero.badge':'Matériel IT Entreprise B2B &amp; Solutions',
+    'hero.h1':'Équipez Votre<br/><span class="hl">Entreprise</span><br/>Pour Demain',
+    'hero.p':'Nous fournissons, installons et approvisionnons du matériel IT professionnel — routeurs, serveurs, ordinateurs et câblage fibre optique — pour les entreprises en Afrique de l\'Ouest.',
+    'hero.btn1':'Demander un Devis','hero.btn2':'Voir les Équipements','hero.scroll':'DÉFILER',
+    'srv.tag':'Ce Que Nous Faisons','srv.h2':'Solutions IT Complètes<br/>Pour Votre Entreprise',
+    'srv.sub':'De l\'approvisionnement en équipements et la fourniture de matériel aux installations fibre optique à grande échelle et aux déploiements de serveurs — votre partenaire technologique de bout en bout.',
+    'srv1.h3':'Routeurs &amp; Réseaux','srv1.p':'Fourniture et installation professionnelle de routeurs, commutateurs et points d\'accès sans fil de qualité entreprise pour des bureaux de toute taille.',
+    'srv1.ul':'<li>Routeurs Cisco, MikroTik &amp; Ubiquiti</li><li>Commutateurs managés &amp; non managés</li><li>Points d\'accès sans fil &amp; contrôleurs</li><li>Pare-feu &amp; appliances UTM</li>',
+    'srv2.h3':'Serveurs &amp; Infrastructure','srv2.p':'Approvisionnement et déploiement de serveurs entreprise, stockage NAS et installation complète de salle des serveurs pour les opérations critiques.',
+    'srv2.ul':'<li>Serveurs rack &amp; tour Dell PowerEdge</li><li>Série HP ProLiant</li><li>Systèmes de stockage NAS &amp; SAN</li><li>Aménagement &amp; rack de salle serveur</li>',
+    'srv3.h3':'Câblage Fibre Optique','srv3.p':'Installations de fibre optique et câblage structuré de bout en bout pour les bureaux, campus, entrepôts et installations industrielles.',
+    'srv3.ul':'<li>Fibre monomode &amp; multimode</li><li>Câblage structuré Cat6 / Cat6A</li><li>Terminaison &amp; test fibre</li><li>Chemins de câbles &amp; systèmes de gestion</li>',
+    'srv4.h3':'Ordinateurs &amp; Postes de Travail','srv4.p':'Ordinateurs de bureau, portables et postes de travail professionnels sourcés et configurés pour les environnements d\'entreprise. Commandes en volume bienvenues.',
+    'srv4.ul':'<li>Bureautiques Dell OptiPlex &amp; Precision</li><li>Portables HP ProBook &amp; EliteBook</li><li>Lenovo ThinkCentre &amp; ThinkPad</li><li>Déploiements en volume préconfigurés</li>',
+    'srv5.h3':'Approvisionnement en Équipements','srv5.p':'Nous sourceons et approvisionnons tout équipement IT pour votre entreprise — directement auprès des distributeurs et fabricants mondiaux à des prix compétitifs.',
+    'srv5.ul':'<li>Réseau mondial de fournisseurs &amp; distributeurs</li><li>Sourcing d\'équipements sur mesure</li><li>Gestion des commandes en volume</li><li>Logistique &amp; livraison au dernier km</li>',
+    'srv6.h3':'Installation &amp; Déploiement IT','srv6.p':'Installation professionnelle sur site et mise en service de toute l\'infrastructure IT — des configurations de bureau unique aux déploiements multi-sites d\'entreprise.',
+    'srv6.ul':'<li>Gestion de projet sur site</li><li>Mise en service &amp; test réseau</li><li>Déploiements multi-sites &amp; à distance</li><li>Support &amp; formation post-installation</li>',
+    'stat1':'Clients Entreprises','stat2':'Projets Réalisés','stat3':'Pays Desservis','stat4':'Support Après-Vente',
+    'prod.tag':'Catalogue Matériel','prod.h2':'Équipements de Qualité Entreprise',
+    'prod.sub':'Routeurs, serveurs, ordinateurs, câbles fibre et plus — sourcés auprès des fabricants leaders mondiaux. Contactez-nous pour demander un devis pour tout article.',
+    'filt.all':'Tout l\'Équipement','filt.routers':'Routeurs &amp; Commutateurs','filt.servers':'Serveurs','filt.computers':'Ordinateurs','filt.fiber':'Fibre &amp; Câblage',
+    'p1.h3':'Cisco ISR Série 4000','p1.p':'Routeur de qualité entreprise pour l\'agrégation WAN, SD-WAN et les déploiements de succursales. Supporte la sécurité avancée et la QoS.',
+    'p2.h3':'MikroTik RouterBoard','p2.p':'Routage et commutation entreprise haute performance à un excellent rapport qualité-prix. Idéal pour les FAI, PME et réseaux multi-sites.',
+    'p3.h3':'Commutateur Cisco Catalyst','p3.p':'Commutateurs gigabit managés pour l\'infrastructure LAN entreprise. Disponibles en 24 et 48 ports avec configurations PoE+.',
+    'p4.h3':'Serveur Dell PowerEdge','p4.p':'Serveurs rack et tour haute performance pour les charges de travail entreprise. Disponibles en 1U, 2U et tour. Configurations personnalisées sur demande.',
+    'p5.h3':'Serveur HP ProLiant','p5.p':'Serveurs rack et tour ProLiant fiables pour la virtualisation, les bases de données et les applications métier. Gestion à distance HPE iLO incluse.',
+    'p6.h3':'Bureau Dell OptiPlex','p6.p':'Ordinateurs de bureau entreprise pour les équipes d\'entreprise. Facteur de forme slim avec des processeurs Intel Core puissants. Commandes en volume avec préconfiguration disponibles.',
+    'p7.h3':'Portable HP ProBook','p7.p':'Portables professionnels conçus pour l\'entreprise. Durabilité MIL-STD, batterie longue durée et fonctionnalités de sécurité entreprise pour votre équipe.',
+    'p8.h3':'Câble Fibre Optique','p8.p':'Câbles fibre optique monomode et multimode pour les passages intérieurs et extérieurs. Disponibles en longueurs personnalisées, options blindées et bobines en vrac.',
+    'p9.h3':'Câblage Structuré (Cat6/Cat6A)','p9.p':'Kits de câblage structuré complets — Cat6, Cat6A, panneaux de brassage, connecteurs, plaques et chemins de câbles. Fourniture seule ou installation complète disponible.',
+    'quote.btn':'Demander un Devis &#9662;',
+    'rev.tag':'Avis Clients','rev.h2':'Ce Que Disent Nos Clients',
+    'rev1':'"LAVAALL a équipé l\'intégralité de notre siège avec des postes de travail Dell et déployé un réseau Cisco complet. L\'installation a été rapide, professionnelle et exactement selon les spécifications."',
+    'rev2':'"Ils ont sourcé 30 serveurs HP et installé le câblage fibre optique dans notre bâtiment de 5 étages. Gestion de projet exceptionnelle du diagnostic à la mise en service. Hautement recommandé."',
+    'rev3':'"LAVAALL a approvisionné et installé une infrastructure réseau MikroTik complète et le câblage structuré pour notre nouveau campus. Dans les délais, dans le budget, avec un excellent support post-installation."',
+    'rev4':'"Nous avions besoin urgemment de 50 postes de travail et d\'une salle serveur. LAVAALL a tout livré en moins de deux semaines. Équipe très professionnelle, communication claire tout au long du projet."',
+    'rev5':'"Le câblage fibre optique de notre installation est impeccable — routage propre, étiquetage approprié et rapports de test complets fournis. Ce sont de vrais professionnels qui prennent soin de leur travail."',
+    'rloc1':'Directrice IT, Freetown','rloc2':'Directeur des Opérations, Conakry','rloc3':'PDG, Freetown','rloc4':'Directeur des Achats, Conakry','rloc5':'Responsable des Installations, Monrovia',
+    'cov.tag':'Marchés','cov.h2':'Où Nous Opérons','cov.sub':'Livraison de matériel IT entreprise, installations professionnelles et services d\'approvisionnement en équipements à travers l\'Afrique de l\'Ouest.',
+    'cov.sl':'Sierra Leone','cov.gn':'Guinée','cov.wa':'Afrique de l\'Ouest',
+    'ind.tag':'Secteurs','ind.h2':'Secteurs Que Nous Servons','ind.sub':'Nous travaillons avec des organisations de toutes tailles — des PME en croissance aux grandes entreprises et institutions gouvernementales.',
+    'ind1':'Banques &amp; Services Financiers','ind2':'Gouvernement &amp; Secteur Public','ind3':'Télécoms &amp; FAI','ind4':'Établissements de Santé','ind5':'Écoles &amp; Universités','ind6':'Mines &amp; Industrie','ind7':'ONG &amp; Organisations Internationales',
+    'form.h2':'Obtenez un <span>Devis Gratuit</span> Aujourd\'hui','form.p':'Dites-nous ce dont votre entreprise a besoin et notre équipe vous répondra dans les 24 heures avec les tarifs et la disponibilité.',
+    'perk1':'Approvisionnement &amp; sourcing mondial en équipements','perk2':'Installation professionnelle sur site','perk3':'Réponse sous 24 heures','perk4':'Options de paiement &amp; financement flexibles',
+    'form.title':'Demander un Devis','form.ok.h3':'Demande de Devis Reçue !','form.ok.p':'Nous vous contacterons dans les 24 heures avec les tarifs et la disponibilité.',
+    'lbl.name':'Nom Complet','lbl.phone':'Téléphone / WhatsApp','lbl.email':'Adresse E-mail','lbl.company':'Nom de l\'Entreprise','lbl.country':'Pays','lbl.reqtype':'Type de Demande','lbl.details':'Détails du Projet',
+    'ph.name':'Jean Kamara','ph.email':'vous@entreprise.com','ph.company':'Votre Entreprise SARL','ph.details':'Décrivez vos besoins, quantités, lieu d\'installation et tout autre détail...',
+    'form.submit':'Envoyer la Demande de Devis &#8594;','form.note':'Nous vous contacterons uniquement concernant votre demande de devis. Pas de spam.',
+    'ft.desc':'Fournisseur de matériel IT entreprise et société d\'installation au service de l\'Afrique de l\'Ouest. Routeurs, serveurs, ordinateurs, câblage fibre optique et installations IT complètes pour les entreprises.',
+    'ft.srv.h4':'Services','ft.mkt.h4':'Marchés','ft.ct.h4':'Nous Contacter',
+    'ft.srv1':'Routeurs &amp; Réseaux','ft.srv2':'Serveurs &amp; Infrastructure','ft.srv3':'Câblage Fibre Optique','ft.srv4':'Ordinateurs &amp; Postes de Travail','ft.srv5':'Approvisionnement en Équipements','ft.srv6':'Installations IT',
+    'ft.cta':'Demander un Devis &#8594;','ft.copy':'&#169; 2026 LAVAALL. Tous droits réservés.','ft.tag':'Matériel IT Entreprise &amp; Solutions &middot; Afrique de l\'Ouest',
+    'sel.country':'<option value="">Choisir le pays</option><option>Sierra Leone</option><option>Guinée</option><option>Libéria</option><option>Autre Afrique de l\'Ouest</option>',
+    'sel.reqtype':'<option value="">Choisir le type</option><optgroup label="Fourniture de Matériel"><option>Routeurs &amp; Commutateurs</option><option>Serveurs (Dell / HP / Autre)</option><option>Ordinateurs &amp; Postes de Travail</option><option>Câbles Fibre Optique</option><option>Câblage Structuré (Cat6/Cat6A)</option><option>Accessoires Réseau</option></optgroup><optgroup label="Services"><option>Installation Fibre Optique</option><option>Installation Infrastructure Réseau</option><option>Déploiement de Serveurs</option><option>Installation &amp; Déploiement IT</option><option>Approvisionnement en Équipements</option></optgroup>'
+  }
+};
 function setLang(l){
+  currentLang=l;
   document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase()===l));
+  const tr=translations[l];
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n');
+    if(tr[k]!==undefined) el.innerHTML=tr[k];
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    const k=el.getAttribute('data-i18n-ph');
+    if(tr[k]!==undefined) el.placeholder=tr[k];
+  });
+  const sc=document.getElementById('sel-country');
+  const sr=document.getElementById('sel-reqtype');
+  if(sc) sc.innerHTML=tr['sel.country'];
+  if(sr) sr.innerHTML=tr['sel.reqtype'];
+  document.documentElement.lang=l;
+  // refresh coverage note
+  const active=document.querySelector('.ctry.on[data-code]');
+  if(active){const d=covData[active.getAttribute('data-code')][l];document.getElementById('cnote').innerHTML=covData[active.getAttribute('data-code')].flag+' <strong>'+d.name+'</strong> &#8212; '+d.text;}
 }
 
 </script>
