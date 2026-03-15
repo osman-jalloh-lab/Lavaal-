@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>LAVAALL - Enterprise Technology Distributor & IT Solutions</title>
-<meta name="description" content="Authorized Tech Hardware reseller & IT company. High-speed satellite internet, cybersecurity, GRC, and AI web development for West Africa."/>
+<title>LAVAALL – Enterprise IT Hardware & Solutions</title>
+<meta name="description" content="B2B Enterprise IT Hardware Procurement & Installation. Routers, Servers, Computers, Fiber Optic Cables. Professional installations for businesses across West Africa."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@500;600;700&family=Bricolage+Grotesque:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -12,7 +12,9 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 html{scroll-behavior:smooth;}
 body{font-family:'Bricolage Grotesque',sans-serif;background:var(--offwhite);color:var(--ink);overflow-x:hidden;}
-nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:0 6%;height:68px;background:rgba(255,255,255,.88);backdrop-filter:blur(20px);border-bottom:2px solid var(--ink);}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:0 6%;height:68px;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);border-bottom:2px solid var(--ink);}
 .logo{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:700;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:8px;}
 .logo-star{width:30px;height:30px;background:var(--sun);border-radius:50%;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:14px;animation:spin 8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -26,6 +28,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:cen
 .lb.on{background:var(--sun);color:var(--ink);}
 .nav-cta{padding:9px 22px;background:var(--ink);color:var(--white);border:2px solid var(--ink);border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;text-decoration:none;}
 .nav-cta:hover{background:var(--sun);color:var(--ink);}
+
+/* HERO */
 .hero{min-height:100vh;background:var(--sky);border-bottom:3px solid var(--ink);display:flex;align-items:center;padding:120px 6% 80px;position:relative;overflow:hidden;}
 .ring{position:absolute;border-radius:50%;border:2px solid rgba(0,0,0,.07);animation:expandRing 4s ease-out infinite;pointer-events:none;}
 @keyframes expandRing{0%{transform:scale(.8);opacity:.7}100%{transform:scale(2.8);opacity:0}}
@@ -47,90 +51,84 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .bp:hover{background:var(--white);color:var(--ink);transform:translateY(-3px);}
 .bs{padding:16px 36px;background:transparent;color:var(--ink);border:2px solid var(--ink);border-radius:100px;font-size:16px;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;text-decoration:none;display:inline-block;transition:all .25s;}
 .bs:hover{background:var(--ink);color:var(--white);transform:translateY(-3px);}
-.scrollhint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--ink);opacity:.55; z-index:0;}
+.scrollhint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--ink);opacity:.55;z-index:0;}
 .scrollbar{width:2px;height:36px;background:var(--ink);animation:scrollpulse 1.6s ease-in-out infinite;}
 @keyframes scrollpulse{0%,100%{height:36px;opacity:.3}50%{height:18px;opacity:1}}
+
+/* TICKER */
 .ticker{background:var(--sun);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);padding:13px 0;overflow:hidden;white-space:nowrap;}
-.ticker-track{display:inline-flex;gap:55px;animation:tick 22s linear infinite;}
+.ticker-track{display:inline-flex;gap:55px;animation:tick 28s linear infinite;}
 .ticker-track span{font-family:'Clash Display',sans-serif;font-size:14px;font-weight:600;color:var(--ink);}
 @keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* BRANDS */
+.brands{background:var(--ink);border-bottom:2px solid rgba(255,255,255,.08);padding:32px 6%;display:flex;align-items:center;justify-content:center;gap:52px;flex-wrap:wrap;}
+.brand-item{font-family:'Clash Display',sans-serif;font-size:17px;font-weight:700;color:rgba(255,255,255,.28);letter-spacing:1px;transition:color .25s;cursor:default;}
+.brand-item:hover{color:var(--sun);}
+
+/* ANIMATIONS */
 .reveal{opacity:0;transform:translateY(48px);transition:opacity .7s ease,transform .7s ease;}
 .reveal-l{opacity:0;transform:translateX(-48px);transition:opacity .7s ease,transform .7s ease;}
 .reveal-r{opacity:0;transform:translateX(48px);transition:opacity .7s ease,transform .7s ease;}
 .up{opacity:1!important;transform:none!important;}
+
+/* SECTION WRAPPER */
 .sw{padding:100px 6%;max-width:1280px;margin:0 auto;}
 .tag{display:inline-block;background:var(--ink);color:var(--white);font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:100px;margin-bottom:14px;}
 .stitle{font-family:'Clash Display',sans-serif;font-size:clamp(32px,4.5vw,58px);font-weight:700;line-height:1.05;letter-spacing:-1.5px;margin-bottom:14px;}
 .ssub{font-size:17px;color:var(--muted);max-width:540px;line-height:1.75;margin-bottom:60px;}
+
+/* SERVICES */
 #services{background:var(--white);border-bottom:2px solid var(--ink);}
 .srv-grid{display:grid;grid-template-columns:repeat(3,1fr);}
 .sc{padding:48px 40px;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);position:relative;overflow:hidden;transition:transform .3s;}
 .sc:nth-child(3n){border-right:none;}
+.sc:nth-child(n+4){border-bottom:none;}
 .sc::before{content:'';position:absolute;inset:0;background:var(--sky);transform:translateY(100%);transition:transform .42s cubic-bezier(.16,1,.3,1);z-index:0;}
-.sc:hover::before{transform:translateY(0);}.sc:hover{transform:translateY(-4px);}
+.sc:hover::before{transform:translateY(0);}
+.sc:hover{transform:translateY(-4px);}
 .sc>*{position:relative;z-index:1;}
 .sico{width:58px;height:58px;border-radius:14px;background:var(--offwhite);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:26px;transition:background .4s;}
 .sc:hover .sico{background:var(--sun);}
-.sc h3{font-family:'Clash Display',sans-serif;font-size:24px;font-weight:600;margin-bottom:12px;}
-.sc p{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:18px;}.sc:hover p{color:rgba(10,10,20,.7);}
+.sc h3{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:600;margin-bottom:12px;}
+.sc p{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:18px;}
+.sc:hover p{color:rgba(10,10,20,.7);}
 .sclist{list-style:none;}
 .sclist li{font-size:14px;padding:5px 0;display:flex;align-items:center;gap:10px;color:var(--muted);}
 .sc:hover .sclist li{color:var(--ink);}
 .sclist li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--ink);flex-shrink:0;}
+
+/* STATS */
 .stats{background:var(--lime);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);display:grid;grid-template-columns:repeat(4,1fr);}
-.si{padding:40px 30px;text-align:center;border-right:2px solid var(--ink);}.si:last-child{border-right:none;}
+.si{padding:40px 30px;text-align:center;border-right:2px solid var(--ink);}
+.si:last-child{border-right:none;}
 .sn{font-family:'Clash Display',sans-serif;font-size:52px;font-weight:700;color:var(--ink);line-height:1;}
 .sl{font-size:14px;color:rgba(10,10,20,.6);margin-top:6px;font-weight:500;}
+
+/* PRODUCTS */
 #products{background:var(--offwhite);border-bottom:2px solid var(--ink);}
 .prod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
 .prod-card{background:var(--white);border:2px solid var(--ink);border-radius:var(--r);overflow:hidden;transition:transform .3s,box-shadow .3s;}
 .prod-card:hover{transform:translateY(-6px);box-shadow:0 12px 40px rgba(0,0,0,.1);}
-.prod-img{width:100%;height:240px;object-fit:cover;border-bottom:2px solid var(--ink);}
-.prod-info{padding:28px;}
-.prod-info h3{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:600;margin-bottom:8px;}
-.prod-info p{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:16px;}
-.prod-price{font-family:'Clash Display',sans-serif;font-size:28px;font-weight:700;color:var(--ink);margin-bottom:16px;}
-.prod-price span{font-size:14px;color:var(--muted);font-weight:400;}
-#plans{background:var(--offwhite);border-bottom:2px solid var(--ink);}
-.plans{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--ink);border-radius:var(--r);overflow:hidden;}
-.plan{padding:44px 34px;background:var(--white);border-right:2px solid var(--ink);position:relative;}
-.plan:last-child{border-right:none;}.plan.hot{background:var(--ink);color:var(--white);}
-.ptag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:100px;border:2px solid var(--ink);margin-bottom:18px;color:var(--ink);}
-.plan.hot .ptag{border-color:var(--sun);color:var(--sun);}
-.pname{font-family:'Clash Display',sans-serif;font-size:26px;font-weight:600;margin-bottom:6px;}
-.pprice{font-family:'Clash Display',sans-serif;font-size:58px;font-weight:700;line-height:1;margin:18px 0 4px;color:var(--ink);}
-.plan.hot .pprice{color:var(--sun);}.pprice span{font-size:18px;font-weight:400;color:var(--muted);}
-.plan.hot .pprice span{color:rgba(255,255,255,.4);}
-.pkit{font-size:13px;color:var(--muted);margin-bottom:26px;}.plan.hot .pkit{color:rgba(255,255,255,.45);}
-.pdiv{height:2px;background:var(--ink);margin-bottom:22px;}.plan.hot .pdiv{background:rgba(255,255,255,.15);}
-.pfeats{list-style:none;margin-bottom:32px;}
-.pfeats li{font-size:14px;padding:7px 0;display:flex;gap:10px;align-items:flex-start;color:var(--muted);border-bottom:1px solid rgba(0,0,0,.05);}
-.pfeats li:last-child{border-bottom:none;}
-.plan.hot .pfeats li{color:rgba(255,255,255,.65);border-bottom-color:rgba(255,255,255,.07);}
-.chk{color:var(--lime);font-weight:700;flex-shrink:0;}.plan.hot .chk{color:var(--sun);}
-.pbtn{display:block;text-align:center;padding:14px;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;border:2px solid var(--ink);background:transparent;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;text-decoration:none;transition:all .25s;}
+.prod-img{width:100%;height:230px;object-fit:cover;border-bottom:2px solid var(--ink);}
+.prod-info{padding:26px;}
+.prod-info h3{font-family:'Clash Display',sans-serif;font-size:20px;font-weight:600;margin-bottom:8px;}
+.prod-info p{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:18px;}
+.hw-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px;}
+.chat-chip{padding:7px 16px;background:var(--white);border:2px solid var(--ink);border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;}
+.chat-chip:hover,.chat-chip.on{background:var(--ink);color:var(--white);}
+.pbtn{display:block;text-align:center;padding:12px 20px;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;border:2px solid var(--ink);background:transparent;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;text-decoration:none;transition:all .25s;}
 .pbtn:hover{background:var(--ink);color:var(--white);}
-.plan.hot .pbtn{background:var(--sun);color:var(--ink);border-color:var(--sun);}
-.plan.hot .pbtn:hover{background:var(--white);border-color:var(--white);}
-#promo{background:var(--coral);border-bottom:2px solid var(--ink);overflow:hidden;}
-.promo-inner{display:flex;align-items:center;justify-content:space-between;gap:40px;flex-wrap:wrap;}
-.promo-left h2{font-family:'Clash Display',sans-serif;font-size:clamp(34px,5vw,64px);font-weight:700;letter-spacing:-2px;color:var(--white);line-height:1.05;margin-bottom:14px;}
-.promo-left h2 em{background:var(--sun);color:var(--ink);font-style:normal;padding:0 10px;border-radius:8px;}
-.promo-left p{font-size:17px;color:rgba(255,255,255,.8);max-width:440px;line-height:1.7;}
-.cd{display:flex;gap:12px;margin-top:26px;}
-.cdb{background:var(--white);border:2px solid var(--ink);border-radius:14px;padding:14px 18px;text-align:center;min-width:76px;}
-.cdn{font-family:'Clash Display',sans-serif;font-size:34px;font-weight:700;color:var(--ink);line-height:1;}
-.cdl{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--muted);margin-top:4px;text-transform:uppercase;}
-.promo-cta{padding:20px 44px;background:var(--ink);color:var(--white);border:2px solid var(--ink);border-radius:100px;font-family:'Clash Display',sans-serif;font-size:20px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .25s;white-space:nowrap;display:inline-block;}
-.promo-cta:hover{background:var(--sun);color:var(--ink);transform:scale(1.04);}
-#reviews{background:linear-gradient(175deg, #0A0A14 0%, #0f1a2e 50%, #0A0A14 100%);border-bottom:2px solid var(--ink);position:relative;overflow:hidden;}
+
+/* REVIEWS */
+#reviews{background:linear-gradient(175deg,#0A0A14 0%,#0f1a2e 50%,#0A0A14 100%);border-bottom:2px solid var(--ink);position:relative;overflow:hidden;}
 #reviews::before{content:'';position:absolute;top:-200px;right:-100px;width:500px;height:500px;background:radial-gradient(circle,rgba(0,194,255,.06) 0%,transparent 70%);pointer-events:none;}
 #reviews::after{content:'';position:absolute;bottom:-150px;left:-50px;width:400px;height:400px;background:radial-gradient(circle,rgba(0,245,160,.05) 0%,transparent 70%);pointer-events:none;}
-.rev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
-.rev-card{background:rgba(255,255,255,.04);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08);border-left:3px solid var(--sky);border-radius:16px;padding:36px 32px;transition:transform .3s,border-color .3s,box-shadow .3s;}
+.rev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;}
+.rev-card{background:rgba(255,255,255,.04);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08);border-left:3px solid var(--sky);border-radius:16px;padding:36px 32px;transition:transform .3s,box-shadow .3s;}
 .rev-card:nth-child(2){border-left-color:var(--lime);}
 .rev-card:nth-child(3){border-left-color:var(--sun);}
-.rev-card:hover{transform:translateY(-6px);border-color:rgba(255,255,255,.2);box-shadow:0 12px 40px rgba(0,194,255,.08);}
+.rev-card:hover{transform:translateY(-6px);box-shadow:0 12px 40px rgba(0,194,255,.08);}
 .rev-stars{color:var(--sun);font-size:20px;margin-bottom:16px;letter-spacing:3px;}
 .rev-text{font-size:15px;color:rgba(255,255,255,.75);line-height:1.8;margin-bottom:22px;font-style:italic;}
 .rev-author{display:flex;align-items:center;gap:14px;}
@@ -139,13 +137,17 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .rev-loc{font-size:12px;color:rgba(255,255,255,.45);}
 .google-badge{display:inline-flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);border-radius:100px;padding:10px 22px;font-size:15px;color:rgba(255,255,255,.75);margin-bottom:44px;}
 .google-badge span{font-weight:700;color:var(--sun);font-size:16px;}
+
+/* COVERAGE */
 #coverage{background:var(--white);border-bottom:2px solid var(--ink);}
 .countries{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
 .ctry{display:flex;align-items:center;gap:12px;padding:13px 22px;background:var(--offwhite);border:2px solid var(--ink);border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;}
 .ctry:hover,.ctry.on{background:var(--sky);transform:translateY(-3px);}
 .flag{font-size:22px;}
-.cnote{margin-top:36px;padding:26px 30px;background:var(--sky);border:2px solid var(--ink);border-radius:var(--r);font-size:16px;font-weight:500;max-width:600px;}
-#signup{background:linear-gradient(175deg, #0A0A14 0%, #0d1525 100%);position:relative;overflow:hidden;}
+.cnote{margin-top:36px;padding:26px 30px;background:var(--sky);border:2px solid var(--ink);border-radius:var(--r);font-size:16px;font-weight:500;max-width:640px;line-height:1.6;}
+
+/* SIGNUP */
+#signup{background:linear-gradient(175deg,#0A0A14 0%,#0d1525 100%);position:relative;overflow:hidden;}
 #signup::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--sky),var(--lime),var(--sun));}
 #signup::after{content:'';position:absolute;top:50%;right:-100px;width:450px;height:450px;background:radial-gradient(circle,rgba(0,245,160,.04) 0%,transparent 70%);pointer-events:none;transform:translateY(-50%);}
 .su-wrap{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;padding:40px;}
@@ -155,916 +157,654 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .perks{display:flex;flex-direction:column;gap:16px;}
 .perk{display:flex;align-items:center;gap:14px;color:rgba(255,255,255,.78);font-size:15px;}
 .perkd{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--lime),rgba(0,245,160,.6));color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid rgba(0,245,160,.3);}
-.fcard{background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-radius:24px;padding:28px 24px;border:1px solid rgba(0,194,255,.15);box-shadow:0 20px 60px rgba(0,0,0,.2),0 0 0 1px rgba(255,255,255,.05);}
-.ftitle{font-family:'Clash Display',sans-serif;font-size:20px;font-weight:600;margin-bottom:20px;color:var(--ink);}
-.fg{margin-bottom:12px;}
-.fg label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-.fg input,.fg select{width:100%;padding:10px 14px;background:var(--offwhite);border:2px solid rgba(10,10,20,.12);border-radius:10px;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;}
-.fg input:focus,.fg select:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(0,194,255,.1);}
-.fgrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.fsub{width:100%;padding:14px;background:var(--ink);color:var(--white);border:2px solid var(--ink);border-radius:100px;font-family:'Clash Display',sans-serif;font-size:16px;font-weight:600;cursor:pointer;margin-top:4px;transition:all .25s;}
+.fcard{background:rgba(255,255,255,.97);border-radius:24px;padding:32px 28px;border:1px solid rgba(0,194,255,.15);box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.ftitle{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:600;margin-bottom:22px;color:var(--ink);}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fg input,.fg select,.fg textarea{width:100%;padding:11px 14px;background:var(--offwhite);border:2px solid rgba(10,10,20,.1);border-radius:10px;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(0,194,255,.1);}
+.fg textarea{resize:vertical;min-height:80px;}
+.fgrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fsub{width:100%;padding:14px;background:var(--ink);color:var(--white);border:2px solid var(--ink);border-radius:100px;font-family:'Clash Display',sans-serif;font-size:16px;font-weight:600;cursor:pointer;margin-top:6px;transition:all .25s;}
 .fsub:hover{background:linear-gradient(135deg,var(--lime),var(--sky));color:var(--ink);border-color:var(--lime);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,245,160,.2);}
 .fsub:disabled{opacity:.5;cursor:not-allowed;}
 .fnote{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;}
 .sbox{display:none;text-align:center;padding:40px 20px;}
 .sbox .si2{font-size:58px;margin-bottom:14px;}
-.sbox h3{font-family:'Clash Display',sans-serif;font-size:28px;font-weight:700;color:var(--lime);margin-bottom:8px;}
-.sbox p{color:rgba(255,255,255,.55);font-size:16px;}
+.sbox h3{font-family:'Clash Display',sans-serif;font-size:26px;font-weight:700;color:var(--lime);margin-bottom:8px;}
+.sbox p{color:var(--muted);font-size:15px;}
+
+/* FOOTER */
 footer{background:var(--ink);border-top:2px solid rgba(255,255,255,.08);padding:60px 6% 40px;}
 .ft{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:32px;margin-bottom:48px;}
 .flogo{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:700;color:var(--white);display:flex;align-items:center;gap:8px;margin-bottom:12px;}
 .flogod{width:26px;height:26px;background:var(--sun);border-radius:50%;}
-.fdesc{font-size:14px;color:rgba(255,255,255,.45);line-height:1.7;}
-footer h4{font-family:'Clash Display',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--white);margin-bottom:14px;}
-footer a{display:block;font-size:13px;color:rgba(255,255,255,.45);text-decoration:none;margin-bottom:8px;transition:color .2s;word-break:break-all;}
+.fdesc{font-size:14px;color:rgba(255,255,255,.45);line-height:1.75;}
+footer h4{font-family:'Clash Display',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:16px;}
+footer a{display:block;font-size:13px;color:rgba(255,255,255,.4);text-decoration:none;margin-bottom:9px;transition:color .2s;}
 footer a:hover{color:var(--sky);}
 .fb{border-top:1px solid rgba(255,255,255,.07);padding-top:26px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:rgba(255,255,255,.3);flex-wrap:wrap;gap:8px;}
-.cursor-glow{position:fixed;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(0,194,255,.07) 0%,transparent 70%);pointer-events:none;z-index:1;transform:translate(-50%,-50%);}
-/* Chatbot */
-.chat-fab{position:fixed;bottom:28px;right:28px;width:64px;height:64px;border-radius:50%;background:var(--sky);border:2px solid var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:28px;z-index:600;transition:all .3s;box-shadow:0 6px 24px rgba(0,194,255,.3);}
-.chat-fab:hover{transform:scale(1.1);box-shadow:0 8px 32px rgba(0,194,255,.45);}
-.chat-fab::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--sky);animation:chatpulse 2s ease-in-out infinite;opacity:.5;}
-@keyframes chatpulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.3);opacity:0}}
-.chat-panel{position:fixed;bottom:100px;right:28px;width:400px;max-height:560px;background:var(--white);border:2px solid var(--ink);border-radius:24px;z-index:601;display:flex;flex-direction:column;transform:translateY(20px) scale(.95);opacity:0;pointer-events:none;transition:all .35s cubic-bezier(.16,1,.3,1);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.15);}
-.chat-panel.open{transform:translateY(0) scale(1);opacity:1;pointer-events:all;}
-.chat-head{background:var(--ink);padding:18px 22px;display:flex;align-items:center;justify-content:space-between;}
-.chat-head-left{display:flex;align-items:center;gap:10px;}
-.chat-head-avatar{width:36px;height:36px;border-radius:50%;background:var(--sun);display:flex;align-items:center;justify-content:center;font-size:16px;}
-.chat-head-info h4{font-family:'Clash Display',sans-serif;font-size:15px;font-weight:600;color:var(--white);margin:0;}
-.chat-head-info p{font-size:11px;color:rgba(255,255,255,.5);margin:0;}
-.chat-close{background:none;border:none;color:rgba(255,255,255,.5);font-size:22px;cursor:pointer;transition:color .2s;}.chat-close:hover{color:var(--white);}
-.chat-body{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;min-height:280px;max-height:340px;}
-.chat-msg{max-width:82%;padding:12px 16px;border-radius:16px;font-size:14px;line-height:1.6;animation:msgIn .3s ease;}
-@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.chat-msg.bot{background:var(--offwhite);color:var(--ink);border-bottom-left-radius:4px;align-self:flex-start;border:1px solid rgba(0,0,0,.06);}
-.chat-msg.user{background:var(--ink);color:var(--white);border-bottom-right-radius:4px;align-self:flex-end;}
-.chat-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 18px 12px;}
-.chat-chip{padding:7px 14px;background:var(--offwhite);border:1.5px solid var(--ink);border-radius:100px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;}
-.chat-chip:hover{background:var(--sky);transform:translateY(-2px);}
-.chat-input-wrap{display:flex;align-items:center;gap:8px;padding:12px 18px;border-top:2px solid rgba(0,0,0,.06);}
-.chat-input{flex:1;padding:10px 14px;background:var(--offwhite);border:1.5px solid rgba(0,0,0,.1);border-radius:100px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;color:var(--ink);}
-.chat-input:focus{border-color:var(--sky);}
-.chat-send{width:38px;height:38px;border-radius:50%;background:var(--ink);border:none;color:var(--white);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;}
-.chat-send:hover{background:var(--sky);}
-.typing-dots{display:flex;gap:4px;padding:12px 16px;align-self:flex-start;}
-.typing-dots span{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:bounce .6s infinite alternate;}
-.typing-dots span:nth-child(2){animation-delay:.15s;}.typing-dots span:nth-child(3){animation-delay:.3s;}
+.social-row{display:flex;gap:10px;margin:14px 0;}
+.social-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;color:white;text-decoration:none;font-size:12px;font-weight:700;transition:transform .2s,opacity .2s;}
+.social-icon:hover{transform:scale(1.12);opacity:.9;}
+
+/* CURSOR GLOW */
+.cursor-glow{position:fixed;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(0,194,255,.06) 0%,transparent 70%);pointer-events:none;z-index:1;transform:translate(-50%,-50%);}
+
 @keyframes bounce{to{transform:translateY(-6px);opacity:.4}}
+
+/* ORDER DROPDOWN */
+.order-dd{display:none;position:fixed;width:260px;background:var(--white);border:2px solid var(--ink);border-radius:12px;z-index:9999;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.18);}
+.order-dd.show{display:block;animation:slideDown .2s ease-out;}
+@keyframes slideDown{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.dd-link{display:flex;align-items:center;gap:10px;padding:12px 18px;font-size:14px;font-weight:600;color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(0,0,0,.05);transition:background .2s;}
+.dd-link:last-child{border-bottom:none;}
+.dd-link:hover{background:var(--offwhite);color:var(--sky);}
+.dd-link span{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;color:white;font-size:11px;font-weight:700;flex-shrink:0;}
+
+/* RESPONSIVE */
 @media(max-width:900px){
-.nav-links{display:none;}
-.hero{padding:100px 5% 80px;}
-.sun-ball{display:none;}
-.hero-content{max-width:100%;}
-.srv-grid{grid-template-columns:1fr;}
-.sc{border-right:none!important;}
-.stats{grid-template-columns:1fr 1fr;}
-.si:nth-child(2){border-right:none;}
-.si:nth-child(3){border-top:2px solid var(--ink);}
-.plans{grid-template-columns:1fr;}
-.plan{border-right:none;border-bottom:2px solid var(--ink);}
-.prod-grid{grid-template-columns:1fr 1fr;gap:16px;}
-.rev-grid{grid-template-columns:1fr;}
-.su-wrap{grid-template-columns:1fr;gap:32px;padding:32px 20px;}
-.ft{grid-template-columns:1fr 1fr;gap:24px;}
-.chat-panel{right:10px;left:10px;width:auto;bottom:90px;}
+  .nav-links{display:none;}
+  .hero{padding:100px 5% 80px;}
+  .sun-ball{display:none;}
+  .hero-content{max-width:100%;}
+  .srv-grid{grid-template-columns:1fr;}
+  .sc{border-right:none!important;}
+  .sc:nth-child(n+4){border-bottom:2px solid var(--ink);}
+  .stats{grid-template-columns:1fr 1fr;}
+  .si:nth-child(2){border-right:none;}
+  .si:nth-child(3){border-top:2px solid var(--ink);}
+  .prod-grid{grid-template-columns:1fr 1fr;gap:16px;}
+  .rev-grid{grid-template-columns:1fr;}
+  .su-wrap{grid-template-columns:1fr;gap:32px;padding:32px 20px;}
+  .ft{grid-template-columns:1fr 1fr;gap:24px;}
+  .brands{gap:24px;}
 }
 @media(max-width:600px){
-html,body{overflow-x:hidden;max-width:100vw;}
-img{max-width:100%;height:auto;}
-nav{padding:0 4%;height:56px;}
-.logo{font-size:18px;}
-.nav-cta{padding:7px 14px;font-size:12px;}
-.lang-wrap{transform:scale(.85);}
-h1{font-size:36px;letter-spacing:-1px;line-height:1.05;margin-bottom:16px;}
-.hero{padding:90px 5% 50px;}
-.hero p{font-size:15px;line-height:1.6;margin-bottom:28px;}
-.btns{flex-direction:column;width:100%;gap:10px;}
-.bp,.bs{width:100%;text-align:center;padding:14px 20px;font-size:14px;}
-.badge{font-size:11px;padding:5px 12px;}
-.sw{padding:48px 5%;}
-.stitle{font-size:28px;letter-spacing:-1px;}
-.ssub{font-size:14px;}
-.sc{padding:32px 24px;}
-.sc h3{font-size:20px;}
-.sc p{font-size:13px;}
-.prod-grid{grid-template-columns:1fr;gap:16px;}
-.prod-img{height:200px;}
-.prod-info{padding:20px;}
-.prod-info h3{font-size:18px;}
-.prod-info p{font-size:13px;}
-.stats{grid-template-columns:1fr 1fr;}
-.sn{font-size:36px;}
-.si{padding:24px 16px;}
-.rc{padding:24px 20px;border-radius:14px;}
-.rtext{font-size:14px;line-height:1.6;}
-.rev-head{font-size:13px;}
-.rev-stars{font-size:16px;}
-.fgrow{grid-template-columns:1fr;}
-.fcard{padding:20px 16px;}
-.ftitle{font-size:18px;}
-.fg input,.fg select{padding:10px 12px;font-size:13px;}
-.fsub{padding:12px;font-size:14px;}
-.ft{grid-template-columns:1fr;gap:24px;}
-footer{padding:40px 5% 30px;}
-footer h4{font-size:12px;}
-footer a{font-size:12px;}
-.fb{font-size:11px;flex-direction:column;align-items:flex-start;gap:6px;}
-.su-left h2{font-size:28px;letter-spacing:-1px;}
-.su-left p{font-size:14px;}
-.perk{font-size:13px;}
-.promo-inner{flex-direction:column;padding:28px 16px;}
-.hw-filters{gap:6px;}
-.hw-filters .chat-chip{font-size:11px;padding:5px 10px;}
-.countries{gap:8px;}
-.ctry{padding:10px 16px;font-size:13px;}
-.cnote{font-size:14px;padding:20px;}
-.scrollhint{display:none;}
+  html,body{overflow-x:hidden;max-width:100vw;}
+  img{max-width:100%;height:auto;}
+  nav{padding:0 4%;height:56px;}
+  .logo{font-size:18px;}
+  .nav-cta{padding:7px 14px;font-size:12px;}
+  .lang-wrap{transform:scale(.85);}
+  h1{font-size:36px;letter-spacing:-1px;line-height:1.05;margin-bottom:16px;}
+  .hero{padding:90px 5% 50px;}
+  .hero p{font-size:15px;line-height:1.6;margin-bottom:28px;}
+  .btns{flex-direction:column;width:100%;gap:10px;}
+  .bp,.bs{width:100%;text-align:center;padding:14px 20px;font-size:14px;}
+  .badge{font-size:11px;padding:5px 12px;}
+  .sw{padding:52px 5%;}
+  .stitle{font-size:28px;letter-spacing:-1px;}
+  .ssub{font-size:14px;}
+  .sc{padding:32px 24px;}
+  .sc h3{font-size:20px;}
+  .sc p{font-size:13px;}
+  .prod-grid{grid-template-columns:1fr;gap:16px;}
+  .prod-img{height:200px;}
+  .prod-info{padding:20px;}
+  .prod-info h3{font-size:18px;}
+  .prod-info p{font-size:13px;}
+  .stats{grid-template-columns:1fr 1fr;}
+  .sn{font-size:36px;}
+  .si{padding:24px 16px;}
+  .fgrow{grid-template-columns:1fr;}
+  .fcard{padding:22px 16px;}
+  .ftitle{font-size:18px;}
+  .fg input,.fg select,.fg textarea{padding:10px 12px;font-size:13px;}
+  .fsub{padding:13px;font-size:14px;}
+  .ft{grid-template-columns:1fr;gap:24px;}
+  footer{padding:40px 5% 30px;}
+  .fb{font-size:11px;flex-direction:column;align-items:flex-start;gap:6px;}
+  .su-left h2{font-size:28px;letter-spacing:-1px;}
+  .su-left p{font-size:14px;}
+  .perk{font-size:13px;}
+  .countries{gap:8px;}
+  .ctry{padding:10px 16px;font-size:13px;}
+  .cnote{font-size:14px;padding:20px;}
+  .scrollhint{display:none;}
+  .brands{gap:16px;}
+  .brand-item{font-size:13px;}
+  .hw-filters{gap:6px;}
+  .chat-chip{font-size:11px;padding:5px 12px;}
 }
-.hw-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
 </style>
 </head>
 <body>
+<div class="cursor-glow" id="glow"></div>
+
+<!-- NAVIGATION -->
 <nav>
   <a href="#" class="logo"><div class="logo-star">&#9733;</div>LAVAALL</a>
   <ul class="nav-links">
-    <li><a href="#services" data-i="nav1">Services</a></li>
-    <li><a href="#products" data-i="nav5">Products</a></li>
-    
-    <li><a href="#reviews" data-i="nav6">Reviews</a></li>
-    <li><a href="#coverage" data-i="nav4">Coverage</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#products">Products</a></li>
+    <li><a href="#reviews">Reviews</a></li>
+    <li><a href="#coverage">Coverage</a></li>
   </ul>
   <div class="nav-r">
     <div class="lang-wrap">
       <button class="lb on" onclick="setLang('en')">EN</button>
       <button class="lb" onclick="setLang('fr')">FR</button>
     </div>
-    <a href="#signup" class="nav-cta" data-i="nav_cta">Get Connected</a>
+    <a href="#signup" class="nav-cta">Request Quote</a>
   </div>
 </nav>
+
+<!-- HERO -->
 <section class="hero" id="home">
   <div class="ring" style="width:500px;height:500px;top:50%;left:28%;margin:-250px 0 0 -250px;animation-delay:0s"></div>
   <div class="ring" style="width:320px;height:320px;top:50%;left:28%;margin:-160px 0 0 -160px;animation-delay:1.8s"></div>
   <div class="sun-ball">
     <div class="sun-inner">
-      <div class="sun-label" data-i="sun_label">Enterprise<br/>Tech<br/>Partner</div>
+      <div class="sun-label">Enterprise<br/>IT<br/>Partner</div>
       <div class="odot" style="--s:0deg;--r:145px;animation-duration:6s"></div>
       <div class="odot" style="--s:120deg;--r:145px;animation-duration:9s;background:#00C2FF"></div>
       <div class="odot" style="--s:240deg;--r:145px;animation-duration:12s;background:#00F5A0"></div>
     </div>
   </div>
   <div class="hero-content">
-    <div class="badge"><div class="blip"></div><span data-i="hero_badge">Now live in West Africa</span></div>
-    <h1><span data-i="h1a">Accelerating</span><br/><span class="hl" data-i="h1b">Enterprise</span><br/><span data-i="h1c">Innovation</span></h1>
-    <p data-i="hero_sub">High-performance tech hardware, verified cybersecurity, and custom AI applications &#8212; installed and supported across West Africa.</p>
+    <div class="badge"><div class="blip"></div><span>B2B Enterprise IT Hardware &amp; Solutions</span></div>
+    <h1>Equip Your<br/><span class="hl">Business</span><br/>For Tomorrow</h1>
+    <p class="reveal" style="transition-delay:.12s">We supply, install, and procure enterprise IT equipment — routers, servers, computers, and fiber optic cabling — for businesses across West Africa.</p>
     <div class="btns">
-      <a href="#signup" class="bp" data-i="hero_cta1">Get Connected Today</a>
-      <a href="#products" class="bs" data-i="hero_cta2">View Hardware</a>
+      <a href="#signup" class="bp">Request a Quote</a>
+      <a href="#products" class="bs">Browse Equipment</a>
     </div>
   </div>
-  <div class="scrollhint"><div class="scrollbar"></div><span data-i="scroll">SCROLL</span></div>
+  <div class="scrollhint"><div class="scrollbar"></div><span>SCROLL</span></div>
 </section>
-<div class="ticker"><div class="ticker-track" id="tk"></div>
+
+<!-- TICKER -->
+<div class="ticker"><div class="ticker-track" id="tk"></div></div>
+
+<!-- TRUSTED BRANDS -->
+<div class="brands">
+  <span class="brand-item">CISCO</span>
+  <span class="brand-item">DELL</span>
+  <span class="brand-item">HP</span>
+  <span class="brand-item">MIKROTIK</span>
+  <span class="brand-item">UBIQUITI</span>
+  <span class="brand-item">FORTINET</span>
+  <span class="brand-item">LENOVO</span>
+  <span class="brand-item">CORNING</span>
+</div>
+
+<!-- SERVICES -->
 <section id="services">
   <div class="sw">
-    <p class="tag reveal" data-i="srv_tag">What We Do</p>
-    <h2 class="stitle reveal" data-i="srv_title">Intelligent Technology Solutions</h2>
-    <p class="ssub reveal" data-i="srv_sub">From enterprise hardware to cybersecurity, GRC, and AI web development &#8212; empowering your business to scale aggressively.</p>
+    <p class="tag reveal">What We Do</p>
+    <h2 class="stitle reveal">Complete IT Solutions<br/>For Your Business</h2>
+    <p class="ssub reveal">From equipment procurement and hardware supply to full-scale fiber optic installations and server deployments — your end-to-end technology partner.</p>
   </div>
   <div class="srv-grid">
-    <div class="sc reveal" style="cursor:pointer;" onclick="window.location.hash='#signup'; document.querySelector('select[name=plan]').value='Connectivity Solutions';">
-      <div class="sico">&#128752;</div>
-      <h3 data-i="s1_title">Enterprise Connectivity</h3>
-      <p data-i="s1_desc">High-speed, dedicated enterprise connections. We supply the hardware and keep your business running 24/7 with dedicated local support.</p>
+    <div class="sc reveal" style="cursor:pointer;" onclick="window.location.href='#signup'">
+      <div class="sico">&#128225;</div>
+      <h3>Routers &amp; Networking</h3>
+      <p>Supply and professional installation of enterprise-grade routers, switches, and wireless access points for offices of any size.</p>
       <ul class="sclist">
-        <li data-i="s1_f1">Up to 220 Mbps download</li>
-        <li data-i="s1_f2">20&#8211;40ms low latency</li>
-        <li data-i="s1_f3">Professional installation</li>
-        <li data-i="s1_f4">24/7 local support</li>
+        <li>Cisco, MikroTik &amp; Ubiquiti routers</li>
+        <li>Managed &amp; unmanaged switches</li>
+        <li>Wireless access points &amp; controllers</li>
+        <li>Firewall &amp; UTM appliances</li>
       </ul>
     </div>
-    <div class="sc reveal" style="transition-delay:.12s; cursor:pointer;" onclick="window.location.hash='#signup';">
-      <div class="sico">&#128274;</div>
-      <h3 data-i="s2_title">Pen Testing &amp; Cyber</h3>
-      <p data-i="s2_desc">SaaS-based vulnerability scanning and red team services. <strong style="color:var(--sky);">Reach out for a free 10-15 minute consultation</strong> to optimize your business security.</p>
+    <div class="sc reveal" style="transition-delay:.12s;cursor:pointer;" onclick="window.location.href='#signup'">
+      <div class="sico">&#128421;</div>
+      <h3>Servers &amp; Infrastructure</h3>
+      <p>Procurement and deployment of enterprise servers, NAS storage, and full data room setup for mission-critical operations.</p>
       <ul class="sclist">
-        <li data-i="s2_f1">Phishing simulations</li>
-        <li data-i="s2_f2">Vulnerability assessment</li>
-        <li data-i="s2_f3">24/7 threat monitoring</li>
-        <li data-i="s2_f4">Incident response</li>
+        <li>Dell PowerEdge rack &amp; tower servers</li>
+        <li>HP ProLiant server series</li>
+        <li>NAS &amp; SAN storage systems</li>
+        <li>Server room build-out &amp; racking</li>
       </ul>
     </div>
-    <div class="sc reveal" style="transition-delay:.24s; cursor:pointer;" onclick="window.location.hash='#signup';">
-      <div class="sico">&#128196;</div>
-      <h3 data-i="s3_title">GRC &amp; Policy Writing</h3>
-      <p data-i="s3_desc">Governance, Risk & Compliance. We write comprehensive policies covering all NIST 800-53 families, including Access Control (AC) and Audit & Accountability (AU).</p>
+    <div class="sc reveal" style="transition-delay:.24s;cursor:pointer;" onclick="window.location.href='#signup'">
+      <div class="sico">&#128279;</div>
+      <h3>Fiber Optic Cabling</h3>
+      <p>End-to-end fiber optic and structured cabling installations for offices, campuses, warehouses, and industrial facilities.</p>
       <ul class="sclist">
-        <li data-i="s3_f1">NIST 800-53 (AC, AU, etc.)</li>
-        <li data-i="s3_f2">Risk assessments</li>
-        <li data-i="s3_f3">ISO 27001 readiness</li>
-        <li data-i="s3_f4">Audit preparation</li>
+        <li>Single-mode &amp; multi-mode fiber</li>
+        <li>Cat6 / Cat6A structured cabling</li>
+        <li>Fiber termination &amp; testing</li>
+        <li>Cable trays &amp; management systems</li>
       </ul>
     </div>
-    <div class="sc reveal" style="transition-delay:.06s; cursor:pointer;" onclick="window.location.hash='#signup';">
-      <div class="sico">&#127760;</div>
-      <h3 data-i="s4_title">Custom AI & SaaS Apps</h3>
-      <p data-i="s4_desc">We build enterprise internal tools. Need a Custom AI Payroll System or an automated HR tracking dashboard? We build it from scratch.</p>
-      <ul class="sclist">
-        <li data-i="s4_f1">AI Payroll Systems</li>
-        <li data-i="s4_f2">HR Dashboard Apps</li>
-        <li data-i="s4_f3">Supply Chain Tracking</li>
-        <li data-i="s4_f4">Enterprise SaaS</li>
-      </ul>
-    </div>
-    <div class="sc reveal" style="transition-delay:.18s; cursor:pointer;" onclick="window.location.hash='#signup';">
+    <div class="sc reveal" style="transition-delay:.06s;cursor:pointer;" onclick="window.location.href='#signup'">
       <div class="sico">&#128187;</div>
-      <h3 data-i="s5_title">IT Administration</h3>
-      <p data-i="s5_desc">Complete asset management and technical support. <strong style="color:var(--sky);">We fix phones and computers.</strong> We audit routers & servers, and manage hardware lifecycle from deployment to retirement.</p>
+      <h3>Computers &amp; Workstations</h3>
+      <p>Business-grade desktops, laptops, and workstations sourced and configured for corporate environments. Bulk orders welcome.</p>
       <ul class="sclist">
-        <li data-i="s5_f1">Phone & Computer Repair</li>
-        <li data-i="s5_f2">Asset Management</li>
-        <li data-i="s5_f3">Network auditing</li>
-        <li data-i="s5_f4">On-site deployment</li>
+        <li>Dell OptiPlex &amp; Precision desktops</li>
+        <li>HP ProBook &amp; EliteBook laptops</li>
+        <li>Lenovo ThinkCentre &amp; ThinkPad</li>
+        <li>Pre-configured bulk deployments</li>
       </ul>
     </div>
-    <div class="sc reveal" style="transition-delay:.3s; cursor:pointer;" onclick="window.location.hash='#signup';">
-      <div class="sico">&#128640;</div>
-      <h3 data-i="s6_title">Cloud &amp; AWS Hosting</h3>
-      <p data-i="s6_desc">Partnered with top vendors like AWS and Box. We migrate your databases, provide zero-day recovery, and secure company emails at unbeatable prices.</p>
+    <div class="sc reveal" style="transition-delay:.18s;cursor:pointer;" onclick="window.location.href='#signup'">
+      <div class="sico">&#128230;</div>
+      <h3>Equipment Procurement</h3>
+      <p>We source and procure any IT equipment for your company — directly from global distributors and manufacturers at competitive prices.</p>
       <ul class="sclist">
-        <li data-i="s6_f1">AWS Migration</li>
-        <li data-i="s6_f2">Box Enterprise Storage</li>
-        <li data-i="s6_f3">Zero-Day Recovery</li>
-        <li data-i="s6_f4">Secure Email Setup</li>
+        <li>Global supplier &amp; distributor network</li>
+        <li>Custom equipment sourcing</li>
+        <li>Bulk &amp; volume order management</li>
+        <li>Logistics &amp; last-mile delivery</li>
+      </ul>
+    </div>
+    <div class="sc reveal" style="transition-delay:.3s;cursor:pointer;" onclick="window.location.href='#signup'">
+      <div class="sico">&#128736;</div>
+      <h3>IT Installation &amp; Deployment</h3>
+      <p>Professional on-site installation and commissioning of all IT infrastructure — from single-office setups to multi-site enterprise rollouts.</p>
+      <ul class="sclist">
+        <li>On-site project management</li>
+        <li>Network commissioning &amp; testing</li>
+        <li>Multi-site &amp; remote deployments</li>
+        <li>Post-installation support &amp; training</li>
       </ul>
     </div>
   </div>
 </section>
 
+<!-- STATS -->
+<div class="stats">
+  <div class="si reveal"><div class="sn">200+</div><div class="sl">Enterprise Clients</div></div>
+  <div class="si reveal" style="transition-delay:.1s"><div class="sn">500+</div><div class="sl">Projects Completed</div></div>
+  <div class="si reveal" style="transition-delay:.2s"><div class="sn">4</div><div class="sl">Countries Served</div></div>
+  <div class="si reveal" style="transition-delay:.3s"><div class="sn">24/7</div><div class="sl">After-Sales Support</div></div>
+</div>
 
+<!-- PRODUCTS -->
 <section id="products">
   <div class="sw">
-    <p class="tag reveal" data-i="prod_tag">Hardware Inventory</p>
-    <h2 class="stitle reveal" data-i="prod_title">High-Performance Hardware</h2>
-    <p class="ssub reveal" data-i="prod_sub">Premium tech gear from Apple, Dell, HP, and more. Select your preferred contact method to request a quote.</p>
-    
-    <div class="hw-filters reveal" style="display:flex; gap:12px; margin-bottom: 32px; flex-wrap:wrap;">
-      <button class="chat-chip hw-f on" onclick="filterHw('all')">All Products</button>
-      <button class="chat-chip hw-f" onclick="filterHw('apple')">Apple MacBooks</button>
-      <button class="chat-chip hw-f" onclick="filterHw('hp')">HP Series</button>
-      <button class="chat-chip hw-f" onclick="filterHw('dell')">Dell Laptops</button>
-      <button class="chat-chip hw-f" onclick="filterHw('phones')">Phones</button>
-      <button class="chat-chip hw-f" onclick="filterHw('accessories')">Accessories</button>
-      <button class="chat-chip hw-f" onclick="filterHw('gaming')">Gaming</button>
-      <button class="chat-chip hw-f" onclick="filterHw('repair')">Repair Services</button>
+    <p class="tag reveal">Hardware Catalogue</p>
+    <h2 class="stitle reveal">Enterprise-Grade Equipment</h2>
+    <p class="ssub reveal">Routers, servers, computers, fiber cables, and more — sourced from the world's leading manufacturers. Contact us to request a quote for any item.</p>
+
+    <div class="hw-filters reveal">
+      <button class="chat-chip hw-f on" onclick="filterHw('all')">All Equipment</button>
+      <button class="chat-chip hw-f" onclick="filterHw('routers')">Routers &amp; Switches</button>
+      <button class="chat-chip hw-f" onclick="filterHw('servers')">Servers</button>
+      <button class="chat-chip hw-f" onclick="filterHw('computers')">Computers</button>
+      <button class="chat-chip hw-f" onclick="filterHw('fiber')">Fiber &amp; Cabling</button>
     </div>
 
     <div class="prod-grid">
-      <!-- MacBook Pro -->
-      <div class="prod-card hw-item apple reveal" data-name="MacBook Pro M3">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80" alt="MacBook Pro">
+
+      <!-- Cisco Router -->
+      <div class="prod-card hw-item routers reveal" data-name="Cisco ISR 4000 Series Router">
+        <img class="prod-img" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80" alt="Cisco Enterprise Router">
         <div class="prod-info">
-          <h3 data-i="hw1_name">MacBook Pro M3</h3>
-          <p data-i="hw1_desc">Apple Silicon (M2/M3) for ultimate enterprise performance. Ideal for creatives and developers.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="MacBook Pro M3">Order Here &#9662;</button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- MacBook Air -->
-      <div class="prod-card hw-item apple reveal" style="transition-delay:.12s" data-name="MacBook Air M3">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&w=800&q=80" alt="MacBook Air">
-        <div class="prod-info">
-          <h3 data-i="hw2_name">MacBook Air M3</h3>
-          <p data-i="hw2_desc">Thin, light, and perfectly silent. The ultimate everyday business laptop with all-day battery.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="MacBook Air M3">Order Here &#9662;</button>
-          </div>
+          <h3>Cisco ISR 4000 Series</h3>
+          <p>Enterprise-grade router for WAN aggregation, SD-WAN, and branch office deployments. Supports advanced security and QoS.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Cisco ISR 4000 Series Router">Request Quote &#9662;</button>
         </div>
       </div>
 
-      <!-- HP Envy -->
-      <div class="prod-card hw-item hp reveal" style="transition-delay:.24s" data-name="HP Envy x360">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1593642702821-c823b8812cb7?auto=format&fit=crop&w=800&q=80" alt="HP Envy">
+      <!-- MikroTik -->
+      <div class="prod-card hw-item routers reveal" style="transition-delay:.12s" data-name="MikroTik RouterBoard">
+        <img class="prod-img" src="https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=800&q=80" alt="MikroTik RouterBoard">
         <div class="prod-info">
-          <h3 data-i="hw3_name">HP Envy x360</h3>
-          <p data-i="hw3_desc">Versatile 2-in-1 design with stunning touch display. Built for flexible corporate workflows.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="HP Envy x360">Order Here &#9662;</button>
-          </div>
+          <h3>MikroTik RouterBoard</h3>
+          <p>High-performance enterprise routing and switching at an excellent price point. Ideal for ISPs, SMEs, and multi-site networks.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="MikroTik RouterBoard">Request Quote &#9662;</button>
         </div>
       </div>
 
-      <!-- HP Spectre -->
-      <div class="prod-card hw-item hp reveal" data-name="HP Spectre x360">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1544731612-de7f96afe55f?auto=format&fit=crop&w=800&q=80" alt="HP Spectre">
+      <!-- Network Switch -->
+      <div class="prod-card hw-item routers reveal" style="transition-delay:.24s" data-name="Cisco Catalyst Managed Switch">
+        <img class="prod-img" src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80" alt="Network Switch">
         <div class="prod-info">
-          <h3 data-i="hw4_name">HP Spectre x360</h3>
-          <p data-i="hw4_desc">Premium build quality and cutting-edge security features for executives.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="HP Spectre x360">Order Here &#9662;</button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Dell XPS -->
-      <div class="prod-card hw-item dell reveal" style="transition-delay:.12s" data-name="Dell XPS 15">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&w=800&q=80" alt="Dell XPS 15">
-        <div class="prod-info">
-          <h3 data-i="hw5_name">Dell XPS 15</h3>
-          <p data-i="hw5_desc">Border-less InfinityEdge display. Maximum productivity packed into a compact carbon fiber frame.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="Dell XPS 15">Order Here &#9662;</button>
-          </div>
+          <h3>Cisco Catalyst Switch</h3>
+          <p>Managed gigabit switches for enterprise LAN infrastructure. Available in 24-port and 48-port with PoE+ configurations.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Cisco Catalyst Managed Switch">Request Quote &#9662;</button>
         </div>
       </div>
 
-      <!-- iPhone 15 Pro -->
-      <div class="prod-card hw-item phones reveal" style="transition-delay:.24s" data-name="iPhone 15 Pro Max">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=800&q=80" alt="iPhone 15 Pro">
+      <!-- Dell Server -->
+      <div class="prod-card hw-item servers reveal" data-name="Dell PowerEdge Server">
+        <img class="prod-img" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80" alt="Dell PowerEdge Server">
         <div class="prod-info">
-          <h3>iPhone 15 Pro</h3>
-          <p>The ultimate pro smartphone. Titanium design, A17 Pro chip, and 48MP camera system.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="iPhone 15 Pro">Order Here &#9662;</button>
-          </div>
+          <h3>Dell PowerEdge Server</h3>
+          <p>High-performance rack and tower servers for enterprise workloads. Available in 1U, 2U, and tower. Custom configurations on request.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Dell PowerEdge Server">Request Quote &#9662;</button>
         </div>
       </div>
 
-      <!-- iPhone 14 -->
-      <div class="prod-card hw-item phones reveal" data-name="iPhone 14">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?auto=format&fit=crop&w=800&q=80" alt="iPhone 14">
+      <!-- HP Server -->
+      <div class="prod-card hw-item servers reveal" style="transition-delay:.12s" data-name="HP ProLiant Server">
+        <img class="prod-img" src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80" alt="HP ProLiant Server">
         <div class="prod-info">
-          <h3>iPhone 14</h3>
-          <p>Powerful A15 Bionic chip, crash detection, and emergency SOS via satellite. Great value flagship.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="iPhone 14">Order Here &#9662;</button>
-          </div>
+          <h3>HP ProLiant Server</h3>
+          <p>Reliable ProLiant rack and tower servers for virtualization, databases, and business applications. HPE iLO remote management included.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="HP ProLiant Server">Request Quote &#9662;</button>
         </div>
       </div>
 
-      <!-- iPhone 13 -->
-      <div class="prod-card hw-item phones reveal" style="transition-delay:.12s" data-name="iPhone 13">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1632633173522-47456de71b76?auto=format&fit=crop&w=800&q=80" alt="iPhone 13">
+      <!-- Dell Workstation -->
+      <div class="prod-card hw-item computers reveal" style="transition-delay:.24s" data-name="Dell OptiPlex Workstation">
+        <img class="prod-img" src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&w=800&q=80" alt="Dell OptiPlex Desktop">
         <div class="prod-info">
-          <h3>iPhone 13</h3>
-          <p>Cinematic Mode, A15 Bionic, and all-day battery life. Still one of the best iPhones ever made.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="iPhone 13">Order Here &#9662;</button>
-          </div>
+          <h3>Dell OptiPlex Desktop</h3>
+          <p>Enterprise desktop computers for corporate teams. Slim form factor with powerful Intel Core processors. Bulk orders with pre-configuration available.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Dell OptiPlex Workstation">Request Quote &#9662;</button>
         </div>
       </div>
 
-      <!-- iPhone 12 -->
-      <div class="prod-card hw-item phones reveal" style="transition-delay:.24s" data-name="iPhone 12">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1611472173362-3f53dbd65d80?auto=format&fit=crop&w=800&q=80" alt="iPhone 12">
+      <!-- HP Business Laptop -->
+      <div class="prod-card hw-item computers reveal" data-name="HP ProBook Business Laptop">
+        <img class="prod-img" src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80" alt="HP ProBook Laptop">
         <div class="prod-info">
-          <h3>iPhone 12</h3>
-          <p>5G capable with the A14 Bionic chip. Ceramic Shield front and MagSafe compatibility. Affordable entry point.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="iPhone 12">Order Here &#9662;</button>
-          </div>
+          <h3>HP ProBook Business Laptop</h3>
+          <p>Professional-grade laptops built for corporate use. MIL-STD durability, all-day battery, and enterprise security features for your team.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="HP ProBook Business Laptop">Request Quote &#9662;</button>
         </div>
       </div>
 
-      <!-- Samsung Galaxy S24 -->
-      <div class="prod-card hw-item phones reveal" data-name="Samsung Galaxy S24 Ultra">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=800&q=80" alt="Samsung Galaxy S24">
+      <!-- Fiber Optic Cable -->
+      <div class="prod-card hw-item fiber reveal" style="transition-delay:.12s" data-name="Fiber Optic Cable (Single-Mode & Multi-Mode)">
+        <img class="prod-img" src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80" alt="Fiber Optic Cable">
         <div class="prod-info">
-          <h3>Samsung Galaxy S24 Ultra</h3>
-          <p>Galaxy AI built-in, titanium frame, and S Pen. The ultimate Android experience for power users.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="Samsung Galaxy S24 Ultra">Order Here &#9662;</button>
-          </div>
+          <h3>Fiber Optic Cable</h3>
+          <p>Single-mode and multi-mode fiber optic cables for indoor and outdoor runs. Available in custom lengths, armoured options, and bulk drums.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Fiber Optic Cable">Request Quote &#9662;</button>
         </div>
       </div>
 
-      <!-- iPhone Chargers & Accessories -->
-      <div class="prod-card hw-item accessories reveal" style="transition-delay:.12s" data-name="iPhone Chargers & Cables">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=800&q=80" alt="iPhone Chargers">
+      <!-- Structured Cabling -->
+      <div class="prod-card hw-item fiber reveal" style="transition-delay:.24s" data-name="Structured Cabling (Cat6/Cat6A)">
+        <img class="prod-img" src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80" alt="Structured Cabling">
         <div class="prod-info">
-          <h3>iPhone Chargers & Cables</h3>
-          <p>Original Apple Lightning & USB-C cables, MagSafe chargers, and fast-charge wall adapters. Genuine accessories.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="iPhone Chargers & Cables">Order Here &#9662;</button>
-          </div>
+          <h3>Structured Cabling (Cat6/Cat6A)</h3>
+          <p>Complete structured cabling kits — Cat6, Cat6A, patch panels, keystones, face plates, and cable trays. Supply only or full installation available.</p>
+          <button class="pbtn dd-togg" style="width:100%" data-name="Structured Cabling Cat6/Cat6A">Request Quote &#9662;</button>
         </div>
       </div>
 
-      <!-- Phone & Computer Repair -->
-      <div class="prod-card hw-item repair reveal" style="transition-delay:.24s" data-name="Phone & Computer Repair">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?auto=format&fit=crop&w=800&q=80" alt="Phone & Computer Repair">
-        <div class="prod-info">
-          <h3>Phone & Computer Repair</h3>
-          <p><strong style="color:var(--sky);">We fix phones and computers!</strong> Screen replacements, battery swaps, data recovery, and full diagnostics for all brands.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="Phone or Computer Repair">Order Here &#9662;</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- PlayStation -->
-      <div class="prod-card hw-item gaming reveal" data-name="PlayStation 5">
-        <img class="prod-img" src="https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=800&q=80" alt="PlayStation 5">
-        <div class="prod-info">
-          <h3>PlayStation 5 Console</h3>
-          <p>Next-gen gaming systems available. Perfect for corporate break rooms or personal entertainment.</p>
-          <div style="position:relative;">
-            <button class="pbtn dd-togg" style="width:100%" data-name="PlayStation 5">Order Here &#9662;</button>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </section>
-<style>
-.order-dd {
-  display: none;
-  position: fixed;
-  width: 260px;
-  background: var(--white);
-  border: 2px solid var(--ink);
-  border-radius: 12px;
-  z-index: 9999;
-  overflow: hidden;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
-}
-.order-dd.show {
-  display: block;
-  animation: slideDown 0.2s ease-out;
-}
-@keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-.dd-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  transition: background 0.2s;
-}
-.dd-link:last-child { border-bottom: none; }
-.dd-link:hover { background: var(--offwhite); color: var(--sky); }
-.dd-link span {
-  display: flex; align-items: center; justify-content: center;
-  width: 24px; height: 24px; border-radius: 50%; color: white; font-size: 12px;
-}
-</style>
-<script>
-function filterHw(brand) {
-  document.querySelectorAll('.hw-f').forEach(b => b.classList.remove('on'));
-  event.target.classList.add('on');
-  document.querySelectorAll('.hw-item').forEach(el => {
-    if (brand === 'all' || el.classList.contains(brand)) {
-      el.style.display = 'block';
-    } else {
-      el.style.display = 'none';
-    }
-  });
-}
 
-// Build dropdowns on the fly for each button
-document.querySelectorAll('.dd-togg').forEach(btn => {
-  const prodName = btn.getAttribute('data-name');
-  const msg = encodeURIComponent(`Hey LAVAALL, what's the price for the ${prodName}?`);
-  
-  const dd = document.createElement('div');
-  dd.className = 'order-dd';
-  dd.innerHTML = `
-    <a href="https://wa.me/23276000000?text=${msg}" target="_blank" class="dd-link"><span style="background:#25D366;">WA</span> WhatsApp</a>
-    <a href="https://t.me/lavaall" target="_blank" class="dd-link"><span style="background:#0088cc;">TG</span> Telegram</a>
-    <a href="https://m.me/lavaall" target="_blank" class="dd-link"><span style="background:#006AFF;">FB</span> Facebook Messenger</a>
-    <a href="https://instagram.com/lavaall" target="_blank" class="dd-link"><span style="background:#E1306C;">IG</span> Instagram</a>
-  `;
-  document.body.appendChild(dd);
-
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // close others
-    document.querySelectorAll('.order-dd').forEach(el => {
-      if(el !== dd) el.classList.remove('show');
-    });
-    // position dropdown near the button
-    const rect = btn.getBoundingClientRect();
-    dd.style.left = rect.left + 'px';
-    dd.style.top = (rect.bottom + 6) + 'px';
-    dd.style.width = rect.width + 'px';
-    dd.classList.toggle('show');
-  });
-});
-
-document.addEventListener('click', () => {
-  document.querySelectorAll('.order-dd.show').forEach(el => el.classList.remove('show'));
-});
-window.addEventListener('scroll', () => {
-  document.querySelectorAll('.order-dd.show').forEach(el => el.classList.remove('show'));
-});
-</script>
-
-<script>
-function filterHw(brand) {
-  document.querySelectorAll('.hw-f').forEach(b => b.classList.remove('on'));
-  event.target.classList.add('on');
-  document.querySelectorAll('.hw-item').forEach(el => {
-    if (brand === 'all' || el.classList.contains(brand)) {
-      el.style.display = 'block';
-    } else {
-      el.style.display = 'none';
-    }
-  });
-}
-document.querySelectorAll('.hw-order').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    const productName = e.target.getAttribute('data-name');
-    const msg = encodeURIComponent(`Hi LAVAALL, I would like to inquire about the price and availability of the ${productName}.`);
-    window.open(`https://wa.me/23276000000?text=${msg}`, '_blank');
-  });
-});
-</script>
-
+<!-- REVIEWS -->
 <section id="reviews">
   <div class="sw">
-    <p class="tag reveal" style="background:var(--sun);color:var(--ink);" data-i="rev_tag">Reviews</p>
-    <h2 class="stitle reveal" style="color:var(--white)" data-i="rev_title">What Our Clients Say</h2>
-    
-    <div class="google-badge reveal"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google Reviews <span>4.9 &#9733;</span></div>
+    <p class="tag reveal" style="background:var(--sun);color:var(--ink);">Client Reviews</p>
+    <h2 class="stitle reveal" style="color:var(--white)">What Our Clients Say</h2>
+    <div class="google-badge reveal">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Google Reviews <span>4.9 &#9733;</span>
+    </div>
     <div class="rev-grid">
       <div class="rev-card reveal">
         <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text" data-i="r1_text">"LAVAALL transformed our office connectivity. The internet installation was professional and the speed is incredible. No more dropped video calls!"</p>
-        <div class="rev-author"><div class="rev-avatar">AK</div><div><div class="rev-name">Aminata Koroma</div><div class="rev-loc" data-i="r1_loc">Business Owner, Freetown</div></div></div>
+        <p class="rev-text">"LAVAALL equipped our entire head office with Dell workstations and deployed a full Cisco network. The installation was fast, professional, and exactly on specification."</p>
+        <div class="rev-author"><div class="rev-avatar">AK</div><div><div class="rev-name">Aminata Koroma</div><div class="rev-loc">IT Director, Freetown</div></div></div>
       </div>
       <div class="rev-card reveal" style="transition-delay:.12s">
         <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text" data-i="r2_text">"Their pen testing found critical vulnerabilities we had no idea about. The phishing simulation was eye-opening for our team. Highly recommended!"</p>
-        <div class="rev-author"><div class="rev-avatar">MD</div><div><div class="rev-name">Mohamed Diallo</div><div class="rev-loc" data-i="r2_loc">IT Director, Conakry</div></div></div>
+        <p class="rev-text">"They sourced 30 HP servers and ran fiber optic cabling throughout our 5-floor building. Outstanding project management from survey to commissioning. Highly recommended."</p>
+        <div class="rev-author"><div class="rev-avatar">MD</div><div><div class="rev-name">Mohamed Diallo</div><div class="rev-loc">Operations Manager, Conakry</div></div></div>
       </div>
       <div class="rev-card reveal" style="transition-delay:.24s">
         <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text" data-i="r3_text">"They built our company website with AI and it looks absolutely stunning. Fast, modern and our clients love it. The GRC policies they wrote saved us weeks."</p>
-        <div class="rev-author"><div class="rev-avatar">FJ</div><div><div class="rev-name">Fatima Johnson</div><div class="rev-loc" data-i="r3_loc">CEO, Monrovia</div></div></div>
+        <p class="rev-text">"LAVAALL procured and installed a complete MikroTik network infrastructure and structured cabling for our new campus. On time, on budget, with excellent post-installation support."</p>
+        <div class="rev-author"><div class="rev-avatar">EK</div><div><div class="rev-name">Emmanuel Kamara</div><div class="rev-loc">CEO, Freetown</div></div></div>
+      </div>
+      <div class="rev-card reveal">
+        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="rev-text">"We urgently needed 50 workstations and a server room built out. LAVAALL delivered everything in under two weeks. Very professional team, clear communication throughout the project."</p>
+        <div class="rev-author"><div class="rev-avatar" style="background:var(--coral);">AS</div><div><div class="rev-name">Alassane Sylla</div><div class="rev-loc">Procurement Director, Conakry</div></div></div>
+      </div>
+      <div class="rev-card reveal" style="border-left-color:var(--lime);transition-delay:.12s">
+        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="rev-text">"The fiber optic cabling across our facility is flawless — clean routing, proper labelling, and full test reports provided. These are true professionals who take pride in their work."</p>
+        <div class="rev-author"><div class="rev-avatar" style="background:var(--sky);">DB</div><div><div class="rev-name">David Brooks</div><div class="rev-loc">Facilities Manager, Monrovia</div></div></div>
       </div>
     </div>
   </div>
 </section>
+
+<!-- COVERAGE -->
 <section id="coverage">
   <div class="sw">
-    <p class="tag reveal" data-i="cov_tag">Coverage</p>
-    <h2 class="stitle reveal" data-i="cov_title">Where We Operate</h2>
-    <p class="ssub reveal" data-i="cov_sub">Expanding across West Africa. Select your country to see availability.</p>
+    <p class="tag reveal">Markets</p>
+    <h2 class="stitle reveal">Where We Operate</h2>
+    <p class="ssub reveal">Delivering enterprise IT hardware, professional installations, and equipment procurement services across West Africa.</p>
     <div class="countries reveal">
-      <div class="ctry on" onclick="pickCountry(this,'sl')"><span class="flag">&#127480;&#127473;</span><span data-i="c1">Sierra Leone</span></div>
-      <div class="ctry" onclick="pickCountry(this,'gn')"><span class="flag">&#127468;&#127475;</span><span data-i="c2">Guinea</span></div>
-      <div class="ctry" onclick="pickCountry(this,'gw')"><span class="flag">&#127468;&#127484;</span><span data-i="c3">Guinea-Bissau</span></div>
-      <div class="ctry" onclick="pickCountry(this,'lr')"><span class="flag">&#127473;&#127479;</span><span data-i="c4">Liberia</span></div>
+      <div class="ctry on" onclick="pickCountry(this,'sl')"><span class="flag">&#127480;&#127473;</span><span>Sierra Leone</span></div>
+      <div class="ctry" onclick="pickCountry(this,'gn')"><span class="flag">&#127468;&#127475;</span><span>Guinea</span></div>
+      <div class="ctry" onclick="pickCountry(this,'gw')"><span class="flag">&#127468;&#127484;</span><span>Guinea-Bissau</span></div>
+      <div class="ctry" onclick="pickCountry(this,'wa')"><span class="flag">&#127757;</span><span>West Africa</span></div>
     </div>
-    <div class="cnote reveal" id="cnote">&#127480;&#127473; <strong>Sierra Leone</strong> &#8212; <span data-i="cov_sl">Full coverage. Installation available in Freetown and major cities.</span></div>
+    <div class="cnote reveal" id="cnote">&#127480;&#127473; <strong>Sierra Leone</strong> &#8212; Full service available. Hardware supply, fiber optic installation &amp; IT deployment across Freetown and all major cities.</div>
   </div>
 </section>
+
+<!-- INDUSTRIES -->
+<section style="background:var(--offwhite);border-bottom:2px solid var(--ink);">
+  <div class="sw">
+    <p class="tag reveal">Industries</p>
+    <h2 class="stitle reveal">Industries We Serve</h2>
+    <p class="ssub reveal">We work with organizations of all sizes — from growing SMEs to large enterprises and government institutions.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;" class="reveal">
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Banks &amp; Financial Services</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Government &amp; Public Sector</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Telecoms &amp; ISPs</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Healthcare Facilities</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Schools &amp; Universities</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>Mining &amp; Industrial</span></div>
+      <div class="ctry" style="background:var(--white);pointer-events:none;"><span>NGOs &amp; International Orgs</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE FORM -->
 <section id="signup">
   <div class="sw su-wrap">
     <div class="su-left reveal-l">
-      <h2 data-i="su_h">Get <span>Connected</span> Today</h2>
-      <p data-i="su_sub">Fill in your details and we will contact you within 24 hours to set up your Enterprise connection.</p>
+      <h2>Get a <span>Free Quote</span> Today</h2>
+      <p>Tell us what your business needs and our team will get back to you within 24 hours with pricing and availability.</p>
       <div class="perks">
-        <div class="perk"><div class="perkd">&#128225;</div><span data-i="pk1">Professional installation included</span></div>
-        <div class="perk"><div class="perkd">&#128274;</div><span data-i="pk2">Free basic security setup</span></div>
-        <div class="perk"><div class="perkd">&#128222;</div><span data-i="pk3">Response within 24 hours</span></div>
-        <div class="perk"><div class="perkd">&#128179;</div><span data-i="pk4">Flexible payment options</span></div>
+        <div class="perk"><div class="perkd">&#128230;</div><span>Global equipment procurement &amp; sourcing</span></div>
+        <div class="perk"><div class="perkd">&#128736;</div><span>Professional on-site installation</span></div>
+        <div class="perk"><div class="perkd">&#128222;</div><span>Response within 24 hours</span></div>
+        <div class="perk"><div class="perkd">&#128179;</div><span>Flexible payment &amp; financing options</span></div>
       </div>
     </div>
     <div class="reveal-r">
       <div class="fcard">
-        <div class="ftitle" data-i="form_title">Request Hardware/Services</div>
+        <div class="ftitle">Request a Quote</div>
         <div class="sbox" id="sbox">
           <div class="si2">&#128640;</div>
-          <h3 data-i="ok_h">You're on the list!</h3>
-          <p data-i="ok_p">We'll contact you within 24 hours to get you connected.</p>
+          <h3>Quote Request Received!</h3>
+          <p>We will contact you within 24 hours with pricing and availability.</p>
         </div>
         <form name="signup" method="POST" data-netlify="true" id="sform" onsubmit="doSubmit(event)">
           <input type="hidden" name="form-name" value="signup"/>
           <div class="fgrow">
-            <div class="fg"><label data-i="f_name">Full Name</label><input type="text" name="name" required placeholder="Jean Kamara"/></div>
-            <div class="fg"><label data-i="f_phone">Phone</label><input type="tel" name="phone" required placeholder="+232 76 000000"/></div>
+            <div class="fg"><label>Full Name</label><input type="text" name="name" required placeholder="Jean Kamara"/></div>
+            <div class="fg"><label>Phone / WhatsApp</label><input type="tel" name="phone" required placeholder="+232 76 000 000"/></div>
           </div>
-          <div class="fg"><label data-i="f_email">Email Address</label><input type="email" name="email" required placeholder="you@example.com"/></div>
+          <div class="fg"><label>Email Address</label><input type="email" name="email" required placeholder="you@company.com"/></div>
+          <div class="fg"><label>Company Name</label><input type="text" name="company" required placeholder="Your Company Ltd"/></div>
           <div class="fgrow">
             <div class="fg">
-              <label data-i="f_country">Country</label>
+              <label>Country</label>
               <select name="country" required>
-                <option value="" data-i="f_sel">Select country</option>
-                <option>Sierra Leone</option><option>Guinea</option><option>Guinea-Bissau</option><option>Liberia</option>
+                <option value="">Select country</option>
+                <option>Sierra Leone</option>
+                <option>Guinea</option>
+                <option>Guinea-Bissau</option>
+                <option>Liberia</option>
+                <option>Other West Africa</option>
               </select>
             </div>
             <div class="fg">
-              <label data-i="f_plan">Request Type</label>
-              <select name="plan" required>
-                <option value="" data-i="f_sel2">Select request</option>
-                <optgroup label="Services">
-                  <option>Connectivity Solutions</option>
-                  <option>Pen Testing & Cyber (SaaS)</option>
-                  <option>GRC & Policy Writing</option>
-                  <option>Custom AI & SaaS Apps</option>
-                  <option>IT Administration</option>
-                  <option>Cloud & AWS Hosting</option>
+              <label>Request Type</label>
+              <select name="request_type" required>
+                <option value="">Select type</option>
+                <optgroup label="Hardware Supply">
+                  <option>Routers &amp; Network Switches</option>
+                  <option>Servers (Dell / HP / Other)</option>
+                  <option>Computers &amp; Workstations</option>
+                  <option>Fiber Optic Cables</option>
+                  <option>Structured Cabling (Cat6/Cat6A)</option>
+                  <option>Network Accessories</option>
                 </optgroup>
-                <optgroup label="Hardware / Devices">
-                  <option>MacBook Pro & Air</option>
-                  <option>iPhone 15, 14, 13</option>
-                  <option>Samsung Galaxy S-Series</option>
-                  <option>Chargers & Accessories</option>
+                <optgroup label="Services">
+                  <option>Fiber Optic Installation</option>
+                  <option>Network Infrastructure Setup</option>
+                  <option>Server Deployment</option>
+                  <option>IT Installation &amp; Deployment</option>
+                  <option>Equipment Procurement</option>
                 </optgroup>
               </select>
             </div>
           </div>
-          <button type="submit" class="fsub" id="fsub" data-i="f_submit">Get Connected &#8594;</button>
-          <p class="fnote" data-i="f_note">No spam. We only contact you about your setup.</p>
+          <div class="fg"><label>Project Details</label><textarea name="message" placeholder="Describe your requirements, quantities, site location, and any other details..."></textarea></div>
+          <button type="submit" class="fsub" id="fsub">Send Quote Request &#8594;</button>
+          <p class="fnote">We will only contact you regarding your quote request. No spam.</p>
         </form>
       </div>
     </div>
   </div>
 </section>
+
+<!-- FOOTER -->
 <footer>
   <div class="ft">
     <div>
       <div class="flogo"><div class="flogod"></div>LAVAALL</div>
-      <p class="fdesc" data-i="f_desc">Authorized Orange & Africell Partner serving West Africa. Fast internet. Real support. Local presence.</p>
-    </div>
-    <div>
-      <h4 data-i="f_h1">Services</h4>
-      <a href="#services" data-i="s1_title">Connectivity Solutions</a>
-      <a href="#services" data-i="s2_title">Pen Testing &amp; Cybersecurity</a>
-      <a href="#services" data-i="s3_title">GRC &amp; Policy Writing</a>
-      <a href="#services" data-i="s4_title">Custom AI & SaaS Apps</a>
-    </div>
-    <div>
-      <h4 data-i="f_h2">Coverage</h4>
-      <a href="#coverage" data-i="c1">Sierra Leone</a>
-      <a href="#coverage" data-i="c2">Guinea</a>
-      <a href="#coverage" data-i="c3">Guinea-Bissau</a>
-      <a href="#coverage" data-i="c4">Liberia</a>
-    </div>
-    <div>
-      <h4 data-i="f_h3">Contact</h4>
-      <a href="mailto:hello@lavaall.com">hello@lavaall.com</a>
-      <a href="tel:+23276000000">+232 76 000 000</a>
-      <div style="display:flex; gap:12px; margin: 12px 0;">
-        <a href="https://wa.me/23276000000" target="_blank" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; background:#25D366; color:white; border-radius:50%; text-decoration:none; font-size:18px;">WA</a>
-        <a href="https://t.me/lavaall" target="_blank" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; background:#0088cc; color:white; border-radius:50%; text-decoration:none; font-size:18px;">TG</a>
-        <a href="https://m.me/lavaall" target="_blank" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; background:#006AFF; color:white; border-radius:50%; text-decoration:none; font-size:18px;">FB</a>
+      <p class="fdesc">Enterprise IT hardware supplier and installation company serving West Africa. Routers, servers, computers, fiber optic cabling, and full-scale IT installations for businesses.</p>
+      <div class="social-row">
+        <a href="https://wa.me/23276000000" target="_blank" class="social-icon" style="background:#25D366;">WA</a>
+        <a href="https://t.me/lavaall" target="_blank" class="social-icon" style="background:#0088cc;">TG</a>
+        <a href="https://m.me/lavaall" target="_blank" class="social-icon" style="background:#006AFF;">FB</a>
       </div>
-      <a href="#signup" data-i="nav_cta">Get Connected</a>
+    </div>
+    <div>
+      <h4>Services</h4>
+      <a href="#services">Routers &amp; Networking</a>
+      <a href="#services">Servers &amp; Infrastructure</a>
+      <a href="#services">Fiber Optic Cabling</a>
+      <a href="#services">Computers &amp; Workstations</a>
+      <a href="#services">Equipment Procurement</a>
+      <a href="#services">IT Installations</a>
+    </div>
+    <div>
+      <h4>Markets</h4>
+      <a href="#coverage">Sierra Leone</a>
+      <a href="#coverage">Guinea</a>
+      <a href="#coverage">Guinea-Bissau</a>
+      <a href="#coverage">West Africa</a>
+    </div>
+    <div>
+      <h4>Contact Us</h4>
+      <a href="mailto:hello@lavaall.com">hello@lavaall.com</a>
+      <a href="tel:+23276000000">SL: +232 76 000 000</a>
+      <a href="tel:+224620000000">GN: +224 62 000 0000</a>
+      <a href="#signup" style="margin-top:10px;color:var(--sky);">Request a Quote &#8594;</a>
     </div>
   </div>
   <div class="fb">
-    <span data-i="f_copy">&#169; 2025 LAVAALL. All rights reserved.</span>
-    <span data-i="f_auth">Technology Technology Distributor &#183; West Africa</span>
+    <span>&#169; 2026 LAVAALL. All rights reserved.</span>
+    <span>Enterprise IT Hardware &amp; Solutions &middot; West Africa</span>
   </div>
 </footer>
+
+
 <script>
-const T={
-en:{nav1:"Services",nav3:"Promos",nav4:"Coverage",nav5:"Products",nav6:"Reviews",nav_cta:"Get Connected",
-hero_badge:"Now live in West Africa",h1a:"Tech Hardware",h1b:"& Technology",h1c:"for Africa",scroll:"SCROLL",
-sun_label:"Orange\nAfricell\nPartner",
-hero_sub:"High-speed internet solutions & tech hardware \u2014 installed, secured and supported \u2014 across Sierra Leone, Guinea, Guinea-Bissau & Liberia.",
-hero_cta1:"Get Connected Today",hero_cta2:"View Hardware",
-srv_tag:"What We Do",srv_title:"Complete IT Solutions",srv_sub:"From satellite internet to cybersecurity, GRC, AI web development \u2014 your end-to-end technology partner.",
-s1_title:"Connectivity Solutions",s1_desc:"Official authorized reseller. We provide enterprise-grade connections, install the hardware and keep it running 24/7 with local support.",
-s1_f1:"Up to 220 Mbps",s1_f2:"20\u201340ms latency",s1_f3:"Pro installation",s1_f4:"24/7 support",
-s2_title:"Pen Testing & Cybersecurity",s2_desc:"SaaS-based vulnerability scanning and red team services. We perform deep vulnerability scans, zero-day threat detection, and comprehensive phishing simulations.",
-s2_f1:"Phishing simulations",s2_f2:"Vulnerability assessment",s2_f3:"24/7 threat monitoring",s2_f4:"Incident response",
-s3_title:"GRC & Policy Writing",s3_desc:"Governance, Risk & Compliance done right. We write policies based on NIST 800-53, ISO 27001, and local frameworks.",
-s3_f1:"NIST 800-53 policies",s3_f2:"ISO 27001 readiness",s3_f3:"Compliance documentation",s3_f4:"Audit preparation",
-s4_title:"Custom AI & SaaS Apps",s4_desc:"Fast AI landing pages and custom web apps for enterprise tracking (goods, services, supply chain).",
-s4_f1:"Fast AI Landing Pages",s4_f2:"Enterprise SaaS Apps",s4_f3:"Supply Chain Tracking",s4_f4:"Analytics integration",
-s5_title:"IT Administration",s5_desc:"On-site technical support. We audit routers & servers, and supply high-speed fiber cables, routers, and switches.",
-s5_f1:"Network design & setup",s5_f2:"Server & Router Audits",s5_f3:"Network Cables & Hardware",s5_f4:"On-site support",
-s6_title:"Cloud & AWS Hosting",s6_desc:"Partnered with top vendors like AWS and Box. We migrate your databases, provide zero-day recovery, and secure company emails at unbeatable prices.",
-s6_f1:"AWS Cloud Migration",s6_f2:"Zero-Day Recovery",s6_f3:"Box Enterprise Storage",s6_f4:"Secure Company Email",
-stat1:"Mbps Max Speed",stat2:"Countries Covered",stat3:"Hr Support",stat4:"% Uptime SLA",
-prod_tag:"Hardware",prod_title:"Laptops, Phones & Accessories",prod_sub:"Premium tech gear from Apple, Samsung, and more. Request a quote today.",
-pk1_name:"MacBook Pro & Air",pk1_desc:"Latest Apple Silicon (M2/M3). Available for enterprise orders and individual professionals.",pk1_note:"one-time purchase (~7,900 SLE)",
-pk2_name:"iPhone 15, 14, 13",pk2_desc:"Brand new and certified refurbished iPhones. Pro, Max, and Standard models available.",pk2_note:"one-time purchase (~11,200 SLE)",
-pk3_name:"Samsung Galaxy S-Series",pk3_desc:"Flagship Android devices including latest S24 Ultra. Bulk corporate orders supported.",pk3_note:"one-time purchase (~6,700 SLE)",
-pk4_name:"Fast Chargers & Accessories",pk4_desc:"Original OEM adapters, USB-C cables, MagSafe, and enterprise docks.",
-prod_cta:"Request Quote",
-pl_tag:"Pricing",pl_title:"Pick Your Plan",pl_sub:"Flexible plans for homes, SMEs and enterprises.",
-p1_tag:"Home",p1_name:"Basic Plan",p1_kit:"+ $350 kit (~7,900 SLE)",p1f1:"Up to 100 Mbps",p1f2:"Unlimited data",p1f3:"Email support",p1f4:"Installation guide",
-p2_tag:"\u2b50 Most Popular",p2_name:"Business Pro Plan",p2_kit:"+ $499 kit (~11,200 SLE)",p2f1:"Up to 220 Mbps",p2f2:"Priority data 24/7",p2f3:"Static IP",p2f4:"Phone + chat support",p2f5:"Firewall setup",
-p3_tag:"Enterprise",p3_name:"Custom Services / GRC",p3_price:"Let's Talk",p3_kit:"Tailored to your needs",p3f1:"Dedicated bandwidth",p3f2:"Multi-site",p3f3:"Full security suite",p3f4:"Account manager",p3f5:"SLA guarantee",
-pl_cta:"Get Started",pl_cta2:"Contact Us",
-promo_h1:"Free Install",promo_h2:"+ 3 Months 50% Off",
-promo_sub:"Sign up before the offer ends \u2014 professional installation free + first 3 months at half price.",
-cd1:"Days",cd2:"Hrs",cd3:"Min",cd4:"Sec",promo_cta:"Contact Us \u2192",
-rev_tag:"Reviews",rev_title:"What Our Clients Say",
-r1_text:"\u201cLAVAALL transformed our office connectivity. The internet installation was professional and the speed is incredible.\u201d",r1_loc:"Business Owner, Freetown",
-r2_text:"\u201cTheir pen testing found critical vulnerabilities we had no idea about. The phishing simulation was eye-opening.\u201d",r2_loc:"IT Director, Conakry",
-r3_text:"\u201cThey built our website with AI and it looks stunning. The GRC policies they wrote saved us weeks of work.\u201d",r3_loc:"CEO, Monrovia",
-cov_tag:"Coverage",cov_title:"Where We Operate",cov_sub:"Expanding across West Africa. Select your country.",
-c1:"Sierra Leone",c2:"Guinea",c3:"Guinea-Bissau",c4:"Liberia",
-cov_sl:"Full coverage. Installation in Freetown and major cities.",cov_gn:"Available. Installation in Conakry and regions.",cov_gw:"Available. Installation in Bissau and key areas.",cov_lr:"Available. Installation in Monrovia and towns.",
-su_h:"Get <span>Connected</span> Today",su_sub:"Fill in your details and we'll contact you within 24 hours.",
-pk1:"Professional installation included",pk2:"Free basic security setup",pk3:"Response within 24 hours",pk4:"Flexible payment options",
-form_title:"Request Hardware/Services",f_name:"Full Name",f_phone:"Phone",f_email:"Email Address",f_country:"Country",f_plan:"Request Type",
-f_sel:"Select country",f_sel2:"Select request",f_submit:"Get Connected \u2192",f_note:"No spam. Only contacted about your setup.",
-ok_h:"You're on the list!",ok_p:"We'll contact you within 24 hours.",
-f_desc:"Authorized Tech Hardware distributor & IT company serving West Africa.",f_h1:"Services",f_h2:"Coverage",f_h3:"Contact",
-f_copy:"\u00a9 2025 LAVAALL. All rights reserved.",f_auth:"Technology Technology Distributor \u00b7 West Africa",
-chat_status:"Online now"},
-fr:{nav1:"Services",nav3:"Promos",nav4:"Couverture",nav5:"Produits",nav6:"Avis",nav_cta:"Se Connecter",
-hero_badge:"Logistique et Connectivité en Afrique",h1a:"Tech Hardware",h1b:"& Technology",h1c:"pour l'Afrique",scroll:"D\u00c9FILER",
-sun_label:"Partenaire\nOrange\nAfricell",
-hero_sub:"Solutions Internet haut-débit, matériel tech, cybersécurité et applications SaaS sur mesure pour l'Afrique de l'Ouest.",
-hero_cta1:"Se Connecter Aujourd'hui",hero_cta2:"Voir le Matériel",
-srv_tag:"Ce Que Nous Faisons",srv_title:"Solutions IT Compl\u00e8tes",srv_sub:"De l'internet satellite \u00e0 la cybers\u00e9curit\u00e9, GRC, d\u00e9veloppement web IA.",
-s1_title:"Solutions de Connectivité",s1_desc:"Revendeur officiel autoris\u00e9. Fourniture d'équipements, installation et support 24h/24.",
-s1_f1:"Jusqu'\u00e0 220 Mbps",s1_f2:"Latence 20\u201340ms",s1_f3:"Installation pro",s1_f4:"Support 24h/24",
-s2_title:"Pen Testing & Cybers\u00e9curit\u00e9",s2_desc:"Nous simulons des attaques r\u00e9elles \u2014 phishing, scans de vuln\u00e9rabilit\u00e9s, red teaming.",
-s2_f1:"Simulations de phishing",s2_f2:"\u00c9valuation des vuln\u00e9rabilit\u00e9s",s2_f3:"Surveillance 24h/24",s2_f4:"R\u00e9ponse aux incidents",
-s3_title:"GRC & R\u00e9daction de Politiques",s3_desc:"Gouvernance, Risque & Conformit\u00e9. Nous r\u00e9digeons politiques de s\u00e9curit\u00e9 et cadres de conformit\u00e9.",
-s3_f1:"Politiques de s\u00e9curit\u00e9",s3_f2:"\u00c9valuations des risques",s3_f3:"Cadres de conformit\u00e9",s3_f4:"Pr\u00e9paration d'audit",
-s4_title:"D\u00e9veloppement Web IA & SaaS",s4_desc:"Sites web de pointe cr\u00e9\u00e9s avec l'IA. Design innovant et performances maximales.",
-s4_f1:"Design IA",s4_f2:"Responsive et rapide",s4_f3:"Optimis\u00e9 SEO",s4_f4:"Int\u00e9gration analytics",
-s5_title:"Administration IT",s5_desc:"Gestion IT compl\u00e8te \u2014 r\u00e9seau, r\u00e9paration, cloud et visites sur site.",
-s5_f1:"Conception r\u00e9seau",s5_f2:"R\u00e9paration mat\u00e9riel",s5_f3:"Solutions cloud",s5_f4:"Support sur site",
-s6_title:"Cloud & Hébergement AWS",s6_desc:"Hébergement AWS robuste. Sauvegardes, récupération zéro-jour et migration de bases de données.",
-s6_f1:"Surveillance 24h/24",s6_f2:"Sauvegarde & r\u00e9cup\u00e9ration",s6_f3:"Gestion des correctifs",s6_f4:"Help desk",
-stat1:"Mbps Vitesse Max",stat2:"Pays Couverts",stat3:"H Support",stat4:"% Disponibilit\u00e9",
-prod_tag:"Matériel",prod_title:"Laptops, Téléphones & Accessoires",prod_sub:"Équipement tech premium (Apple, Samsung, etc.). Demandez un devis complet.",
-pk1_name:"MacBook Pro & Air",pk1_desc:"Puces Apple Silicon (M2/M3). Pour entreprises et professionnels.",pk1_note:"achat unique",
-pk2_name:"iPhone 15, 14, 13",pk2_desc:"iPhones neufs et reconditionnés certifiés.",pk2_note:"achat unique",
-pk3_name:"Samsung Galaxy S-Series",pk3_desc:"Smartphones Android premium (S24 Ultra). Commandes de gros pour entreprises.",pk4_name:"Chargeurs Rapides & Accessoires",pk4_desc:"Adaptateurs originaux, câbles USB-C, MagSafe et stations d'accueil.",pk3_note:"achat unique",
-prod_cta:"Commander",
-pl_tag:"Tarifs",pl_title:"Choisissez Votre Forfait",pl_sub:"Forfaits flexibles pour particuliers, PME et entreprises.",
-p1_tag:"Maison",p1_name:"Basique",p1_kit:"+ 350$ kit (unique)",p1f1:"Jusqu'\u00e0 100 Mbps",p1f2:"Donn\u00e9es illimit\u00e9es",p1f3:"Support email",p1f4:"Guide d'installation",
-p2_tag:"\u2b50 Plus Populaire",p2_name:"Pro Entreprise",p2_kit:"+ 499$ kit (unique)",p2f1:"Jusqu'\u00e0 220 Mbps",p2f2:"Donn\u00e9es prioritaires",p2f3:"IP statique",p2f4:"Support t\u00e9l + chat",p2f5:"Pare-feu inclus",
-p3_tag:"Entreprise",p3_name:"Sur Mesure",p3_price:"Contactez-nous",p3_kit:"Adapt\u00e9 \u00e0 vos besoins",p3f1:"Bande passante d\u00e9di\u00e9e",p3f2:"Multi-sites",p3f3:"Suite s\u00e9curit\u00e9 compl\u00e8te",p3f4:"Gestionnaire d\u00e9di\u00e9",p3f5:"Garantie SLA",
-pl_cta:"Commencer",pl_cta2:"Nous Contacter",
-promo_h1:"Installation Gratuite",promo_h2:"+ 3 Mois \u00e0 -50%",
-promo_sub:"Inscrivez-vous avant la fin \u2014 installation gratuite + 3 mois \u00e0 moiti\u00e9 prix.",
-cd1:"Jours",cd2:"Hrs",cd3:"Min",cd4:"Sec",promo_cta:"Nous Contacter \u2192",
-rev_tag:"Avis",rev_title:"Ce Que Disent Nos Clients",
-r1_text:"\u201cLAVAALL a transform\u00e9 notre connectivit\u00e9. L'installation \u00e9tait professionnelle et la vitesse incroyable.\u201d",r1_loc:"Chef d'entreprise, Freetown",
-r2_text:"\u201cLeur pen testing a trouv\u00e9 des vuln\u00e9rabilit\u00e9s critiques. La simulation de phishing a ouvert les yeux de notre \u00e9quipe.\u201d",r2_loc:"Directeur IT, Conakry",
-r3_text:"\u201cIls ont construit notre site web avec l'IA et c'est magnifique. Les politiques GRC nous ont fait gagner des semaines.\u201d",r3_loc:"PDG, Monrovia",
-cov_tag:"Couverture",cov_title:"O\u00f9 Nous Op\u00e9rons",cov_sub:"En expansion en Afrique de l'Ouest. S\u00e9lectionnez votre pays.",
-c1:"Sierra Leone",c2:"Guin\u00e9e",c3:"Guin\u00e9e-Bissau",c4:"Lib\u00e9ria",
-cov_sl:"Couverture compl\u00e8te. Installation \u00e0 Freetown et grandes villes.",cov_gn:"Disponible. Installation \u00e0 Conakry et r\u00e9gions.",cov_gw:"Disponible. Installation \u00e0 Bissau.",cov_lr:"Disponible. Installation \u00e0 Monrovia.",
-su_h:"Connectez-vous <span>Maintenant</span>",su_sub:"Remplissez vos coordonn\u00e9es et nous vous contacterons sous 24h.",
-pk1:"Installation professionnelle incluse",pk2:"S\u00e9curit\u00e9 de base offerte",pk3:"R\u00e9ponse sous 24 heures",pk4:"Paiement flexible",
-form_title:"Commander du Mat\u00E9riel",f_name:"Nom Complet",f_phone:"T\u00e9l\u00e9phone",f_email:"Adresse Email",f_country:"Pays",f_plan:"Type de Demande",
-f_sel:"Choisir un pays",f_sel2:"Choisir une demande",f_submit:"Se Connecter \u2192",f_note:"Pas de spam. Contact uniquement pour votre connexion.",
-ok_h:"Vous \u00eates inscrit !",ok_p:"Nous vous contacterons sous 24h.",
-f_desc:"Distributeur autorisé et entreprise IT en Afrique de l'Ouest.",f_h1:"Services",f_h2:"Couverture",f_h3:"Contact",
-f_copy:"\u00a9 2025 LAVAALL. Tous droits r\u00e9serv\u00e9s.",f_auth:"Logistique Technologique \u00b7 Afrique de l'Ouest",
-chat_status:"En ligne"}
-};
-
-let lang='en';
-function setLang(l){
-  lang=l;
-  document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase()===l));
-  document.querySelectorAll('[data-i]').forEach(el=>{
-    const k=el.getAttribute('data-i');
-    if(T[l][k]!==undefined) el.innerHTML=T[l][k];
-  });
-  buildTicker();
-  initChatChips();
-}
-
+// TICKER
 function buildTicker(){
-  const items=[T[lang].s1_title,'·',T[lang].s2_title,'·',T[lang].s3_title,'·',T[lang].s4_title,'·','Apple & Samsung','·','Sierra Leone','·','Guinea','·','Guinea-Bissau','·','Liberia','·',T[lang].promo_cta,'·','Cybersecurity SaaS','·'];
+  const items=['Enterprise Routers','·','Network Switches','·','Fiber Optic Cables','·','Dell Servers','·','HP ProLiant','·','Cisco Equipment','·','MikroTik','·','Ubiquiti','·','Workstations','·','Structured Cabling','·','Equipment Procurement','·','IT Installations','·','West Africa','·'];
   const s=items.map(i=>'<span>'+i+'</span>').join('');
   document.getElementById('tk').innerHTML=s+s;
 }
 buildTicker();
 
-const covFlags={sl:'🇸🇱 <strong>Sierra Leone</strong>',gn:'🇬🇳 <strong>Guinea</strong>',gw:'🇬🇼 <strong>Guinea-Bissau</strong>',lr:'🇱🇷 <strong>Liberia</strong>'};
-const covKeys={sl:'cov_sl',gn:'cov_gn',gw:'cov_gw',lr:'cov_lr'};
+// COVERAGE
+const covData={
+  sl:{flag:'&#127480;&#127473;',name:'Sierra Leone',text:'Full service available. Hardware supply, fiber optic installation &amp; IT deployment across Freetown and all major cities.'},
+  gn:{flag:'&#127468;&#127475;',name:'Guinea',text:'Full service available. Equipment procurement and installation in Conakry and major regional cities.'},
+  gw:{flag:'&#127468;&#127484;',name:'Guinea-Bissau',text:'Service available. Enterprise hardware supply and IT installation in Bissau and surrounding areas.'},
+  wa:{flag:'&#127757;',name:'West Africa',text:'Regional availability. We deliver equipment and deploy installation teams across West Africa. Contact us for your location.'}
+};
 function pickCountry(el,code){
   document.querySelectorAll('.ctry').forEach(c=>c.classList.remove('on'));
   el.classList.add('on');
-  document.getElementById('cnote').innerHTML=covFlags[code]+' — '+T[lang][covKeys[code]];
+  const d=covData[code];
+  document.getElementById('cnote').innerHTML=d.flag+' <strong>'+d.name+'</strong> &#8212; '+d.text;
 }
 
-const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('up');}),{threshold:.12});
+// SCROLL REVEAL
+const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('up');}),{threshold:.1});
 document.querySelectorAll('.reveal,.reveal-l,.reveal-r').forEach(el=>obs.observe(el));
 
+// CURSOR GLOW
 document.addEventListener('mousemove',e=>{
-  const g=document.getElementById('glow');g.style.left=e.clientX+'px';g.style.top=e.clientY+'px';
+  const g=document.getElementById('glow');
+  g.style.left=e.clientX+'px';
+  g.style.top=e.clientY+'px';
 });
 
+// NAV SHADOW
+window.addEventListener('scroll',()=>{
+  document.querySelector('nav').style.boxShadow=window.scrollY>20?'0 4px 24px rgba(0,0,0,.08)':'none';
+});
+
+// PRODUCT FILTER
+function filterHw(brand){
+  document.querySelectorAll('.hw-f').forEach(b=>b.classList.remove('on'));
+  event.target.classList.add('on');
+  document.querySelectorAll('.hw-item').forEach(el=>{
+    el.style.display=(brand==='all'||el.classList.contains(brand))?'block':'none';
+  });
+}
+
+// ORDER DROPDOWN
+document.querySelectorAll('.dd-togg').forEach(btn=>{
+  const prodName=btn.getAttribute('data-name');
+  const waMsg=encodeURIComponent('Hello LAVAALL, I would like a quote for: '+prodName);
+  const emailSubj=encodeURIComponent('Quote Request: '+prodName);
+  const dd=document.createElement('div');
+  dd.className='order-dd';
+  dd.innerHTML=`
+    <a href="https://wa.me/23276000000?text=${waMsg}" target="_blank" class="dd-link"><span style="background:#25D366;">WA</span>WhatsApp</a>
+    <a href="https://t.me/lavaall" target="_blank" class="dd-link"><span style="background:#0088cc;">TG</span>Telegram</a>
+    <a href="https://m.me/lavaall" target="_blank" class="dd-link"><span style="background:#006AFF;">FB</span>Facebook Messenger</a>
+    <a href="mailto:hello@lavaall.com?subject=${emailSubj}" class="dd-link"><span style="background:#EA4335;">@</span>Email Us</a>
+  `;
+  document.body.appendChild(dd);
+  btn.addEventListener('click',(e)=>{
+    e.preventDefault();e.stopPropagation();
+    document.querySelectorAll('.order-dd').forEach(el=>{if(el!==dd)el.classList.remove('show');});
+    const rect=btn.getBoundingClientRect();
+    dd.style.left=rect.left+'px';
+    dd.style.top=(rect.bottom+6)+'px';
+    dd.style.width=rect.width+'px';
+    dd.classList.toggle('show');
+  });
+});
+document.addEventListener('click',()=>document.querySelectorAll('.order-dd.show').forEach(el=>el.classList.remove('show')));
+window.addEventListener('scroll',()=>document.querySelectorAll('.order-dd.show').forEach(el=>el.classList.remove('show')));
+
+// FORM SUBMIT
 function doSubmit(e){
   e.preventDefault();
   const btn=document.getElementById('fsub');
-  btn.textContent=lang==='fr'?'Envoi...':'Sending...';btn.disabled=true;
+  btn.textContent='Sending...';
+  btn.disabled=true;
   setTimeout(()=>{
     document.getElementById('sform').style.display='none';
-    const b=document.getElementById('sbox');b.style.display='block';
-    b.querySelector('h3').textContent=T[lang].ok_h;b.querySelector('p').textContent=T[lang].ok_p;
+    document.getElementById('sbox').style.display='block';
   },1200);
 }
-window.addEventListener('scroll',()=>{document.querySelector('nav').style.boxShadow=window.scrollY>20?'0 4px 24px rgba(0,0,0,.08)':'none';});
 
-/* ---- Chatbot ---- */
-let chatOpen=false;
-function toggleChat(){
-  chatOpen=!chatOpen;
-  document.getElementById('chatPanel').classList.toggle('open',chatOpen);
-  document.getElementById('chatFab').style.display=chatOpen?'none':'flex';
-  if(chatOpen&&document.getElementById('chatBody').children.length===0){
-    addBot(lang==='fr'?'Bonjour ! 👋 Je suis l\'assistant LAVAALL. Comment puis-je vous aider ?':'Hi there! 👋 I\'m the LAVAALL assistant. How can I help you today?');
-    initChatChips();
-  }
+// LANGUAGE (EN/FR toggle)
+function setLang(l){
+  document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase()===l));
 }
 
-const chatIntents={
-  en:[
-    {keys:['plan','price','cost','much','pricing','fee','subscription'],reply:'Our pricing depends on your specific enterprise needs. We offer custom quotes for hardware (phones, laptops, servers) and SaaS solutions (pen testing, AI web apps). Please use our <a href="#signup">contact form</a> to request a quote.'},
-    {keys:['cover','country','where','sierra','guinea','liberia','location','area'],reply:'We currently operate in 4 countries:\n🇸🇱 Sierra Leone\n🇬🇳 Guinea\n🇬🇼 Guinea-Bissau\n🇱🇷 Liberia\nSee <a href="#coverage">Coverage</a> for details on hardware delivery and IT support levels.'},
-    {keys:['install','setup','mount','dish','router','server'],reply:'Our IT Administration team handles on-site setup. We audit your servers and routers, supply high-speed fiber cables, and ensure everything is running perfectly. <a href="#signup">Contact us</a> to schedule a visit.'},
-    {keys:['kit','hardware','product','equipment','buy','phone','laptop','macbook','iphone','samsung','charger'],reply:'We supply premium tech hardware including:\n• Apple MacBook Pro & Air\n• iPhone 15, 14, 13 series\n• Samsung Galaxy S-Series\n• Fast chargers and enterprise docks\nCheck our <a href="#products">Hardware List</a> to request a price.'},
-    {keys:['pen test','pentest','phishing','hack','vulnerability','security','cyber'],reply:'Our SaaS Cybersecurity platform provides:\n🔒 Simulated phishing campaigns\n🔍 Vulnerability scanning\n🚨 Red team attack simulations\nWe find weaknesses before the hackers do. <a href="#services">Learn more</a>.'},
-    {keys:['grc','policy','compliance','governance','risk','audit','regulation','nist','iso'],reply:'We specialize in GRC Services:\n📋 NIST 800-53 policy writing\n📊 ISO 27001 readiness assessments\n✅ Comprehensive compliance documentation\nWe handle the audits so you can focus on business. <a href="#services">Learn more</a>.'},
-    {keys:['website','web','design','ai','build site','develop','saas','app','tracking'],reply:'Our AI Development team builds:\n🎨 Fast AI Landing Pages\n⚡ Custom SaaS applications\n📈 Supply chain and tracking modules for enterprise\n<a href="#services">Learn more</a>.'},
-    {keys:['it admin','network','repair','cloud','manage','admin','cable'],reply:'Our IT Support includes:\n🖥️ Router & Server Auditing\n🔧 Network cable supply and setup\n☁️ On-site troubleshooting\nFull-service hardware management. <a href="#services">Learn more</a>.'},
-    {keys:['support','help','contact','phone','email','call','helpdesk'],reply:'Reach our 24/7 IT Help Desk anytime:\n📧 hello@lavaall.com\n📞 +232 76 000 000\n💬 We offer SaaS-based infrastructure monitoring.\nOr fill out our <a href="#signup">contact form</a>.'},
-    {keys:['orange','africell','partner','network'],reply:'We are an authorized partner and distributor for Orange and Africell, providing premium enterprise connectivity solutions across West Africa.'}
-  ],
-  fr:[
-    {keys:['forfait','prix','co\u00fbt','combien','tarif','abonnement'],reply:'Nos tarifs d\u00e9pendent de vos besoins. Nous proposons des devis sur mesure pour le mat\u00e9riel (t\u00e9l\u00e9phones, PC, serveurs) et les solutions SaaS. Utilisez notre <a href="#signup">formulaire</a> pour un devis.'},
-    {keys:['couverture','pays','o\u00f9','sierra','guin\u00e9e','lib\u00e9ria'],reply:'Nous op\u00e9rons dans 4 pays :\n🇸🇱 Sierra Leone\n🇬🇳 Guin\u00e9e\n🇬🇼 Guin\u00e9e-Bissau\n🇱🇷 Lib\u00e9ria\n<a href="#coverage">Voir la couverture</a> pour la livraison et le support IT.'},
-    {keys:['install','config','mont','routeur','serveur'],reply:'Notre \u00e9quipe IT g\u00e8re l\'installation sur site. Nous auditons serveurs et routeurs, et fournissons les c\u00e2bles fibre optique. <a href="#signup">Contactez-nous</a>.'},
-    {keys:['kit','mat\u00e9riel','produit','\u00e9quipement','acheter','t\u00e9l\u00e9phone','pc','macbook','iphone','samsung','chargeur'],reply:'Nous fournissons du mat\u00e9riel premium :\n• Apple MacBook Pro & Air\n• iPhone S\u00e9ries 13 \u00e0 15\n• Samsung Galaxy S\n• Chargeurs et stations d\'accueil\n<a href="#products">Voir le mat\u00e9riel</a>.'},
-    {keys:['pen test','phishing','vuln\u00e9rabilit\u00e9','s\u00e9curit\u00e9','cyber'],reply:'Notre plateforme de cybers\u00e9curit\u00e9 SaaS offre :\n🔒 Campagnes de phishing\n🔍 Scans de vuln\u00e9rabilit\u00e9s\n🚨 Simulations d\'attaques Red Team\n<a href="#services">En savoir plus</a>.'},
-    {keys:['grc','politique','conformit\u00e9','gouvernance','risque','audit','nist','iso'],reply:'Nos services GRC :\n📋 R\u00e9daction de politiques NIST 800-53\n📊 Pr\u00e9paration ISO 27001\n✅ Documentation de conformit\u00e9\n<a href="#services">En savoir plus</a>.'},
-    {keys:['site web','web','design','ia','construire','d\u00e9velopp','saas','app'],reply:'D\u00e9veloppement IA :\n🎨 Landing pages IA rapides\n⚡ Applications SaaS sur mesure\n📈 Modules de suivi (logistique)\n<a href="#services">En savoir plus</a>.'},
-    {keys:['it admin','r\u00e9seau','r\u00e9paration','cloud','admin','c\u00e2ble'],reply:'Administration IT :\n🖥️ Audit routeurs & serveurs\n🔧 Fourniture de c\u00e2bles r\u00e9seau\n☁️ Support sur site\n<a href="#services">En savoir plus</a>.'},
-    {keys:['support','aide','contact','t\u00e9l\u00e9phone','email','appeler','helpdesk'],reply:'Contactez notre Help Desk 24/7 :\n📧 hello@lavaall.com\n📞 +232 76 000 000\n💬 Surveillance d\'infrastructure SaaS.\nOu utilisez le <a href="#signup">formulaire</a>.'},
-    {keys:['orange','africell','partenaire','r\u00e9seau'],reply:'Nous sommes un partenaire et distributeur autoris\u00e9 pour Orange et Africell, fournissant des solutions de connectivit\u00e9 d\'entreprise.'}
-  ]
-};
-
-const chatChipData={
-  en:['Hardware Quotes','Phones & Laptops','Pen Testing','GRC Policies','AI Web Dev','Coverage','Cloud Hosting'],
-  fr:['Devis Matériel','Tél & PC','Pen Testing','Politiques GRC','Web IA','Couverture','Cloud AWS']
-};
-
-function initChatChips(){
-  const wrap=document.getElementById('chatChips');
-  wrap.innerHTML=chatChipData[lang].map(c=>'<button class="chat-chip" onclick="sendChip(this)">'+c+'</button>').join('');
-}
-
-function addBot(text){
-  const d=document.createElement('div');d.className='chat-msg bot';d.innerHTML=text.replace(/\n/g,'<br>');
-  document.getElementById('chatBody').appendChild(d);
-  document.getElementById('chatBody').scrollTop=9999;
-}
-function addUser(text){
-  const d=document.createElement('div');d.className='chat-msg user';d.textContent=text;
-  document.getElementById('chatBody').appendChild(d);
-  document.getElementById('chatBody').scrollTop=9999;
-}
-function showTyping(){
-  const d=document.createElement('div');d.className='typing-dots';d.id='typing';
-  d.innerHTML='<span></span><span></span><span></span>';
-  document.getElementById('chatBody').appendChild(d);
-  document.getElementById('chatBody').scrollTop=9999;
-}
-function hideTyping(){const t=document.getElementById('typing');if(t)t.remove();}
-
-function matchIntent(text){
-  const lower=text.toLowerCase();
-  const intents=chatIntents[lang]||chatIntents.en;
-  for(const intent of intents){
-    if(intent.keys.some(k=>lower.includes(k)))return intent.reply;
-  }
-  return lang==='fr'
-    ?'Je ne suis pas s\u00fbr de comprendre. Vous pouvez nous contacter directement \u00e0 hello@lavaall.com ou au +232 76 000 000, ou utilisez notre <a href="#signup">formulaire</a>.'
-    :'I\'m not sure about that. You can reach us at hello@lavaall.com or +232 76 000 000, or use our <a href="#signup">signup form</a>.';
-}
-
-function sendChat(){
-  const inp=document.getElementById('chatInput');
-  const text=inp.value.trim();if(!text)return;
-  addUser(text);inp.value='';
-  showTyping();
-  setTimeout(()=>{hideTyping();addBot(matchIntent(text));},800+Math.random()*600);
-}
-
-function sendChip(el){
-  const text=el.textContent;
-  addUser(text);
-  showTyping();
-  setTimeout(()=>{hideTyping();addBot(matchIntent(text));},800+Math.random()*600);
-}
-
-initChatChips();
 </script>
 </body>
 </html>
