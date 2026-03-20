@@ -120,23 +120,6 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .pbtn{display:block;text-align:center;padding:12px 20px;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;border:2px solid var(--ink);background:transparent;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;text-decoration:none;transition:all .25s;}
 .pbtn:hover{background:var(--ink);color:var(--white);}
 
-/* REVIEWS */
-#reviews{background:linear-gradient(175deg,#0A0A14 0%,#0f1a2e 50%,#0A0A14 100%);border-bottom:2px solid var(--ink);position:relative;overflow:hidden;}
-#reviews::before{content:'';position:absolute;top:-200px;right:-100px;width:500px;height:500px;background:radial-gradient(circle,rgba(0,194,255,.06) 0%,transparent 70%);pointer-events:none;}
-#reviews::after{content:'';position:absolute;bottom:-150px;left:-50px;width:400px;height:400px;background:radial-gradient(circle,rgba(0,245,160,.05) 0%,transparent 70%);pointer-events:none;}
-.rev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;}
-.rev-card{background:rgba(255,255,255,.04);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08);border-left:3px solid var(--sky);border-radius:16px;padding:36px 32px;transition:transform .3s,box-shadow .3s;}
-.rev-card:nth-child(2){border-left-color:var(--lime);}
-.rev-card:nth-child(3){border-left-color:var(--sun);}
-.rev-card:hover{transform:translateY(-6px);box-shadow:0 12px 40px rgba(0,194,255,.08);}
-.rev-stars{color:var(--sun);font-size:20px;margin-bottom:16px;letter-spacing:3px;}
-.rev-text{font-size:15px;color:rgba(255,255,255,.75);line-height:1.8;margin-bottom:22px;font-style:italic;}
-.rev-author{display:flex;align-items:center;gap:14px;}
-.rev-avatar{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--sky),var(--lime));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--ink);border:2px solid rgba(255,255,255,.15);}
-.rev-name{font-weight:600;color:var(--white);font-size:15px;}
-.rev-loc{font-size:12px;color:rgba(255,255,255,.45);}
-.google-badge{display:inline-flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);border-radius:100px;padding:10px 22px;font-size:15px;color:rgba(255,255,255,.75);margin-bottom:44px;}
-.google-badge span{font-weight:700;color:var(--sun);font-size:16px;}
 
 /* COVERAGE */
 #coverage{background:var(--white);border-bottom:2px solid var(--ink);}
@@ -278,7 +261,7 @@ footer a:hover{color:var(--sky);}
   <ul class="nav-links">
     <li><a href="#services" data-i18n="nav.services">Services</a></li>
     <li><a href="#products" data-i18n="nav.products">Products</a></li>
-    <li><a href="#reviews" data-i18n="nav.reviews">Reviews</a></li>
+
     <li><a href="#coverage" data-i18n="nav.coverage">Coverage</a></li>
   </ul>
   <div class="nav-r">
@@ -495,44 +478,6 @@ footer a:hover{color:var(--sky);}
   </div>
 </section>
 
-<!-- REVIEWS -->
-<section id="reviews">
-  <div class="sw">
-    <p class="tag reveal" style="background:var(--sun);color:var(--ink);" data-i18n="rev.tag">Client Reviews</p>
-    <h2 class="stitle reveal" style="color:var(--white)" data-i18n="rev.h2">What Our Clients Say</h2>
-    <div class="google-badge reveal">
-      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      Google Reviews <span>4.9 &#9733;</span>
-    </div>
-    <div class="rev-grid">
-      <div class="rev-card reveal">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text" data-i18n="rev1">"LAVAALL equipped our entire head office with Dell workstations and deployed a full Cisco network. The installation was fast, professional, and exactly on specification."</p>
-        <div class="rev-author"><div class="rev-avatar">AK</div><div><div class="rev-name">Aminata Koroma</div><div class="rev-loc" data-i18n="rloc1">IT Director, Freetown</div></div></div>
-      </div>
-      <div class="rev-card reveal" style="transition-delay:.12s">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text" data-i18n="rev2">"They sourced 30 HP servers and ran fiber optic cabling throughout our 5-floor building. Outstanding project management from survey to commissioning. Highly recommended."</p>
-        <div class="rev-author"><div class="rev-avatar">MD</div><div><div class="rev-name">Mohamed Diallo</div><div class="rev-loc" data-i18n="rloc2">Operations Manager, Conakry</div></div></div>
-      </div>
-      <div class="rev-card reveal" style="transition-delay:.24s">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text" data-i18n="rev3">"LAVAALL procured and installed a complete MikroTik network infrastructure and structured cabling for our new campus. On time, on budget, with excellent post-installation support."</p>
-        <div class="rev-author"><div class="rev-avatar">EK</div><div><div class="rev-name">Emmanuel Kamara</div><div class="rev-loc" data-i18n="rloc3">CEO, Freetown</div></div></div>
-      </div>
-      <div class="rev-card reveal">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text" data-i18n="rev4">"We urgently needed 50 workstations and a server room built out. LAVAALL delivered everything in under two weeks. Very professional team, clear communication throughout the project."</p>
-        <div class="rev-author"><div class="rev-avatar" style="background:var(--coral);">AS</div><div><div class="rev-name">Alassane Sylla</div><div class="rev-loc" data-i18n="rloc4">Procurement Director, Conakry</div></div></div>
-      </div>
-      <div class="rev-card reveal" style="border-left-color:var(--lime);transition-delay:.12s">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text" data-i18n="rev5">"The fiber optic cabling across our facility is flawless — clean routing, proper labelling, and full test reports provided. These are true professionals who take pride in their work."</p>
-        <div class="rev-author"><div class="rev-avatar" style="background:var(--sky);">DB</div><div><div class="rev-name">David Brooks</div><div class="rev-loc" data-i18n="rloc5">Facilities Manager, Monrovia</div></div></div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- COVERAGE -->
 <section id="coverage">
@@ -770,7 +715,7 @@ function doSubmit(e){
 let currentLang='en';
 const translations={
   en:{
-    'nav.services':'Services','nav.products':'Products','nav.reviews':'Reviews','nav.coverage':'Coverage','nav.cta':'Request Quote',
+    'nav.services':'Services','nav.products':'Products','nav.coverage':'Coverage','nav.cta':'Request Quote',
     'hero.sunlabel':'Enterprise<br/>IT<br/>Partner',
     'hero.badge':'B2B Enterprise IT Hardware &amp; Solutions',
     'hero.h1':'Equip Your<br/><span class="hl">Business</span><br/>For Tomorrow',
@@ -804,13 +749,6 @@ const translations={
     'p8.h3':'Fiber Optic Cable','p8.p':'Single-mode and multi-mode fiber optic cables for indoor and outdoor runs. Available in custom lengths, armoured options, and bulk drums.',
     'p9.h3':'Structured Cabling (Cat6/Cat6A)','p9.p':'Complete structured cabling kits — Cat6, Cat6A, patch panels, keystones, face plates, and cable trays. Supply only or full installation available.',
     'quote.btn':'Request Quote &#9662;',
-    'rev.tag':'Client Reviews','rev.h2':'What Our Clients Say',
-    'rev1':'"LAVAALL equipped our entire head office with Dell workstations and deployed a full Cisco network. The installation was fast, professional, and exactly on specification."',
-    'rev2':'"They sourced 30 HP servers and ran fiber optic cabling throughout our 5-floor building. Outstanding project management from survey to commissioning. Highly recommended."',
-    'rev3':'"LAVAALL procured and installed a complete MikroTik network infrastructure and structured cabling for our new campus. On time, on budget, with excellent post-installation support."',
-    'rev4':'"We urgently needed 50 workstations and a server room built out. LAVAALL delivered everything in under two weeks. Very professional team, clear communication throughout the project."',
-    'rev5':'"The fiber optic cabling across our facility is flawless — clean routing, proper labelling, and full test reports provided. These are true professionals who take pride in their work."',
-    'rloc1':'IT Director, Freetown','rloc2':'Operations Manager, Conakry','rloc3':'CEO, Freetown','rloc4':'Procurement Director, Conakry','rloc5':'Facilities Manager, Monrovia',
     'cov.tag':'Markets','cov.h2':'Where We Operate','cov.sub':'Delivering enterprise IT hardware, professional installations, and equipment procurement services across West Africa.',
     'cov.sl':'Sierra Leone','cov.gn':'Guinea','cov.wa':'West Africa',
     'ind.tag':'Industries','ind.h2':'Industries We Serve','ind.sub':'We work with organizations of all sizes — from growing SMEs to large enterprises and government institutions.',
@@ -829,7 +767,7 @@ const translations={
     'sel.reqtype':'<option value="">Select type</option><optgroup label="Hardware Supply"><option>Routers &amp; Network Switches</option><option>Servers (Dell / HP / Other)</option><option>Computers &amp; Workstations</option><option>Fiber Optic Cables</option><option>Structured Cabling (Cat6/Cat6A)</option><option>Network Accessories</option></optgroup><optgroup label="Services"><option>Fiber Optic Installation</option><option>Network Infrastructure Setup</option><option>Server Deployment</option><option>IT Installation &amp; Deployment</option><option>Equipment Procurement</option></optgroup>'
   },
   fr:{
-    'nav.services':'Services','nav.products':'Produits','nav.reviews':'Avis Clients','nav.coverage':'Couverture','nav.cta':'Demander un Devis',
+    'nav.services':'Services','nav.products':'Produits','nav.coverage':'Couverture','nav.cta':'Demander un Devis',
     'hero.sunlabel':'Partenaire IT<br/>Entreprise',
     'hero.badge':'Matériel IT Entreprise B2B &amp; Solutions',
     'hero.h1':'Équipez Votre<br/><span class="hl">Entreprise</span><br/>Pour Demain',
@@ -863,13 +801,6 @@ const translations={
     'p8.h3':'Câble Fibre Optique','p8.p':'Câbles fibre optique monomode et multimode pour les passages intérieurs et extérieurs. Disponibles en longueurs personnalisées, options blindées et bobines en vrac.',
     'p9.h3':'Câblage Structuré (Cat6/Cat6A)','p9.p':'Kits de câblage structuré complets — Cat6, Cat6A, panneaux de brassage, connecteurs, plaques et chemins de câbles. Fourniture seule ou installation complète disponible.',
     'quote.btn':'Demander un Devis &#9662;',
-    'rev.tag':'Avis Clients','rev.h2':'Ce Que Disent Nos Clients',
-    'rev1':'"LAVAALL a équipé l\'intégralité de notre siège avec des postes de travail Dell et déployé un réseau Cisco complet. L\'installation a été rapide, professionnelle et exactement selon les spécifications."',
-    'rev2':'"Ils ont sourcé 30 serveurs HP et installé le câblage fibre optique dans notre bâtiment de 5 étages. Gestion de projet exceptionnelle du diagnostic à la mise en service. Hautement recommandé."',
-    'rev3':'"LAVAALL a approvisionné et installé une infrastructure réseau MikroTik complète et le câblage structuré pour notre nouveau campus. Dans les délais, dans le budget, avec un excellent support post-installation."',
-    'rev4':'"Nous avions besoin urgemment de 50 postes de travail et d\'une salle serveur. LAVAALL a tout livré en moins de deux semaines. Équipe très professionnelle, communication claire tout au long du projet."',
-    'rev5':'"Le câblage fibre optique de notre installation est impeccable — routage propre, étiquetage approprié et rapports de test complets fournis. Ce sont de vrais professionnels qui prennent soin de leur travail."',
-    'rloc1':'Directrice IT, Freetown','rloc2':'Directeur des Opérations, Conakry','rloc3':'PDG, Freetown','rloc4':'Directeur des Achats, Conakry','rloc5':'Responsable des Installations, Monrovia',
     'cov.tag':'Marchés','cov.h2':'Où Nous Opérons','cov.sub':'Livraison de matériel IT entreprise, installations professionnelles et services d\'approvisionnement en équipements à travers l\'Afrique de l\'Ouest.',
     'cov.sl':'Sierra Leone','cov.gn':'Guinée','cov.wa':'Afrique de l\'Ouest',
     'ind.tag':'Secteurs','ind.h2':'Secteurs Que Nous Servons','ind.sub':'Nous travaillons avec des organisations de toutes tailles — des PME en croissance aux grandes entreprises et institutions gouvernementales.',
