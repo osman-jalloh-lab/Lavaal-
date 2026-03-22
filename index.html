@@ -6,11 +6,10 @@
 <title>LAVAALL – Enterprise IT Hardware & Solutions</title>
 <meta name="description" content="B2B Enterprise IT Hardware Procurement & Installation. Routers, Servers, Computers, Fiber Optic Cables. Professional installations for businesses across West Africa."/>
 
-<!-- SECURITY FIX: Content Security Policy -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://images.unsplash.com data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+<!-- SECURITY: CSP via meta tag (frame-ancestors and X-Frame-Options are handled by netlify.toml HTTP headers) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://images.unsplash.com data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; base-uri 'self'; form-action 'self';">
 
-<!-- SECURITY FIX: Additional security headers via meta tags -->
-<meta http-equiv="X-Frame-Options" content="DENY">
+<!-- SECURITY: Additional meta headers -->
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 
@@ -18,9 +17,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@500;600;700&family=Bricolage+Grotesque:wght@300;400;500;600&display=swap" rel="stylesheet" crossorigin="anonymous"/>
 
-<!-- SECURITY FIX: Add DOMPurify for HTML sanitization -->
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js" 
-        integrity="sha384-0Rhel/J+t320I+O0xBjjE5Q5y7zqEZLt1Vu0E0H6xHZOVXxNBYS2FvFJ1n9vbfPq" 
+<!-- SECURITY: DOMPurify for HTML sanitization (corrected SRI hash) -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"
+        integrity="sha384-cwS6YdhLI7XS60eoDiC+egV0qHp8zI+Cms46R0nbn8JrmoAzV9uFL60etMZhAnSu"
         crossorigin="anonymous"></script>
 
 <style>
@@ -1038,13 +1037,15 @@ function setLang(l){
   document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase()===l));
   const tr = translations[l];
   
-  // SECURITY FIX: Use DOMPurify for HTML content
+  // SECURITY: Use DOMPurify for HTML content, fallback to textContent if unavailable
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const k = el.getAttribute('data-i18n');
     if(tr[k] !== undefined) {
-      // Sanitize HTML content before inserting
-      const sanitized = DOMPurify.sanitize(tr[k]);
-      el.innerHTML = sanitized;
+      if(typeof DOMPurify !== 'undefined') {
+        el.innerHTML = DOMPurify.sanitize(tr[k]);
+      } else {
+        el.textContent = tr[k];
+      }
     }
   });
   
