@@ -1,0 +1,98 @@
+# Netlify Configuration File
+# Security-hardened configuration for LAVAALL application
+
+[build]
+  publish = "."
+  
+# ==============================================================================
+# SECURITY HEADERS - APPLIED TO ALL PAGES
+# ==============================================================================
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Prevent clickjacking attacks
+    X-Frame-Options = "DENY"
+    
+    # Prevent MIME type sniffing
+    X-Content-Type-Options = "nosniff"
+    
+    # Enable XSS protection (legacy browsers)
+    X-XSS-Protection = "1; mode=block"
+    
+    # Force HTTPS for 2 years (with preload for inclusion in browser HSTS lists)
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    
+    # Control referrer information leakage
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # Disable dangerous browser features
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+    
+    # Content Security Policy - Defense in depth against XSS
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      img-src 'self' https://images.unsplash.com data: blob:;
+      font-src 'self' https://fonts.gstatic.com;
+      connect-src 'self';
+      frame-ancestors 'none';
+      base-uri 'self';
+      form-action 'self';
+      upgrade-insecure-requests;
+      block-all-mixed-content;
+    """
+
+# ==============================================================================
+# STATIC ASSET CACHING (Performance + Security)
+# ==============================================================================
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
+    
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
+    Content-Type = "image/svg+xml"
+
+# ==============================================================================
+# FORM SUBMISSION SECURITY
+# ==============================================================================
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# ==============================================================================
+# NETLIFY FUNCTIONS CONFIGURATION
+# ==============================================================================
+[functions]
+  directory = "netlify/functions"
+  
+# ==============================================================================
+# BUILD SETTINGS
+# ==============================================================================
+[build.environment]
+  NODE_VERSION = "18"
