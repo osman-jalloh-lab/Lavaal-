@@ -310,18 +310,18 @@ const CATALOG_NETWORKING = {
   brands: [
     { name: 'Cisco', families: [
       { name: 'Routers', models: [
-        { id: 'cisco-isr-4000', name: 'Cisco ISR 4000 Series Router', image: null, specLine: 'WAN aggregation · SD-WAN',
+        { id: 'cisco-isr-4000', name: 'Cisco ISR 4000 Series Router', image: P + 'network-cisco-isr-4000.webp', specLine: 'WAN aggregation · SD-WAN',
           desc: 'Enterprise-grade router for WAN aggregation, SD-WAN, and branch office deployments. Supports advanced security and QoS.',
           fields: networkFields(['Standard', 'SD-WAN', 'High-Availability Pair']) },
       ]},
       { name: 'Switches', models: [
-        { id: 'cisco-catalyst-switch', name: 'Cisco Catalyst Managed Switch', image: null, specLine: '24-port / 48-port · PoE+',
+        { id: 'cisco-catalyst-switch', name: 'Cisco Catalyst Managed Switch', image: P + 'network-cisco-catalyst-switch.webp', specLine: '24-port / 48-port · PoE+',
           desc: 'Managed gigabit switches for enterprise LAN infrastructure. Available in 24-port and 48-port with PoE+ configurations.',
           fields: networkFields(['Unmanaged', 'Managed', 'Managed + PoE+'], ['24-port', '48-port']) },
       ]},
     ]},
     { name: 'MikroTik', families: [{ name: 'Routers', models: [
-      { id: 'mikrotik-routerboard', name: 'MikroTik RouterBoard', image: null, specLine: 'Routing & switching',
+      { id: 'mikrotik-routerboard', name: 'MikroTik RouterBoard', image: P + 'network-mikrotik-routerboard.webp', specLine: 'Routing & switching',
         desc: 'High-performance enterprise routing and switching at an excellent price point. Ideal for ISPs, SMEs, and multi-site networks.',
         fields: networkFields(['Standard', 'ISP Grade', 'Multi-Site']) },
     ]}]},
