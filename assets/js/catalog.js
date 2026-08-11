@@ -269,7 +269,7 @@
     if (entry.categoryOnly) {
       const cat = findCategory(entry.categoryOnly);
       if (!cat) return null;
-      return { cat: cat, isCategory: true, browseHash: '#products/' + cat.id };
+      return { cat: cat, isCategory: true, image: entry.image || null, browseHash: '#products/' + cat.id };
     }
     const catId = entry.path[0], brandName = entry.path[1], famName = entry.path[2], modelId = entry.path[3];
     const cat = findCategory(catId);
@@ -290,13 +290,18 @@
     if (resolved.isCategory) {
       const cat = resolved.cat;
       const brandList = cat.brands.map(function (b) { return b.name; }).slice(0, 4).join(', ');
-      return '<div class="prod-card">' +
-        '<div class="product-image ph" style="height:230px;">' + placeholderInnerHtml(cat.icon) + '</div>' +
+      const imgHtml = productImageHtml(resolved.image, cat.name, cat.icon)
+        .replace('class="product-image"', 'class="product-image" style="height:230px;"')
+        .replace('class="product-image ph"', 'class="product-image ph" style="height:230px;"');
+      return '<div class="prod-card" data-overview-category="' + esc(cat.id) + '">' +
+        imgHtml +
         '<div class="prod-info">' +
         '<h3>' + esc(cat.name) + '</h3>' +
         '<p>Browse ' + esc(brandList) + ' and more.</p>' +
-        '<a href="' + resolved.browseHash + '" class="pbtn" style="width:100%;display:block;text-align:center;">Browse Category &#8250;</a>' +
-        '</div></div>';
+        '<div style="display:flex;gap:10px;">' +
+        '<button type="button" class="pbtn overview-quote-btn" style="flex:1;">Request Quote</button>' +
+        '<a href="' + resolved.browseHash + '" class="pbtn" style="flex:1;text-align:center;">Browse Category</a>' +
+        '</div></div></div>';
     }
     const model = resolved.model, brand = resolved.brand;
     const imgHtml = productImageHtml(model.image, displayName(brand, model), resolved.cat.icon)
@@ -326,6 +331,13 @@
       const btn = cardEl.querySelector('.overview-quote-btn');
       if (btn) btn.addEventListener('click', function () { openModelQuote(hit.model, hit.cat, hit.brand, hit.fam); });
     });
+    overviewGrid.querySelectorAll('[data-overview-category]').forEach(function (cardEl) {
+      const id = cardEl.getAttribute('data-overview-category');
+      const hit = resolved.find(function (r) { return r.isCategory && r.cat.id === id; });
+      if (!hit) return;
+      const btn = cardEl.querySelector('.overview-quote-btn');
+      if (btn) btn.addEventListener('click', function () { openCategoryQuote(hit.cat, hit.image); });
+    });
   }
 
   function showOverview() {
@@ -342,7 +354,14 @@
   /* ---------------------------------------------------------------------
    * Model quote panel — reuses the existing #pgal-overlay modal.
    * ------------------------------------------------------------------- */
-  let currentModelCtx = null; // { model, category, brand, family, fieldValues }
+  let currentModelCtx = null; // { model, category, brand, family, fieldValues } | { isCategoryQuote, cat, values }
+
+  function currentQuoteTitle() {
+    if (!currentModelCtx) return '';
+    return currentModelCtx.isCategoryQuote
+      ? currentModelCtx.cat.name
+      : displayName(currentModelCtx.brand, currentModelCtx.model);
+  }
 
   function openModelQuote(model, cat, brand, fam) {
     currentModelCtx = { model, cat, brand, fam, values: {} };
@@ -354,6 +373,7 @@
     const thumbs = document.getElementById('pgal-thumbs');
     thumbs.innerHTML = '';
     if (model.image) {
+      hideFieldsPlaceholder();
       mainImg.src = model.image;
       mainImg.style.objectFit = 'contain';
       mainImg.style.background = '#fff';
@@ -376,10 +396,70 @@
     document.body.style.overflow = 'hidden';
   }
 
+  /* Category-level "I don't know the exact model" sourcing enquiry — reuses
+   * the same #pgal-overlay modal, WhatsApp/Telegram/Messenger/Email flow, and
+   * SecurityUtils sanitization as openModelQuote(), just without a specific
+   * model/brand/family attached. */
+  function openCategoryQuote(cat, image) {
+    currentModelCtx = { isCategoryQuote: true, cat, values: {} };
+
+    document.getElementById('pgal-title').textContent = cat.name;
+    document.getElementById('pgal-desc').textContent =
+      'Tell us the brand, specifications, and quantity you need. LAVAALL will source available options and provide a quote.';
+
+    const mainImg = document.getElementById('pgal-main-img');
+    const thumbs = document.getElementById('pgal-thumbs');
+    thumbs.innerHTML = '';
+    if (image) {
+      hideFieldsPlaceholder();
+      mainImg.src = image;
+      mainImg.style.objectFit = 'contain';
+      mainImg.style.background = '#fff';
+      mainImg.onerror = function () { this.onerror = null; this.src = ''; showFieldsPlaceholder(cat.icon); };
+    } else {
+      mainImg.removeAttribute('src');
+      showFieldsPlaceholder(cat.icon);
+    }
+
+    const optWrap = document.getElementById('pgal-options');
+    if (optWrap) { optWrap.style.display = 'none'; optWrap.innerHTML = ''; }
+
+    renderModelFields(CATEGORY_QUOTE_FIELDS[cat.id] || [qtyField(1)]);
+
+    const btn = document.getElementById('pgal-request-btn');
+    btn.onclick = function (e) { handleModelQuoteClick(e, btn); };
+
+    document.getElementById('pgal-overlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
   function showFieldsPlaceholder(iconKey) {
+    // Note: never replaces .pgal-main's innerHTML — that would permanently
+    // remove #pgal-main-img from the DOM, breaking every quote panel opened
+    // afterwards (openModelQuote/openCategoryQuote both look it up by id).
+    // Instead hide the <img> and show/reuse a sibling placeholder div.
     const mediaBox = document.querySelector('.pgal-main');
+    const mainImg = document.getElementById('pgal-main-img');
     if (!mediaBox) return;
-    mediaBox.innerHTML = '<div class="product-image ph" style="width:100%;height:100%;">' + placeholderInnerHtml(iconKey) + '</div>';
+    if (mainImg) mainImg.style.display = 'none';
+    let ph = document.getElementById('pgal-main-placeholder');
+    if (!ph) {
+      ph = document.createElement('div');
+      ph.id = 'pgal-main-placeholder';
+      ph.className = 'product-image ph';
+      ph.style.width = '100%';
+      ph.style.height = '100%';
+      mediaBox.appendChild(ph);
+    }
+    ph.innerHTML = placeholderInnerHtml(iconKey);
+    ph.style.display = 'flex';
+  }
+
+  function hideFieldsPlaceholder() {
+    const mainImg = document.getElementById('pgal-main-img');
+    const ph = document.getElementById('pgal-main-placeholder');
+    if (mainImg) mainImg.style.display = '';
+    if (ph) ph.style.display = 'none';
   }
 
   function renderModelFields(fields) {
@@ -410,6 +490,10 @@
           o.value = opt; o.textContent = opt;
           input.appendChild(o);
         });
+      } else if (f.type === 'text') {
+        input = document.createElement('input');
+        input.type = 'text';
+        if (f.placeholder) input.placeholder = f.placeholder;
       } else {
         input = document.createElement('input');
         input.type = 'number';
@@ -427,6 +511,14 @@
 
   function buildQuoteDetailText() {
     if (!currentModelCtx) return '';
+    if (currentModelCtx.isCategoryQuote) {
+      const lines = ['Category: ' + currentModelCtx.cat.name, 'Request Type: Product sourcing'];
+      (CATEGORY_QUOTE_FIELDS[currentModelCtx.cat.id] || []).forEach(f => {
+        const v = currentModelCtx.values[f.key];
+        if (v !== undefined && v !== '' && v !== NO_PREF) lines.push(f.label + ': ' + v);
+      });
+      return lines.join('\n');
+    }
     const { model, brand } = currentModelCtx;
     const lines = ['Product: ' + displayName(brand, model)];
     (model.fields || []).forEach(f => {
@@ -455,7 +547,7 @@
 
     const safeText = (window.SecurityUtils ? SecurityUtils.sanitizeText(detail, 500) : detail);
     const waMsg = encodeURIComponent('Hello LAVAALL, I would like a quote for:\n' + safeText);
-    const emailSubj = encodeURIComponent('Quote Request: ' + displayName(currentModelCtx.brand, currentModelCtx.model));
+    const emailSubj = encodeURIComponent('Quote Request: ' + currentQuoteTitle());
     const emailBody = encodeURIComponent(safeText);
 
     const links = [

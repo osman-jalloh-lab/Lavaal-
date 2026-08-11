@@ -206,7 +206,7 @@ const CATALOG_COMPUTERS = {
           desc: 'Business-grade laptop for corporate teams.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
       { name: 'OptiPlex', models: [
-        { id: 'dell-optiplex-workstation', name: 'Dell OptiPlex Workstation', image: 'https://images.unsplash.com/photo-1570993492881-25240ce854f4?auto=format&fit=crop&w=800&q=80', specLine: 'Slim form factor · Intel Core',
+        { id: 'dell-optiplex-workstation', name: 'Dell OptiPlex Workstation', image: null, specLine: 'Slim form factor · Intel Core',
           desc: 'Enterprise desktop computers for corporate teams. Slim form factor with powerful Intel Core processors. Bulk orders with pre-configuration available.',
           fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
@@ -225,7 +225,7 @@ const CATALOG_COMPUTERS = {
           desc: 'Premium business laptop with enterprise security.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
       { name: 'ProBook', models: [
-        { id: 'hp-probook-laptop', name: 'HP ProBook Business Laptop', image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80', specLine: 'MIL-STD durability · All-day battery',
+        { id: 'hp-probook-laptop', name: 'HP ProBook Business Laptop', image: null, specLine: 'MIL-STD durability · All-day battery',
           desc: 'Professional-grade laptops built for corporate use. MIL-STD durability, all-day battery, and enterprise security features for your team.',
           fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
@@ -340,12 +340,12 @@ const CATALOG_SERVERS = {
   id: 'servers', name: 'Servers', icon: 'server',
   brands: [
     { name: 'Dell', families: [{ name: 'PowerEdge', models: [
-      { id: 'dell-poweredge', name: 'Dell PowerEdge Server', image: 'https://images.unsplash.com/photo-1785682231847-93265d8e633d?auto=format&fit=crop&w=800&q=80', specLine: '1U / 2U / Tower',
+      { id: 'dell-poweredge', name: 'Dell PowerEdge Server', image: null, specLine: '1U / 2U / Tower',
         desc: 'High-performance rack and tower servers for enterprise workloads. Available in 1U, 2U, and tower. Custom configurations on request.',
         fields: serverFields(['16GB', '32GB', '64GB', '128GB+'], ['1TB HDD', '2TB HDD', '4x 1TB SSD RAID'], ['1U Rack', '2U Rack', 'Tower']) },
     ]}]},
     { name: 'HP', families: [{ name: 'ProLiant', models: [
-      { id: 'hp-proliant', name: 'HP ProLiant Server', image: 'https://images.unsplash.com/photo-1680992046626-418f7e910589?auto=format&fit=crop&w=800&q=80', specLine: 'Rack / Tower · iLO',
+      { id: 'hp-proliant', name: 'HP ProLiant Server', image: null, specLine: 'Rack / Tower · iLO',
         desc: 'Reliable ProLiant rack and tower servers for virtualization, databases, and business applications. HPE iLO remote management included.',
         fields: serverFields(['16GB', '32GB', '64GB', '128GB+'], ['1TB HDD', '2TB HDD', '4x 1TB SSD RAID'], ['1U Rack', '2U Rack', 'Tower']) },
     ]}]},
@@ -456,12 +456,12 @@ const CATALOG_FIBER = {
   brands: [
     { name: 'LAVAALL Supply', families: [
       { name: 'Fiber Optic', models: [
-        { id: 'fiber-optic-cable', name: 'Fiber Optic Cable', image: 'https://images.unsplash.com/photo-1562575214-da9fcf59b907?auto=format&fit=crop&w=800&q=80', specLine: 'Single-mode & multi-mode',
+        { id: 'fiber-optic-cable', name: 'Fiber Optic Cable', image: null, specLine: 'Single-mode & multi-mode',
           desc: 'Single-mode and multi-mode fiber optic cables for indoor and outdoor runs. Available in custom lengths, armoured options, and bulk drums.',
           fields: [{ key: 'configuration', label: 'Configuration', type: 'select', options: ['Single-Mode', 'Multi-Mode', 'Armoured'] }, qtyField(1)] },
       ]},
       { name: 'Structured Cabling', models: [
-        { id: 'structured-cabling', name: 'Structured Cabling (Cat6/Cat6A)', image: 'https://images.unsplash.com/photo-1531668383211-64743e924c66?auto=format&fit=crop&w=800&q=80', specLine: 'Cat6 / Cat6A · Patch panels',
+        { id: 'structured-cabling', name: 'Structured Cabling (Cat6/Cat6A)', image: null, specLine: 'Cat6 / Cat6A · Patch panels',
           desc: 'Complete structured cabling kits — Cat6, Cat6A, patch panels, keystones, face plates, and cable trays. Supply only or full installation available.',
           fields: [{ key: 'configuration', label: 'Configuration', type: 'select', options: ['Cat6', 'Cat6A'] }, qtyField(1)] },
       ]},
@@ -553,8 +553,8 @@ const CATALOG_HVAC = {
 const CATALOG_REFRIGERATION = {
   id: 'refrigeration', name: 'Refrigeration', icon: 'fridge',
   brands: [{ name: 'Various', families: [{ name: 'Refrigerators & Freezers', models: [
-    { id: 'refrigerator-compact', name: 'Compact Refrigerator', image: 'https://images.unsplash.com/photo-1588854337115-1c67d9247e4d?auto=format&fit=crop&w=800&q=80', specLine: 'Small kitchen / office use', desc: 'Compact refrigerators for homes, shops, and offices. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
-    { id: 'refrigerator-full', name: 'Full-Size Refrigerator', image: 'https://images.unsplash.com/photo-1588854337115-1c67d9247e4d?auto=format&fit=crop&w=800&q=80', specLine: 'Full-size · Family use', desc: 'Full-size refrigerators. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
+    { id: 'refrigerator-compact', name: 'Compact Refrigerator', image: null, specLine: 'Small kitchen / office use', desc: 'Compact refrigerators for homes, shops, and offices. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
+    { id: 'refrigerator-full', name: 'Full-Size Refrigerator', image: null, specLine: 'Full-size · Family use', desc: 'Full-size refrigerators. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
     { id: 'freezer-chest', name: 'Chest Freezer', image: null, specLine: 'Chest style', desc: 'Chest freezers for commercial and home use.', fields: simpleFields(CONDITION_NEW_ONLY) },
     { id: 'freezer-upright', name: 'Upright Freezer', image: null, specLine: 'Upright style', desc: 'Upright freezers for commercial and home use.', fields: simpleFields(CONDITION_NEW_ONLY) },
   ]}]}],
@@ -590,18 +590,81 @@ const CATALOG_OVERVIEW = [
   // hvac & refrigeration
   { path: ['hvac', 'Various', 'Compressors', 'ac-compressor-12000btu'] },
   { path: ['refrigeration', 'Various', 'Refrigerators & Freezers', 'refrigerator-compact'] },
-  // consumer electronics — category teasers (browse only, no single flagship photo yet)
-  { categoryOnly: 'phones' },
+  // consumer electronics — category teasers. image (when present) is an
+  // official manufacturer marketing shot representing the category in
+  // general, NOT a claim that this is one exact SKU we stock.
+  { categoryOnly: 'phones', image: P + 'category-phones.webp' },
   { categoryOnly: 'tvs' },
   { categoryOnly: 'monitors' },
-  { categoryOnly: 'gaming' },
-  { categoryOnly: 'audio' },
-  { categoryOnly: 'watches' },
+  { categoryOnly: 'gaming', image: P + 'category-gaming.webp' },
+  { categoryOnly: 'audio', image: P + 'category-audio.webp' },
+  { categoryOnly: 'watches', image: P + 'category-watches.webp' },
   { categoryOnly: 'cameras' },
-  { categoryOnly: 'printers' },
+  { categoryOnly: 'printers', image: P + 'category-printers.webp' },
   { categoryOnly: 'accessories' },
-  { categoryOnly: 'tablets' },
+  { categoryOnly: 'tablets', image: P + 'category-tablets.webp' },
 ];
+
+/* =============================================================================
+ * CATEGORY QUOTE FIELDS — drives the "Request Quote" panel for the generic
+ * category-teaser overview cards (Phones, TVs, Monitors, ...). This is a
+ * sourcing enquiry, not a specific-model order, so fields are all optional
+ * preferences ("No preference" is always offered) rather than exact specs.
+ * ============================================================================= */
+const NO_PREF = 'No preference';
+const CATEGORY_QUOTE_FIELDS = {
+  phones: [
+    { key: 'brand', label: 'Preferred Brand', type: 'select', options: ['Apple', 'Samsung', 'Google', 'Tecno', 'Infinix', 'Motorola', 'Xiaomi', 'OnePlus', NO_PREF] },
+    { key: 'preference', label: 'Model / Preference', type: 'text', placeholder: 'e.g. iPhone 15, or "budget Android"' },
+    { key: 'storage', label: 'Storage', type: 'select', options: ['64GB', '128GB', '256GB', '512GB', NO_PREF] },
+    qtyField(1),
+  ],
+  tablets: [
+    { key: 'brand', label: 'Preferred Brand', type: 'select', options: ['Apple', 'Samsung', 'Lenovo', NO_PREF] },
+    { key: 'size', label: 'Screen Size', type: 'select', options: ['8"', '10"', '11"', '13"', NO_PREF] },
+    { key: 'storage', label: 'Storage', type: 'select', options: ['64GB', '128GB', '256GB', NO_PREF] },
+    qtyField(1),
+  ],
+  tvs: [
+    { key: 'brand', label: 'Preferred Brand', type: 'select', options: ['LG', 'Samsung', 'Sony', 'TCL', 'Hisense', 'Vizio', NO_PREF] },
+    { key: 'size', label: 'Screen Size', type: 'select', options: TV_SIZES.concat(NO_PREF) },
+    { key: 'technology', label: 'Technology', type: 'select', options: ['OLED', 'QLED', 'Neo QLED', 'UHD', NO_PREF] },
+    qtyField(1),
+  ],
+  monitors: [
+    { key: 'brand', label: 'Preferred Brand', type: 'select', options: ['Dell', 'LG', 'Samsung', NO_PREF] },
+    { key: 'size', label: 'Screen Size', type: 'select', options: ['24"', '27"', '32"', '34"', '49"', NO_PREF] },
+    { key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K', NO_PREF] },
+    qtyField(1),
+  ],
+  gaming: [
+    { key: 'platform', label: 'Preferred Platform', type: 'select', options: ['PlayStation 5', 'Xbox Series X', 'Nintendo Switch', NO_PREF] },
+    qtyField(1),
+  ],
+  audio: [
+    { key: 'brand', label: 'Preferred Brand', type: 'select', options: ['Apple', 'JBL', 'Sony', NO_PREF] },
+    { key: 'type', label: 'Type', type: 'select', options: ['Earbuds', 'Headphones', 'Speaker', NO_PREF] },
+    qtyField(1),
+  ],
+  watches: [
+    { key: 'brand', label: 'Preferred Brand', type: 'select', options: ['Apple', 'Samsung', NO_PREF] },
+    qtyField(1),
+  ],
+  cameras: [
+    { key: 'brand', label: 'Preferred Brand', type: 'select', options: ['Canon', 'Sony', 'Hikvision (CCTV)', NO_PREF] },
+    { key: 'type', label: 'Type', type: 'select', options: ['Mirrorless', 'DSLR', 'CCTV', NO_PREF] },
+    qtyField(1),
+  ],
+  printers: [
+    { key: 'brand', label: 'Preferred Brand', type: 'select', options: ['HP', 'Canon', 'Epson', NO_PREF] },
+    { key: 'type', label: 'Type', type: 'select', options: ['Mono', 'Color', 'All-in-One', NO_PREF] },
+    qtyField(1),
+  ],
+  accessories: [
+    { key: 'type', label: 'Type', type: 'select', options: ['Chargers & Cables', 'Cases & Screen Protectors', 'Power Banks', NO_PREF] },
+    qtyField(1),
+  ],
+};
 
 /* =============================================================================
  * FULL CATALOG
