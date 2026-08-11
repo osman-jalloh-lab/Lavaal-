@@ -559,6 +559,16 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', route);
-  if (document.readyState !== 'loading') route();
+  function initCatalog() {
+    // The overview must exist regardless of which hash the page happens to
+    // load on (#signup, #services, #coverage, ...) — route() alone returns
+    // early for non-product hashes and would otherwise leave #catalog-overview
+    // permanently empty. renderOverview() is idempotent (overviewRendered
+    // guard), so calling it here plus whatever route() does next is safe.
+    renderOverview();
+    route();
+  }
+
+  document.addEventListener('DOMContentLoaded', initCatalog);
+  if (document.readyState !== 'loading') initCatalog();
 })();
