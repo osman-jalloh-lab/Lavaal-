@@ -1,0 +1,564 @@
+/*
+ * catalog.js — LAVAALL product catalogue browser
+ * ============================================================================
+ * Renders CATALOG (from catalog-data.js) into #catalog-root as a drill-down
+ * browser: Category -> Brand -> Family -> Model, with breadcrumbs, search,
+ * and hash-based routing (#products/<category>/<brand>/<family>).
+ *
+ * Reuses the existing #pgal-overlay modal (already in index.html) as the
+ * per-model "quote" panel, and the existing SecurityUtils object (defined in
+ * the main inline script, loaded before this file) for sanitizing text that
+ * goes into WhatsApp/email links — same security posture as the rest of the
+ * site, no new sanitization logic invented here.
+ * ============================================================================
+ */
+
+(function () {
+  'use strict';
+
+  const root = document.getElementById('catalog-root');
+  const crumbEl = document.getElementById('catalog-breadcrumbs');
+  const searchInput = document.getElementById('catalog-search');
+  const overviewEl = document.getElementById('catalog-overview');
+  const overviewGrid = document.getElementById('catalog-overview-grid');
+  const browserEl = document.getElementById('catalog-browser');
+  const backBtn = document.getElementById('catalog-back-btn');
+  if (!root) return; // catalog markup not present on this page
+
+  /* ---------------------------------------------------------------------
+   * Icons — simple inline line-art SVGs, used for category cards and as
+   * the placeholder shown inside .product-image when a model has no photo.
+   * ------------------------------------------------------------------- */
+  const ICONS = {
+    phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/>',
+    tablet: '<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/>',
+    laptop: '<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M2 18h20l-1.5 2h-17z"/>',
+    tv: '<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/>',
+    monitor: '<rect x="4" y="4" width="16" height="11" rx="1.5"/><path d="M9 20h6M12 15v5"/>',
+    router: '<circle cx="12" cy="12" r="3"/><path d="M4 12a8 8 0 0 1 16 0M2 12a10 10 0 0 1 20 0"/>',
+    server: '<rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/><circle cx="8" cy="7" r=".6" fill="currentColor"/><circle cx="8" cy="17" r=".6" fill="currentColor"/>',
+    printer: '<path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1.5"/><path d="M6 17h12v4H6z"/>',
+    gaming: '<rect x="3" y="8" width="18" height="9" rx="4"/><line x1="7" y1="12.5" x2="7" y2="12.5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="16" cy="11" r=".8" fill="currentColor"/><circle cx="18" cy="13" r=".8" fill="currentColor"/>',
+    audio: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>',
+    watch: '<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6V3h6v3M9 18v3h6v-3"/>',
+    camera: '<path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    accessory: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+    fiber: '<path d="M4 12c4-6 12-6 16 0"/><path d="M7 15c2.5-3 7.5-3 10 0"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/>',
+    cable: '<path d="M4 4l16 16M8 4v4M4 8h4M16 16v4M16 20h4"/>',
+    switch: '<rect x="3" y="6" width="18" height="12" rx="1.5"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="16" y1="10" x2="16" y2="14"/>',
+    power: '<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>',
+    hvac: '<circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16M6.3 6.3l11.4 11.4M17.7 6.3 6.3 17.7"/>',
+    fridge: '<rect x="6" y="2" width="12" height="20" rx="1.5"/><line x1="6" y1="9" x2="18" y2="9"/><line x1="9" y1="5" x2="9" y2="7"/><line x1="9" y1="12" x2="9" y2="14"/>',
+    generic: '<rect x="4" y="4" width="16" height="16" rx="2"/>',
+  };
+  function iconSvg(key) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[key] || ICONS.generic) + '</svg>';
+  }
+
+  /* ---------------------------------------------------------------------
+   * Helpers
+   * ------------------------------------------------------------------- */
+  function slugify(s) {
+    return String(s).toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+  function displayName(brand, model) {
+    // avoid "Dell Dell OptiPlex" when the model name already includes the brand
+    return model.name.toLowerCase().indexOf(brand.name.toLowerCase()) === 0
+      ? model.name
+      : brand.name + ' ' + model.name;
+  }
+  function findCategory(id) { return CATALOG.find(c => c.id === id); }
+  function findBrand(cat, slug) { return cat && cat.brands.find(b => slugify(b.name) === slug); }
+  function findFamily(brand, slug) { return brand && brand.families.find(f => slugify(f.name) === slug); }
+
+  function allModelsFlat() {
+    const out = [];
+    CATALOG.forEach(cat => cat.brands.forEach(brand => brand.families.forEach(fam => fam.models.forEach(model => {
+      out.push({ model, category: cat, brand, family: fam });
+    }))));
+    return out;
+  }
+
+  /* ---------------------------------------------------------------------
+   * Product image container — object-fit:contain, white background,
+   * consistent across every shape. Falls back to a line-icon placeholder
+   * on missing image or load error (no broken-image icons, ever).
+   * ------------------------------------------------------------------- */
+  function productImageHtml(imageUrl, alt, iconKey) {
+    if (imageUrl) {
+      return '<div class="product-image">' +
+        '<img src="' + esc(imageUrl) + '" alt="' + esc(alt) + '" loading="lazy" ' +
+        'onerror="this.closest(\'.product-image\').innerHTML=' + "'" + esc(placeholderInnerHtml(iconKey)).replace(/'/g, "\\'") + "'" + '">' +
+        '</div>';
+    }
+    return '<div class="product-image ph">' + placeholderInnerHtml(iconKey) + '</div>';
+  }
+  function placeholderInnerHtml(iconKey) {
+    return '<span class="product-image-icon">' + iconSvg(iconKey) + '</span>';
+  }
+
+  /* ---------------------------------------------------------------------
+   * Breadcrumbs
+   * ------------------------------------------------------------------- */
+  function renderBreadcrumbs(parts) {
+    // parts: [{label, hash}] — last item is not a link
+    crumbEl.innerHTML = '';
+    parts.forEach((p, i) => {
+      if (i > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'crumb-sep';
+        sep.textContent = '›';
+        crumbEl.appendChild(sep);
+      }
+      if (i === parts.length - 1) {
+        const span = document.createElement('span');
+        span.className = 'crumb-current';
+        span.textContent = p.label;
+        crumbEl.appendChild(span);
+      } else {
+        const a = document.createElement('a');
+        a.href = p.hash;
+        a.className = 'crumb-link';
+        a.textContent = p.label;
+        crumbEl.appendChild(a);
+      }
+    });
+  }
+
+  /* ---------------------------------------------------------------------
+   * Card grid renderers
+   * ------------------------------------------------------------------- */
+  function renderCategoryGrid() {
+    renderBreadcrumbs([{ label: 'Products', hash: '#products' }]);
+    const cards = CATALOG.map(cat => {
+      const count = cat.brands.reduce((n, b) => n + b.families.reduce((m, f) => m + f.models.length, 0), 0);
+      return '<a class="cat-card" href="#products/' + cat.id + '">' +
+        '<span class="cat-card-icon">' + iconSvg(cat.icon) + '</span>' +
+        '<span class="cat-card-name">' + esc(cat.name) + '</span>' +
+        '<span class="cat-card-count">' + count + (count === 1 ? ' model' : ' models') + '</span>' +
+        '</a>';
+    }).join('');
+    root.innerHTML = '<div class="cat-grid">' + cards + '</div>';
+  }
+
+  function renderBrandGrid(cat) {
+    renderBreadcrumbs([
+      { label: 'Products', hash: '#products' },
+      { label: cat.name, hash: '#products/' + cat.id },
+    ]);
+    const cards = cat.brands.map(brand => {
+      const count = brand.families.reduce((m, f) => m + f.models.length, 0);
+      return '<a class="cat-card" href="#products/' + cat.id + '/' + slugify(brand.name) + '">' +
+        '<span class="cat-card-icon">' + iconSvg(cat.icon) + '</span>' +
+        '<span class="cat-card-name">' + esc(brand.name) + '</span>' +
+        '<span class="cat-card-count">' + count + (count === 1 ? ' model' : ' models') + '</span>' +
+        '</a>';
+    }).join('');
+    root.innerHTML = '<div class="cat-grid">' + cards + '</div>';
+  }
+
+  function renderFamilyGrid(cat, brand) {
+    renderBreadcrumbs([
+      { label: 'Products', hash: '#products' },
+      { label: cat.name, hash: '#products/' + cat.id },
+      { label: brand.name, hash: '#products/' + cat.id + '/' + slugify(brand.name) },
+    ]);
+    const cards = brand.families.map(fam => {
+      return '<a class="cat-card" href="#products/' + cat.id + '/' + slugify(brand.name) + '/' + slugify(fam.name) + '">' +
+        '<span class="cat-card-icon">' + iconSvg(cat.icon) + '</span>' +
+        '<span class="cat-card-name">' + esc(fam.name) + '</span>' +
+        '<span class="cat-card-count">' + fam.models.length + (fam.models.length === 1 ? ' model' : ' models') + '</span>' +
+        '</a>';
+    }).join('');
+    root.innerHTML = '<div class="cat-grid">' + cards + '</div>';
+  }
+
+  function modelCardHtml(model, cat, brand, fam) {
+    const img = productImageHtml(model.image, displayName(brand, model), cat.icon);
+    return '<div class="model-card" data-model-id="' + esc(model.id) + '">' +
+      img +
+      '<div class="model-card-body">' +
+      '<div class="model-card-brand">' + esc(brand.name) + '</div>' +
+      '<div class="model-card-name">' + esc(model.name) + '</div>' +
+      '<div class="model-card-spec">' + esc(model.specLine || '') + '</div>' +
+      '<button class="pbtn model-quote-btn" style="width:100%">Request Quote &#9662;</button>' +
+      '</div></div>';
+  }
+
+  function renderModelGrid(cat, brand, fam) {
+    renderBreadcrumbs([
+      { label: 'Products', hash: '#products' },
+      { label: cat.name, hash: '#products/' + cat.id },
+      { label: brand.name, hash: '#products/' + cat.id + '/' + slugify(brand.name) },
+      { label: fam.name, hash: '#products/' + cat.id + '/' + slugify(brand.name) + '/' + slugify(fam.name) },
+    ]);
+    const cards = fam.models.map(model => modelCardHtml(model, cat, brand, fam)).join('');
+    root.innerHTML = '<div class="model-grid">' + cards + '</div>';
+    wireModelCards(root, cat, brand, fam);
+  }
+
+  function renderSearchResults(query) {
+    const q = query.trim().toLowerCase();
+    crumbEl.innerHTML = '';
+    const label = document.createElement('span');
+    label.className = 'crumb-current';
+    label.textContent = 'Search results for “' + query.trim() + '”';
+    crumbEl.appendChild(label);
+
+    const matches = allModelsFlat().filter(({ model, category, brand, family }) => {
+      const hay = [model.name, model.specLine, brand.name, family.name, category.name].join(' ').toLowerCase();
+      return q.split(/\s+/).every(term => hay.indexOf(term) !== -1);
+    }).slice(0, 60);
+
+    if (!matches.length) {
+      root.innerHTML = '<p class="catalog-empty">No products match “' + esc(query.trim()) + '”. Try a different term, or <a href="#products">browse all categories</a>.</p>';
+      return;
+    }
+
+    const cards = matches.map(({ model, category, brand, family }) => {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = modelCardHtml(model, category, brand, family);
+      const card = wrap.firstElementChild;
+      const pathTag = document.createElement('div');
+      pathTag.className = 'model-card-path';
+      pathTag.textContent = category.name + ' › ' + brand.name + ' › ' + family.name;
+      card.querySelector('.model-card-body').insertBefore(pathTag, card.querySelector('.model-card-name'));
+      return card.outerHTML;
+    }).join('');
+    root.innerHTML = '<div class="model-grid">' + cards + '</div>';
+
+    // wire each result card against its own category/brand/family context
+    root.querySelectorAll('.model-card').forEach(cardEl => {
+      const id = cardEl.getAttribute('data-model-id');
+      const hit = matches.find(m => m.model.id === id);
+      if (!hit) return;
+      cardEl.addEventListener('click', e => {
+        if (e.target.closest('.model-quote-btn')) {
+          openModelQuote(hit.model, hit.category, hit.brand, hit.family);
+        }
+      });
+    });
+  }
+
+  function wireModelCards(container, cat, brand, fam) {
+    container.querySelectorAll('.model-card').forEach(cardEl => {
+      const id = cardEl.getAttribute('data-model-id');
+      const model = fam.models.find(m => m.id === id);
+      if (!model) return;
+      cardEl.addEventListener('click', e => {
+        if (e.target.closest('.model-quote-btn')) {
+          openModelQuote(model, cat, brand, fam);
+        }
+      });
+    });
+  }
+
+  /* ---------------------------------------------------------------------
+   * LAYER 1 — product overview (original prod-card grid). Shown by default;
+   * "Browse Category" hands off into Layer 2 (the drill-down browser below).
+   * "Request Quote" on a spotlighted product opens the model quote panel
+   * directly, same as it always did — browsing is never forced on someone
+   * who already knows what they want.
+   * ------------------------------------------------------------------- */
+  function resolveOverviewEntry(entry) {
+    if (entry.categoryOnly) {
+      const cat = findCategory(entry.categoryOnly);
+      if (!cat) return null;
+      return { cat: cat, isCategory: true, browseHash: '#products/' + cat.id };
+    }
+    const catId = entry.path[0], brandName = entry.path[1], famName = entry.path[2], modelId = entry.path[3];
+    const cat = findCategory(catId);
+    if (!cat) return null;
+    const brand = cat.brands.find(b => b.name.toLowerCase() === brandName.toLowerCase());
+    if (!brand) return null;
+    const fam = brand.families.find(f => f.name.toLowerCase() === famName.toLowerCase());
+    if (!fam) return null;
+    const model = fam.models.find(m => m.id === modelId);
+    if (!model) return null;
+    return {
+      cat: cat, brand: brand, fam: fam, model: model,
+      browseHash: '#products/' + cat.id + '/' + slugify(brand.name) + '/' + slugify(fam.name),
+    };
+  }
+
+  function overviewCardHtml(resolved) {
+    if (resolved.isCategory) {
+      const cat = resolved.cat;
+      const brandList = cat.brands.map(function (b) { return b.name; }).slice(0, 4).join(', ');
+      return '<div class="prod-card">' +
+        '<div class="product-image ph" style="height:230px;">' + placeholderInnerHtml(cat.icon) + '</div>' +
+        '<div class="prod-info">' +
+        '<h3>' + esc(cat.name) + '</h3>' +
+        '<p>Browse ' + esc(brandList) + ' and more.</p>' +
+        '<a href="' + resolved.browseHash + '" class="pbtn" style="width:100%;display:block;text-align:center;">Browse Category &#8250;</a>' +
+        '</div></div>';
+    }
+    const model = resolved.model, brand = resolved.brand;
+    const imgHtml = productImageHtml(model.image, displayName(brand, model), resolved.cat.icon)
+      .replace('class="product-image"', 'class="product-image" style="height:230px;"')
+      .replace('class="product-image ph"', 'class="product-image ph" style="height:230px;"');
+    return '<div class="prod-card" data-overview-model="' + esc(model.id) + '">' +
+      imgHtml +
+      '<div class="prod-info">' +
+      '<h3>' + esc(model.name) + '</h3>' +
+      '<p>' + esc(model.desc || model.specLine || '') + '</p>' +
+      '<div style="display:flex;gap:10px;">' +
+      '<button type="button" class="pbtn overview-quote-btn" style="flex:1;">Request Quote</button>' +
+      '<a href="' + resolved.browseHash + '" class="pbtn" style="flex:1;text-align:center;">Browse Category</a>' +
+      '</div></div></div>';
+  }
+
+  let overviewRendered = false;
+  function renderOverview() {
+    if (!overviewGrid || overviewRendered) return;
+    overviewRendered = true;
+    const resolved = CATALOG_OVERVIEW.map(resolveOverviewEntry).filter(Boolean);
+    overviewGrid.innerHTML = resolved.map(overviewCardHtml).join('');
+    overviewGrid.querySelectorAll('[data-overview-model]').forEach(function (cardEl) {
+      const id = cardEl.getAttribute('data-overview-model');
+      const hit = resolved.find(function (r) { return r.model && r.model.id === id; });
+      if (!hit) return;
+      const btn = cardEl.querySelector('.overview-quote-btn');
+      if (btn) btn.addEventListener('click', function () { openModelQuote(hit.model, hit.cat, hit.brand, hit.fam); });
+    });
+  }
+
+  function showOverview() {
+    if (overviewEl) overviewEl.style.display = '';
+    if (browserEl) browserEl.style.display = 'none';
+    renderOverview();
+  }
+  function showBrowser() {
+    if (overviewEl) overviewEl.style.display = 'none';
+    if (browserEl) browserEl.style.display = '';
+  }
+  if (backBtn) backBtn.addEventListener('click', function () { location.hash = '#products'; });
+
+  /* ---------------------------------------------------------------------
+   * Model quote panel — reuses the existing #pgal-overlay modal.
+   * ------------------------------------------------------------------- */
+  let currentModelCtx = null; // { model, category, brand, family, fieldValues }
+
+  function openModelQuote(model, cat, brand, fam) {
+    currentModelCtx = { model, cat, brand, fam, values: {} };
+
+    document.getElementById('pgal-title').textContent = displayName(brand, model);
+    document.getElementById('pgal-desc').textContent = model.desc || model.specLine || '';
+
+    const mainImg = document.getElementById('pgal-main-img');
+    const thumbs = document.getElementById('pgal-thumbs');
+    thumbs.innerHTML = '';
+    if (model.image) {
+      mainImg.src = model.image;
+      mainImg.style.objectFit = 'contain';
+      mainImg.style.background = '#fff';
+      mainImg.onerror = function () { this.onerror = null; this.src = ''; showFieldsPlaceholder(cat.icon); };
+    } else {
+      mainImg.removeAttribute('src');
+      showFieldsPlaceholder(cat.icon);
+    }
+
+    // hide the old grouped "options" accordion (not used by catalog models)
+    const optWrap = document.getElementById('pgal-options');
+    if (optWrap) { optWrap.style.display = 'none'; optWrap.innerHTML = ''; }
+
+    renderModelFields(model.fields || []);
+
+    const btn = document.getElementById('pgal-request-btn');
+    btn.onclick = function (e) { handleModelQuoteClick(e, btn); };
+
+    document.getElementById('pgal-overlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function showFieldsPlaceholder(iconKey) {
+    const mediaBox = document.querySelector('.pgal-main');
+    if (!mediaBox) return;
+    mediaBox.innerHTML = '<div class="product-image ph" style="width:100%;height:100%;">' + placeholderInnerHtml(iconKey) + '</div>';
+  }
+
+  function renderModelFields(fields) {
+    let wrap = document.getElementById('pgal-fields');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.id = 'pgal-fields';
+      wrap.className = 'pgal-fields';
+      const desc = document.getElementById('pgal-desc');
+      desc.parentNode.insertBefore(wrap, desc.nextSibling);
+    }
+    wrap.innerHTML = '';
+    if (!fields.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'grid';
+
+    fields.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'fg';
+      const label = document.createElement('label');
+      label.textContent = f.label;
+      row.appendChild(label);
+
+      let input;
+      if (f.type === 'select') {
+        input = document.createElement('select');
+        f.options.forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt; o.textContent = opt;
+          input.appendChild(o);
+        });
+      } else {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.min = f.min || 1;
+        input.value = f.value || 1;
+      }
+      input.addEventListener('change', () => { currentModelCtx.values[f.key] = input.value; });
+      input.addEventListener('input', () => { currentModelCtx.values[f.key] = input.value; });
+      // seed default
+      currentModelCtx.values[f.key] = input.value;
+      row.appendChild(input);
+      wrap.appendChild(row);
+    });
+  }
+
+  function buildQuoteDetailText() {
+    if (!currentModelCtx) return '';
+    const { model, brand } = currentModelCtx;
+    const lines = ['Product: ' + displayName(brand, model)];
+    (model.fields || []).forEach(f => {
+      const v = currentModelCtx.values[f.key];
+      if (v !== undefined && v !== '') lines.push(f.label + ': ' + v);
+    });
+    return lines.join('\n');
+  }
+
+  function handleModelQuoteClick(e, btn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const detail = buildQuoteDetailText();
+
+    // prefill the existing quote form (does not submit anything itself)
+    const msg = document.querySelector('[name="message"]');
+    if (msg) msg.value = detail;
+
+    // build/refresh the same WhatsApp / Telegram / Messenger / Email dropdown
+    // pattern used elsewhere on the site, using the same SecurityUtils
+    let dd = document.getElementById('pgal-quote-dd');
+    if (dd) dd.remove();
+    dd = document.createElement('div');
+    dd.className = 'order-dd';
+    dd.id = 'pgal-quote-dd';
+
+    const safeText = (window.SecurityUtils ? SecurityUtils.sanitizeText(detail, 500) : detail);
+    const waMsg = encodeURIComponent('Hello LAVAALL, I would like a quote for:\n' + safeText);
+    const emailSubj = encodeURIComponent('Quote Request: ' + displayName(currentModelCtx.brand, currentModelCtx.model));
+    const emailBody = encodeURIComponent(safeText);
+
+    const links = [
+      { href: '#signup-continue', bg: 'var(--ink)', label: '✓', text: 'Continue in Quote Form Below', close: true },
+      { href: 'https://wa.me/23276000000?text=' + waMsg, bg: '#25D366', label: 'WA', text: 'WhatsApp' },
+      { href: 'https://t.me/lavaall', bg: '#0088cc', label: 'TG', text: 'Telegram' },
+      { href: 'https://m.me/lavaall', bg: '#006AFF', label: 'FB', text: 'Facebook Messenger' },
+      { href: 'mailto:hello@lavaall.com?subject=' + emailSubj + '&body=' + emailBody, bg: '#EA4335', label: '@', text: 'Email Us' },
+    ];
+    links.forEach(linkData => {
+      const a = document.createElement('a');
+      a.className = 'dd-link';
+      a.href = linkData.href === '#signup-continue' ? '#signup' : linkData.href;
+      if (linkData.href.indexOf('http') === 0) a.target = '_blank';
+      const span = document.createElement('span');
+      span.style.background = linkData.bg;
+      span.textContent = linkData.label;
+      a.appendChild(span);
+      a.appendChild(document.createTextNode(linkData.text));
+      if (linkData.close) {
+        a.addEventListener('click', () => { closeGalleryModal(); });
+      }
+      dd.appendChild(a);
+    });
+    document.body.appendChild(dd);
+
+    const rect = btn.getBoundingClientRect();
+    dd.style.position = 'fixed';
+    dd.style.left = rect.left + 'px';
+    dd.style.top = (rect.bottom + 6) + 'px';
+    dd.style.width = Math.max(rect.width, 240) + 'px';
+    dd.classList.add('show');
+
+    document.addEventListener('click', function outside(ev) {
+      if (!dd.contains(ev.target) && ev.target !== btn) {
+        dd.remove();
+        document.removeEventListener('click', outside);
+      }
+    });
+  }
+
+  function closeGalleryModal() {
+    document.getElementById('pgal-overlay').classList.remove('show');
+    document.body.style.overflow = '';
+    const dd = document.getElementById('pgal-quote-dd');
+    if (dd) dd.remove();
+  }
+  const closeBtn = document.getElementById('pgal-close-btn');
+  const backdrop = document.getElementById('pgal-backdrop');
+  if (closeBtn) closeBtn.addEventListener('click', closeGalleryModal);
+  if (backdrop) backdrop.addEventListener('click', closeGalleryModal);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGalleryModal(); });
+
+  /* ---------------------------------------------------------------------
+   * Router
+   * ------------------------------------------------------------------- */
+  function route() {
+    const hash = location.hash.replace(/^#/, '');
+    // Empty hash (fresh page load) or bare '#products' -> the original
+    // overview grid (Layer 1). '#products/<cat>/...' -> the drill-down
+    // browser (Layer 2). A hash that points elsewhere on the page
+    // (#services, #signup, ...) -> leave whichever layer is showing alone.
+    if (hash && hash.indexOf('products') !== 0) return;
+    const parts = hash.split('/').filter(Boolean); // ['products', cat, brand, family]
+
+    if (parts.length <= 1) {
+      if (searchInput) searchInput.value = '';
+      showOverview();
+      return;
+    }
+    showBrowser();
+    if (searchInput && searchInput.value.trim()) return; // search takes over rendering
+
+    const cat = findCategory(parts[1]);
+    if (!cat) { renderCategoryGrid(); return; }
+    if (parts.length === 2) { renderBrandGrid(cat); return; }
+
+    const brand = findBrand(cat, parts[2]);
+    if (!brand) { renderBrandGrid(cat); return; }
+    if (parts.length === 3) { renderFamilyGrid(cat, brand); return; }
+
+    const fam = findFamily(brand, parts[3]);
+    if (!fam) { renderFamilyGrid(cat, brand); return; }
+    renderModelGrid(cat, brand, fam);
+  }
+
+  window.addEventListener('hashchange', route);
+
+  if (searchInput) {
+    let debounceTimer;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const q = searchInput.value.trim();
+        if (q.length >= 2) {
+          renderSearchResults(q);
+        } else {
+          route();
+        }
+      }, 150);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', route);
+  if (document.readyState !== 'loading') route();
+})();
