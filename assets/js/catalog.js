@@ -604,7 +604,18 @@
   /* ---------------------------------------------------------------------
    * Router
    * ------------------------------------------------------------------- */
-  function route() {
+  function scrollBrowserIntoView() {
+    // Route rendering changes the browser's height and visibility first. Wait
+    // one frame so its final document position is used for the fixed-nav offset.
+    requestAnimationFrame(function () {
+      const nav = document.querySelector('nav');
+      const navHeight = nav ? nav.getBoundingClientRect().height : 0;
+      const top = browserEl.getBoundingClientRect().top + window.scrollY - navHeight - 16;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    });
+  }
+
+  function route(shouldScrollToBrowser) {
     const hash = location.hash.replace(/^#/, '');
     // Empty hash (fresh page load) or bare '#products' -> the original
     // overview grid (Layer 1). '#products/<cat>/...' -> the drill-down
@@ -622,19 +633,20 @@
     if (searchInput && searchInput.value.trim()) return; // search takes over rendering
 
     const cat = findCategory(parts[1]);
-    if (!cat) { renderCategoryGrid(); return; }
-    if (parts.length === 2) { renderBrandGrid(cat); return; }
+    if (!cat) { renderCategoryGrid(); if (shouldScrollToBrowser) scrollBrowserIntoView(); return; }
+    if (parts.length === 2) { renderBrandGrid(cat); if (shouldScrollToBrowser) scrollBrowserIntoView(); return; }
 
     const brand = findBrand(cat, parts[2]);
-    if (!brand) { renderBrandGrid(cat); return; }
-    if (parts.length === 3) { renderFamilyGrid(cat, brand); return; }
+    if (!brand) { renderBrandGrid(cat); if (shouldScrollToBrowser) scrollBrowserIntoView(); return; }
+    if (parts.length === 3) { renderFamilyGrid(cat, brand); if (shouldScrollToBrowser) scrollBrowserIntoView(); return; }
 
     const fam = findFamily(brand, parts[3]);
-    if (!fam) { renderFamilyGrid(cat, brand); return; }
+    if (!fam) { renderFamilyGrid(cat, brand); if (shouldScrollToBrowser) scrollBrowserIntoView(); return; }
     renderModelGrid(cat, brand, fam);
+    if (shouldScrollToBrowser) scrollBrowserIntoView();
   }
 
-  window.addEventListener('hashchange', route);
+  window.addEventListener('hashchange', function () { route(true); });
 
   if (searchInput) {
     let debounceTimer;
@@ -645,7 +657,7 @@
         if (q.length >= 2) {
           renderSearchResults(q);
         } else {
-          route();
+          route(false);
         }
       }, 150);
     });
@@ -658,7 +670,9 @@
     // permanently empty. renderOverview() is idempotent (overviewRendered
     // guard), so calling it here plus whatever route() does next is safe.
     renderOverview();
-    route();
+    // A refreshed deep link should land on the rendered category browser,
+    // while ordinary initial loads keep their existing position.
+    route(location.hash.indexOf('#products/') === 0);
   }
 
   document.addEventListener('DOMContentLoaded', initCatalog);
