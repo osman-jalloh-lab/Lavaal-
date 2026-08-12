@@ -42,7 +42,12 @@ export async function streamReferenceList(referenceFile, elementName, onEntry) {
   let buffer = ''; const pattern = new RegExp(`<${elementName}\\b([^>]*?)(?:\\/>|>[\\s\\S]*?<\\/${elementName}>)`, 'gi');
   for await (const chunk of stream) {
     buffer += chunk.toString('utf8'); let match; let end = 0;
-    while ((match = pattern.exec(buffer))) { const attrs = attributes(match[1]); if (attrs.ID && attrs.Name) onEntry({ id: attrs.ID, name: attrs.Name }); end = pattern.lastIndex; }
+    while ((match = pattern.exec(buffer))) {
+      const attrs = attributes(match[1]); const body = match[0];
+      const names = [...body.matchAll(/<Name\b([^>]*?)\/?>(?:[\s\S]*?<\/Name>)?/gi)].map(item => attributes(item[1]));
+      const name = attrs.Name ?? names.find(item => item.langid === '1')?.Value ?? names[0]?.Value;
+      if (attrs.ID && name) onEntry({ id: attrs.ID, name }); end = pattern.lastIndex;
+    }
     buffer = end ? buffer.slice(end) : buffer.slice(-65536); pattern.lastIndex = 0;
   }
 }

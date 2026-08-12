@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-08-12T02:15:05.843Z",
+  "suppliers": [
+    {
+      "requestedBrand": "LG",
+      "sourceSupplierName": "LG",
+      "supplierId": "293",
+      "matchType": "exact-normalized",
+      "notes": null
+    },
+    {
+      "requestedBrand": "Samsung",
+      "sourceSupplierName": "Samsung",
+      "supplierId": "26",
+      "matchType": "exact-normalized",
+      "notes": null
+    },
+    {
+      "requestedBrand": "Apple",
+      "sourceSupplierName": "Apple",
+      "supplierId": "9",
+      "matchType": "exact-normalized",
+      "notes": null
+    },
+    {
+      "requestedBrand": "Dell",
+      "sourceSupplierName": "DELL",
+      "supplierId": "292",
+      "matchType": "exact-normalized",
+      "notes": null
+    },
+    {
+      "requestedBrand": "HP",
+      "sourceSupplierName": "HP",
+      "supplierId": "1",
+      "matchType": "exact-normalized",
+      "notes": "HP resolved separately from HPE."
+    },
+    {
+      "requestedBrand": "Lenovo",
+      "sourceSupplierName": "Lenovo",
+      "supplierId": "728",
+      "matchType": "exact-normalized",
+      "notes": null
+    },
+    {
+      "requestedBrand": "Sony",
+      "sourceSupplierName": "Sony",
+      "supplierId": "5",
+      "matchType": "exact-normalized",
+      "notes": null
+    },
+    {
+      "requestedBrand": "TCL",
+      "sourceSupplierName": "TCL",
+      "supplierId": "13380",
+      "matchType": "exact-normalized",
+      "notes": null
+    },
+    {
+      "requestedBrand": "Hisense",
+      "sourceSupplierName": "Hisense",
+      "supplierId": "1407",
+      "matchType": "exact-normalized",
+      "notes": null
+    }
+  ]
+}

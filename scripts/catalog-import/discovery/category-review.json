@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-08-12T02:15:05.933Z",
+  "categories": [
+    {
+      "requestedCategory": "Tablet",
+      "proposedMappings": [
+        {
+          "sourceCategoryId": "897",
+          "sourceCategoryName": "Tablets",
+          "approved": false
+        }
+      ],
+      "notes": null
+    },
+    {
+      "requestedCategory": "Notebook / Laptop",
+      "proposedMappings": [
+        {
+          "sourceCategoryId": "151",
+          "sourceCategoryName": "Laptops",
+          "approved": false
+        }
+      ],
+      "notes": null
+    },
+    {
+      "requestedCategory": "Desktop PC",
+      "proposedMappings": [
+        {
+          "sourceCategoryId": "153",
+          "sourceCategoryName": "PCs/Workstations",
+          "approved": false
+        }
+      ],
+      "notes": "Icecat combines desktop PCs and workstations in this source category; approval required."
+    },
+    {
+      "requestedCategory": "Workstation",
+      "proposedMappings": [
+        {
+          "sourceCategoryId": "153",
+          "sourceCategoryName": "PCs/Workstations",
+          "approved": false
+        }
+      ],
+      "notes": "Icecat combines workstations and desktop PCs in this source category; approval required."
+    },
+    {
+      "requestedCategory": "Television",
+      "proposedMappings": [
+        {
+          "sourceCategoryId": "8760",
+          "sourceCategoryName": "Televisions",
+          "approved": false
+        }
+      ],
+      "notes": null
+    },
+    {
+      "requestedCategory": "Computer Monitor",
+      "proposedMappings": [
+        {
+          "sourceCategoryId": "222",
+          "sourceCategoryName": "Computer Monitors",
+          "approved": false
+        }
+      ],
+      "notes": null
+    },
+    {
+      "requestedCategory": "Refrigerator",
+      "proposedMappings": [
+        {
+          "sourceCategoryId": "4964",
+          "sourceCategoryName": "Refrigerators & Freezers",
+          "approved": false
+        }
+      ],
+      "notes": "Icecat combines refrigerators and freezers in this source category; approval required."
+    },
+    {
+      "requestedCategory": "Freezer",
+      "proposedMappings": [
+        {
+          "sourceCategoryId": "1322",
+          "sourceCategoryName": "Freezers",
+          "approved": false
+        }
+      ],
+      "notes": null
+    }
+  ]
+}
