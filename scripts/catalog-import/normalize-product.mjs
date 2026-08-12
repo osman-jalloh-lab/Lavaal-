@@ -20,16 +20,18 @@ export function normalizeIcecatProduct(xml, { categoryMap }) {
   const name = attribute(product, 'Name', 'Model_Name') ?? attribute(first(product, 'Model_Name'), 'Value') ?? text(first(product, 'Model_Name'));
   const sourceProductId = attribute(product, 'ID', 'Product_ID', 'Icecat_ID');
   const mpn = attribute(product, 'Prod_id', 'M_Prod_id', 'ProductCode');
-  const gtin = unique(descendants(product, 'EanCode').map(node => attribute(node, 'EAN', 'Value') ?? text(node)))[0] ?? null;
+  const gtin = unique([...descendants(product, 'EanCode'), ...descendants(product, 'EANCode')].map(node => attribute(node, 'EAN', 'Value') ?? text(node)))[0] ?? null;
   if (!category) throw new Error('unmapped-category');
   if (!brand?.trim()) throw new Error('missing-brand');
   if (!name?.trim()) throw new Error('missing-name');
   if (!sourceProductId && !(gtin || (brand && mpn))) throw new Error('missing-stable-identity');
 
-  const specifications = descendants(product, 'Feature').map(node => ({
+  const productFeatureNodes = descendants(product, 'ProductFeature');
+  const featureNodes = productFeatureNodes.length ? productFeatureNodes : descendants(product, 'Feature');
+  const specifications = featureNodes.map(node => ({
     name: attribute(node, 'Name') ?? attribute(first(node, 'Name'), 'Value') ?? text(first(node, 'Name')),
-    value: attribute(node, 'Value') ?? attribute(first(node, 'Value'), 'Value') ?? text(first(node, 'Value')),
-    unit: attribute(node, 'Measure') ?? attribute(first(node, 'Measure'), 'Signs') ?? null
+    value: attribute(node, 'Presentation_Value', 'Value') ?? attribute(first(node, 'LocalValue'), 'Value') ?? attribute(first(node, 'Value'), 'Value') ?? text(first(node, 'Value')),
+    unit: attribute(node, 'Measure') ?? text(first(first(node, 'LocalValue'), 'Sign')) ?? text(first(first(node, 'Feature'), 'Sign')) ?? attribute(first(node, 'Measure'), 'Signs') ?? null
   })).filter(item => item.name && item.value);
   const gallery = descendants(product, 'ProductPicture').map(node => ({
     sourceUrl: attribute(node, 'Original', 'Pic'), isMain: attribute(node, 'IsMain') === 'Y', isRich: attribute(node, 'IsRich') === 'Y',

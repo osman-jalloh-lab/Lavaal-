@@ -9,7 +9,7 @@ export function enrichCandidateMetadata(candidate, xml, categoryMap) {
   const document = parseXml(xml); const product = first(document, 'Product');
   if (!product) throw new Error('source-record-unavailable');
   const normalized = normalizeIcecatProduct(xml, { categoryMap }); const categoryNode = first(product, 'Category');
-  const releaseDate = attribute(product, 'ReleaseDate') ?? text(first(product, 'ReleaseDate')) ?? null;
+  const releaseDate = (attribute(product, 'ReleaseDate') ?? text(first(product, 'ReleaseDate'))) || null;
   const productName = attribute(product, 'Name', 'Model_Name') ?? text(first(product, 'Model_Name')) ?? normalized.name;
   const officialBrand = attribute(product, 'Brand', 'Supplier') ?? attribute(first(product, 'Supplier'), 'Name') ?? normalized.brand;
   const officialMpn = attribute(product, 'Prod_id', 'M_Prod_id', 'ProductCode') ?? normalized.mpn;
