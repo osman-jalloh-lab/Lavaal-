@@ -18,6 +18,8 @@ images/catalog/computers/r-go-tools/
 # Source-poor phone candidates retained for audit only; not production assets.
 images/catalog/phones/samsung/132622690/
 images/catalog/phones/samsung/140065173/
+# Candidate fails visual QA; retain locally for audit, never stage as product media.
+images/catalog/tvs/hisense/143953147/
 .DS_Store
 *.log
 temp_*.html
