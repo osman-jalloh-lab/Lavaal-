@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { enrichCandidateMetadata, exactDuplicateGroups } from './lib/candidate-enrichment.mjs';
+import { selectEnrichmentCandidates } from './enrich-candidates.mjs';
+const base = path.dirname(fileURLToPath(import.meta.url)); const xml = await fs.readFile(path.join(base, 'fixtures', 'fake-icecat-product.xml'), 'utf8');
+const candidate = { lavaallCategory: 'tablets', brand: 'Samsung', icecatId: '999', mpn: 'EX-1', gtins: ['1234567890123'], modelName: 'Example', countryMarkets: ['US'], updated: '20250101', selected: false };
+const map = { mappings: [{ sourceCategoryId: '100', sourceCategoryName: 'Tablets', lavaallCategory: 'tablets' }] }; let imageFetches = 0; const originalFetch = globalThis.fetch;
+globalThis.fetch = () => { imageFetches += 1; throw new Error('No network request is permitted while normalizing metadata.'); };
+const enriched = enrichCandidateMetadata(candidate, xml, map); globalThis.fetch = originalFetch;
+assert.equal(enriched.selected, false); assert.equal(enriched.releaseYear, 2025); assert.equal(enriched.galleryMetadata.count, 2); assert.equal(enriched.galleryMetadata.permittedCount, 1); assert.equal(enriched.conditionEvidence, 'Refurbished'); assert.equal(enriched.specifications.length, 3); assert.equal(enriched.reviewStatus, 'strong-review');
+assert.equal(imageFetches, 0);
+assert.equal(exactDuplicateGroups([enriched, { ...enriched, icecatId: '1000' }]).length, 1);
+const selected = selectEnrichmentCandidates({ groups: [{ candidates: [{ ...candidate, reviewStatus: 'review' }, { ...candidate, brand: 'Apple', reviewStatus: 'review' }] }] }); assert.equal(selected.length, 1);
+console.log('candidate enrichment self-test: passed');

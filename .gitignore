@@ -3,6 +3,7 @@ node_modules/
 scripts/catalog-import/cache/
 scripts/catalog-import/discovery/candidates*.json
 scripts/catalog-import/discovery/candidate-review*.json
+scripts/catalog-import/discovery/enriched-review.json
 scripts/catalog-import/discovery/proposed-category-map.json
 scripts/catalog-import/discovery-targets.json
 .DS_Store
