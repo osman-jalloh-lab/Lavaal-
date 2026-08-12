@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T05:14:47.894Z",
+  "generatedAt": "2026-08-12T23:56:44.888Z",
   "source": "open-icecat",
   "products": [
     {
@@ -18633,6 +18633,1675 @@
       "excludedImages": [],
       "visualQaStatus": "PASS",
       "productionApprovedAt": "2026-08-12T05:14:47.894Z"
+    },
+    {
+      "id": "icecat-137510906",
+      "category": "computers",
+      "brand": "Lenovo",
+      "family": null,
+      "name": "ThinkBook 16 G9 IPL Copilot+ PC",
+      "modelNumber": "21UR0002GE",
+      "releaseYear": null,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Product type",
+          "value": "Laptop",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Grey",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Clamshell",
+          "unit": null
+        },
+        {
+          "name": "Colour name",
+          "value": "Arctic Grey",
+          "unit": null
+        },
+        {
+          "name": "Housing material",
+          "value": "Acrylonitrile butadiene styrene (ABS), Polycarbonate (PC)",
+          "unit": null
+        },
+        {
+          "name": "Display back cover material",
+          "value": "Aluminium",
+          "unit": null
+        },
+        {
+          "name": "Display diagonal",
+          "value": "40.6 cm (16\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "1920 x 1200 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Touchscreen",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "HD type",
+          "value": "WUXGA",
+          "unit": null
+        },
+        {
+          "name": "Panel type",
+          "value": "IPS",
+          "unit": null
+        },
+        {
+          "name": "LED backlight",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Native aspect ratio",
+          "value": "16:10",
+          "unit": null
+        },
+        {
+          "name": "Anti-glare screen",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Display brightness",
+          "value": "400 cd/m²",
+          "unit": "cd/m²"
+        },
+        {
+          "name": "RGB colour space",
+          "value": "NTSC",
+          "unit": null
+        },
+        {
+          "name": "Colour gamut",
+          "value": "45%",
+          "unit": "%"
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "60 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Processor family",
+          "value": "Intel Core Ultra 5",
+          "unit": null
+        },
+        {
+          "name": "Processor manufacturer",
+          "value": "Intel",
+          "unit": null
+        },
+        {
+          "name": "Processor model",
+          "value": "325",
+          "unit": null
+        },
+        {
+          "name": "Processor cores",
+          "value": "8",
+          "unit": null
+        },
+        {
+          "name": "Processor threads",
+          "value": "8",
+          "unit": null
+        },
+        {
+          "name": "Copilot+ PC",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Internal memory",
+          "value": "16 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Maximum internal memory",
+          "value": "64 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal memory type",
+          "value": "DDR5-SDRAM",
+          "unit": null
+        },
+        {
+          "name": "Memory clock speed",
+          "value": "5600 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Memory form factor",
+          "value": "SO-DIMM",
+          "unit": null
+        },
+        {
+          "name": "Memory layout (slots x size)",
+          "value": "1 x 16 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Memory slots",
+          "value": "2x SO-DIMM",
+          "unit": null
+        },
+        {
+          "name": "Total storage capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Storage media",
+          "value": "SSD",
+          "unit": null
+        },
+        {
+          "name": "Optical drive type",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Total SSDs capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Number of SSDs installed",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "SSD capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "SSD interface",
+          "value": "PCI Express 4.0",
+          "unit": null
+        },
+        {
+          "name": "NVMe",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "SSD form factor",
+          "value": "M.2",
+          "unit": null
+        },
+        {
+          "name": "Card reader integrated",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Compatible memory cards",
+          "value": "SD",
+          "unit": null
+        },
+        {
+          "name": "On-board graphics card",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Discrete graphics card",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Discrete graphics card model",
+          "value": "Not available",
+          "unit": null
+        },
+        {
+          "name": "On-board graphics card model",
+          "value": "Intel® Graphics",
+          "unit": null
+        },
+        {
+          "name": "On-board GPU manufacturer",
+          "value": "Intel",
+          "unit": null
+        },
+        {
+          "name": "On-board graphics card family",
+          "value": "Intel® Graphics",
+          "unit": null
+        },
+        {
+          "name": "Audio chip",
+          "value": "Realtek ALC3287",
+          "unit": null
+        },
+        {
+          "name": "Number of built-in speakers",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "Speaker power",
+          "value": "2 W",
+          "unit": "W"
+        },
+        {
+          "name": "Built-in microphone",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Number of microphones",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "Front camera",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution",
+          "value": "1920 x 1080 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Front camera HD type",
+          "value": "Full HD",
+          "unit": null
+        },
+        {
+          "name": "Infrared (IR) camera",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Privacy camera",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Privacy type",
+          "value": "Privacy shutter",
+          "unit": null
+        },
+        {
+          "name": "Mobile network connection",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 7 (802.11be)",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "Wi-Fi 7 (802.11be)",
+          "unit": null
+        },
+        {
+          "name": "Antenna type",
+          "value": "2x2",
+          "unit": null
+        },
+        {
+          "name": "Ethernet LAN",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ethernet LAN data rates",
+          "value": "100,1000 Mbit/s",
+          "unit": "Mbit/s"
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "5.4",
+          "unit": null
+        },
+        {
+          "name": "WWAN",
+          "value": "Not installed",
+          "unit": null
+        },
+        {
+          "name": "USB 2.0 ports quantity",
+          "value": "0",
+          "unit": null
+        },
+        {
+          "name": "USB 3.2 Gen 1 (3.1 Gen 1) Type-A ports quantity",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "USB 3.2 Gen 1 (3.1 Gen 1) Type-C ports quantity",
+          "value": "0",
+          "unit": null
+        },
+        {
+          "name": "HDMI ports quantity",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "Ethernet LAN (RJ-45) ports",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "HDMI version",
+          "value": "2.1",
+          "unit": null
+        },
+        {
+          "name": "Thunderbolt 4 ports quantity",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "Intel® Thunderbolt 4",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Combo headphone/mic port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Sleep-and-Charge",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Motherboard chipset",
+          "value": "Intel SoC",
+          "unit": null
+        },
+        {
+          "name": "Numeric keypad",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Pointing device",
+          "value": "Touchpad",
+          "unit": null
+        },
+        {
+          "name": "Keyboard backlit",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Keyboard language",
+          "value": "German",
+          "unit": null
+        },
+        {
+          "name": "Copilot key",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Operating system installed",
+          "value": "Windows 11 Pro",
+          "unit": null
+        },
+        {
+          "name": "Operating system language",
+          "value": "German",
+          "unit": null
+        },
+        {
+          "name": "Microsoft Copilot",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Trial software",
+          "value": "Office",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "48 Wh",
+          "unit": "Wh"
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "45 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "65 W",
+          "unit": "W"
+        },
+        {
+          "name": "AC adapter power",
+          "value": "65 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Power Delivery (USB PD)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Cable lock slot",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Cable lock slot type",
+          "value": "Kensington",
+          "unit": null
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Windows Hello",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Trusted Platform Module (TPM)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Trusted Platform Module (TPM) version",
+          "value": "2.0",
+          "unit": null
+        },
+        {
+          "name": "Certification",
+          "value": "ENERGY STAR,TCO,EPEAT Gold,RoHS",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "1.7 kg",
+          "unit": "kg"
+        },
+        {
+          "name": "Width",
+          "value": "356 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "253.5 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "17.5 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "AC adapter included",
+          "value": "Yes",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/computers/lenovo/137510906/01.webp",
+      "images": [
+        {
+          "path": "images/catalog/computers/lenovo/137510906/01.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/5888a42f35cc49b8bbfe740561d88e0bca984e24.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/computers/lenovo/137510906/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/fce0d5f76246a18336e9aa7a3029a9305b03e36a.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/computers/lenovo/137510906/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/9e6ec01ffab261a29074cb50a63821e619827830.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/computers/lenovo/137510906/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/eccdd83308bfcea257f794b603590daf6c78dec7.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "137510906",
+      "mpn": "21UR0002GE",
+      "gtin": "0199273105540",
+      "gtins": [
+        "0199273105540",
+        "199273105540"
+      ],
+      "sourceSupplierName": "Lenovo",
+      "sourceSupplierId": "728",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "identityStatus": "verified",
+      "visualQaStatus": "PASS",
+      "integrationApproved": true,
+      "productionApprovedAt": "2026-08-12T23:56:44.880Z"
+    },
+    {
+      "id": "icecat-120862582",
+      "category": "computers",
+      "brand": "Lenovo",
+      "family": null,
+      "name": "ThinkBook 14 G7 ARP",
+      "modelNumber": "21MV001HGE",
+      "releaseYear": null,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Product type",
+          "value": "Laptop",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Grey",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Clamshell",
+          "unit": null
+        },
+        {
+          "name": "Colour name",
+          "value": "Arctic grey",
+          "unit": null
+        },
+        {
+          "name": "Housing material",
+          "value": "Aluminium",
+          "unit": null
+        },
+        {
+          "name": "Display back cover material",
+          "value": "Aluminium",
+          "unit": null
+        },
+        {
+          "name": "Certified refurbished",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Display diagonal",
+          "value": "35.6 cm (14\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "1920 x 1200 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Touchscreen",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "HD type",
+          "value": "WUXGA",
+          "unit": null
+        },
+        {
+          "name": "Panel type",
+          "value": "IPS",
+          "unit": null
+        },
+        {
+          "name": "LED backlight",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Native aspect ratio",
+          "value": "16:10",
+          "unit": null
+        },
+        {
+          "name": "Anti-glare screen",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Display brightness",
+          "value": "300 cd/m²",
+          "unit": "cd/m²"
+        },
+        {
+          "name": "RGB colour space",
+          "value": "NTSC",
+          "unit": null
+        },
+        {
+          "name": "Colour gamut",
+          "value": "45%",
+          "unit": "%"
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "60 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Contrast ratio (typical)",
+          "value": "1000:1",
+          "unit": null
+        },
+        {
+          "name": "Processor family",
+          "value": "AMD Ryzen™ 5",
+          "unit": null
+        },
+        {
+          "name": "Processor manufacturer",
+          "value": "AMD",
+          "unit": null
+        },
+        {
+          "name": "Processor model",
+          "value": "7535HS",
+          "unit": null
+        },
+        {
+          "name": "Processor frequency",
+          "value": "3.3 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor generation",
+          "value": "AMD Ryzen 7000 Series",
+          "unit": null
+        },
+        {
+          "name": "Processor cores",
+          "value": "6",
+          "unit": null
+        },
+        {
+          "name": "Processor threads",
+          "value": "16",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "4.55 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cache",
+          "value": "16 MB",
+          "unit": "MB"
+        },
+        {
+          "name": "Processor cache type",
+          "value": "L3",
+          "unit": null
+        },
+        {
+          "name": "Processor base power",
+          "value": "35 W",
+          "unit": "W"
+        },
+        {
+          "name": "Internal memory",
+          "value": "16 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Maximum internal memory",
+          "value": "64 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal memory type",
+          "value": "DDR5-SDRAM",
+          "unit": null
+        },
+        {
+          "name": "Memory clock speed",
+          "value": "4800 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Memory form factor",
+          "value": "SO-DIMM",
+          "unit": null
+        },
+        {
+          "name": "Memory layout (slots x size)",
+          "value": "1 x 16 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Memory slots",
+          "value": "2x SO-DIMM",
+          "unit": null
+        },
+        {
+          "name": "Memory channels",
+          "value": "Dual-channel",
+          "unit": null
+        },
+        {
+          "name": "Total storage capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Storage media",
+          "value": "SSD",
+          "unit": null
+        },
+        {
+          "name": "Optical drive type",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Total SSDs capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Number of SSDs installed",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "SSD capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "SSD interface",
+          "value": "PCI Express 4.0",
+          "unit": null
+        },
+        {
+          "name": "NVMe",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "SSD form factor",
+          "value": "M.2",
+          "unit": null
+        },
+        {
+          "name": "Card reader integrated",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Compatible memory cards",
+          "value": "SD",
+          "unit": null
+        },
+        {
+          "name": "On-board graphics card",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Discrete graphics card",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Discrete graphics card model",
+          "value": "Not available",
+          "unit": null
+        },
+        {
+          "name": "On-board graphics card model",
+          "value": "AMD Radeon 660M",
+          "unit": null
+        },
+        {
+          "name": "On-board GPU manufacturer",
+          "value": "AMD",
+          "unit": null
+        },
+        {
+          "name": "On-board graphics card family",
+          "value": "AMD Radeon",
+          "unit": null
+        },
+        {
+          "name": "Audio chip",
+          "value": "Realtek ALC3287",
+          "unit": null
+        },
+        {
+          "name": "Audio system",
+          "value": "Dolby Audio",
+          "unit": null
+        },
+        {
+          "name": "Number of built-in speakers",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "Speaker power",
+          "value": "2 W",
+          "unit": "W"
+        },
+        {
+          "name": "Built-in microphone",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Number of microphones",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "Front camera",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution",
+          "value": "1920 x 1080 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Front camera HD type",
+          "value": "Full HD",
+          "unit": null
+        },
+        {
+          "name": "Infrared (IR) camera",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Privacy camera",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Privacy type",
+          "value": "Privacy shutter",
+          "unit": null
+        },
+        {
+          "name": "Mobile network connection",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 6E (802.11ax)",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "Wi-Fi 6E (802.11ax)",
+          "unit": null
+        },
+        {
+          "name": "Antenna type",
+          "value": "2x2",
+          "unit": null
+        },
+        {
+          "name": "Ethernet LAN",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ethernet LAN data rates",
+          "value": "100,1000 Mbit/s",
+          "unit": "Mbit/s"
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "5.3",
+          "unit": null
+        },
+        {
+          "name": "WWAN",
+          "value": "Not installed",
+          "unit": null
+        },
+        {
+          "name": "USB 2.0 ports quantity",
+          "value": "0",
+          "unit": null
+        },
+        {
+          "name": "USB 3.2 Gen 1 (3.1 Gen 1) Type-A ports quantity",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "USB 3.2 Gen 1 (3.1 Gen 1) Type-C ports quantity",
+          "value": "0",
+          "unit": null
+        },
+        {
+          "name": "HDMI ports quantity",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "USB 3.2 Gen 2 (3.1 Gen 2) Type-C ports quantity",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "USB4 Gen 2x2 ports quantity",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "USB4 Gen 3x2 ports quantity",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "Ethernet LAN (RJ-45) ports",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "HDMI version",
+          "value": "2.1",
+          "unit": null
+        },
+        {
+          "name": "Combo headphone/mic port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C DisplayPort Alternate Mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Sleep-and-Charge",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Sleep-and-Charge ports",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "Motherboard chipset",
+          "value": "AMD SoC",
+          "unit": null
+        },
+        {
+          "name": "Numeric keypad",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Pointing device",
+          "value": "Touchpad",
+          "unit": null
+        },
+        {
+          "name": "Keyboard backlit",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Spill-resistant keyboard",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Keyboard language",
+          "value": "German",
+          "unit": null
+        },
+        {
+          "name": "Operating system installed",
+          "value": "Windows 11 Pro",
+          "unit": null
+        },
+        {
+          "name": "Operating system architecture",
+          "value": "64-bit",
+          "unit": null
+        },
+        {
+          "name": "Operating system language",
+          "value": "German",
+          "unit": null
+        },
+        {
+          "name": "Trial software",
+          "value": "Office",
+          "unit": null
+        },
+        {
+          "name": "Bundled software",
+          "value": "Office Trial",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "45 Wh",
+          "unit": "Wh"
+        },
+        {
+          "name": "Battery technology",
+          "value": "Lithium Polymer (LiPo)",
+          "unit": null
+        },
+        {
+          "name": "Battery life (max)",
+          "value": "7.46 h",
+          "unit": "h"
+        },
+        {
+          "name": "Continuous video playback time (max)",
+          "value": "14.85 h",
+          "unit": "h"
+        },
+        {
+          "name": "Fast charging",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Fast charging time (50%)",
+          "value": "30 min",
+          "unit": "min"
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "45 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "65 W",
+          "unit": "W"
+        },
+        {
+          "name": "AC adapter power",
+          "value": "65 W",
+          "unit": "W"
+        },
+        {
+          "name": "AC adapter frequency",
+          "value": "50/60 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "AC adapter input voltage",
+          "value": "100 - 240 V",
+          "unit": "V"
+        },
+        {
+          "name": "USB Power Delivery (USB PD)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Cable lock slot",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Cable lock slot type",
+          "value": "Kensington",
+          "unit": null
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Smart card reader",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Windows Hello",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Trusted Platform Module (TPM)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Trusted Platform Module (TPM) version",
+          "value": "2.0",
+          "unit": null
+        },
+        {
+          "name": "Password protection",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Password protection type",
+          "value": "BIOS, Power on, Supervisor",
+          "unit": null
+        },
+        {
+          "name": "Operating temperature (T-T)",
+          "value": "5 - 35 °C",
+          "unit": "°C"
+        },
+        {
+          "name": "Storage temperature (T-T)",
+          "value": "5 - 43 °C",
+          "unit": "°C"
+        },
+        {
+          "name": "Operating relative humidity (H-H)",
+          "value": "8 - 95%",
+          "unit": "%"
+        },
+        {
+          "name": "Storage relative humidity (H-H)",
+          "value": "5 - 95%",
+          "unit": "%"
+        },
+        {
+          "name": "Maximum shipping altitude",
+          "value": "3048 m",
+          "unit": "m"
+        },
+        {
+          "name": "PSTI certified",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Compliance certificates",
+          "value": "RoHS",
+          "unit": null
+        },
+        {
+          "name": "Certification",
+          "value": "ErP Lot 6\nErP Lot 26\nMIL-STD-810H",
+          "unit": null
+        },
+        {
+          "name": "Sustainability certificates",
+          "value": "ENERGY STAR, EPEAT Gold, TCO",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "1.38 kg",
+          "unit": "kg"
+        },
+        {
+          "name": "Width",
+          "value": "313.5 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "224 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "16.9 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "AC adapter included",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Sustainability compliance",
+          "value": "Yes",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/computers/lenovo/120862582/01.webp",
+      "images": [
+        {
+          "path": "images/catalog/computers/lenovo/120862582/01.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/8b5d880e52fd2945a01889c7a868da302f7cdd84.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/computers/lenovo/120862582/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/5005273f36bf353901ea8faf20f56dfb9b89a626.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/computers/lenovo/120862582/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/1cd41a0fba69cd61c36fcbcb6866451de5d30e6e.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1598,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/computers/lenovo/120862582/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/60c29cd9d15178ff5e39c3abbc093d35897d33be.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "120862582",
+      "mpn": "21MV001HGE",
+      "gtin": "0198153150373",
+      "gtins": [
+        "0198153150373",
+        "198153150373"
+      ],
+      "sourceSupplierName": "Lenovo",
+      "sourceSupplierId": "728",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "identityStatus": "verified",
+      "visualQaStatus": "PASS",
+      "integrationApproved": true,
+      "productionApprovedAt": "2026-08-12T23:56:44.888Z"
+    },
+    {
+      "id": "icecat-139920272",
+      "category": "tvs",
+      "brand": "LG",
+      "family": null,
+      "name": "65UA731C0LA",
+      "modelNumber": "65UA731C0LA.AEUQ",
+      "releaseYear": null,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "165.1 cm (65\")",
+          "unit": "cm"
+        },
+        {
+          "name": "HD type",
+          "value": "4K Ultra HD",
+          "unit": null
+        },
+        {
+          "name": "Display resolution",
+          "value": "3840 x 2160 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Display technology",
+          "value": "LCD",
+          "unit": null
+        },
+        {
+          "name": "Screen shape",
+          "value": "Flat",
+          "unit": null
+        },
+        {
+          "name": "Native aspect ratio",
+          "value": "16:9",
+          "unit": null
+        },
+        {
+          "name": "LED backlight",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "LED backlighting type",
+          "value": "Direct-LED",
+          "unit": null
+        },
+        {
+          "name": "Native refresh rate",
+          "value": "60 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Tuner type",
+          "value": "Analog & digital",
+          "unit": null
+        },
+        {
+          "name": "Analog signal format system",
+          "value": "PAL, SECAM",
+          "unit": null
+        },
+        {
+          "name": "Digital signal format system",
+          "value": "DVB-T2, DVB-C, DVB-S2",
+          "unit": null
+        },
+        {
+          "name": "Smart TV",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Internet TV",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Operating system installed",
+          "value": "WebOS",
+          "unit": null
+        },
+        {
+          "name": "Operating system version",
+          "value": "25",
+          "unit": null
+        },
+        {
+          "name": "Apple AirPlay 2 support",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Number of speakers",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "RMS rated power",
+          "value": "20 W",
+          "unit": "W"
+        },
+        {
+          "name": "Wi-Fi",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ethernet LAN",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "802.11a, 802.11b, 802.11g, Wi-Fi 4 (802.11n), Wi-Fi 5 (802.11ac)",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Black",
+          "unit": null
+        },
+        {
+          "name": "VESA mounting",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Panel mounting interface",
+          "value": "400 x 400 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Rollable display",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "High Dynamic Range (HDR) supported",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "High Dynamic Range (HDR) technology",
+          "value": "High Dynamic Range 10 (HDR10), High Dynamic Range 10 Pro (HDR10 Pro)",
+          "unit": null
+        },
+        {
+          "name": "Picture processor",
+          "value": "α7 Gen 8 AI Processor 4K",
+          "unit": null
+        },
+        {
+          "name": "4K Ultra HD upscaling",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "HDMI ports quantity",
+          "value": "3",
+          "unit": null
+        },
+        {
+          "name": "PC in (D-Sub)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "USB 2.0 ports quantity",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "USB 3.2 Gen 1 (3.1 Gen 1) Type-A ports quantity",
+          "value": "0",
+          "unit": null
+        },
+        {
+          "name": "Common interface (CI)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Digital audio optical out",
+          "value": "1",
+          "unit": null
+        },
+        {
+          "name": "Hotel mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Power consumption (standby)",
+          "value": "0.5 W",
+          "unit": "W"
+        },
+        {
+          "name": "Energy efficiency class (SDR)",
+          "value": "F",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency class (HDR)",
+          "value": "G",
+          "unit": null
+        },
+        {
+          "name": "Energy consumption (SDR) per 1000 hours",
+          "value": "102 kWh",
+          "unit": "kWh"
+        },
+        {
+          "name": "Energy consumption (HDR) per 1000 hours",
+          "value": "135 kWh",
+          "unit": "kWh"
+        },
+        {
+          "name": "AC input voltage",
+          "value": "100-240 V",
+          "unit": "V"
+        },
+        {
+          "name": "AC input frequency",
+          "value": "50/60 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Energy efficiency scale",
+          "value": "A to G",
+          "unit": null
+        },
+        {
+          "name": "Operating temperature (T-T)",
+          "value": "0 - 40 °C",
+          "unit": "°C"
+        },
+        {
+          "name": "Weight (with stand)",
+          "value": "11.8 kg",
+          "unit": "kg"
+        },
+        {
+          "name": "Width (without stand)",
+          "value": "1455 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth (without stand)",
+          "value": "67.9 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height (without stand)",
+          "value": "84 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Desktop stand",
+          "value": "Yes",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/tvs/lg/139920272/01.webp",
+      "images": [
+        {
+          "path": "images/catalog/tvs/lg/139920272/01.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/c45a31d3a07bc9d9b36d19e6ad725ed5d4ee9258.jpeg",
+          "isMain": true,
+          "width": 1600,
+          "height": 1062,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/tvs/lg/139920272/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/9f08e756c610c369699553c8fe11d47384c300a8.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1062,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/tvs/lg/139920272/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/feac9374a697d0f5f9dcf85e7dd84d60c82018e0.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1062,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/tvs/lg/139920272/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/da03cce345e55dd9415dc77d6437d47a092fb57c.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1062,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "139920272",
+      "mpn": "65UA731C0LA.AEUQ",
+      "gtin": "8806096585627",
+      "gtins": [
+        "8806096585627",
+        "8806096588741"
+      ],
+      "sourceSupplierName": "LG",
+      "sourceSupplierId": "293",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "identityStatus": "verified",
+      "visualQaStatus": "PASS",
+      "integrationApproved": true,
+      "productionApprovedAt": "2026-08-12T23:56:44.888Z"
     }
   ]
 }

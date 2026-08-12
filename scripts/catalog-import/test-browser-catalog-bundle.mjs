@@ -12,6 +12,6 @@ vm.runInNewContext(bundle, context);
 const fromJson = (json.products || []).filter(product => product.integrationApproved === true && product.identityStatus === 'verified' && product.visualQaStatus === 'PASS' && product.mediaUsageStatus === 'permitted' && product.quarantined !== true).map(product => String(product.sourceProductId)).sort();
 const fromBundle = (context.window.LAVAALL_GENERATED_CATALOG.products || []).map(product => String(product.sourceProductId)).sort();
 assert.equal(JSON.stringify(fromBundle), JSON.stringify(fromJson));
-assert.equal(fromBundle.length, 28);
+assert.ok(fromBundle.length >= 28, 'approved catalog cannot regress below the initial released baseline');
 assert.equal(fromBundle.some(id => id === '145145130' || id === '145145101'), false);
 console.log(`browser catalog bundle parity: ${fromBundle.length} products`);
