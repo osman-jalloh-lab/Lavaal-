@@ -68,3 +68,37 @@ The example seed is expected to fail validation because its identifiers are inte
 ## Run reports
 
 Every authenticated run writes a JSON report under `scripts/catalog-import/reports/` with requested, accepted, skipped, failed, downloaded/skipped images, and duplicates. No item is silently discarded.
+
+## Product discovery (review-only)
+
+`discover-products.mjs` reads an already obtained official Icecat index locally. It does **not** call Product XML, download galleries, invoke the importer, or alter the public catalog. Keep large indexes under `scripts/catalog-import/cache/`; that directory is ignored by Git.
+
+Use the official supplier list to resolve desired brand names to Icecat supplier IDs and the official category list to label unmapped source categories. The production `category-map.json` remains the only mapping used for candidate eligibility. Discovery can write a separate proposed map for review, but never changes the production map.
+
+```powershell
+# Offline discovery against a locally obtained official index and reference lists.
+node scripts/catalog-import/discover-products.mjs `
+  --index-file scripts/catalog-import/cache/official-index.xml.gz `
+  --index-type on-market `
+  --targets scripts/catalog-import/discovery-targets.example.json `
+  --suppliers-file scripts/catalog-import/cache/SuppliersList.xml.gz `
+  --categories-file scripts/catalog-import/cache/CategoriesList.xml.gz `
+  --category-map scripts/catalog-import/category-map.json `
+  --market US `
+  --max-candidates 50 `
+  --output scripts/catalog-import/discovery/candidates.json `
+  --proposed-category-map scripts/catalog-import/discovery/proposed-category-map.json
+
+# Use only a reviewed discovery output where specific candidates were manually
+# changed to selected: true. This writes a seed; it never runs the importer.
+node scripts/catalog-import/discover-products.mjs `
+  --generate-seed scripts/catalog-import/discovery/approved-candidates.json `
+  --seed-output scripts/catalog-import/catalog-seed.json
+
+# Offline synthetic discovery test.
+node scripts/catalog-import/test-discovery.mjs
+```
+
+Supported index labels are `on-market`, `full`, and `daily`. The label controls discovery filtering policy only; this utility does not invent or download an index URL. The On Market index defaults to `onMarketOnly`; use `--on-market-only` with another index type when appropriate.
+
+Candidate output is grouped by verified source supplier and source category. Each candidate includes only index metadata: Icecat ID, MPN, GTINs, model name, quality, on-market/limited flags, update time, market codes, preview URL, and `selected: false`. `HighPic` is never treated as permission to publish or download media.

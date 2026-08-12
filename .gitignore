@@ -1,5 +1,6 @@
 node_modules/
 .env
+scripts/catalog-import/cache/
 .DS_Store
 *.log
 temp_*.html

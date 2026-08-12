@@ -1,0 +1,7 @@
+{
+  "market": "US",
+  "maxCandidatesPerTarget": 2,
+  "targets": [
+    { "lavaallCategory": "tablets", "brands": ["FAKE_BRAND", "MISSING_BRAND"] }
+  ]
+}

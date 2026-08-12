@@ -1,0 +1,11 @@
+{
+  "market": "US",
+  "maxCandidatesPerTarget": 50,
+  "targets": [
+    { "lavaallCategory": "refrigeration", "brands": ["LG", "Samsung"] },
+    { "lavaallCategory": "tablets", "brands": ["Apple", "Samsung"] },
+    { "lavaallCategory": "computers", "brands": ["Apple", "Dell", "HP", "Lenovo"] },
+    { "lavaallCategory": "tvs", "brands": ["LG", "Samsung", "Sony", "TCL", "Hisense"] },
+    { "lavaallCategory": "monitors", "brands": ["Dell", "LG", "Samsung"] }
+  ]
+}

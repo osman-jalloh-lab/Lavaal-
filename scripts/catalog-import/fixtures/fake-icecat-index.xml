@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<files.index Generated="20990101000000">
+  <file Product_ID="9001" Supplier_id="10" Prod_ID="FAKE-TAB-A" Catid="100" Model_Name="FAKE TABLET A" Quality="ICECAT" On_Market="1" Limited="0" Updated="20990101010101" HighPic="https://invalid.example/9001.jpg"><EAN_UPCS><EAN_UPC Value="1000000000001"/></EAN_UPCS><Country_Markets><Country_Market Value="US"/></Country_Markets></file>
+  <file Product_ID="9002" Supplier_id="10" Prod_ID="FAKE-TAB-B" Catid="100" Model_Name="FAKE TABLET B" Quality="SUPPLIER" On_Market="0" Limited="0" Updated="20990101010102"><EAN_UPCS><EAN_UPC Value="1000000000002"/></EAN_UPCS><Country_Markets><Country_Market Value="CA"/></Country_Markets></file>
+  <file Product_ID="9003" Supplier_id="10" Prod_ID="FAKE-TAB-C" Catid="100" Model_Name="FAKE TABLET C" Quality="ICECAT" On_Market="1" Limited="1" Updated="20990101010103"><EAN_UPCS><EAN_UPC Value="1000000000003"/></EAN_UPCS><Country_Markets><Country_Market Value="US"/></Country_Markets></file>
+  <file Product_ID="9004" Supplier_id="20" Prod_ID="FAKE-TV-A" Catid="200" Model_Name="FAKE TV A" Quality="ICECAT" On_Market="1" Limited="0" Updated="20990101010104"><Country_Markets><Country_Market Value="US"/></Country_Markets></file>
+  <file Product_ID="9005" Supplier_id="10" Prod_ID="FAKE-UNKNOWN" Catid="999" Model_Name="FAKE UNKNOWN" Quality="ICECAT" On_Market="1" Limited="0" Updated="20990101010105"/>
+  <file Product_ID="9006" Supplier_id="10" Prod_ID="FAKE-TAB-DUP" Catid="100" Model_Name="FAKE TABLET DUP" Quality="ICECAT" On_Market="1" Limited="0" Updated="20990101010106"><EAN_UPCS><EAN_UPC Value="1000000000001"/></EAN_UPCS><Country_Markets><Country_Market Value="US"/></Country_Markets></file>
+  <file Product_ID="9007" Supplier_id="10" Prod_ID="FAKE-TAB-NOTMARKET" Catid="100" Model_Name="FAKE TABLET NOT MARKET" Quality="ICECAT" On_Market="0" Limited="0" Updated="20990101010107"><Country_Markets><Country_Market Value="US"/></Country_Markets></file>
+</files.index>
