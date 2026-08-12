@@ -9,7 +9,9 @@
  *   Family             = { name, models: [Model, ...] }
  *   Model              = {
  *     id, name, specLine, desc,
- *     image: 'images/products/xxx.jpg' | null,   // null -> placeholder icon
+ *     primaryImage: 'images/catalog/...' | null, // canonical imported primary
+ *     images: [{ src, alt, isMain, source, sourceProductId }],
+ *     image: 'images/products/xxx.jpg' | null,   // legacy handwritten fallback
  *     fields: [ FieldDef, ... ]                    // drives the quote panel
  *   }
  *   FieldDef (select)  = { key, label, type:'select', options:[...] }
