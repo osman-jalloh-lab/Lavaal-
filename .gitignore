@@ -24,3 +24,4 @@ temp_*.html
 new_*.html
 fix.html
 .gstack/
+scripts/qa/reports/

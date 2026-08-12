@@ -692,3 +692,10 @@ const CATALOG = [
   CATALOG_HVAC,
   CATALOG_REFRIGERATION,
 ];
+
+// Browser QA consumes only this small public traversal manifest. Keeping it
+// alongside the runtime catalog lets release checks discover every customer
+// category without maintaining a second, fragile category list.
+if (typeof window !== 'undefined') {
+  window.LAVAALL_CATALOG_CATEGORY_IDS = CATALOG.map((category) => category.id);
+}
