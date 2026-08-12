@@ -13,7 +13,7 @@ export function enrichCandidateMetadata(candidate, xml, categoryMap) {
   const productName = attribute(product, 'Name', 'Model_Name') ?? text(first(product, 'Model_Name')) ?? normalized.name;
   const officialBrand = attribute(product, 'Brand', 'Supplier') ?? attribute(first(product, 'Supplier'), 'Name') ?? normalized.brand;
   const officialMpn = attribute(product, 'Prod_id', 'M_Prod_id', 'ProductCode') ?? normalized.mpn;
-  const officialGtins = values(descendants(product, 'EanCode'), ['EAN', 'Value']);
+  const officialGtins = values([...descendants(product, 'EanCode'), ...descendants(product, 'EANCode')], ['EAN', 'Value']);
   const family = attribute(product, 'Family') ?? attribute(first(product, 'Family'), 'Name', 'Value') ?? text(first(product, 'Family')) ?? null;
   const series = attribute(product, 'Series') ?? attribute(first(product, 'Series'), 'Name', 'Value') ?? text(first(product, 'Series')) ?? null;
   const haystack = [productName, normalized.shortDescription, ...normalized.specifications.flatMap(item => [item.name, item.value])].filter(Boolean).join(' ');
