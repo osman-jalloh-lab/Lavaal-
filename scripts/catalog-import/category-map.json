@@ -1,4 +1,12 @@
 {
   "version": 1,
-  "mappings": []
+  "mappings": [
+    { "sourceCategoryId": "897", "sourceCategoryName": "Tablets", "lavaallCategory": "tablets" },
+    { "sourceCategoryId": "151", "sourceCategoryName": "Laptops", "lavaallCategory": "computers" },
+    { "sourceCategoryId": "153", "sourceCategoryName": "PCs/Workstations", "lavaallCategory": "computers" },
+    { "sourceCategoryId": "8760", "sourceCategoryName": "Televisions", "lavaallCategory": "tvs" },
+    { "sourceCategoryId": "222", "sourceCategoryName": "Computer Monitors", "lavaallCategory": "monitors" },
+    { "sourceCategoryId": "4964", "sourceCategoryName": "Refrigerators & Freezers", "lavaallCategory": "refrigeration" },
+    { "sourceCategoryId": "1322", "sourceCategoryName": "Freezers", "lavaallCategory": "refrigeration" }
+  ]
 }
