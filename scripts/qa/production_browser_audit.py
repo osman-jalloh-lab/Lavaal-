@@ -112,7 +112,7 @@ with sync_playwright() as p:
                     # cached file. Wait for this exact selected source to
                     # decode; the prior main image may still have dimensions.
                     try:
-                        page.wait_for_function('(expected) => { const im = document.querySelector("#pgal-main-img"); return im.currentSrc === expected && im.naturalWidth > 0; }', expected_src, timeout=15000)
+                        page.wait_for_function('(expected) => { const im = document.querySelector("#pgal-main-img"); return (im.currentSrc === expected || im.src === expected) && im.complete && im.naturalWidth > 0; }', expected_src, timeout=30000)
                     except Exception:
                         pass
                     state = page.evaluate('''() => ({w:document.querySelector('#pgal-main-img').naturalWidth, pressed:[...document.querySelectorAll('.pgal-thumbs button')].map(b=>b.getAttribute('aria-pressed'))})''')

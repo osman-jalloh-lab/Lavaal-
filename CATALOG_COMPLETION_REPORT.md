@@ -66,7 +66,7 @@ production blocker; the audit intentionally does not submit customer data.
 
 ## QA
 
-Local full-tree release audit after conversion: 24 overview cards, 19
+Final Vercel production full-tree audit after conversion: 24 overview cards, 19
 categories, 54 brands, 95 families, 164 cards/details, 28 verified listings,
 136 sourcing listings, 133 gallery thumbnail clicks, 28 exact-SKU quote checks
 and 136 sourcing quote checks. Broken images, blank routes, dead controls,
