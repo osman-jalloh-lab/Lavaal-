@@ -8,6 +8,7 @@
     { "sourceCategoryId": "1584", "sourceCategoryName": "TVs", "lavaallCategory": "tvs" },
     { "sourceCategoryId": "222", "sourceCategoryName": "Computer Monitors", "lavaallCategory": "monitors" },
     { "sourceCategoryId": "4964", "sourceCategoryName": "Refrigerators & Freezers", "lavaallCategory": "refrigeration" },
-    { "sourceCategoryId": "1322", "sourceCategoryName": "Freezers", "lavaallCategory": "refrigeration" }
+    { "sourceCategoryId": "1322", "sourceCategoryName": "Freezers", "lavaallCategory": "refrigeration" },
+    { "sourceCategoryId": "1893", "sourceCategoryName": "Smartphones", "lavaallCategory": "phones" }
   ]
 }

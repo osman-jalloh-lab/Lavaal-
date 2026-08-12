@@ -7,6 +7,8 @@ scripts/catalog-import/discovery/enriched-review.json
 scripts/catalog-import/discovery/selection-review.json
 scripts/catalog-import/discovery/proposed-category-map.json
 scripts/catalog-import/discovery-targets.json
+scripts/catalog-import/catalog-seed.json
+scripts/catalog-import/reports/
 .DS_Store
 *.log
 temp_*.html

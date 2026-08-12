@@ -11,6 +11,14 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url)); const rootDir = 
 function arg(name) { const index = process.argv.indexOf(name); return index === -1 ? null : process.argv[index + 1]; }
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
+export function assertApprovedPilotSeed(seed, selection) {
+  const approved = new Set((selection.approved ?? []).filter(item => item.approved).map(item => String(item.icecatId)));
+  const seedIds = seed.targets.flatMap(target => target.identifiers.map(identifier => String(identifier.value)));
+  if (approved.size !== 19 || seedIds.length !== 19 || seedIds.some(id => !approved.has(id)) || approved.size !== new Set(seedIds).size) {
+    throw new Error('Seed does not exactly match the 19-product pilot approval.');
+  }
+}
+
 export function validateSeed(seed) {
   const errors = []; const categories = new Set(['phones', 'tablets', 'computers', 'tvs', 'monitors', 'gaming', 'audio', 'watches', 'cameras', 'printers', 'networking', 'servers', 'refrigeration', 'accessories']);
   if (!Array.isArray(seed.targets) || !seed.targets.length) errors.push('missing-targets');
@@ -29,6 +37,10 @@ export function validateSeed(seed) {
 async function main() {
   const seedPath = path.resolve(arg('--seed') ?? path.join(scriptDir, 'catalog-seed.json')); const dryRun = process.argv.includes('--dry-run'); const validateOnly = process.argv.includes('--validate-seed');
   const seed = JSON.parse(await fs.readFile(seedPath, 'utf8')); const report = createReport(); const errors = validateSeed(seed);
+  if (arg('--pilot-selection')) {
+    const selection = JSON.parse(await fs.readFile(path.resolve(arg('--pilot-selection')), 'utf8'));
+    assertApprovedPilotSeed(seed, selection);
+  }
   report.requested = (seed.targets ?? []).reduce((sum, target) => sum + (target.identifiers?.length ?? 0), 0);
   if (errors.length) {
     errors.forEach(reason => addFailed(report, { seed: seedPath }, reason));

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { findDuplicate, rememberProduct } from './lib/identity.mjs';
 import { mediaSkipReason } from './download-images.mjs';
 import { normalizeIcecatProduct } from './normalize-product.mjs';
-import { validateSeed } from './import-products.mjs';
+import { assertApprovedPilotSeed, validateSeed } from './import-products.mjs';
 
 const sampleXml = `<?xml version="1.0"?><ICECAT-interface><Product Product_ID="123" Brand="Example" Name="Example Tablet" Prod_id="TAB-1" ReleaseDate="2024-01-01"><Category ID="test-tablets"/><EanCode EAN="1234567890123"/><Feature Name="Memory" Value="128" Measure="GB"/><ProductGallery><ProductPicture Original="https://example.invalid/one.jpg" IsMain="Y" PicWidth="1000" PicHeight="700"/><ProductPicture Original="https://example.invalid/two.jpg" IsRich="Y"/></ProductGallery></Product></ICECAT-interface>`;
 const product = normalizeIcecatProduct(sampleXml, { categoryMap: { mappings: [{ sourceCategoryId: 'test-tablets', lavaallCategory: 'tablets' }] } });
@@ -14,4 +14,7 @@ const brandMpnSeen = new Map(); rememberProduct({ id: 'brand-a', brand: 'Brand A
 assert.equal(findDuplicate({ id: 'brand-b', brand: 'Brand B', mpn: 'SHARED' }, brandMpnSeen).duplicate, null);
 assert.ok(validateSeed({ limits: { maxProducts: 1, maxImagesPerProduct: 4 }, targets: [{ lavaallCategory: 'tablets', brand: 'Example', identifiers: [{ type: 'icecat-id', value: '123' }] }] }).length === 0);
 assert.ok(validateSeed({ limits: { maxProducts: 1, maxImagesPerProduct: 4 }, targets: [{ lavaallCategory: 'tablets', brand: 'Example', identifiers: [{ type: 'icecat-id', value: 'REPLACE_WITH_REAL_ID' }] }] }).includes('invalid-identifier'));
+const pilot = { approved: Array.from({ length: 19 }, (_, index) => ({ icecatId: String(index + 1), approved: true })) };
+assert.doesNotThrow(() => assertApprovedPilotSeed({ targets: [{ identifiers: pilot.approved.map(item => ({ value: item.icecatId })) }] }, pilot));
+assert.throws(() => assertApprovedPilotSeed({ targets: [{ identifiers: [{ value: '1' }] }] }, pilot), /exactly match/);
 console.log('catalog-import self-test: passed');

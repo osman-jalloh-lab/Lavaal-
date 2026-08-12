@@ -1,0 +1,213 @@
+{
+  "version": 1,
+  "approved": [
+    {
+      "icecatId": "134687128",
+      "category": "tablets",
+      "brand": "Samsung",
+      "sourceProductName": "Galaxy Tab S11 Ultra 5G (14.6\")",
+      "mpn": "SM-X936BZAPEUB",
+      "gtin": "8806097711834",
+      "approved": true
+    },
+    {
+      "icecatId": "134687130",
+      "category": "tablets",
+      "brand": "Samsung",
+      "sourceProductName": "Galaxy Tab S11 5G (11\")",
+      "mpn": "SM-X736BZSREUB",
+      "gtin": "8806097706915",
+      "approved": true
+    },
+    {
+      "icecatId": "134687132",
+      "category": "tablets",
+      "brand": "Samsung",
+      "sourceProductName": "Galaxy Tab S11 5G (11\")",
+      "mpn": "SM-X736BZAPEUB",
+      "gtin": "8806097706991",
+      "approved": true
+    },
+    {
+      "icecatId": "134688919",
+      "category": "tablets",
+      "brand": "Samsung",
+      "sourceProductName": "Galaxy Tab S11 Ultra (14.6\")",
+      "mpn": "SM-X930NZSTEUB",
+      "gtin": "8806097710868",
+      "approved": true
+    },
+    {
+      "icecatId": "131194172",
+      "category": "computers",
+      "brand": "Dell",
+      "sourceProductName": "PB16250",
+      "mpn": "72YPK",
+      "gtin": "5397184937952",
+      "approved": true
+    },
+    {
+      "icecatId": "131193979",
+      "category": "computers",
+      "brand": "Dell",
+      "sourceProductName": "PB13250",
+      "mpn": "9GXN9",
+      "gtin": "5397184949900",
+      "approved": true
+    },
+    {
+      "icecatId": "131192058",
+      "category": "computers",
+      "brand": "Dell",
+      "sourceProductName": "PB14250",
+      "mpn": "42MTJ",
+      "gtin": "5397184938812",
+      "approved": true
+    },
+    {
+      "icecatId": "132385656",
+      "category": "computers",
+      "brand": "HP",
+      "sourceProductName": "ZBook Fury G1i",
+      "mpn": "98L79ET",
+      "gtin": "0199485191300",
+      "approved": true
+    },
+    {
+      "icecatId": "132906013",
+      "category": "computers",
+      "brand": "HP",
+      "sourceProductName": "EliteBook 6 G1i AI",
+      "mpn": "C15BKET",
+      "gtin": "0199485661384",
+      "approved": true
+    },
+    {
+      "icecatId": "132385729",
+      "category": "computers",
+      "brand": "HP",
+      "sourceProductName": "ZBook Fury G1i",
+      "mpn": "98L74ET",
+      "gtin": "0199485190273",
+      "approved": true
+    },
+    {
+      "icecatId": "145145130",
+      "category": "computers",
+      "brand": "Lenovo",
+      "sourceProductName": "ThinkPad P16s Gen 5 (Intel) Copilot + PC",
+      "mpn": "21XE000VGE",
+      "gtin": "0199275463945",
+      "approved": true
+    },
+    {
+      "icecatId": "145145101",
+      "category": "computers",
+      "brand": "Lenovo",
+      "sourceProductName": "ThinkPad P14s Gen 7 (Intel) Copilot + PC",
+      "mpn": "21XJ001YGE",
+      "gtin": "0199275483349",
+      "approved": true
+    },
+    {
+      "icecatId": "79453785",
+      "category": "tvs",
+      "brand": "Samsung",
+      "sourceProductName": "GQ65Q84TGT",
+      "mpn": "GQ65Q84TGTXZG",
+      "gtin": "8806090395604",
+      "approved": true
+    },
+    {
+      "icecatId": "79809054",
+      "category": "tvs",
+      "brand": "Samsung",
+      "sourceProductName": "GQ75Q84TGT",
+      "mpn": "GQ75Q84TGTXZG",
+      "gtin": "8806090395659",
+      "approved": true
+    },
+    {
+      "icecatId": "55170975",
+      "category": "tvs",
+      "brand": "LG",
+      "sourceProductName": "55SK8100PLA",
+      "mpn": "55SK8100PLA",
+      "gtin": "8806098144402",
+      "approved": true
+    },
+    {
+      "icecatId": "36393926",
+      "category": "tvs",
+      "brand": "LG",
+      "sourceProductName": "32LJ610V",
+      "mpn": "32LJ610V",
+      "gtin": "8806084208248",
+      "approved": true
+    },
+    {
+      "icecatId": "120583473",
+      "category": "tvs",
+      "brand": "Hisense",
+      "sourceProductName": "UHD 4K TV 55A6N ČR",
+      "mpn": "20013850",
+      "gtin": "6942351406404",
+      "approved": true
+    },
+    {
+      "icecatId": "130695305",
+      "category": "tvs",
+      "brand": "Hisense",
+      "sourceProductName": "40A4Q",
+      "mpn": "20016099",
+      "gtin": "6942351418032",
+      "approved": true
+    },
+    {
+      "icecatId": "130728217",
+      "category": "tvs",
+      "brand": "Hisense",
+      "sourceProductName": "100U7Q",
+      "mpn": "20016155",
+      "gtin": "6942351418414",
+      "approved": true
+    }
+  ],
+  "deferred": [
+    {
+      "icecatId": "132869795",
+      "category": "computers",
+      "brand": "HP",
+      "sourceProductName": "EliteBook 840 G8 Refurbished",
+      "deferredReason": "explicit-refurbished-condition"
+    },
+    {
+      "icecatId": "132551462",
+      "category": "computers",
+      "brand": "HP",
+      "sourceProductName": "Renew ZBook Fury 16 G11 Mobile Workstation PC",
+      "deferredReason": "explicit-refurbished-condition"
+    },
+    {
+      "icecatId": "132357630",
+      "category": "computers",
+      "brand": "HP",
+      "sourceProductName": "Renew EliteBook 840 14 inch G11 Notebook PC",
+      "deferredReason": "explicit-refurbished-condition"
+    },
+    {
+      "icecatId": "132551457",
+      "category": "computers",
+      "brand": "HP",
+      "sourceProductName": "Renew EliteBook 640 14 inch G11 Notebook PC",
+      "deferredReason": "explicit-refurbished-condition"
+    },
+    {
+      "icecatId": "120862582",
+      "category": "computers",
+      "brand": "Lenovo",
+      "sourceProductName": "ThinkBook 14 G7 ARP",
+      "deferredReason": "explicit-refurbished-condition"
+    }
+  ]
+}
