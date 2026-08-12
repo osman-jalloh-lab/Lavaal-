@@ -25,4 +25,7 @@ assert.equal(validateLockedProductIdentity({ brand: 'Lenovo', sourceSupplierName
 assert.equal(validateLockedProductIdentity({ brand: 'Lenovo', mpn: 'DIFFERENT', gtins: ['0199275463945'] }, locked).reason, 'source-mpn-mismatch');
 assert.equal(validateLockedProductIdentity({ brand: 'Lenovo', mpn: '21XE000VGE', gtins: ['0000000000000'] }, locked).reason, 'source-gtin-mismatch');
 assert.equal(validateLockedProductIdentity({ brand: 'Lenovo Compatible Accessory', mpn: '21XE000VGE', gtins: ['0199275463945'] }, locked).reason, 'source-supplier-mismatch');
+assert.equal(validateLockedProductIdentity({ brand: 'Lenovo', category: 'accessories', mpn: '21XE000VGE', gtins: ['0199275463945'] }, { ...locked, category: 'computers' }).reason, 'source-category-mismatch');
+assert.equal(validateLockedProductIdentity({ brand: 'Lenovo', category: 'computers', limited: true, mpn: '21XE000VGE', gtins: ['0199275463945'] }, { ...locked, category: 'computers' }).reason, 'restricted-product');
+assert.deepEqual(validateLockedProductIdentity({ brand: 'Lenovo', category: 'computers', mpn: '21XE000VGE', gtins: ['0199275463945', '0000000000000'] }, { ...locked, category: 'computers' }), { valid: true });
 console.log('catalog-import self-test: passed');

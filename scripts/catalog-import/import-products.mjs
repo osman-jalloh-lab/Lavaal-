@@ -22,7 +22,9 @@ export function assertApprovedPilotSeed(seed, selection) {
 export function validateLockedProductIdentity(product, approval) {
   const normalize = value => normalizeIdentityPart(value);
   if (!approval) return { valid: true };
+  if (product.limited || product.mediaUsageStatus === 'restricted') return { valid: false, reason: 'restricted-product' };
   if (normalize(product.sourceSupplierName ?? product.brand) !== normalize(approval.brand)) return { valid: false, reason: 'source-supplier-mismatch' };
+  if (approval.category && product.category !== approval.category) return { valid: false, reason: 'source-category-mismatch' };
   if (approval.mpn && normalize(product.mpn) !== normalize(approval.mpn)) return { valid: false, reason: 'source-mpn-mismatch' };
   const sourceGtins = new Set((product.gtins ?? [product.gtin]).map(normalize));
   if (approval.gtin && !sourceGtins.has(normalize(approval.gtin))) return { valid: false, reason: 'source-gtin-mismatch' };
@@ -81,7 +83,7 @@ async function main() {
       const product = normalizeIcecatProduct(response.xml, { categoryMap });
       const approval = selection?.approved?.find(item => String(item.icecatId) === String(product.sourceProductId));
       const lockedIdentity = validateLockedProductIdentity(product, approval);
-      if (!lockedIdentity.valid) { report.quarantined.push({ item: request.identifier, reason: lockedIdentity.reason, expected: approval, authoritative: { brand: product.brand, supplierName: product.sourceSupplierName, supplierId: product.sourceSupplierId, mpn: product.mpn, gtins: product.gtins } }); continue; }
+      if (!lockedIdentity.valid) { report.quarantined.push({ item: request.identifier, reason: lockedIdentity.reason, expected: approval, authoritative: { brand: product.brand, supplierName: product.sourceSupplierName, supplierId: product.sourceSupplierId, category: product.category, mpn: product.mpn, gtins: product.gtins } }); continue; }
       if (product.category !== request.target.lavaallCategory) { addSkipped(report, request.identifier, 'unmapped-category'); continue; }
       const { identity, duplicate } = findDuplicate(product, seen);
       if (!identity) { addSkipped(report, request.identifier, 'missing-stable-identity'); continue; }
