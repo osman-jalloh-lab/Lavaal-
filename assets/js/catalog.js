@@ -110,12 +110,14 @@
     const add = function (value, isMain) {
       const src = typeof value === 'string' ? value : value && (value.src || value.path);
       if (!src || images.some(function (image) { return image.src === src; })) return;
-      images.push({ src: src, alt: (value && value.alt) || fallbackAlt, isMain: Boolean(isMain || (value && value.isMain)) });
+      images.push({ src: src, alt: value && value.alt, isMain: Boolean(isMain || (value && value.isMain)) });
     };
     add(model.primaryImage, true);
     (Array.isArray(model.images) ? model.images : []).forEach(function (image) { add(image, image && image.isMain); });
     add(model.image, !images.length);
-    return images;
+    return images.map(function (image, index) {
+      return { ...image, alt: image.alt || (fallbackAlt + ' — image ' + (index + 1)) };
+    });
   }
 
   function primaryProductImage(model, fallbackAlt) {
