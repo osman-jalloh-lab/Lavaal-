@@ -456,12 +456,12 @@ const CATALOG_FIBER = {
   brands: [
     { name: 'LAVAALL Supply', families: [
       { name: 'Fiber Optic', models: [
-        { id: 'fiber-optic-cable', name: 'Fiber Optic Cable', image: null, specLine: 'Single-mode & multi-mode',
+        { id: 'fiber-optic-cable', name: 'Fiber Optic Cable', image: P + 'category-fiber-optic-cable.webp', specLine: 'Single-mode & multi-mode',
           desc: 'Single-mode and multi-mode fiber optic cables for indoor and outdoor runs. Available in custom lengths, armoured options, and bulk drums.',
           fields: [{ key: 'configuration', label: 'Configuration', type: 'select', options: ['Single-Mode', 'Multi-Mode', 'Armoured'] }, qtyField(1)] },
       ]},
       { name: 'Structured Cabling', models: [
-        { id: 'structured-cabling', name: 'Structured Cabling (Cat6/Cat6A)', image: null, specLine: 'Cat6 / Cat6A · Patch panels',
+        { id: 'structured-cabling', name: 'Structured Cabling (Cat6/Cat6A)', image: P + 'category-structured-cabling.webp', specLine: 'Cat6 / Cat6A · Patch panels',
           desc: 'Complete structured cabling kits — Cat6, Cat6A, patch panels, keystones, face plates, and cable trays. Supply only or full installation available.',
           fields: [{ key: 'configuration', label: 'Configuration', type: 'select', options: ['Cat6', 'Cat6A'] }, qtyField(1)] },
       ]},
@@ -553,7 +553,7 @@ const CATALOG_HVAC = {
 const CATALOG_REFRIGERATION = {
   id: 'refrigeration', name: 'Refrigeration', icon: 'fridge',
   brands: [{ name: 'Various', families: [{ name: 'Refrigerators & Freezers', models: [
-    { id: 'refrigerator-compact', name: 'Compact Refrigerator', image: null, specLine: 'Small kitchen / office use', desc: 'Compact refrigerators for homes, shops, and offices. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
+    { id: 'refrigerator-compact', name: 'Compact Refrigerator', image: P + 'appliance-compact-refrigerator.webp', specLine: 'Small kitchen / office use', desc: 'Compact refrigerators for homes, shops, and offices. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
     { id: 'refrigerator-full', name: 'Full-Size Refrigerator', image: null, specLine: 'Full-size · Family use', desc: 'Full-size refrigerators. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
     { id: 'freezer-chest', name: 'Chest Freezer', image: null, specLine: 'Chest style', desc: 'Chest freezers for commercial and home use.', fields: simpleFields(CONDITION_NEW_ONLY) },
     { id: 'freezer-upright', name: 'Upright Freezer', image: null, specLine: 'Upright style', desc: 'Upright freezers for commercial and home use.', fields: simpleFields(CONDITION_NEW_ONLY) },
@@ -594,14 +594,14 @@ const CATALOG_OVERVIEW = [
   // official manufacturer marketing shot representing the category in
   // general, NOT a claim that this is one exact SKU we stock.
   { categoryOnly: 'phones', image: P + 'category-phones.webp' },
-  { categoryOnly: 'tvs' },
-  { categoryOnly: 'monitors' },
+  { categoryOnly: 'tvs', image: P + 'category-tvs.webp' },
+  { categoryOnly: 'monitors', image: P + 'category-monitors.webp' },
   { categoryOnly: 'gaming', image: P + 'category-gaming.webp' },
   { categoryOnly: 'audio', image: P + 'category-audio.webp' },
   { categoryOnly: 'watches', image: P + 'category-watches.webp' },
-  { categoryOnly: 'cameras' },
+  { categoryOnly: 'cameras', image: P + 'category-cameras.webp' },
   { categoryOnly: 'printers', image: P + 'category-printers.webp' },
-  { categoryOnly: 'accessories' },
+  { categoryOnly: 'accessories', image: P + 'category-accessories.webp' },
   { categoryOnly: 'tablets', image: P + 'category-tablets.webp' },
 ];
 
