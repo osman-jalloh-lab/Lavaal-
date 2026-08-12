@@ -977,6 +977,16 @@ class SecureFormHandler {
       formData.message = SecurityUtils.sanitizeMessage(
         this.form.querySelector('[name="message"]').value
       );
+      const quoteLines = Object.fromEntries(formData.message.split('\n').map(line => {
+        const separator = line.indexOf(':');
+        return separator === -1 ? ['', ''] : [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
+      }));
+      const verified = Boolean(quoteLines['Source Product ID'] && quoteLines.MPN);
+      formData.requestType = verified ? 'verified-product' : 'sourcing';
+      formData.quantity = Number(quoteLines.Quantity || 1);
+      formData.context = verified
+        ? { verified: true, productName: quoteLines.Product || '', sourceProductId: quoteLines['Source Product ID'], mpn: quoteLines.MPN, gtin: quoteLines.GTIN || null }
+        : { category: quoteLines.Category || formData.request_type || 'General sourcing', brand: quoteLines.Brand || '', requestedModel: quoteLines['Requested family/model'] || formData.request_type || 'General sourcing' };
       formData['csrf-token'] = this.form.querySelector('[name="csrf-token"]').value;
       formData['gdpr-consent'] = this.form.querySelector('[name="gdpr-consent"]').checked ? 'yes' : 'no';
       
@@ -1006,13 +1016,12 @@ class SecureFormHandler {
     this.submitBtn.disabled = true;
     
     try {
-      // Actually submit to Netlify
-      const response = await fetch('/', {
+      const response = await fetch('/api/quote', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams(formData).toString()
+        body: JSON.stringify(formData)
       });
       
       if (response.ok) {
@@ -1023,7 +1032,8 @@ class SecureFormHandler {
         this.form.style.display = 'none';
         this.successBox.style.display = 'block';
       } else {
-        throw new Error('Submission failed');
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.message || 'Submission failed');
       }
     } catch (error) {
       console.error('Form submission error:', error);
