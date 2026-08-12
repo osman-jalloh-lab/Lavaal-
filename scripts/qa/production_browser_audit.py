@@ -8,7 +8,7 @@ parser.add_argument('--report', default='scripts/qa/reports/production-browser-a
 parser.add_argument('--mobile', action='store_true')
 args = parser.parse_args()
 base = args.base_url.rstrip('/')
-report = {'baseUrl': base, 'mobile': args.mobile, 'categoriesVisited': [], 'brandsVisited': [], 'familiesVisited': [], 'routesVisited': [], 'productsOpened': [], 'cardsInspected': 0, 'imagesInspected': 0, 'galleryThumbnailsClicked': 0, 'searchesPerformed': 0, 'quoteChecks': 0, 'languageChecks': {}, 'brokenImages': [], 'wrongImages': [], 'fallbackImages': [], 'blankRoutes': [], 'deadButtons': [], 'consoleErrors': [], 'networkErrors': [], 'routingFailures': [], 'searchFailures': [], 'quoteFailures': [], 'quarantinedVisible': [], 'generatedCatalogMissing': False}
+report = {'baseUrl': base, 'mobile': args.mobile, 'categoriesVisited': [], 'brandsVisited': [], 'familiesVisited': [], 'routesVisited': [], 'productsOpened': [], 'cardsInspected': 0, 'imagesInspected': 0, 'galleryThumbnailsClicked': 0, 'searchesPerformed': 0, 'quoteChecks': 0, 'sourcingQuoteChecks': 0, 'listingCounts': {'verified': 0, 'sourcing': 0}, 'languageChecks': {}, 'brokenImages': [], 'wrongImages': [], 'fallbackImages': [], 'blankRoutes': [], 'deadButtons': [], 'consoleErrors': [], 'networkErrors': [], 'routingFailures': [], 'searchFailures': [], 'quoteFailures': [], 'quarantinedVisible': [], 'generatedCatalogMissing': False}
 
 def wait(page, ms=220):
     page.wait_for_timeout(ms)
@@ -88,9 +88,15 @@ with sync_playwright() as p:
             else:
                 report['imagesInspected'] += 1
             details = card.locator('.model-details-btn')
+            verified = card.get_attribute('data-listing-type') == 'verified'
+            report['listingCounts']['verified' if verified else 'sourcing'] += 1
             quote = card.locator('.model-quote-btn')
-            if not details.is_enabled() or not quote.is_enabled(): report['deadButtons'].append({'route':route,'id':card_data['id']})
-            details.click()
+            if not details.is_enabled() or (verified and (not quote.count() or not quote.is_enabled())):
+                report['deadButtons'].append({'route':route,'id':card_data['id']})
+            # Cards intentionally animate on hover. Dispatch a real click
+            # after scroll without waiting for that cosmetic transition to
+            # settle, so exhaustive release QA is deterministic.
+            details.click(force=True)
             page.locator('.pgal-overlay.show').wait_for(state='visible')
             wait(page, 15)
             modal = page.evaluate('''() => { const im=document.querySelector('#pgal-main-img'); const ph=document.querySelector('#pgal-main-placeholder'); return {title:document.querySelector('#pgal-title')?.textContent || '', desc:document.querySelector('#pgal-desc')?.textContent || '', src:im?.src || '', w:im?.naturalWidth || 0, h:im?.naturalHeight || 0, placeholder:!!ph && getComputedStyle(ph).display !== 'none'}; }''')
@@ -115,7 +121,7 @@ with sync_playwright() as p:
                         report['brokenImages'].append({'scope':'gallery','route':route,'id':card_data['id'],'thumbnail':thumb,'state':state})
                 thumbs.nth(0).click()
                 report['galleryThumbnailsClicked'] += 1
-            if str(card_data['id']).startswith('icecat-'):
+            if verified:
                 if '145145130' in card_data['id'] or '145145101' in card_data['id']: report['quarantinedVisible'].append(card_data['id'])
                 # Verify the shared quote flow retains exact SKU identity. It
                 # opens the client-side form only; this audit never submits.
@@ -130,6 +136,14 @@ with sync_playwright() as p:
                 if expected not in quote_text or not quote_text.strip():
                     report['quoteFailures'].append({'route': route, 'id': card_data['id'], 'summary': quote_text})
                 report['quoteChecks'] += 1
+                page.evaluate('document.getElementById("pgal-quote-dd")?.remove()')
+            else:
+                page.locator('#pgal-request-btn').click()
+                wait(page, 12)
+                sourcing_text = page.locator('[name="message"]').input_value() if page.locator('[name="message"]').count() else ''
+                if 'Source Product ID:' in sourcing_text or 'MPN:' in sourcing_text or 'Request Type:' not in sourcing_text:
+                    report['quoteFailures'].append({'route': route, 'id': card_data['id'], 'summary': sourcing_text})
+                report['sourcingQuoteChecks'] += 1
                 page.evaluate('document.getElementById("pgal-quote-dd")?.remove()')
             report['productsOpened'].append({'route':route, 'id':card_data['id'], 'title':modal['title'], 'thumbnailCount':thumb_count})
             page.keyboard.press('Escape')

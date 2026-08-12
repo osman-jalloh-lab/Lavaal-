@@ -72,6 +72,22 @@
       ? model.name
       : brand.name + ' ' + model.name;
   }
+  function isVerifiedModel(model) { return model && model.listingType === 'verified'; }
+  function catalogText(key) {
+    const french = document.documentElement.lang === 'fr';
+    const strings = {
+      verified: ['Verified product', 'Produit vérifié'],
+      sourcing: ['Sourcing available', 'Disponible sur demande'],
+      viewDetails: ['View Details', 'Voir les détails'],
+      requestQuote: ['Request Quote', 'Demander un devis'],
+      requestSourcing: ['Request sourcing', 'Demander un approvisionnement'],
+      sourcingDescription: ['Sourcing request — availability and configuration vary by market.', 'Demande d’approvisionnement — la disponibilité et la configuration varient selon le marché.'],
+      sourcingNote: ['Availability varies by market. Share your preferred configuration and quantity for a tailored quote.', 'La disponibilité varie selon le marché. Indiquez la configuration souhaitée et la quantité pour un devis adapté.'],
+      sourcingRequest: ['Product sourcing', 'Approvisionnement produit'],
+      requestedModel: ['Requested family/model', 'Famille/modèle demandé'],
+    };
+    return (strings[key] || [key, key])[french ? 1 : 0];
+  }
   function findCategory(id) { return CATALOG.find(c => c.id === id); }
   function findBrand(cat, slug) { return cat && cat.brands.find(b => slugify(b.name) === slug); }
   function findFamily(brand, slug) { return brand && brand.families.find(f => slugify(f.name) === slug); }
@@ -133,6 +149,7 @@
       }),
       specLine: specs.join(' · '),
       desc: product.shortDescription ? String(product.shortDescription).trim() : '',
+      listingType: 'verified',
       fields: [{ key: 'quantity', label: 'Quantity', type: 'number', min: 1, value: 1 }]
     };
   }
@@ -247,6 +264,8 @@
     return productImages(model, fallbackAlt)[0] || null;
   }
 
+  function modelListingType(model) { return isVerifiedModel(model) ? 'verified' : 'sourcing'; }
+
   /* ---------------------------------------------------------------------
    * Breadcrumbs
    * ------------------------------------------------------------------- */
@@ -324,18 +343,23 @@
   }
 
   function modelCardHtml(model, cat, brand, fam) {
-    const primary = primaryProductImage(model, displayName(brand, model));
+    const verified = isVerifiedModel(model);
+    // Handwritten records have no source identity/provenance. Do not let an
+    // old local image imply that it is exact media for a named SKU.
+    const primary = verified ? primaryProductImage(model, displayName(brand, model)) : null;
     const img = productImageHtml(primary && primary.src, primary ? primary.alt : displayName(brand, model), cat.icon);
-    return '<div class="model-card" data-model-id="' + esc(model.id) + '">' +
+    const listing = modelListingType(model);
+    const actions = verified
+      ? '<div style="display:flex;gap:8px;"><button type="button" class="pbtn model-details-btn" style="flex:1">' + esc(catalogText('viewDetails')) + '</button><button type="button" class="pbtn model-quote-btn" style="flex:1">' + esc(catalogText('requestQuote')) + ' &#9662;</button></div>'
+      : '<div class="model-card-actions--single"><button type="button" class="pbtn model-details-btn" style="width:100%">' + esc(catalogText('requestSourcing')) + ' &#9662;</button></div>';
+    return '<div class="model-card model-card--' + listing + '" data-model-id="' + esc(model.id) + '" data-listing-type="' + listing + '">' +
       img +
       '<div class="model-card-body">' +
+      '<div class="listing-badge listing-badge--' + listing + '">' + esc(catalogText(listing)) + '</div>' +
       '<div class="model-card-brand">' + esc(brand.name) + '</div>' +
       '<div class="model-card-name">' + esc(model.name) + '</div>' +
       '<div class="model-card-spec">' + esc(model.specLine || '') + '</div>' +
-      '<div style="display:flex;gap:8px;">' +
-      '<button type="button" class="pbtn model-details-btn" style="flex:1">View Details</button>' +
-      '<button type="button" class="pbtn model-quote-btn" style="flex:1">Request Quote &#9662;</button>' +
-      '</div>' +
+      actions +
       '</div></div>';
   }
 
@@ -362,7 +386,7 @@
     const matches = allModelsFlat().filter(({ model, category, brand, family }) => {
       const hay = [model.name, model.specLine, model.mpn, model.modelNumber, model.gtin, brand.name, family.name, category.name].join(' ').toLowerCase();
       return q.split(/\s+/).every(term => hay.indexOf(term) !== -1);
-    }).slice(0, 60);
+    }).sort((a, b) => Number(isVerifiedModel(b.model)) - Number(isVerifiedModel(a.model))).slice(0, 60);
 
     if (!matches.length) {
       root.innerHTML = '<p class="catalog-empty">No products match “' + esc(query.trim()) + '”. Try a different term, or <a href="#products">browse all categories</a>.</p>';
@@ -514,12 +538,15 @@
   }
 
   function openModelQuote(model, cat, brand, fam) {
-    currentModelCtx = { model, cat, brand, fam, values: {} };
+    const sourcing = !isVerifiedModel(model);
+    currentModelCtx = { model, cat, brand, fam, isSourcing: sourcing, values: {} };
 
     document.getElementById('pgal-title').textContent = displayName(brand, model);
-    document.getElementById('pgal-desc').textContent = [model.desc, model.mpn && ('MPN: ' + model.mpn), model.specLine].filter(Boolean).join(' · ');
+    document.getElementById('pgal-desc').textContent = sourcing
+      ? [catalogText('sourcingDescription'), catalogText('sourcingNote')].join(' ')
+      : [model.desc, model.mpn && ('MPN: ' + model.mpn), model.specLine].filter(Boolean).join(' · ');
 
-    renderProductGallery(model, displayName(brand, model), cat.icon);
+    renderProductGallery(sourcing ? { primaryImage: null, images: [], image: null } : model, displayName(brand, model), cat.icon);
 
     // hide the old grouped "options" accordion (not used by catalog models)
     const optWrap = document.getElementById('pgal-options');
@@ -719,6 +746,14 @@
       return lines.join('\n');
     }
     const { model, brand } = currentModelCtx;
+    if (currentModelCtx.isSourcing) {
+      const lines = ['Category: ' + currentModelCtx.cat.name, 'Request Type: ' + catalogText('sourcingRequest'), catalogText('requestedModel') + ': ' + displayName(brand, model)];
+      (model.fields || []).forEach(f => {
+        const v = currentModelCtx.values[f.key];
+        if (v !== undefined && v !== '') lines.push(f.label + ': ' + v);
+      });
+      return lines.join('\n');
+    }
     const lines = ['Product: ' + displayName(brand, model)];
     if (model.sourceProductId) lines.push('Source Product ID: ' + model.sourceProductId);
     if (model.mpn || model.modelNumber) lines.push('MPN: ' + (model.mpn || model.modelNumber));
