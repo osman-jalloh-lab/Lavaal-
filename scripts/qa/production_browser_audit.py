@@ -101,7 +101,12 @@ with sync_playwright() as p:
             if thumb_count > 1:
                 for thumb in range(thumb_count):
                     thumbs.nth(thumb).click()
-                    wait(page, 8)
+                    # Remote production images can take longer than a local
+                    # cached file. Wait for a real decode/load, not one frame.
+                    try:
+                        page.wait_for_function('document.querySelector("#pgal-main-img").naturalWidth > 0', timeout=5000)
+                    except Exception:
+                        pass
                     state = page.evaluate('''() => ({w:document.querySelector('#pgal-main-img').naturalWidth, pressed:[...document.querySelectorAll('.pgal-thumbs button')].map(b=>b.getAttribute('aria-pressed'))})''')
                     report['galleryThumbnailsClicked'] += 1
                     if not state['w'] or state['pressed'].count('true') != 1 or state['pressed'][thumb] != 'true':
