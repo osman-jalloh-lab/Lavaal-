@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T05:08:47.263Z",
+  "generatedAt": "2026-08-12T05:14:47.894Z",
   "source": "open-icecat",
   "products": [
     {
@@ -12515,6 +12515,6133 @@
       "identityStatus": "verified",
       "visualQaStatus": "PASS",
       "integrationApproved": true
+    },
+    {
+      "id": "icecat-134687004",
+      "category": "phones",
+      "brand": "Samsung",
+      "family": "Galaxy S",
+      "name": "Galaxy S25 FE",
+      "modelNumber": "SM-S731BZKIEUB",
+      "releaseYear": 2025,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "17 cm (6.7\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "1080 x 2340 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Screen shape",
+          "value": "Flat",
+          "unit": null
+        },
+        {
+          "name": "Display technology marketing name",
+          "value": "Dynamic AMOLED 2X",
+          "unit": null
+        },
+        {
+          "name": "Panel type",
+          "value": "AMOLED",
+          "unit": null
+        },
+        {
+          "name": "Display glass type",
+          "value": "Corning Glass",
+          "unit": null
+        },
+        {
+          "name": "Gorilla Glass version",
+          "value": "Gorilla Glass Victus+",
+          "unit": null
+        },
+        {
+          "name": "Display number of colours",
+          "value": "16 million colours",
+          "unit": null
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Processor family",
+          "value": "Samsung Exynos",
+          "unit": null
+        },
+        {
+          "name": "Processor model",
+          "value": "2400",
+          "unit": null
+        },
+        {
+          "name": "Processor frequency",
+          "value": "2.9 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cores",
+          "value": "10",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "3.2 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "RAM capacity",
+          "value": "8 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal storage capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "User memory",
+          "value": "483.7 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Rear camera type",
+          "value": "Triple camera",
+          "unit": null
+        },
+        {
+          "name": "Rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera type",
+          "value": "Single camera",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution (numeric)",
+          "value": "12 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera flash",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera resolution (numeric)",
+          "value": "12 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Third rear camera resolution (numeric)",
+          "value": "8 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Fourth rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera aperture number",
+          "value": "1.8",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Third rear camera aperture number",
+          "value": "2.4",
+          "unit": null
+        },
+        {
+          "name": "Optical zoom",
+          "value": "3x",
+          "unit": "x"
+        },
+        {
+          "name": "Digital zoom",
+          "value": "30x",
+          "unit": "x"
+        },
+        {
+          "name": "Front camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Video capture resolution (max)",
+          "value": "7680 x 4320 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Maximum frame rate",
+          "value": "30 fps",
+          "unit": "fps"
+        },
+        {
+          "name": "Auto focus",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer type",
+          "value": "Optical Image Stabilization (OIS)",
+          "unit": null
+        },
+        {
+          "name": "Slow motion mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion rate",
+          "value": "240fps @FHD, 120fps @FHD, 120fps @UHD",
+          "unit": null
+        },
+        {
+          "name": "SIM card capability",
+          "value": "Dual SIM",
+          "unit": null
+        },
+        {
+          "name": "Mobile network generation",
+          "value": "5G",
+          "unit": null
+        },
+        {
+          "name": "SIM card type",
+          "value": "NanoSIM + eSIM",
+          "unit": null
+        },
+        {
+          "name": "3G standards",
+          "value": "WCDMA",
+          "unit": null
+        },
+        {
+          "name": "4G standard",
+          "value": "LTE-TDD & LTE-FDD",
+          "unit": null
+        },
+        {
+          "name": "5G standard",
+          "value": "Sub6 SDL, Sub6 TDD",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 6 (802.11ax)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "2G standards",
+          "value": "GSM",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "802.11a, 802.11b, 802.11g, Wi-Fi 4 (802.11n), Wi-Fi 5 (802.11ac), Wi-Fi 6 (802.11ax)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "5.4",
+          "unit": null
+        },
+        {
+          "name": "2G bands (primary SIM)",
+          "value": "850,1900,1800,900 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "3G bands supported",
+          "value": "2100,900,1900,850,1700 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "4G bands supported",
+          "value": "2100,700,800,1900,850,1800,1500,2300,2600,900,1700,2500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "5G bands supported",
+          "value": "2100,700,1900,800,850,1800,2600,900,1700,2300,2500,3700,3500,1500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Wi-Fi Direct",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "MIMO",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Modulation",
+          "value": "1024-QAM",
+          "unit": null
+        },
+        {
+          "name": "Near Field Communication (NFC)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB connector type",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "USB version",
+          "value": "3.2 Gen 1 (3.1 Gen 1)",
+          "unit": null
+        },
+        {
+          "name": "Headphone connectivity",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "Mobile High-Definition Link (MHL)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Position location",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GPS (satellite)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "NavIC",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GLONASS",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "BeiDou",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Galileo",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Quasi-Zenith Satellite System (QZSS)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Bar",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Black",
+          "unit": null
+        },
+        {
+          "name": "Colour name",
+          "value": "Jetblack",
+          "unit": null
+        },
+        {
+          "name": "Housing material",
+          "value": "Aluminium",
+          "unit": null
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hearing aid compatibility",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Speakers",
+          "value": "stereo",
+          "unit": null
+        },
+        {
+          "name": "Audio formats supported",
+          "value": "3GA, AAC, AMR, APE, AWB, DFF, DSF, FLAC, IMY, M4A, Mid, MIDI, MP3, MXMF, OGA, OGG, OTA, RTTTL, RTX, WAV, XMF",
+          "unit": null
+        },
+        {
+          "name": "Video formats supported",
+          "value": "3G2, 3GP, AVI, FLV, M4V, MKV, MP4, WEBM",
+          "unit": null
+        },
+        {
+          "name": "Platform",
+          "value": "Android",
+          "unit": null
+        },
+        {
+          "name": "Operating system installed",
+          "value": "Android 16.0",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "4900 mAh",
+          "unit": "mAh"
+        },
+        {
+          "name": "Battery endurance in cycles",
+          "value": "2000",
+          "unit": null
+        },
+        {
+          "name": "Removable battery",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Continuous video playback time (max)",
+          "value": "28 h",
+          "unit": "h"
+        },
+        {
+          "name": "Proximity sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Accelerometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ambient light sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Gyroscope",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Barometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Geomagnetic sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hall sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "10 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "45 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Power Delivery (USB PD)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency class",
+          "value": "B",
+          "unit": null
+        },
+        {
+          "name": "Battery endurance per cycle",
+          "value": "2557 min",
+          "unit": "min"
+        },
+        {
+          "name": "Repeated free fall reliability class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Repairability class",
+          "value": "C",
+          "unit": null
+        },
+        {
+          "name": "International Protection (IP) code",
+          "value": "IP68",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency scale",
+          "value": "A to G",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "190 g",
+          "unit": "g"
+        },
+        {
+          "name": "Width",
+          "value": "76.6 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "7.4 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "161.3 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "AC adapter included",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Cables included",
+          "value": "USB Type-C to USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "SIM card ejector pin",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Head SAR (EU)",
+          "value": "0.544 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Body SAR (EU)",
+          "value": "1.575 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Compatibility",
+          "value": "Galaxy Ring, Galaxy Buds Core, Galaxy Buds3 Pro, Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds3, Galaxy Buds2, Galaxy Buds, Galaxy Buds3 FE, Galaxy Buds FE, Galaxy Fit3, Galaxy Fit2, Galaxy Fit e, Galaxy Fit, Galaxy Watch FE, Galaxy Watch Ultra, Galaxy Watch8, Galaxy Watch7, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active",
+          "unit": null
+        },
+        {
+          "name": "Security update term",
+          "value": "30 September 2032",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/phones/samsung/134687004/01.webp",
+      "images": [
+        {
+          "path": "images/catalog/phones/samsung/134687004/01.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/4aa668881e3e78ac386d41ae37cb146fee4a5c4b.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/134687004/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/c76e641009cf53ba0766f5b72c3930b85f1ca393.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/134687004/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/a543bbc28650e12bc5a4a25dc1f4ec6da8619433.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/134687004/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/2777d1a848035e3c52c1605281148e2ad9babfe1.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "134687004",
+      "mpn": "SM-S731BZKIEUB",
+      "gtin": "8806097644620",
+      "gtins": [
+        "8806097644620",
+        "5715328324077"
+      ],
+      "sourceSupplierName": "Samsung",
+      "sourceSupplierId": "26",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "releaseDate": "2025-09-04",
+      "integrationApproved": true,
+      "identityStatus": "verified",
+      "visualQAStatus": "pending-browser-qa",
+      "provenance": {
+        "source": "open-icecat",
+        "sourceProductId": "134687004",
+        "supplierId": "26",
+        "supplierName": "Samsung",
+        "lockedMpn": "SM-S731BZKIEUB",
+        "lockedGtins": [
+          "8806097644620",
+          "5715328324077"
+        ],
+        "media": [
+          {
+            "path": "images/catalog/phones/samsung/134687004/01.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/4aa668881e3e78ac386d41ae37cb146fee4a5c4b.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/134687004/02.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/c76e641009cf53ba0766f5b72c3930b85f1ca393.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/134687004/03.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/a543bbc28650e12bc5a4a25dc1f4ec6da8619433.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/134687004/04.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/2777d1a848035e3c52c1605281148e2ad9babfe1.png",
+            "mediaUsageStatus": "permitted"
+          }
+        ]
+      },
+      "excludedImages": [],
+      "visualQaStatus": "PASS",
+      "productionApprovedAt": "2026-08-12T05:14:47.893Z"
+    },
+    {
+      "id": "icecat-148400072",
+      "category": "phones",
+      "brand": "Samsung",
+      "family": "Galaxy Z",
+      "name": "Galaxy Z Flip8",
+      "modelNumber": "SM-F776BZKGEUB",
+      "releaseYear": 2026,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "17.5 cm (6.9\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "2520 x 1080 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Screen shape",
+          "value": "Flat",
+          "unit": null
+        },
+        {
+          "name": "Display technology marketing name",
+          "value": "Dynamic AMOLED 2X",
+          "unit": null
+        },
+        {
+          "name": "Display number of colours",
+          "value": "16 million colours",
+          "unit": null
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Display brightness",
+          "value": "1500 cd/m²",
+          "unit": "cd/m²"
+        },
+        {
+          "name": "Maximum display brightness (Outdoor)",
+          "value": "2600 cd/m²",
+          "unit": "cd/m²"
+        },
+        {
+          "name": "Pixel density",
+          "value": "400 ppi",
+          "unit": "ppi"
+        },
+        {
+          "name": "Second display",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Second display diagonal",
+          "value": "10.4 cm (4.1\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Second display resolution",
+          "value": "1048 x 948 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Second display type",
+          "value": "Super AMOLED",
+          "unit": null
+        },
+        {
+          "name": "Second display pixel density",
+          "value": "342 ppi",
+          "unit": "ppi"
+        },
+        {
+          "name": "Second display glass type",
+          "value": "Gorilla Glass",
+          "unit": null
+        },
+        {
+          "name": "Second display refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Second display Gorilla Glass version",
+          "value": "Gorilla Glass Victus 2",
+          "unit": null
+        },
+        {
+          "name": "Processor family",
+          "value": "Samsung Exynos",
+          "unit": null
+        },
+        {
+          "name": "Processor model",
+          "value": "2600",
+          "unit": null
+        },
+        {
+          "name": "Processor frequency",
+          "value": "3.26 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cores",
+          "value": "10",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "3.8 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "RAM capacity",
+          "value": "12 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal storage capacity",
+          "value": "256 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Compatible memory cards",
+          "value": "Not supported",
+          "unit": null
+        },
+        {
+          "name": "User memory",
+          "value": "219.5 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Rear camera type",
+          "value": "Dual camera",
+          "unit": null
+        },
+        {
+          "name": "Rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera type",
+          "value": "Single camera",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera flash",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Rear camera sensor size",
+          "value": "1/1.56\"",
+          "unit": "\""
+        },
+        {
+          "name": "Second rear camera sensor size",
+          "value": "1/3.2\"",
+          "unit": "\""
+        },
+        {
+          "name": "Second rear camera resolution (numeric)",
+          "value": "12 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Third rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Fourth rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera aperture number",
+          "value": "1.8",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Rear camera pixel size",
+          "value": "1 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Rear camera pixel size (Quad Pixel technology)",
+          "value": "1.12 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Rear camera field of view (FOV) angle",
+          "value": "85°",
+          "unit": "°"
+        },
+        {
+          "name": "Second rear camera field of view (FOV) angle",
+          "value": "123°",
+          "unit": "°"
+        },
+        {
+          "name": "Optical zoom",
+          "value": "2x",
+          "unit": "x"
+        },
+        {
+          "name": "Digital zoom",
+          "value": "10x",
+          "unit": "x"
+        },
+        {
+          "name": "Front camera sensor size",
+          "value": "1/3.33\"",
+          "unit": "\""
+        },
+        {
+          "name": "Front camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Front camera pixel size",
+          "value": "1.12 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Front camera field of view (FOV) angle",
+          "value": "85°",
+          "unit": "°"
+        },
+        {
+          "name": "Flash type",
+          "value": "LED",
+          "unit": null
+        },
+        {
+          "name": "Video capture resolution (max)",
+          "value": "3840 x 2160 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Maximum frame rate",
+          "value": "60 fps",
+          "unit": "fps"
+        },
+        {
+          "name": "Auto focus",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer type",
+          "value": "Optical Image Stabilization (OIS)",
+          "unit": null
+        },
+        {
+          "name": "Night mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Panorama",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Portrait mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion rate",
+          "value": "240fps @FHD, 120fps @FHD",
+          "unit": null
+        },
+        {
+          "name": "SIM card capability",
+          "value": "Dual SIM",
+          "unit": null
+        },
+        {
+          "name": "Mobile network generation",
+          "value": "5G",
+          "unit": null
+        },
+        {
+          "name": "SIM card type",
+          "value": "NanoSIM + eSIM",
+          "unit": null
+        },
+        {
+          "name": "3G standards",
+          "value": "WCDMA",
+          "unit": null
+        },
+        {
+          "name": "4G standard",
+          "value": "LTE-TDD & LTE-FDD",
+          "unit": null
+        },
+        {
+          "name": "5G standard",
+          "value": "Sub6 SDL, Sub6 TDD",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 7 (802.11be)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "2G standards",
+          "value": "GSM",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "802.11a, 802.11b, 802.11g, Wi-Fi 4 (802.11n), Wi-Fi 7 (802.11be)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "5.4",
+          "unit": null
+        },
+        {
+          "name": "2G bands (primary SIM)",
+          "value": "850,1900,1800,900 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "3G bands supported",
+          "value": "2100,900,1900,850,1700 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "4G bands supported",
+          "value": "2100,700,800,1900,850,1800,1500,2300,2600,900,1700,2500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "5G bands supported",
+          "value": "2100,700,1900,800,850,1800,2600,900,1700,2300,2500,3700,3500,1500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Wi-Fi Direct",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "MIMO",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Modulation",
+          "value": "4096-QAM",
+          "unit": null
+        },
+        {
+          "name": "Near Field Communication (NFC)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB connector type",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "USB version",
+          "value": "3.2 Gen 1 (3.1 Gen 1)",
+          "unit": null
+        },
+        {
+          "name": "Headphone connectivity",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "Mobile High-Definition Link (MHL)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Position location",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GPS (satellite)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GLONASS",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "BeiDou",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Galileo",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Quasi-Zenith Satellite System (QZSS)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Flip",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Graphite",
+          "unit": null
+        },
+        {
+          "name": "Wireless charging",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hearing aid compatibility",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Speakers",
+          "value": "stereo",
+          "unit": null
+        },
+        {
+          "name": "Audio formats supported",
+          "value": "3GA, AAC, AMR, APE, AWB, DFF, DSF, FLAC, IMY, M4A, Mid, MIDI, MP3, MXMF, OGA, OGG, OTA, RTTTL, RTX, WAV, XMF",
+          "unit": null
+        },
+        {
+          "name": "Video formats supported",
+          "value": "3G2, 3GP, AVI, FLV, M4V, MKV, MP4, WEBM",
+          "unit": null
+        },
+        {
+          "name": "Platform",
+          "value": "Android",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "4300 mAh",
+          "unit": "mAh"
+        },
+        {
+          "name": "Battery endurance in cycles",
+          "value": "1200",
+          "unit": null
+        },
+        {
+          "name": "Removable battery",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Wireless video playback time",
+          "value": "31 h",
+          "unit": "h"
+        },
+        {
+          "name": "Proximity sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Accelerometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ambient light sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Gyroscope",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Barometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Geomagnetic sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hall sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "10 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "25 W",
+          "unit": "W"
+        },
+        {
+          "name": "Energy efficiency class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Battery endurance per cycle",
+          "value": "2650 min",
+          "unit": "min"
+        },
+        {
+          "name": "Repeated free fall reliability class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Repairability class",
+          "value": "C",
+          "unit": null
+        },
+        {
+          "name": "International Protection (IP) code",
+          "value": "IP48",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency scale",
+          "value": "A to G",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "180 g",
+          "unit": "g"
+        },
+        {
+          "name": "Width",
+          "value": "75.4 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "6.1 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "166.9 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Folded width",
+          "value": "7.54 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "Folded depth",
+          "value": "1.31 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "Folded height",
+          "value": "8.57 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "AC adapter included",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Head SAR (EU)",
+          "value": "0.74 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Body SAR (EU)",
+          "value": "1.158 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Extremities SAR (EU)",
+          "value": "3.07 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Compatibility",
+          "value": "Galaxy Ring, Galaxy Buds Core, Galaxy Buds4 Pro, Galaxy Buds3 Pro, Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds4, Galaxy Buds3, Galaxy Buds2, Galaxy Buds, Galaxy Buds3 FE, Galaxy Buds FE, Galaxy Fit3, Galaxy Fit2, Galaxy Watch FE, Galaxy Watch Ultra2, Galaxy Watch Ultra, Galaxy Watch9, Galaxy Watch8, Galaxy Watch7, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active",
+          "unit": null
+        },
+        {
+          "name": "Security update term",
+          "value": "31 July 2033",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/phones/samsung/148400072/02.webp",
+      "images": [
+        {
+          "path": "images/catalog/phones/samsung/148400072/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/eeeed24f046495572e068f53460abbe44967c102.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/148400072/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/1f5dc5fc3465e2503875fc10dbf654a54a7513e9.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/148400072/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/a511c7703c2f74a9267b1b22f543c2eba00563a5.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "148400072",
+      "mpn": "SM-F776BZKGEUB",
+      "gtin": "8806099191832",
+      "gtins": [
+        "8806099191832",
+        "5413729251885"
+      ],
+      "sourceSupplierName": "Samsung",
+      "sourceSupplierId": "26",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "releaseDate": "2026-07-22",
+      "integrationApproved": true,
+      "identityStatus": "verified",
+      "visualQAStatus": "pending-browser-qa",
+      "provenance": {
+        "source": "open-icecat",
+        "sourceProductId": "148400072",
+        "supplierId": "26",
+        "supplierName": "Samsung",
+        "lockedMpn": "SM-F776BZKGEUB",
+        "lockedGtins": [
+          "8806099191832",
+          "5413729251885"
+        ],
+        "media": [
+          {
+            "path": "images/catalog/phones/samsung/148400072/01.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/9e17c80b494b939eb0854c7ccc1d4c9342153b94.jpeg",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/148400072/02.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/eeeed24f046495572e068f53460abbe44967c102.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/148400072/03.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/1f5dc5fc3465e2503875fc10dbf654a54a7513e9.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/148400072/04.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/a511c7703c2f74a9267b1b22f543c2eba00563a5.png",
+            "mediaUsageStatus": "permitted"
+          }
+        ]
+      },
+      "excludedImages": [
+        {
+          "path": "images/catalog/phones/samsung/148400072/01.webp",
+          "qaStatus": "excluded",
+          "qaReason": "marketing-text-overlay"
+        }
+      ],
+      "visualQaStatus": "PASS",
+      "productionApprovedAt": "2026-08-12T05:14:47.894Z"
+    },
+    {
+      "id": "icecat-148400062",
+      "category": "phones",
+      "brand": "Samsung",
+      "family": "Galaxy Z",
+      "name": "Galaxy Z Fold8",
+      "modelNumber": "SM-F971BZKCEUB",
+      "releaseYear": 2026,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "19.3 cm (7.6\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "1848 x 2448 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Screen shape",
+          "value": "Flat",
+          "unit": null
+        },
+        {
+          "name": "Display technology marketing name",
+          "value": "Dynamic AMOLED 2X",
+          "unit": null
+        },
+        {
+          "name": "Display glass type",
+          "value": "Gorilla Glass",
+          "unit": null
+        },
+        {
+          "name": "Gorilla Glass version",
+          "value": "Gorilla Glass Victus 2",
+          "unit": null
+        },
+        {
+          "name": "Display number of colours",
+          "value": "16 million colours",
+          "unit": null
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Display brightness",
+          "value": "1500 cd/m²",
+          "unit": "cd/m²"
+        },
+        {
+          "name": "Maximum display brightness (Outdoor)",
+          "value": "3000 cd/m²",
+          "unit": "cd/m²"
+        },
+        {
+          "name": "Pixel density",
+          "value": "403 ppi",
+          "unit": "ppi"
+        },
+        {
+          "name": "Second display",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Second display diagonal",
+          "value": "14 cm (5.5\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Second display resolution",
+          "value": "1972 x 1248 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Second display type",
+          "value": "Dynamic AMOLED 2X",
+          "unit": null
+        },
+        {
+          "name": "Second display pixel density",
+          "value": "428 ppi",
+          "unit": "ppi"
+        },
+        {
+          "name": "Second display glass type",
+          "value": "Gorilla Glass",
+          "unit": null
+        },
+        {
+          "name": "Second display refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Second display Gorilla Glass version",
+          "value": "Gorilla Glass Ceramic 3",
+          "unit": null
+        },
+        {
+          "name": "Processor family",
+          "value": "Snapdragon",
+          "unit": null
+        },
+        {
+          "name": "Processor model",
+          "value": "8 Elite Gen 5",
+          "unit": null
+        },
+        {
+          "name": "Processor frequency",
+          "value": "3.6 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cores",
+          "value": "8",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "4.74 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "RAM capacity",
+          "value": "12 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal storage capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Compatible memory cards",
+          "value": "Not supported",
+          "unit": null
+        },
+        {
+          "name": "User memory",
+          "value": "473.6 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Rear camera type",
+          "value": "Dual camera",
+          "unit": null
+        },
+        {
+          "name": "Rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera type",
+          "value": "Single camera",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera flash",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Rear camera sensor size",
+          "value": "1/1.56\"",
+          "unit": "\""
+        },
+        {
+          "name": "Second rear camera sensor size",
+          "value": "1/2.52\"",
+          "unit": "\""
+        },
+        {
+          "name": "Second rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Third rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Fourth rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera aperture number",
+          "value": "1.8",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera aperture number",
+          "value": "1.9",
+          "unit": null
+        },
+        {
+          "name": "Rear camera pixel size",
+          "value": "1 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Second rear camera pixel size",
+          "value": "0.7 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Rear camera field of view (FOV) angle",
+          "value": "85°",
+          "unit": "°"
+        },
+        {
+          "name": "Second rear camera field of view (FOV) angle",
+          "value": "120°",
+          "unit": "°"
+        },
+        {
+          "name": "Optical zoom",
+          "value": "2x",
+          "unit": "x"
+        },
+        {
+          "name": "Digital zoom",
+          "value": "10x",
+          "unit": "x"
+        },
+        {
+          "name": "Front camera sensor size",
+          "value": "1/3.33\"",
+          "unit": "\""
+        },
+        {
+          "name": "Front camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Front camera pixel size",
+          "value": "1.12 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Front camera field of view (FOV) angle",
+          "value": "100°",
+          "unit": "°"
+        },
+        {
+          "name": "Cover camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Cover camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Flash type",
+          "value": "LED",
+          "unit": null
+        },
+        {
+          "name": "Video capture resolution (max)",
+          "value": "7680 x 4320 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Maximum frame rate",
+          "value": "30 fps",
+          "unit": "fps"
+        },
+        {
+          "name": "Auto focus",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer type",
+          "value": "Optical Image Stabilization (OIS)",
+          "unit": null
+        },
+        {
+          "name": "Night mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Panorama",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion rate",
+          "value": "240fps @FHD, 120fps @FHD, 120fps @UHD",
+          "unit": null
+        },
+        {
+          "name": "SIM card capability",
+          "value": "Dual SIM",
+          "unit": null
+        },
+        {
+          "name": "Mobile network generation",
+          "value": "5G",
+          "unit": null
+        },
+        {
+          "name": "SIM card type",
+          "value": "NanoSIM + eSIM",
+          "unit": null
+        },
+        {
+          "name": "3G standards",
+          "value": "WCDMA",
+          "unit": null
+        },
+        {
+          "name": "4G standard",
+          "value": "LTE-TDD & LTE-FDD",
+          "unit": null
+        },
+        {
+          "name": "5G standard",
+          "value": "Sub6 SDL, Sub6 TDD",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 7 (802.11be)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "2G standards",
+          "value": "GSM",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "802.11a, 802.11b, 802.11g, Wi-Fi 4 (802.11n), Wi-Fi 5 (802.11ac), Wi-Fi 6 (802.11ax), Wi-Fi 6E (802.11ax)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "6.0",
+          "unit": null
+        },
+        {
+          "name": "2G bands (primary SIM)",
+          "value": "850,1900,1800,900 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "3G bands supported",
+          "value": "2100,900,1900,850,1700 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "4G bands supported",
+          "value": "2100,700,800,1900,850,1800,1500,2300,2600,900,1700,2500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "5G bands supported",
+          "value": "2100,700,1900,800,850,1800,2600,900,1700,2300,2500,3700,3500,1500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Wi-Fi Direct",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "MIMO",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Modulation",
+          "value": "4096-QAM",
+          "unit": null
+        },
+        {
+          "name": "Near Field Communication (NFC)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB connector type",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "USB version",
+          "value": "3.2 Gen 1 (3.1 Gen 1)",
+          "unit": null
+        },
+        {
+          "name": "Headphone connectivity",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "Mobile High-Definition Link (MHL)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Position location",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GPS (satellite)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GLONASS",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "BeiDou",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Galileo",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Quasi-Zenith Satellite System (QZSS)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Clamshell",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Graphite",
+          "unit": null
+        },
+        {
+          "name": "Wireless charging",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hearing aid compatibility",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Speakers",
+          "value": "stereo",
+          "unit": null
+        },
+        {
+          "name": "Audio formats supported",
+          "value": "3GA, AAC, AMR, APE, AWB, DFF, DSF, FLAC, IMY, M4A, Mid, MIDI, MP3, MXMF, OGA, OGG, OTA, RTTTL, RTX, WAV, XMF",
+          "unit": null
+        },
+        {
+          "name": "Video formats supported",
+          "value": "3G2, 3GP, AVI, FLV, M4V, MKV, MP4, WEBM",
+          "unit": null
+        },
+        {
+          "name": "Platform",
+          "value": "Android",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "4800 mAh",
+          "unit": "mAh"
+        },
+        {
+          "name": "Battery endurance in cycles",
+          "value": "1200",
+          "unit": null
+        },
+        {
+          "name": "Removable battery",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Wireless video playback time",
+          "value": "26 h",
+          "unit": "h"
+        },
+        {
+          "name": "Proximity sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Accelerometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ambient light sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Gyroscope",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Barometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Geomagnetic sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hall sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "10 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "45 W",
+          "unit": "W"
+        },
+        {
+          "name": "Energy efficiency class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Battery endurance per cycle",
+          "value": "2950 min",
+          "unit": "min"
+        },
+        {
+          "name": "Repeated free fall reliability class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Repairability class",
+          "value": "C",
+          "unit": null
+        },
+        {
+          "name": "International Protection (IP) code",
+          "value": "IP48",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency scale",
+          "value": "A to G",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "201 g",
+          "unit": "g"
+        },
+        {
+          "name": "Width",
+          "value": "161.4 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "4.5 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "123.9 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Folded width",
+          "value": "8.19 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "Folded depth",
+          "value": "9.7 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Folded height",
+          "value": "12.4 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "AC adapter included",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Head SAR (EU)",
+          "value": "0.823 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Body SAR (EU)",
+          "value": "1.211 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Extremities SAR (EU)",
+          "value": "2.26 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Compatibility",
+          "value": "Galaxy Ring, Galaxy Buds Core, Galaxy Buds4 Pro, Galaxy Buds3 Pro, Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds4, Galaxy Buds3, Galaxy Buds2, Galaxy Buds, Galaxy Buds3 FE, Galaxy Buds FE, Galaxy Fit3, Galaxy Fit2, Galaxy Watch FE, Galaxy Watch Ultra2, Galaxy Watch Ultra, Galaxy Watch9, Galaxy Watch8, Galaxy Watch7, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active",
+          "unit": null
+        },
+        {
+          "name": "Security update term",
+          "value": "31 July 2033",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/phones/samsung/148400062/02.webp",
+      "images": [
+        {
+          "path": "images/catalog/phones/samsung/148400062/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/e2340aabe9dda2e339d73b93742231c9f9517b0a.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/148400062/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/bbbaad326cf452f4f882a346fe2ec80aad0fd3d3.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/148400062/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/ca6d2ca95ccd34c59e920a1896b35eb6f59026af.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "148400062",
+      "mpn": "SM-F971BZKCEUB",
+      "gtin": "8806099348755",
+      "gtins": [
+        "8806099348755",
+        "5413729251953"
+      ],
+      "sourceSupplierName": "Samsung",
+      "sourceSupplierId": "26",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "releaseDate": "2026-07-22",
+      "integrationApproved": true,
+      "identityStatus": "verified",
+      "visualQAStatus": "pending-browser-qa",
+      "provenance": {
+        "source": "open-icecat",
+        "sourceProductId": "148400062",
+        "supplierId": "26",
+        "supplierName": "Samsung",
+        "lockedMpn": "SM-F971BZKCEUB",
+        "lockedGtins": [
+          "8806099348755",
+          "5413729251953"
+        ],
+        "media": [
+          {
+            "path": "images/catalog/phones/samsung/148400062/01.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/7de645003c7902ea357484707174b5816361b491.jpeg",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/148400062/02.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/e2340aabe9dda2e339d73b93742231c9f9517b0a.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/148400062/03.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/bbbaad326cf452f4f882a346fe2ec80aad0fd3d3.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/148400062/04.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/ca6d2ca95ccd34c59e920a1896b35eb6f59026af.png",
+            "mediaUsageStatus": "permitted"
+          }
+        ]
+      },
+      "excludedImages": [
+        {
+          "path": "images/catalog/phones/samsung/148400062/01.webp",
+          "qaStatus": "excluded",
+          "qaReason": "marketing-text-overlay"
+        }
+      ],
+      "visualQaStatus": "PASS",
+      "productionApprovedAt": "2026-08-12T05:14:47.894Z"
+    },
+    {
+      "id": "icecat-148400059",
+      "category": "phones",
+      "brand": "Samsung",
+      "family": "Galaxy Z",
+      "name": "Galaxy Z Fold8 Ultra",
+      "modelNumber": "SM-F976BZWCEUB",
+      "releaseYear": 2026,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "20.3 cm (8\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "2504 x 2256 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Screen shape",
+          "value": "Flat",
+          "unit": null
+        },
+        {
+          "name": "Display technology marketing name",
+          "value": "Dynamic AMOLED 2X",
+          "unit": null
+        },
+        {
+          "name": "Display glass type",
+          "value": "Gorilla Glass",
+          "unit": null
+        },
+        {
+          "name": "Gorilla Glass version",
+          "value": "Gorilla Glass Victus 2",
+          "unit": null
+        },
+        {
+          "name": "Display number of colours",
+          "value": "16 million colours",
+          "unit": null
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Display brightness",
+          "value": "1500 cd/m²",
+          "unit": "cd/m²"
+        },
+        {
+          "name": "Maximum display brightness (Outdoor)",
+          "value": "3000 cd/m²",
+          "unit": "cd/m²"
+        },
+        {
+          "name": "Pixel density",
+          "value": "422 ppi",
+          "unit": "ppi"
+        },
+        {
+          "name": "Second display",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Second display diagonal",
+          "value": "16.5 cm (6.5\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Second display resolution",
+          "value": "2520 x 1080 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Second display type",
+          "value": "Dynamic AMOLED 2X",
+          "unit": null
+        },
+        {
+          "name": "Second display pixel density",
+          "value": "422 ppi",
+          "unit": "ppi"
+        },
+        {
+          "name": "Second display glass type",
+          "value": "Gorilla Glass",
+          "unit": null
+        },
+        {
+          "name": "Second display refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Second display Gorilla Glass version",
+          "value": "Gorilla Glass Ceramic 3",
+          "unit": null
+        },
+        {
+          "name": "Processor family",
+          "value": "Snapdragon",
+          "unit": null
+        },
+        {
+          "name": "Processor model",
+          "value": "8 Elite Gen 5",
+          "unit": null
+        },
+        {
+          "name": "Processor frequency",
+          "value": "3.6 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cores",
+          "value": "8",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "4.74 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "RAM capacity",
+          "value": "12 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal storage capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Compatible memory cards",
+          "value": "Not supported",
+          "unit": null
+        },
+        {
+          "name": "User memory",
+          "value": "473.1 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Rear camera type",
+          "value": "Triple camera",
+          "unit": null
+        },
+        {
+          "name": "Rear camera resolution (numeric)",
+          "value": "200 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera type",
+          "value": "Single camera",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera flash",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Rear camera sensor size",
+          "value": "1/1.3\"",
+          "unit": "\""
+        },
+        {
+          "name": "Second rear camera sensor size",
+          "value": "1/2.52\"",
+          "unit": "\""
+        },
+        {
+          "name": "Third rear camera sensor size",
+          "value": "1/3.94\"",
+          "unit": "\""
+        },
+        {
+          "name": "Second rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Third rear camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Fourth rear camera resolution (numeric)",
+          "value": "200 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera aperture number",
+          "value": "1.7",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera aperture number",
+          "value": "1.9",
+          "unit": null
+        },
+        {
+          "name": "Third rear camera aperture number",
+          "value": "2.4",
+          "unit": null
+        },
+        {
+          "name": "Rear camera pixel size",
+          "value": "0.6 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Second rear camera pixel size",
+          "value": "0.7 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Third rear camera pixel size",
+          "value": "1 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Rear camera field of view (FOV) angle",
+          "value": "85°",
+          "unit": "°"
+        },
+        {
+          "name": "Second rear camera field of view (FOV) angle",
+          "value": "120°",
+          "unit": "°"
+        },
+        {
+          "name": "Third rear camera field of view (FOV) angle",
+          "value": "36°",
+          "unit": "°"
+        },
+        {
+          "name": "Optical zoom",
+          "value": "3x",
+          "unit": "x"
+        },
+        {
+          "name": "Digital zoom",
+          "value": "30x",
+          "unit": "x"
+        },
+        {
+          "name": "Front camera sensor size",
+          "value": "1/3.33\"",
+          "unit": "\""
+        },
+        {
+          "name": "Front camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Front camera pixel size",
+          "value": "1.12 µm",
+          "unit": "µm"
+        },
+        {
+          "name": "Front camera field of view (FOV) angle",
+          "value": "85°",
+          "unit": "°"
+        },
+        {
+          "name": "Cover camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Cover camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Flash type",
+          "value": "LED",
+          "unit": null
+        },
+        {
+          "name": "Video capture resolution (max)",
+          "value": "7680 x 4320 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Maximum frame rate",
+          "value": "30 fps",
+          "unit": "fps"
+        },
+        {
+          "name": "Auto focus",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer type",
+          "value": "Optical Image Stabilization (OIS)",
+          "unit": null
+        },
+        {
+          "name": "Night mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Panorama",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Portrait mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion rate",
+          "value": "240fps @FHD, 120fps @FHD, 120fps @UHD",
+          "unit": null
+        },
+        {
+          "name": "Camera image formats supported",
+          "value": "JPEG",
+          "unit": null
+        },
+        {
+          "name": "SIM card capability",
+          "value": "Dual SIM",
+          "unit": null
+        },
+        {
+          "name": "Mobile network generation",
+          "value": "5G",
+          "unit": null
+        },
+        {
+          "name": "SIM card type",
+          "value": "NanoSIM + eSIM",
+          "unit": null
+        },
+        {
+          "name": "3G standards",
+          "value": "WCDMA",
+          "unit": null
+        },
+        {
+          "name": "4G standard",
+          "value": "LTE-TDD & LTE-FDD",
+          "unit": null
+        },
+        {
+          "name": "5G standard",
+          "value": "Sub6 SDL, Sub6 TDD",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 7 (802.11be)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "2G standards",
+          "value": "GSM",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "802.11a, 802.11b, 802.11g, Wi-Fi 4 (802.11n), Wi-Fi 5 (802.11ac), Wi-Fi 6 (802.11ax), Wi-Fi 6E (802.11ax), Wi-Fi 7 (802.11be)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "6.0",
+          "unit": null
+        },
+        {
+          "name": "2G bands (primary SIM)",
+          "value": "850,1900,1800,900 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "3G bands supported",
+          "value": "2100,900,1900,850,1700 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "4G bands supported",
+          "value": "2100,700,800,1900,850,1800,1500,2300,2600,900,1700,2500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "5G bands supported",
+          "value": "2100,700,1900,800,850,1800,2600,900,1700,2300,2500,3700,3500,1500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Wi-Fi Direct",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "MIMO",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Modulation",
+          "value": "4096-QAM",
+          "unit": null
+        },
+        {
+          "name": "Near Field Communication (NFC)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB connector type",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "USB version",
+          "value": "3.2 Gen 1 (3.1 Gen 1)",
+          "unit": null
+        },
+        {
+          "name": "Headphone connectivity",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "Mobile High-Definition Link (MHL)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Position location",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GPS (satellite)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GLONASS",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "BeiDou",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Galileo",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Quasi-Zenith Satellite System (QZSS)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Clamshell",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Cream",
+          "unit": null
+        },
+        {
+          "name": "Wireless charging",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Face recognition",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hearing aid compatibility",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Speakers",
+          "value": "stereo",
+          "unit": null
+        },
+        {
+          "name": "Audio formats supported",
+          "value": "3GA, AAC, AMR, APE, AWB, DFF, DSF, FLAC, IMY, M4A, Mid, MIDI, MP3, MXMF, OGA, OGG, OTA, RTTTL, RTX, WAV, XMF",
+          "unit": null
+        },
+        {
+          "name": "Video formats supported",
+          "value": "3G2, 3GP, AVI, FLV, M4V, MKV, MP4, WEBM",
+          "unit": null
+        },
+        {
+          "name": "Platform",
+          "value": "Android",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "5000 mAh",
+          "unit": "mAh"
+        },
+        {
+          "name": "Battery endurance in cycles",
+          "value": "1200",
+          "unit": null
+        },
+        {
+          "name": "Removable battery",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Wireless video playback time",
+          "value": "27 h",
+          "unit": "h"
+        },
+        {
+          "name": "Proximity sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Accelerometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ambient light sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Gyroscope",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Barometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Geomagnetic sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hall sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "10 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "45 W",
+          "unit": "W"
+        },
+        {
+          "name": "Energy efficiency class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Battery endurance per cycle",
+          "value": "3070 min",
+          "unit": "min"
+        },
+        {
+          "name": "Repeated free fall reliability class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Repairability class",
+          "value": "C",
+          "unit": null
+        },
+        {
+          "name": "International Protection (IP) code",
+          "value": "IP48",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency scale",
+          "value": "A to G",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "215 g",
+          "unit": "g"
+        },
+        {
+          "name": "Width",
+          "value": "143.2 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "4.1 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "158.4 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Folded width",
+          "value": "7.28 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "Folded depth",
+          "value": "8.9 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Folded height",
+          "value": "15.8 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "AC adapter included",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Cables included",
+          "value": "USB Type-C to USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "SIM card ejector pin",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Head SAR (EU)",
+          "value": "0.821 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Body SAR (EU)",
+          "value": "1.167 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Extremities SAR (EU)",
+          "value": "2.87 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Compatibility",
+          "value": "Galaxy Ring, Galaxy Buds Core, Galaxy Buds4 Pro, Galaxy Buds3 Pro, Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds4, Galaxy Buds3, Galaxy Buds2, Galaxy Buds, Galaxy Buds3 FE, Galaxy Buds FE, Galaxy Fit3, Galaxy Fit2, Galaxy Watch FE, Galaxy Watch Ultra2, Galaxy Watch Ultra, Galaxy Watch9, Galaxy Watch8, Galaxy Watch7, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active",
+          "unit": null
+        },
+        {
+          "name": "Security update term",
+          "value": "31 July 2033",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/phones/samsung/148400059/02.webp",
+      "images": [
+        {
+          "path": "images/catalog/phones/samsung/148400059/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/0d1b43d952d84889e12d0ca68fb2b3845967b21f.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/148400059/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/ca8888a7715aaa538238ed5206b6d53397d644ff.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/148400059/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/9075199a8c77566f52d110ba27610b7b25c9b579.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "148400059",
+      "mpn": "SM-F976BZWCEUB",
+      "gtin": "8806099186593",
+      "gtins": [
+        "8806099186593"
+      ],
+      "sourceSupplierName": "Samsung",
+      "sourceSupplierId": "26",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "releaseDate": "2026-07-22",
+      "integrationApproved": true,
+      "identityStatus": "verified",
+      "visualQAStatus": "pending-browser-qa",
+      "provenance": {
+        "source": "open-icecat",
+        "sourceProductId": "148400059",
+        "supplierId": "26",
+        "supplierName": "Samsung",
+        "lockedMpn": "SM-F976BZWCEUB",
+        "lockedGtins": [
+          "8806099186593"
+        ],
+        "media": [
+          {
+            "path": "images/catalog/phones/samsung/148400059/01.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/e2f661e7143ef824f950580154ad4e50d5231815.jpeg",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/148400059/02.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/0d1b43d952d84889e12d0ca68fb2b3845967b21f.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/148400059/03.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/ca8888a7715aaa538238ed5206b6d53397d644ff.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/148400059/04.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/9075199a8c77566f52d110ba27610b7b25c9b579.png",
+            "mediaUsageStatus": "permitted"
+          }
+        ]
+      },
+      "excludedImages": [
+        {
+          "path": "images/catalog/phones/samsung/148400059/01.webp",
+          "qaStatus": "excluded",
+          "qaReason": "marketing-text-overlay"
+        }
+      ],
+      "visualQaStatus": "PASS",
+      "productionApprovedAt": "2026-08-12T05:14:47.894Z"
+    },
+    {
+      "id": "icecat-132622687",
+      "category": "phones",
+      "brand": "Samsung",
+      "family": "Galaxy Z",
+      "name": "Galaxy Z Flip7",
+      "modelNumber": "SM-F766BZKHEUB",
+      "releaseYear": 2025,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "17.5 cm (6.9\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "2520 x 1080 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Display technology marketing name",
+          "value": "Dynamic AMOLED 2X",
+          "unit": null
+        },
+        {
+          "name": "Gorilla Glass version",
+          "value": "Gorilla Glass Victus 2",
+          "unit": null
+        },
+        {
+          "name": "Display number of colours",
+          "value": "16 million colours",
+          "unit": null
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Second display diagonal",
+          "value": "10.4 cm (4.1\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Second display resolution",
+          "value": "1048 x 948 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Second display type",
+          "value": "Super AMOLED",
+          "unit": null
+        },
+        {
+          "name": "Second display refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Second display Gorilla Glass version",
+          "value": "Gorilla Glass Victus 2",
+          "unit": null
+        },
+        {
+          "name": "Processor family",
+          "value": "Samsung Exynos",
+          "unit": null
+        },
+        {
+          "name": "Processor model",
+          "value": "2500",
+          "unit": null
+        },
+        {
+          "name": "Processor frequency",
+          "value": "2.74 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cores",
+          "value": "10",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "3.3 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "RAM capacity",
+          "value": "12 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal storage capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "User memory",
+          "value": "478.7 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Virtual RAM (max)",
+          "value": "478.7 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Rear camera type",
+          "value": "Dual camera",
+          "unit": null
+        },
+        {
+          "name": "Rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera type",
+          "value": "Single camera",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera flash",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera resolution (numeric)",
+          "value": "12 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Third rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Fourth rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera aperture number",
+          "value": "1.8",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Optical zoom",
+          "value": "2x",
+          "unit": "x"
+        },
+        {
+          "name": "Digital zoom",
+          "value": "10x",
+          "unit": "x"
+        },
+        {
+          "name": "Front camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Video capture resolution (max)",
+          "value": "3840 x 2160 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Maximum frame rate",
+          "value": "60 fps",
+          "unit": "fps"
+        },
+        {
+          "name": "Resolution at capture speed",
+          "value": "3840x2160@30fps",
+          "unit": null
+        },
+        {
+          "name": "Auto focus",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer type",
+          "value": "Optical Image Stabilization (OIS)",
+          "unit": null
+        },
+        {
+          "name": "Night mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion rate",
+          "value": "240fps @FHD, 120fps @FHD",
+          "unit": null
+        },
+        {
+          "name": "SIM card capability",
+          "value": "Dual SIM",
+          "unit": null
+        },
+        {
+          "name": "Mobile network generation",
+          "value": "5G",
+          "unit": null
+        },
+        {
+          "name": "SIM card type",
+          "value": "NanoSIM + eSIM",
+          "unit": null
+        },
+        {
+          "name": "3G standards",
+          "value": "WCDMA",
+          "unit": null
+        },
+        {
+          "name": "4G standard",
+          "value": "LTE-TDD & LTE-FDD",
+          "unit": null
+        },
+        {
+          "name": "5G standard",
+          "value": "Sub6 SDL, Sub6 TDD",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 7 (802.11be)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "2G standards",
+          "value": "GSM",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "5.4",
+          "unit": null
+        },
+        {
+          "name": "2G bands (primary SIM)",
+          "value": "850,1900,1800,900 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "3G bands supported",
+          "value": "2100,900,1900,850,1700 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "4G bands supported",
+          "value": "2100,700,800,1900,850,1800,1500,2300,2600,900,1700,2500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "5G bands supported",
+          "value": "2100,700,1900,800,850,1800,2600,900,1700,2300,2500,3700,3500,1500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Wi-Fi Direct",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "MIMO",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Modulation",
+          "value": "4096-QAM",
+          "unit": null
+        },
+        {
+          "name": "Near Field Communication (NFC)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB connector type",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "USB version",
+          "value": "3.2 Gen 1 (3.1 Gen 1)",
+          "unit": null
+        },
+        {
+          "name": "Headphone connectivity",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "Mobile High-Definition Link (MHL)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "GPS (satellite)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GLONASS",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "BeiDou",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Galileo",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Quasi-Zenith Satellite System (QZSS)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Flip",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Black",
+          "unit": null
+        },
+        {
+          "name": "Colour name",
+          "value": "Jetblack",
+          "unit": null
+        },
+        {
+          "name": "Fast charging",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Wireless charging",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Wireless charging power",
+          "value": "15 W",
+          "unit": "W"
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hearing aid compatibility",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Country of origin",
+          "value": "Vietnam",
+          "unit": null
+        },
+        {
+          "name": "Speakers",
+          "value": "stereo",
+          "unit": null
+        },
+        {
+          "name": "Audio formats supported",
+          "value": "3GA, AAC, AMR, APE, AWB, DFF, DSF, FLAC, IMY, M4A, Mid, MIDI, MP3, MXMF, OGA, OGG, OTA, RTTTL, RTX, WAV, XMF",
+          "unit": null
+        },
+        {
+          "name": "Video formats supported",
+          "value": "3G2, 3GP, AVI, FLV, M4V, MKV, MP4, WEBM",
+          "unit": null
+        },
+        {
+          "name": "Platform",
+          "value": "Android",
+          "unit": null
+        },
+        {
+          "name": "Operating system installed",
+          "value": "Android 16.0",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "4300 mAh",
+          "unit": "mAh"
+        },
+        {
+          "name": "Battery endurance in cycles",
+          "value": "2000",
+          "unit": null
+        },
+        {
+          "name": "Removable battery",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Wireless video playback time",
+          "value": "31 h",
+          "unit": "h"
+        },
+        {
+          "name": "Proximity sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Accelerometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ambient light sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Gyroscope",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Barometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Geomagnetic sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hall sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "10 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "25 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Power Delivery (USB PD)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency class",
+          "value": "B",
+          "unit": null
+        },
+        {
+          "name": "Battery endurance per cycle",
+          "value": "2524 min",
+          "unit": "min"
+        },
+        {
+          "name": "Repeated free fall reliability class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Repairability class",
+          "value": "C",
+          "unit": null
+        },
+        {
+          "name": "International Protection (IP) code",
+          "value": "IP48",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency scale",
+          "value": "A to G",
+          "unit": null
+        },
+        {
+          "name": "Repairability index",
+          "value": "2.9",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "188 g",
+          "unit": "g"
+        },
+        {
+          "name": "Width",
+          "value": "75.2 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "6.5 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "166.7 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Folded width",
+          "value": "7.52 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "Folded depth",
+          "value": "1.37 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "Folded height",
+          "value": "8.55 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "AC adapter included",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Cables included",
+          "value": "USB Type-C to USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "SIM card ejector pin",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Head SAR (EU)",
+          "value": "0.689 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Body SAR (EU)",
+          "value": "1.215 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Compatibility",
+          "value": "Galaxy Ring, Galaxy Buds Core, Galaxy Buds3 Pro, Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds3, Galaxy Buds2, Galaxy Buds, Galaxy Buds FE, Galaxy Fit3, Galaxy Fit2, Galaxy Fit e, Galaxy Fit, Galaxy Watch FE, Galaxy Watch Ultra, Galaxy Watch8, Galaxy Watch7, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active",
+          "unit": null
+        },
+        {
+          "name": "Security update term",
+          "value": "31 July 2032",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/phones/samsung/132622687/01.webp",
+      "images": [
+        {
+          "path": "images/catalog/phones/samsung/132622687/01.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/0c3c0dbd367e9352d7310b8e002182543f330ab0.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/132622687/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/b22a97861233d5621541b759945962b8bb5bd610.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/132622687/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/03a71bfe3ae9cb8647b17aaae40fbb2fa477e3c8.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/132622687/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/1bbfb02bb0fc268f907f15d3660565ac2933890d.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "132622687",
+      "mpn": "SM-F766BZKHEUB",
+      "gtin": "8806097492160",
+      "gtins": [
+        "8806097492160"
+      ],
+      "sourceSupplierName": "Samsung",
+      "sourceSupplierId": "26",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "releaseDate": "2025-06-16",
+      "integrationApproved": true,
+      "identityStatus": "verified",
+      "visualQAStatus": "pending-browser-qa",
+      "provenance": {
+        "source": "open-icecat",
+        "sourceProductId": "132622687",
+        "supplierId": "26",
+        "supplierName": "Samsung",
+        "lockedMpn": "SM-F766BZKHEUB",
+        "lockedGtins": [
+          "8806097492160"
+        ],
+        "media": [
+          {
+            "path": "images/catalog/phones/samsung/132622687/01.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/0c3c0dbd367e9352d7310b8e002182543f330ab0.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/132622687/02.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/b22a97861233d5621541b759945962b8bb5bd610.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/132622687/03.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/03a71bfe3ae9cb8647b17aaae40fbb2fa477e3c8.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/132622687/04.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/1bbfb02bb0fc268f907f15d3660565ac2933890d.png",
+            "mediaUsageStatus": "permitted"
+          }
+        ]
+      },
+      "excludedImages": [],
+      "visualQaStatus": "PASS",
+      "productionApprovedAt": "2026-08-12T05:14:47.894Z"
+    },
+    {
+      "id": "icecat-132622684",
+      "category": "phones",
+      "brand": "Samsung",
+      "family": "Galaxy Z",
+      "name": "Galaxy Z Fold7",
+      "modelNumber": "SM-F966BDBBEUB",
+      "releaseYear": 2025,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "20.3 cm (8\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "2184 x 1968 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Screen shape",
+          "value": "Flat",
+          "unit": null
+        },
+        {
+          "name": "Display technology marketing name",
+          "value": "Dynamic AMOLED 2X",
+          "unit": null
+        },
+        {
+          "name": "Display glass type",
+          "value": "Corning Glass",
+          "unit": null
+        },
+        {
+          "name": "Gorilla Glass version",
+          "value": "Gorilla Glass Victus 2",
+          "unit": null
+        },
+        {
+          "name": "Display number of colours",
+          "value": "16 million colours",
+          "unit": null
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Second display diagonal",
+          "value": "16.5 cm (6.5\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Second display resolution",
+          "value": "2520 x 1080 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Second display type",
+          "value": "Dynamic AMOLED 2X",
+          "unit": null
+        },
+        {
+          "name": "Second display glass type",
+          "value": "Gorilla Glass",
+          "unit": null
+        },
+        {
+          "name": "Second display Gorilla Glass version",
+          "value": "Gorilla Glass Victus 2",
+          "unit": null
+        },
+        {
+          "name": "Processor family",
+          "value": "Snapdragon",
+          "unit": null
+        },
+        {
+          "name": "Processor model",
+          "value": "8 Gen 3",
+          "unit": null
+        },
+        {
+          "name": "Processor frequency",
+          "value": "3.5 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cores",
+          "value": "8",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "4.47 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "RAM capacity",
+          "value": "12 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal storage capacity",
+          "value": "256 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "User memory",
+          "value": "223.6 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Virtual RAM (max)",
+          "value": "223.6 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Rear camera type",
+          "value": "Triple camera",
+          "unit": null
+        },
+        {
+          "name": "Rear camera resolution (numeric)",
+          "value": "200 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera type",
+          "value": "Single camera",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera flash",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera resolution (numeric)",
+          "value": "12 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Third rear camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Fourth rear camera resolution (numeric)",
+          "value": "200 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera aperture number",
+          "value": "1.7",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Third rear camera aperture number",
+          "value": "2.4",
+          "unit": null
+        },
+        {
+          "name": "Optical zoom",
+          "value": "3x",
+          "unit": "x"
+        },
+        {
+          "name": "Digital zoom",
+          "value": "30x",
+          "unit": "x"
+        },
+        {
+          "name": "Second front camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Second front camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Cover camera resolution (numeric)",
+          "value": "10 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Cover camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Video capture resolution (max)",
+          "value": "7680 x 4320 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Maximum frame rate",
+          "value": "30 fps",
+          "unit": "fps"
+        },
+        {
+          "name": "Resolution at capture speed",
+          "value": "7680x4320@30fps",
+          "unit": null
+        },
+        {
+          "name": "Auto focus",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer type",
+          "value": "Optical Image Stabilization (OIS)",
+          "unit": null
+        },
+        {
+          "name": "Night mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion rate",
+          "value": "240fps @FHD, 120fps @FHD, 120fps @UHD",
+          "unit": null
+        },
+        {
+          "name": "SIM card capability",
+          "value": "Dual SIM",
+          "unit": null
+        },
+        {
+          "name": "Mobile network generation",
+          "value": "5G",
+          "unit": null
+        },
+        {
+          "name": "SIM card type",
+          "value": "NanoSIM + eSIM",
+          "unit": null
+        },
+        {
+          "name": "3G standards",
+          "value": "WCDMA",
+          "unit": null
+        },
+        {
+          "name": "4G standard",
+          "value": "LTE-TDD & LTE-FDD",
+          "unit": null
+        },
+        {
+          "name": "5G standard",
+          "value": "Sub6 SDL, Sub6 TDD",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 7 (802.11be)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "2G standards",
+          "value": "GSM",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "5.4",
+          "unit": null
+        },
+        {
+          "name": "2G bands (primary SIM)",
+          "value": "850,1900,1800,900 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "3G bands supported",
+          "value": "2100,900,1900,850,1700 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "4G bands supported",
+          "value": "2100,700,800,1900,850,1800,1500,2300,2600,900,1700,2500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "5G bands supported",
+          "value": "2100,700,1900,800,850,1800,2600,900,1700,2300,2500,3700,3500,1500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Wi-Fi Direct",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "MIMO",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Modulation",
+          "value": "4096-QAM",
+          "unit": null
+        },
+        {
+          "name": "Near Field Communication (NFC)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB connector type",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "USB version",
+          "value": "3.2 Gen 1 (3.1 Gen 1)",
+          "unit": null
+        },
+        {
+          "name": "Headphone connectivity",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "Mobile High-Definition Link (MHL)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "GPS (satellite)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GLONASS",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "BeiDou",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Galileo",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Quasi-Zenith Satellite System (QZSS)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Clamshell",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Blue",
+          "unit": null
+        },
+        {
+          "name": "Colour name",
+          "value": "Blue Shadow",
+          "unit": null
+        },
+        {
+          "name": "Fast charging",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Wireless charging",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Wireless charging power",
+          "value": "15 W",
+          "unit": "W"
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hearing aid compatibility",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Country of origin",
+          "value": "Vietnam",
+          "unit": null
+        },
+        {
+          "name": "Speakers",
+          "value": "stereo",
+          "unit": null
+        },
+        {
+          "name": "Audio formats supported",
+          "value": "3GA, AAC, AMR, APE, AWB, DFF, DSF, FLAC, IMY, M4A, Mid, MIDI, MP3, MXMF, OGA, OGG, OTA, RTTTL, RTX, WAV, XMF",
+          "unit": null
+        },
+        {
+          "name": "Video formats supported",
+          "value": "3G2, 3GP, AVI, FLV, M4V, MKV, MP4, WEBM",
+          "unit": null
+        },
+        {
+          "name": "Platform",
+          "value": "Android",
+          "unit": null
+        },
+        {
+          "name": "Operating system installed",
+          "value": "Android 16.0",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "4400 mAh",
+          "unit": "mAh"
+        },
+        {
+          "name": "Battery endurance in cycles",
+          "value": "2000",
+          "unit": null
+        },
+        {
+          "name": "Removable battery",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Wireless video playback time",
+          "value": "24 h",
+          "unit": "h"
+        },
+        {
+          "name": "Proximity sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Accelerometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ambient light sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Gyroscope",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Barometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Geomagnetic sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hall sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "10 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "25 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Power Delivery (USB PD)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency class",
+          "value": "B",
+          "unit": null
+        },
+        {
+          "name": "Battery endurance per cycle",
+          "value": "2428 min",
+          "unit": "min"
+        },
+        {
+          "name": "Repeated free fall reliability class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Repairability class",
+          "value": "C",
+          "unit": null
+        },
+        {
+          "name": "International Protection (IP) code",
+          "value": "IP48",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency scale",
+          "value": "A to G",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "215 g",
+          "unit": "g"
+        },
+        {
+          "name": "Width",
+          "value": "143.2 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "4.2 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "158.4 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Folded width",
+          "value": "7.28 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "Folded depth",
+          "value": "8.9 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Folded height",
+          "value": "15.8 cm",
+          "unit": "cm"
+        },
+        {
+          "name": "AC adapter included",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Cables included",
+          "value": "USB Type-C to USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "SIM card ejector pin",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Head SAR (EU)",
+          "value": "1.418 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Body SAR (EU)",
+          "value": "1.242 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Compatibility",
+          "value": "Galaxy Ring, Galaxy Buds Core, Galaxy Buds3 Pro, Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds3, Galaxy Buds2, Galaxy Buds, Galaxy Buds FE, Galaxy Fit3, Galaxy Fit2, Galaxy Fit e, Galaxy Fit, Galaxy Watch FE, Galaxy Watch Ultra, Galaxy Watch8, Galaxy Watch7, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active",
+          "unit": null
+        },
+        {
+          "name": "Security update term",
+          "value": "31 July 2032",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/phones/samsung/132622684/01.webp",
+      "images": [
+        {
+          "path": "images/catalog/phones/samsung/132622684/01.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/6f333abb4c014781f5ebc9716274a958ff133f4a.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/132622684/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/ae6ba0109f2ccf5d5413ee1d154576ea2a0bbe2c.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/132622684/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/3a03b31c8817d321f36e8daf6e2960cd63e58928.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/132622684/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/16e3e724b69cd1b45fea9a04f227e5ca9ab5ded5.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "132622684",
+      "mpn": "SM-F966BDBBEUB",
+      "gtin": "8806097424543",
+      "gtins": [
+        "8806097424543",
+        "5715328112247"
+      ],
+      "sourceSupplierName": "Samsung",
+      "sourceSupplierId": "26",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "releaseDate": "2025-06-16",
+      "integrationApproved": true,
+      "identityStatus": "verified",
+      "visualQAStatus": "pending-browser-qa",
+      "provenance": {
+        "source": "open-icecat",
+        "sourceProductId": "132622684",
+        "supplierId": "26",
+        "supplierName": "Samsung",
+        "lockedMpn": "SM-F966BDBBEUB",
+        "lockedGtins": [
+          "8806097424543",
+          "5715328112247"
+        ],
+        "media": [
+          {
+            "path": "images/catalog/phones/samsung/132622684/01.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/6f333abb4c014781f5ebc9716274a958ff133f4a.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/132622684/02.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/ae6ba0109f2ccf5d5413ee1d154576ea2a0bbe2c.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/132622684/03.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/3a03b31c8817d321f36e8daf6e2960cd63e58928.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/132622684/04.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/16e3e724b69cd1b45fea9a04f227e5ca9ab5ded5.png",
+            "mediaUsageStatus": "permitted"
+          }
+        ]
+      },
+      "excludedImages": [],
+      "visualQaStatus": "PASS",
+      "productionApprovedAt": "2026-08-12T05:14:47.894Z"
+    },
+    {
+      "id": "icecat-142313844",
+      "category": "phones",
+      "brand": "Samsung",
+      "family": "Galaxy A",
+      "name": "Galaxy A57 5G",
+      "modelNumber": "SM-A576BZVHEUB",
+      "releaseYear": 2026,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "17 cm (6.7\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "1080 x 2340 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Screen shape",
+          "value": "Flat",
+          "unit": null
+        },
+        {
+          "name": "Display technology marketing name",
+          "value": "Super AMOLED Plus",
+          "unit": null
+        },
+        {
+          "name": "Display number of colours",
+          "value": "16 million colours",
+          "unit": null
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Processor frequency",
+          "value": "2.6 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cores",
+          "value": "8",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "2.9 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "RAM capacity",
+          "value": "12 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal storage capacity",
+          "value": "512 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Rear camera type",
+          "value": "Triple camera",
+          "unit": null
+        },
+        {
+          "name": "Rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera type",
+          "value": "Single camera",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution (numeric)",
+          "value": "12 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera flash",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera resolution (numeric)",
+          "value": "12 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Third rear camera resolution (numeric)",
+          "value": "5 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Fourth rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera aperture number",
+          "value": "1.8",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Third rear camera aperture number",
+          "value": "2.4",
+          "unit": null
+        },
+        {
+          "name": "Digital zoom",
+          "value": "10x",
+          "unit": "x"
+        },
+        {
+          "name": "Front camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Video capture resolution (max)",
+          "value": "3840 x 2160 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Maximum frame rate",
+          "value": "30 fps",
+          "unit": "fps"
+        },
+        {
+          "name": "Auto focus",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Zoom capability",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer type",
+          "value": "Optical Image Stabilization (OIS)",
+          "unit": null
+        },
+        {
+          "name": "Slow motion mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion rate",
+          "value": "240fps @HD",
+          "unit": null
+        },
+        {
+          "name": "SIM card capability",
+          "value": "Dual SIM",
+          "unit": null
+        },
+        {
+          "name": "Mobile network generation",
+          "value": "5G",
+          "unit": null
+        },
+        {
+          "name": "SIM card type",
+          "value": "NanoSIM + eSIM",
+          "unit": null
+        },
+        {
+          "name": "3G standards",
+          "value": "WCDMA",
+          "unit": null
+        },
+        {
+          "name": "4G standard",
+          "value": "LTE-TDD & LTE-FDD",
+          "unit": null
+        },
+        {
+          "name": "5G standard",
+          "value": "Sub6 TDD",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 6 (802.11ax)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "2G standards",
+          "value": "GSM",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "802.11a, 802.11b, Wi-Fi 4 (802.11n), 802.11g, Wi-Fi 5 (802.11ac), Wi-Fi 6 (802.11ax)",
+          "unit": null
+        },
+        {
+          "name": "2G bands (primary SIM)",
+          "value": "850,1900,1800,900 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "3G bands supported",
+          "value": "2100,900,1900,850,1700 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "4G bands supported",
+          "value": "2100,700,800,1900,850,1800,1500,2300,2600,900,1700,2500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "5G bands supported",
+          "value": "2100,700,800,850,1800,2600,900,1700,2300,2500,3700,3500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Wi-Fi Direct",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "MIMO",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Modulation",
+          "value": "1024-QAM",
+          "unit": null
+        },
+        {
+          "name": "USB connector type",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "USB version",
+          "value": "2.0",
+          "unit": null
+        },
+        {
+          "name": "Headphone connectivity",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "Mobile High-Definition Link (MHL)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Position location",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GPS (satellite)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GLONASS",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "BeiDou",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Galileo",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Quasi-Zenith Satellite System (QZSS)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Bar",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Lilac",
+          "unit": null
+        },
+        {
+          "name": "Colour name",
+          "value": "Awesome Lilac",
+          "unit": null
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hearing aid compatibility",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Speakers",
+          "value": "stereo",
+          "unit": null
+        },
+        {
+          "name": "Audio formats supported",
+          "value": "3GA, AAC, AMR, AWB, FLAC, IMY, M4A, Mid, MIDI, MP3, MXMF, OGA, OGG, OTA, RTTTL, RTX, WAV, XMF",
+          "unit": null
+        },
+        {
+          "name": "Video formats supported",
+          "value": "3G2, 3GP, AVI, FLV, M4V, MKV, MP4, WEBM",
+          "unit": null
+        },
+        {
+          "name": "Platform",
+          "value": "Android",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "5000 mAh",
+          "unit": "mAh"
+        },
+        {
+          "name": "Battery endurance in cycles",
+          "value": "1200",
+          "unit": null
+        },
+        {
+          "name": "Removable battery",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Continuous video playback time (max)",
+          "value": "29 h",
+          "unit": "h"
+        },
+        {
+          "name": "Proximity sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Accelerometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ambient light sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Gyroscope",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Geomagnetic sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "10 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "45 W",
+          "unit": "W"
+        },
+        {
+          "name": "Energy efficiency class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "179 g",
+          "unit": "g"
+        },
+        {
+          "name": "Width",
+          "value": "76.8 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "6.9 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "161.5 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Compatibility",
+          "value": "Galaxy Ring, Galaxy Buds Core, Galaxy Buds4 Pro, Galaxy Buds3 Pro, Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds4, Galaxy Buds3, Galaxy Buds2, Galaxy Buds, Galaxy Buds3 FE, Galaxy Buds FE, Galaxy Fit3, Galaxy Fit2, Galaxy Watch FE, Galaxy Watch Ultra, Galaxy Watch8, Galaxy Watch7, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active",
+          "unit": null
+        },
+        {
+          "name": "Security update term",
+          "value": "31 March 2032",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/phones/samsung/142313844/01.webp",
+      "images": [
+        {
+          "path": "images/catalog/phones/samsung/142313844/01.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/46ebaf7456aa5aa303d4be672a9ddd2ad3d0e0f2.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/142313844/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/02620be158e1bd524ee28d8dd3fa487703451927.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/142313844/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/f54fe2440cfcd9744a1d319b170cee112a048b3e.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/142313844/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/6b6c8e416cded3dca5a0b1d4a231a95c691f22e9.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "142313844",
+      "mpn": "SM-A576BZVHEUB",
+      "gtin": "8806099028060",
+      "gtins": [
+        "8806099028060",
+        "5715328323964"
+      ],
+      "sourceSupplierName": "Samsung",
+      "sourceSupplierId": "26",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "releaseDate": "2026-03-25",
+      "integrationApproved": true,
+      "identityStatus": "verified",
+      "visualQAStatus": "pending-browser-qa",
+      "provenance": {
+        "source": "open-icecat",
+        "sourceProductId": "142313844",
+        "supplierId": "26",
+        "supplierName": "Samsung",
+        "lockedMpn": "SM-A576BZVHEUB",
+        "lockedGtins": [
+          "8806099028060",
+          "5715328323964"
+        ],
+        "media": [
+          {
+            "path": "images/catalog/phones/samsung/142313844/01.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/46ebaf7456aa5aa303d4be672a9ddd2ad3d0e0f2.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/142313844/02.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/02620be158e1bd524ee28d8dd3fa487703451927.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/142313844/03.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/f54fe2440cfcd9744a1d319b170cee112a048b3e.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/142313844/04.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/6b6c8e416cded3dca5a0b1d4a231a95c691f22e9.png",
+            "mediaUsageStatus": "permitted"
+          }
+        ]
+      },
+      "excludedImages": [],
+      "visualQaStatus": "PASS",
+      "productionApprovedAt": "2026-08-12T05:14:47.894Z"
+    },
+    {
+      "id": "icecat-141819608",
+      "category": "phones",
+      "brand": "Samsung",
+      "family": "Galaxy A",
+      "name": "Galaxy A37 5G Enterprise Edition",
+      "modelNumber": "SM-A376BZABEEB",
+      "releaseYear": 2026,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "17 cm (6.7\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "1080 x 2340 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Screen shape",
+          "value": "Flat",
+          "unit": null
+        },
+        {
+          "name": "Display technology marketing name",
+          "value": "Super AMOLED",
+          "unit": null
+        },
+        {
+          "name": "Display glass type",
+          "value": "Corning Glass",
+          "unit": null
+        },
+        {
+          "name": "Gorilla Glass version",
+          "value": "Gorilla Glass Victus+",
+          "unit": null
+        },
+        {
+          "name": "Display number of colours",
+          "value": "16 million colours",
+          "unit": null
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "120 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Processor frequency",
+          "value": "2 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cores",
+          "value": "8",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "2.75 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "RAM capacity",
+          "value": "6 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal storage capacity",
+          "value": "128 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "User memory",
+          "value": "105 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Rear camera type",
+          "value": "Triple camera",
+          "unit": null
+        },
+        {
+          "name": "Rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera type",
+          "value": "Single camera",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution (numeric)",
+          "value": "12 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera flash",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera resolution (numeric)",
+          "value": "8 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Third rear camera resolution (numeric)",
+          "value": "5 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Fourth rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera aperture number",
+          "value": "1.8",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Third rear camera aperture number",
+          "value": "2.4",
+          "unit": null
+        },
+        {
+          "name": "Digital zoom",
+          "value": "10x",
+          "unit": "x"
+        },
+        {
+          "name": "Front camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Video capture resolution (max)",
+          "value": "3840 x 2160 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Maximum frame rate",
+          "value": "30 fps",
+          "unit": "fps"
+        },
+        {
+          "name": "Auto focus",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Zoom capability",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Camera High Dynamic Range (HDR) mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer type",
+          "value": "Optical Image Stabilization (OIS)",
+          "unit": null
+        },
+        {
+          "name": "Macro photography",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion rate",
+          "value": "240fps @HD",
+          "unit": null
+        },
+        {
+          "name": "AI scene recognition",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "SIM card capability",
+          "value": "Dual SIM",
+          "unit": null
+        },
+        {
+          "name": "Mobile network generation",
+          "value": "5G",
+          "unit": null
+        },
+        {
+          "name": "SIM card type",
+          "value": "NanoSIM + eSIM",
+          "unit": null
+        },
+        {
+          "name": "3G standards",
+          "value": "WCDMA",
+          "unit": null
+        },
+        {
+          "name": "4G standard",
+          "value": "LTE-TDD & LTE-FDD",
+          "unit": null
+        },
+        {
+          "name": "5G standard",
+          "value": "Sub6 TDD",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 6 (802.11ax)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "2G standards",
+          "value": "GSM",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "802.11a, 802.11b, 802.11g, Wi-Fi 4 (802.11n), Wi-Fi 5 (802.11ac), Wi-Fi 6 (802.11ax)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "5.3",
+          "unit": null
+        },
+        {
+          "name": "2G bands (primary SIM)",
+          "value": "850,1900,1800,900 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "3G bands supported",
+          "value": "2100,900,1900,850,1700 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "4G bands supported",
+          "value": "2100,700,800,1900,850,1800,1500,2300,2600,900,1700,2500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "5G bands supported",
+          "value": "2100,700,800,850,1800,2600,900,1700,2300,2500,3700,3500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Wi-Fi Direct",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "MIMO",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Modulation",
+          "value": "1024-QAM",
+          "unit": null
+        },
+        {
+          "name": "USB connector type",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "USB version",
+          "value": "2.0",
+          "unit": null
+        },
+        {
+          "name": "Headphone connectivity",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "Mobile High-Definition Link (MHL)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Position location",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GPS (satellite)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GLONASS",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "BeiDou",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Galileo",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Quasi-Zenith Satellite System (QZSS)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Bar",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Charcoal",
+          "unit": null
+        },
+        {
+          "name": "Colour name",
+          "value": "Awesome Charcoal",
+          "unit": null
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Hearing aid compatibility",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Speakers",
+          "value": "stereo",
+          "unit": null
+        },
+        {
+          "name": "Audio formats supported",
+          "value": "3GA, AAC, AMR, AWB, FLAC, IMY, M4A, Mid, MIDI, MP3, MXMF, OGA, OGG, OTA, RTTTL, RTX, WAV, XMF",
+          "unit": null
+        },
+        {
+          "name": "Video formats supported",
+          "value": "3G2, 3GP, AVI, FLV, M4V, MKV, MP4, WEBM",
+          "unit": null
+        },
+        {
+          "name": "Platform",
+          "value": "Android",
+          "unit": null
+        },
+        {
+          "name": "Operating system installed",
+          "value": "Android 16.0",
+          "unit": null
+        },
+        {
+          "name": "User interface (UI)",
+          "value": "One UI 8.5",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "5000 mAh",
+          "unit": "mAh"
+        },
+        {
+          "name": "Battery endurance in cycles",
+          "value": "1200",
+          "unit": null
+        },
+        {
+          "name": "Removable battery",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Continuous video playback time (max)",
+          "value": "29 h",
+          "unit": "h"
+        },
+        {
+          "name": "Proximity sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Accelerometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ambient light sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Gyroscope",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Geomagnetic sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "10 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "45 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Power Delivery (USB PD)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Battery endurance per cycle",
+          "value": "3180 min",
+          "unit": "min"
+        },
+        {
+          "name": "Repeated free fall reliability class",
+          "value": "B",
+          "unit": null
+        },
+        {
+          "name": "Repairability class",
+          "value": "C",
+          "unit": null
+        },
+        {
+          "name": "International Protection (IP) code",
+          "value": "IP68",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency scale",
+          "value": "A to G",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "196 g",
+          "unit": "g"
+        },
+        {
+          "name": "Width",
+          "value": "78.2 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "7.4 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "162.9 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Compatibility",
+          "value": "Galaxy Ring, Galaxy Buds Core, Galaxy Buds4 Pro, Galaxy Buds3 Pro, Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds4, Galaxy Buds3, Galaxy Buds2, Galaxy Buds, Galaxy Buds3 FE, Galaxy Buds FE, Galaxy Fit3, Galaxy Fit2, Galaxy Watch FE, Galaxy Watch Ultra, Galaxy Watch8, Galaxy Watch7, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active",
+          "unit": null
+        },
+        {
+          "name": "Security update term",
+          "value": "31 March 2032",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/phones/samsung/141819608/01.webp",
+      "images": [
+        {
+          "path": "images/catalog/phones/samsung/141819608/01.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/b6b1e9653dc1eb273f89c50df5611a6d3093eb37.png",
+          "isMain": true,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/141819608/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/999a18e64dcf1fb4fbd250556d3abee7c504af68.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/141819608/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/7df275cfa66737ccfcebfc63188e0b2e3098e656.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/141819608/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/78365f921351f4116e802306ab5ee70465417a5d.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1067,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "141819608",
+      "mpn": "SM-A376BZABEEB",
+      "gtin": "8806099113469",
+      "gtins": [
+        "8806099113469"
+      ],
+      "sourceSupplierName": "Samsung",
+      "sourceSupplierId": "26",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "releaseDate": "2026-03-25",
+      "integrationApproved": true,
+      "identityStatus": "verified",
+      "visualQAStatus": "pending-browser-qa",
+      "provenance": {
+        "source": "open-icecat",
+        "sourceProductId": "141819608",
+        "supplierId": "26",
+        "supplierName": "Samsung",
+        "lockedMpn": "SM-A376BZABEEB",
+        "lockedGtins": [
+          "8806099113469"
+        ],
+        "media": [
+          {
+            "path": "images/catalog/phones/samsung/141819608/01.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/b6b1e9653dc1eb273f89c50df5611a6d3093eb37.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/141819608/02.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/999a18e64dcf1fb4fbd250556d3abee7c504af68.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/141819608/03.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/7df275cfa66737ccfcebfc63188e0b2e3098e656.png",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/141819608/04.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/78365f921351f4116e802306ab5ee70465417a5d.png",
+            "mediaUsageStatus": "permitted"
+          }
+        ]
+      },
+      "excludedImages": [],
+      "visualQaStatus": "PASS",
+      "productionApprovedAt": "2026-08-12T05:14:47.894Z"
+    },
+    {
+      "id": "icecat-134662666",
+      "category": "phones",
+      "brand": "Samsung",
+      "family": "Galaxy A",
+      "name": "Galaxy A17",
+      "modelNumber": "SM-A175FZABEUB",
+      "releaseYear": 2025,
+      "shortDescription": "",
+      "specifications": [
+        {
+          "name": "Display diagonal",
+          "value": "17 cm (6.7\")",
+          "unit": "cm"
+        },
+        {
+          "name": "Display resolution",
+          "value": "1080 x 2340 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Screen shape",
+          "value": "Flat",
+          "unit": null
+        },
+        {
+          "name": "Display technology marketing name",
+          "value": "Super AMOLED",
+          "unit": null
+        },
+        {
+          "name": "Panel type",
+          "value": "AMOLED",
+          "unit": null
+        },
+        {
+          "name": "Display number of colours",
+          "value": "16 million colours",
+          "unit": null
+        },
+        {
+          "name": "Maximum refresh rate",
+          "value": "90 Hz",
+          "unit": "Hz"
+        },
+        {
+          "name": "Processor family",
+          "value": "MediaTek",
+          "unit": null
+        },
+        {
+          "name": "Processor frequency",
+          "value": "2 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "Processor cores",
+          "value": "8",
+          "unit": null
+        },
+        {
+          "name": "Processor boost frequency",
+          "value": "2.2 GHz",
+          "unit": "GHz"
+        },
+        {
+          "name": "RAM capacity",
+          "value": "4 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Internal storage capacity",
+          "value": "128 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Compatible memory cards",
+          "value": "MicroSD (TransFlash)",
+          "unit": null
+        },
+        {
+          "name": "User memory",
+          "value": "105.8 GB",
+          "unit": "GB"
+        },
+        {
+          "name": "Maximum memory card size",
+          "value": "2 TB",
+          "unit": "TB"
+        },
+        {
+          "name": "Memory card slot type",
+          "value": "Hybrid slot",
+          "unit": null
+        },
+        {
+          "name": "Rear camera type",
+          "value": "Triple camera",
+          "unit": null
+        },
+        {
+          "name": "Rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Front camera type",
+          "value": "Single camera",
+          "unit": null
+        },
+        {
+          "name": "Front camera resolution (numeric)",
+          "value": "13 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera flash",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera resolution (numeric)",
+          "value": "5 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Third rear camera resolution (numeric)",
+          "value": "2 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Fourth rear camera resolution (numeric)",
+          "value": "50 MP",
+          "unit": "MP"
+        },
+        {
+          "name": "Rear camera aperture number",
+          "value": "1.8",
+          "unit": null
+        },
+        {
+          "name": "Second rear camera aperture number",
+          "value": "2.2",
+          "unit": null
+        },
+        {
+          "name": "Third rear camera aperture number",
+          "value": "2.4",
+          "unit": null
+        },
+        {
+          "name": "Digital zoom",
+          "value": "10x",
+          "unit": "x"
+        },
+        {
+          "name": "Front camera aperture number",
+          "value": "2",
+          "unit": null
+        },
+        {
+          "name": "Video capture resolution (max)",
+          "value": "1920 x 1080 pixels",
+          "unit": "pixels"
+        },
+        {
+          "name": "Maximum frame rate",
+          "value": "30 fps",
+          "unit": "fps"
+        },
+        {
+          "name": "Auto focus",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Zoom capability",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Image stabilizer type",
+          "value": "Optical Image Stabilization (OIS)",
+          "unit": null
+        },
+        {
+          "name": "Slow motion mode",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Slow motion rate",
+          "value": "120fps @HD",
+          "unit": null
+        },
+        {
+          "name": "SIM card capability",
+          "value": "Dual SIM",
+          "unit": null
+        },
+        {
+          "name": "Mobile network generation",
+          "value": "4G",
+          "unit": null
+        },
+        {
+          "name": "SIM card type",
+          "value": "NanoSIM",
+          "unit": null
+        },
+        {
+          "name": "3G standards",
+          "value": "WCDMA",
+          "unit": null
+        },
+        {
+          "name": "4G standard",
+          "value": "LTE-TDD & LTE-FDD",
+          "unit": null
+        },
+        {
+          "name": "5G standard",
+          "value": "Not supported",
+          "unit": null
+        },
+        {
+          "name": "Top Wi-Fi standard",
+          "value": "Wi-Fi 5 (802.11ac)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "2G standards",
+          "value": "GSM",
+          "unit": null
+        },
+        {
+          "name": "Wi-Fi standards",
+          "value": "802.11a, 802.11b, 802.11g, Wi-Fi 4 (802.11n), Wi-Fi 5 (802.11ac)",
+          "unit": null
+        },
+        {
+          "name": "Bluetooth version",
+          "value": "5.3",
+          "unit": null
+        },
+        {
+          "name": "2G bands (primary SIM)",
+          "value": "850,1900,1800,900 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "3G bands supported",
+          "value": "2100,900,850 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "4G bands supported",
+          "value": "2100,700,800,850,1800,2300,2600,900,2500 MHz",
+          "unit": "MHz"
+        },
+        {
+          "name": "Wi-Fi Direct",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Near Field Communication (NFC)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB connector type",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "USB version",
+          "value": "2.0",
+          "unit": null
+        },
+        {
+          "name": "Headphone connectivity",
+          "value": "USB Type-C",
+          "unit": null
+        },
+        {
+          "name": "Mobile High-Definition Link (MHL)",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Position location",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GPS (satellite)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "GLONASS",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "BeiDou",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Galileo",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Quasi-Zenith Satellite System (QZSS)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Form factor",
+          "value": "Bar",
+          "unit": null
+        },
+        {
+          "name": "Product colour",
+          "value": "Grey",
+          "unit": null
+        },
+        {
+          "name": "Fingerprint reader",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Speakers",
+          "value": "Mono",
+          "unit": null
+        },
+        {
+          "name": "Audio formats supported",
+          "value": "3GA, AAC, AMR, AWB, FLAC, IMY, M4A, Mid, MIDI, MP3, MXMF, OGA, OGG, OTA, RTTTL, RTX, WAV, XMF",
+          "unit": null
+        },
+        {
+          "name": "Video formats supported",
+          "value": "3G2, 3GP, AVI, FLV, M4V, MKV, MP4, WEBM",
+          "unit": null
+        },
+        {
+          "name": "Platform",
+          "value": "Android",
+          "unit": null
+        },
+        {
+          "name": "Operating system installed",
+          "value": "Android 15",
+          "unit": null
+        },
+        {
+          "name": "Battery capacity",
+          "value": "5000 mAh",
+          "unit": "mAh"
+        },
+        {
+          "name": "Battery endurance in cycles",
+          "value": "1200",
+          "unit": null
+        },
+        {
+          "name": "Removable battery",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Continuous video playback time (max)",
+          "value": "18 h",
+          "unit": "h"
+        },
+        {
+          "name": "Wireless video playback time",
+          "value": "18 h",
+          "unit": "h"
+        },
+        {
+          "name": "Proximity sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Accelerometer",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Ambient light sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Gyroscope",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Geomagnetic sensor",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C charging port",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "USB Type-C required charging power (min)",
+          "value": "10 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Type-C required charging power (max)",
+          "value": "25 W",
+          "unit": "W"
+        },
+        {
+          "name": "USB Power Delivery (USB PD)",
+          "value": "Yes",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency class",
+          "value": "A",
+          "unit": null
+        },
+        {
+          "name": "Battery endurance per cycle",
+          "value": "3093 min",
+          "unit": "min"
+        },
+        {
+          "name": "Repeated free fall reliability class",
+          "value": "B",
+          "unit": null
+        },
+        {
+          "name": "Repairability class",
+          "value": "C",
+          "unit": null
+        },
+        {
+          "name": "International Protection (IP) code",
+          "value": "IP54",
+          "unit": null
+        },
+        {
+          "name": "Energy efficiency scale",
+          "value": "A to G",
+          "unit": null
+        },
+        {
+          "name": "Weight",
+          "value": "190 g",
+          "unit": "g"
+        },
+        {
+          "name": "Width",
+          "value": "77.9 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Depth",
+          "value": "7.5 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "Height",
+          "value": "164.4 mm",
+          "unit": "mm"
+        },
+        {
+          "name": "AC adapter included",
+          "value": "No",
+          "unit": null
+        },
+        {
+          "name": "Head SAR (EU)",
+          "value": "0.366 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Body SAR (EU)",
+          "value": "1.179 W/kg",
+          "unit": "W/kg"
+        },
+        {
+          "name": "Compatibility",
+          "value": "Galaxy Ring, Galaxy Buds Core, Galaxy Buds3 Pro, Galaxy Buds2 Pro, Galaxy Buds Pro, Galaxy Buds Live, Galaxy Buds+, Galaxy Buds3, Galaxy Buds2, Galaxy Buds, Galaxy Buds FE, Galaxy Fit3, Galaxy Fit2, Galaxy Fit e, Galaxy Fit, Galaxy Watch FE, Galaxy Watch Ultra, Galaxy Watch8, Galaxy Watch7, Galaxy Watch6, Galaxy Watch5, Galaxy Watch4, Galaxy Watch3, Galaxy Watch, Galaxy Watch Active2, Galaxy Watch Active",
+          "unit": null
+        },
+        {
+          "name": "Security update term",
+          "value": "30 September 2031",
+          "unit": null
+        }
+      ],
+      "primaryImage": "images/catalog/phones/samsung/134662666/01.webp",
+      "images": [
+        {
+          "path": "images/catalog/phones/samsung/134662666/01.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/abecd0f40a09fb51a0d56c5a5094219be57ea2d0.jpeg",
+          "isMain": true,
+          "width": 1600,
+          "height": 1280,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/134662666/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/5d649bd96842cc0c2b5525021f826320d32af049.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1280,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/134662666/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/ece2eca3f9e411bf831676b094bafdf730ae7500.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1280,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/phones/samsung/134662666/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/e4022087805759f8c873fd6c774cb8e912fe4fdc.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1280,
+          "mediaUsageStatus": "permitted"
+        }
+      ],
+      "source": "open-icecat",
+      "sourceProductId": "134662666",
+      "mpn": "SM-A175FZABEUB",
+      "gtin": "8806097651239",
+      "gtins": [
+        "8806097651239"
+      ],
+      "sourceSupplierName": "Samsung",
+      "sourceSupplierId": "26",
+      "mediaUsageStatus": "permitted",
+      "sourceUpdatedAt": null,
+      "releaseDate": "2025-09-24",
+      "integrationApproved": true,
+      "identityStatus": "verified",
+      "visualQAStatus": "pending-browser-qa",
+      "provenance": {
+        "source": "open-icecat",
+        "sourceProductId": "134662666",
+        "supplierId": "26",
+        "supplierName": "Samsung",
+        "lockedMpn": "SM-A175FZABEUB",
+        "lockedGtins": [
+          "8806097651239"
+        ],
+        "media": [
+          {
+            "path": "images/catalog/phones/samsung/134662666/01.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/abecd0f40a09fb51a0d56c5a5094219be57ea2d0.jpeg",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/134662666/02.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/5d649bd96842cc0c2b5525021f826320d32af049.jpeg",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/134662666/03.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/ece2eca3f9e411bf831676b094bafdf730ae7500.jpeg",
+            "mediaUsageStatus": "permitted"
+          },
+          {
+            "path": "images/catalog/phones/samsung/134662666/04.webp",
+            "sourceUrl": "https://images.icecat.biz/img/gallery_raw/e4022087805759f8c873fd6c774cb8e912fe4fdc.jpeg",
+            "mediaUsageStatus": "permitted"
+          }
+        ]
+      },
+      "excludedImages": [],
+      "visualQaStatus": "PASS",
+      "productionApprovedAt": "2026-08-12T05:14:47.894Z"
     }
   ]
 }

@@ -160,10 +160,22 @@
 
   let generatedCatalogLoadStarted = false;
   function loadApprovedGeneratedCatalog() {
-    if (generatedCatalogLoadStarted || !window.fetch) return;
+    if (generatedCatalogLoadStarted) return;
     generatedCatalogLoadStarted = true;
-    fetch('assets/data/catalog-generated.json', { credentials: 'same-origin' })
-      .then(function (response) { return response.ok ? response.json() : null; })
+    const readCatalog = window.fetch
+      ? fetch('assets/data/catalog-generated.json', { credentials: 'same-origin' })
+          .then(function (response) { return response.ok ? response.json() : null; })
+      : new Promise(function (resolve) {
+          const request = new XMLHttpRequest();
+          request.open('GET', 'assets/data/catalog-generated.json', true);
+          request.onload = function () {
+            if (request.status < 200 || request.status >= 300) { resolve(null); return; }
+            try { resolve(JSON.parse(request.responseText)); } catch (error) { resolve(null); }
+          };
+          request.onerror = function () { resolve(null); };
+          request.send();
+        });
+    readCatalog
       .then(function (catalog) {
         if (!mergeApprovedGeneratedCatalog(catalog)) return;
         overviewRendered = false;

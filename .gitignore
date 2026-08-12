@@ -12,6 +12,12 @@ scripts/catalog-import/discovery/pilot-generated.json
 scripts/catalog-import/discovery/pilot-visual-review.html
 scripts/catalog-import/catalog-seed.json
 scripts/catalog-import/reports/
+# Retain these investigation files locally; they are supplier-mismatched and
+# must never be staged as production Lenovo catalog media.
+images/catalog/computers/r-go-tools/
+# Source-poor phone candidates retained for audit only; not production assets.
+images/catalog/phones/samsung/132622690/
+images/catalog/phones/samsung/140065173/
 .DS_Store
 *.log
 temp_*.html
