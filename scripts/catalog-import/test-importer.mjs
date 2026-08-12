@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { findDuplicate, rememberProduct } from './lib/identity.mjs';
+import { mediaSkipReason } from './download-images.mjs';
+import { normalizeIcecatProduct } from './normalize-product.mjs';
+import { validateSeed } from './import-products.mjs';
+
+const sampleXml = `<?xml version="1.0"?><ICECAT-interface><Product Product_ID="123" Brand="Example" Name="Example Tablet" Prod_id="TAB-1" ReleaseDate="2024-01-01"><Category ID="test-tablets"/><EanCode EAN="1234567890123"/><Feature Name="Memory" Value="128" Measure="GB"/><ProductGallery><ProductPicture Original="https://example.invalid/one.jpg" IsMain="Y" PicWidth="1000" PicHeight="700"/><ProductPicture Original="https://example.invalid/two.jpg" IsRich="Y"/></ProductGallery></Product></ICECAT-interface>`;
+const product = normalizeIcecatProduct(sampleXml, { categoryMap: { mappings: [{ sourceCategoryId: 'test-tablets', lavaallCategory: 'tablets' }] } });
+assert.equal(product.id, 'icecat-123'); assert.equal(product.category, 'tablets'); assert.equal(product.gtin, '1234567890123');
+assert.equal(product.specifications[0].name, 'Memory'); assert.equal(product._gallery.length, 2); assert.equal(mediaSkipReason(product._gallery[1]), 'restricted-image');
+const seen = new Map(); rememberProduct(product, seen); assert.ok(findDuplicate({ ...product, id: 'other' }, seen).duplicate);
+assert.equal(findDuplicate({ brand: 'Brand A', mpn: 'SHARED' }, new Map()).duplicate, null);
+const brandMpnSeen = new Map(); rememberProduct({ id: 'brand-a', brand: 'Brand A', mpn: 'SHARED' }, brandMpnSeen);
+assert.equal(findDuplicate({ id: 'brand-b', brand: 'Brand B', mpn: 'SHARED' }, brandMpnSeen).duplicate, null);
+assert.ok(validateSeed({ limits: { maxProducts: 1, maxImagesPerProduct: 4 }, targets: [{ lavaallCategory: 'tablets', brand: 'Example', identifiers: [{ type: 'icecat-id', value: '123' }] }] }).length === 0);
+assert.ok(validateSeed({ limits: { maxProducts: 1, maxImagesPerProduct: 4 }, targets: [{ lavaallCategory: 'tablets', brand: 'Example', identifiers: [{ type: 'icecat-id', value: 'REPLACE_WITH_REAL_ID' }] }] }).includes('invalid-identifier'));
+console.log('catalog-import self-test: passed');

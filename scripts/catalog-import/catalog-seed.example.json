@@ -1,0 +1,19 @@
+{
+  "limits": {
+    "maxProducts": 100,
+    "maxImagesPerProduct": 4,
+    "requestDelayMs": 500
+  },
+  "targets": [
+    {
+      "lavaallCategory": "tablets",
+      "brand": "EXAMPLE_BRAND",
+      "identifiers": [
+        {
+          "type": "mpn-and-brand",
+          "value": "REPLACE_WITH_REAL_MPN"
+        }
+      ]
+    }
+  ]
+}
