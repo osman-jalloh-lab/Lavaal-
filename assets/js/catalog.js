@@ -594,6 +594,9 @@
     }
     const { model, brand } = currentModelCtx;
     const lines = ['Product: ' + displayName(brand, model)];
+    if (model.sourceProductId) lines.push('Source Product ID: ' + model.sourceProductId);
+    if (model.mpn || model.modelNumber) lines.push('MPN: ' + (model.mpn || model.modelNumber));
+    if (model.gtin) lines.push('GTIN: ' + model.gtin);
     (model.fields || []).forEach(f => {
       const v = currentModelCtx.values[f.key];
       if (v !== undefined && v !== '') lines.push(f.label + ': ' + v);
