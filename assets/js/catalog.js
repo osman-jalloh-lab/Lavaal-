@@ -102,6 +102,26 @@
     return '<span class="product-image-icon">' + iconSvg(iconKey) + '</span>';
   }
 
+  // Canonical frontend image adapter. Imported products provide primaryImage and
+  // images[{src, alt, isMain, source, sourceProductId}], while the handwritten
+  // catalog still uses image. Keep both shapes working at the UI boundary.
+  function productImages(model, fallbackAlt) {
+    const images = [];
+    const add = function (value, isMain) {
+      const src = typeof value === 'string' ? value : value && (value.src || value.path);
+      if (!src || images.some(function (image) { return image.src === src; })) return;
+      images.push({ src: src, alt: (value && value.alt) || fallbackAlt, isMain: Boolean(isMain || (value && value.isMain)) });
+    };
+    add(model.primaryImage, true);
+    (Array.isArray(model.images) ? model.images : []).forEach(function (image) { add(image, image && image.isMain); });
+    add(model.image, !images.length);
+    return images;
+  }
+
+  function primaryProductImage(model, fallbackAlt) {
+    return productImages(model, fallbackAlt)[0] || null;
+  }
+
   /* ---------------------------------------------------------------------
    * Breadcrumbs
    * ------------------------------------------------------------------- */
@@ -179,7 +199,8 @@
   }
 
   function modelCardHtml(model, cat, brand, fam) {
-    const img = productImageHtml(model.image, displayName(brand, model), cat.icon);
+    const primary = primaryProductImage(model, displayName(brand, model));
+    const img = productImageHtml(primary && primary.src, primary ? primary.alt : displayName(brand, model), cat.icon);
     return '<div class="model-card" data-model-id="' + esc(model.id) + '">' +
       img +
       '<div class="model-card-body">' +
@@ -304,7 +325,8 @@
         '</div></div></div>';
     }
     const model = resolved.model, brand = resolved.brand;
-    const imgHtml = productImageHtml(model.image, displayName(brand, model), resolved.cat.icon)
+    const primary = primaryProductImage(model, displayName(brand, model));
+    const imgHtml = productImageHtml(primary && primary.src, primary ? primary.alt : displayName(brand, model), resolved.cat.icon)
       .replace('class="product-image"', 'class="product-image" style="height:230px;"')
       .replace('class="product-image ph"', 'class="product-image ph" style="height:230px;"');
     return '<div class="prod-card" data-overview-model="' + esc(model.id) + '">' +
@@ -369,19 +391,7 @@
     document.getElementById('pgal-title').textContent = displayName(brand, model);
     document.getElementById('pgal-desc').textContent = model.desc || model.specLine || '';
 
-    const mainImg = document.getElementById('pgal-main-img');
-    const thumbs = document.getElementById('pgal-thumbs');
-    thumbs.innerHTML = '';
-    if (model.image) {
-      hideFieldsPlaceholder();
-      mainImg.src = model.image;
-      mainImg.style.objectFit = 'contain';
-      mainImg.style.background = '#fff';
-      mainImg.onerror = function () { this.onerror = null; this.src = ''; showFieldsPlaceholder(cat.icon); };
-    } else {
-      mainImg.removeAttribute('src');
-      showFieldsPlaceholder(cat.icon);
-    }
+    renderProductGallery(model, displayName(brand, model), cat.icon);
 
     // hide the old grouped "options" accordion (not used by catalog models)
     const optWrap = document.getElementById('pgal-options');
@@ -394,6 +404,65 @@
 
     document.getElementById('pgal-overlay').classList.add('show');
     document.body.style.overflow = 'hidden';
+  }
+
+  function renderProductGallery(model, fallbackAlt, iconKey) {
+    const mainImg = document.getElementById('pgal-main-img');
+    const thumbs = document.getElementById('pgal-thumbs');
+    const images = productImages(model, fallbackAlt);
+    let activeIndex = 0;
+    const failed = new Set();
+    thumbs.innerHTML = '';
+
+    function showPlaceholder() {
+      mainImg.removeAttribute('src');
+      mainImg.alt = '';
+      showFieldsPlaceholder(iconKey);
+      thumbs.style.display = 'none';
+    }
+
+    function setActive(index) {
+      const image = images[index];
+      if (!image || failed.has(index)) return;
+      activeIndex = index;
+      hideFieldsPlaceholder();
+      mainImg.style.objectFit = 'contain';
+      mainImg.style.background = '#fff';
+      mainImg.alt = image.alt || fallbackAlt;
+      mainImg.src = image.src;
+      Array.prototype.forEach.call(thumbs.children, function (thumb, thumbIndex) {
+        thumb.classList.toggle('on', thumbIndex === index);
+      });
+    }
+
+    mainImg.onerror = function () {
+      failed.add(activeIndex);
+      const failedThumb = thumbs.children[activeIndex];
+      if (failedThumb) failedThumb.style.display = 'none';
+      const next = images.findIndex(function (_image, index) { return !failed.has(index); });
+      if (next === -1) showPlaceholder(); else setActive(next);
+    };
+
+    if (!images.length) { showPlaceholder(); return; }
+    images.forEach(function (image, index) {
+      const button = document.createElement('button');
+      const thumbnail = document.createElement('img');
+      button.type = 'button';
+      button.className = 'pgal-thumb';
+      button.setAttribute('aria-label', 'View image ' + (index + 1) + ' of ' + images.length);
+      thumbnail.src = image.src;
+      thumbnail.alt = image.alt || fallbackAlt;
+      thumbnail.onerror = function () {
+        failed.add(index);
+        button.style.display = 'none';
+        if (index === activeIndex) mainImg.onerror();
+      };
+      button.appendChild(thumbnail);
+      button.addEventListener('click', function () { setActive(index); });
+      thumbs.appendChild(button);
+    });
+    thumbs.style.display = images.length > 1 ? '' : 'none';
+    setActive(0);
   }
 
   /* Category-level "I don't know the exact model" sourcing enquiry — reuses
