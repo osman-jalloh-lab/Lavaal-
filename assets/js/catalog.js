@@ -434,6 +434,7 @@
       mainImg.src = image.src;
       Array.prototype.forEach.call(thumbs.children, function (thumb, thumbIndex) {
         thumb.classList.toggle('on', thumbIndex === index);
+        thumb.setAttribute('aria-pressed', String(thumbIndex === index));
       });
     }
 
@@ -452,6 +453,7 @@
       button.type = 'button';
       button.className = 'pgal-thumb';
       button.setAttribute('aria-label', 'View image ' + (index + 1) + ' of ' + images.length);
+      button.setAttribute('aria-pressed', 'false');
       thumbnail.src = image.src;
       thumbnail.alt = image.alt || fallbackAlt;
       thumbnail.onerror = function () {
