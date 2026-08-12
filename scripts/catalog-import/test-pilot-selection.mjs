@@ -7,5 +7,6 @@ const seedIds = seed.targets.flatMap(target => target.identifiers.map(identifier
 assert.equal(selection.approved.length, 19);
 assert.equal(seedIds.length, 19);
 assert.deepEqual(new Set(seedIds), new Set(selection.approved.map(product => product.icecatId)));
-assert.throws(() => seedFromPilotSelection({ approved: selection.approved.slice(0, 18) }), /exactly 19/);
+assert.throws(() => seedFromPilotSelection({ approved: selection.approved.slice(0, 18) }), /final 19-product/);
+assert.throws(() => seedFromPilotSelection({ approved: [...selection.approved.slice(0, 18), { ...selection.approved[18], icecatId: 'unexpected' }] }), /final 19-product/);
 console.log('pilot selection self-test: passed');
