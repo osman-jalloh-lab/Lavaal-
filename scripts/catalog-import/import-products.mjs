@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { credentialsFromEnv, fetchProductXml, IcecatConfigurationError } from './lib/icecat-client.mjs';
-import { findDuplicate, rememberProduct } from './lib/identity.mjs';
+import { findDuplicate, normalizeIdentityPart, rememberProduct } from './lib/identity.mjs';
 import { createReport, addFailed, addImageSkipped, addSkipped, writeReport } from './lib/logger.mjs';
 import { normalizeIcecatProduct } from './normalize-product.mjs';
 import { downloadPermittedImages } from './download-images.mjs';
@@ -17,6 +17,16 @@ export function assertApprovedPilotSeed(seed, selection) {
   if (approved.size !== 19 || seedIds.length !== 19 || seedIds.some(id => !approved.has(id)) || approved.size !== new Set(seedIds).size) {
     throw new Error('Seed does not exactly match the 19-product pilot approval.');
   }
+}
+
+export function validateLockedProductIdentity(product, approval) {
+  const normalize = value => normalizeIdentityPart(value);
+  if (!approval) return { valid: true };
+  if (normalize(product.sourceSupplierName ?? product.brand) !== normalize(approval.brand)) return { valid: false, reason: 'source-supplier-mismatch' };
+  if (approval.mpn && normalize(product.mpn) !== normalize(approval.mpn)) return { valid: false, reason: 'source-mpn-mismatch' };
+  const sourceGtins = new Set((product.gtins ?? [product.gtin]).map(normalize));
+  if (approval.gtin && !sourceGtins.has(normalize(approval.gtin))) return { valid: false, reason: 'source-gtin-mismatch' };
+  return { valid: true };
 }
 
 export function validateSeed(seed) {
@@ -37,8 +47,9 @@ export function validateSeed(seed) {
 async function main() {
   const seedPath = path.resolve(arg('--seed') ?? path.join(scriptDir, 'catalog-seed.json')); const dryRun = process.argv.includes('--dry-run'); const validateOnly = process.argv.includes('--validate-seed');
   const seed = JSON.parse(await fs.readFile(seedPath, 'utf8')); const report = createReport(); const errors = validateSeed(seed);
+  let selection = null;
   if (arg('--pilot-selection')) {
-    const selection = JSON.parse(await fs.readFile(path.resolve(arg('--pilot-selection')), 'utf8'));
+    selection = JSON.parse(await fs.readFile(path.resolve(arg('--pilot-selection')), 'utf8'));
     assertApprovedPilotSeed(seed, selection);
   }
   report.requested = (seed.targets ?? []).reduce((sum, target) => sum + (target.identifiers?.length ?? 0), 0);
@@ -68,6 +79,9 @@ async function main() {
     try {
       const response = await fetchProductXml(request.identifier, request.target.brand, { credentials });
       const product = normalizeIcecatProduct(response.xml, { categoryMap });
+      const approval = selection?.approved?.find(item => String(item.icecatId) === String(product.sourceProductId));
+      const lockedIdentity = validateLockedProductIdentity(product, approval);
+      if (!lockedIdentity.valid) { report.quarantined.push({ item: request.identifier, reason: lockedIdentity.reason, expected: approval, authoritative: { brand: product.brand, supplierName: product.sourceSupplierName, supplierId: product.sourceSupplierId, mpn: product.mpn, gtins: product.gtins } }); continue; }
       if (product.category !== request.target.lavaallCategory) { addSkipped(report, request.identifier, 'unmapped-category'); continue; }
       const { identity, duplicate } = findDuplicate(product, seen);
       if (!identity) { addSkipped(report, request.identifier, 'missing-stable-identity'); continue; }

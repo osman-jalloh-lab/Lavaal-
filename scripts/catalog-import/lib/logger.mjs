@@ -8,6 +8,7 @@ export function createReport() {
     requested: 0,
     accepted: 0,
     skipped: [],
+    quarantined: [],
     failed: [],
     imagesDownloaded: 0,
     imagesSkipped: [],

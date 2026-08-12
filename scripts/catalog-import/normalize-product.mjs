@@ -16,11 +16,15 @@ export function normalizeIcecatProduct(xml, { categoryMap }) {
   const document = parseXml(xml); const product = first(document, 'Product');
   if (!product) throw new Error('source-record-unavailable');
   const categoryNode = first(product, 'Category'); const category = mapCategory(categoryNode, categoryMap);
-  const brand = attribute(product, 'Brand', 'Supplier') ?? attribute(first(product, 'Supplier'), 'Name') ?? text(first(product, 'Brand'));
+  const supplier = first(product, 'Supplier');
+  const brand = attribute(product, 'Brand', 'Supplier') ?? attribute(supplier, 'Name') ?? text(first(product, 'Brand'));
+  const sourceSupplierName = attribute(supplier, 'Name') ?? text(supplier) ?? brand;
+  const sourceSupplierId = attribute(supplier, 'ID', 'Supplier_ID') ?? attribute(product, 'Supplier_ID') ?? null;
   const name = attribute(product, 'Name', 'Model_Name') ?? attribute(first(product, 'Model_Name'), 'Value') ?? text(first(product, 'Model_Name'));
   const sourceProductId = attribute(product, 'ID', 'Product_ID', 'Icecat_ID');
   const mpn = attribute(product, 'Prod_id', 'M_Prod_id', 'ProductCode');
-  const gtin = unique([...descendants(product, 'EanCode'), ...descendants(product, 'EANCode')].map(node => attribute(node, 'EAN', 'Value') ?? text(node)))[0] ?? null;
+  const gtins = unique([...descendants(product, 'EanCode'), ...descendants(product, 'EANCode')].map(node => attribute(node, 'EAN', 'Value') ?? text(node)));
+  const gtin = gtins[0] ?? null;
   if (!category) throw new Error('unmapped-category');
   if (!brand?.trim()) throw new Error('missing-brand');
   if (!name?.trim()) throw new Error('missing-name');
@@ -43,7 +47,7 @@ export function normalizeIcecatProduct(xml, { categoryMap }) {
     releaseYear: year(attribute(product, 'ReleaseDate') ?? text(first(product, 'ReleaseDate'))),
     shortDescription: text(first(product, 'SummaryDescription')) ?? text(first(product, 'DescriptionShort')) ?? null,
     specifications, primaryImage: null, images: [], source: 'open-icecat', sourceProductId: sourceProductId ?? null,
-    mpn: mpn ?? null, gtin, mediaUsageStatus: gallery.length ? 'unknown' : 'unavailable',
+    mpn: mpn ?? null, gtin, gtins, sourceSupplierName, sourceSupplierId, mediaUsageStatus: gallery.length ? 'unknown' : 'unavailable',
     sourceUpdatedAt: attribute(product, 'Updated', 'UpdatedDate') ?? null, _gallery: gallery
   };
 }

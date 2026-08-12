@@ -11,7 +11,8 @@ export function seedFromPilotSelection(selection) {
   const approved = selection.approved ?? [];
   const requiredIds = new Set(['134687128', '134687130', '134687132', '134688919', '131194172', '131193979', '131192058', '132385656', '132906013', '132385729', '145145130', '145145101', '79453785', '79809054', '55170975', '36393926', '120583473', '130695305', '130728217']);
   if (approved.length !== 19 || approved.some(product => !requiredIds.has(String(product.icecatId))) || new Set(approved.map(product => String(product.icecatId))).size !== requiredIds.size) throw new Error('Approved IDs do not exactly match the final 19-product pilot.');
-  if ((selection.deferred ?? []).some(product => requiredIds.has(String(product.icecatId)))) throw new Error('A deferred ID cannot be approved.');
+  const deferred = [...(selection.selectionDeferred ?? []), ...(selection.conditionDeferred ?? []), ...(selection.quarantined ?? [])];
+  if (deferred.some(product => requiredIds.has(String(product.icecatId)) && !selection.quarantined?.some(item => String(item.icecatId) === String(product.icecatId)))) throw new Error('A deferred ID cannot be approved.');
   const ids = new Set();
   const targets = [];
   for (const product of approved) {

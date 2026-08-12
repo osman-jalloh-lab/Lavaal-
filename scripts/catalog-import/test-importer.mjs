@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { findDuplicate, rememberProduct } from './lib/identity.mjs';
 import { mediaSkipReason } from './download-images.mjs';
 import { normalizeIcecatProduct } from './normalize-product.mjs';
-import { assertApprovedPilotSeed, validateSeed } from './import-products.mjs';
+import { assertApprovedPilotSeed, validateLockedProductIdentity, validateSeed } from './import-products.mjs';
 
 const sampleXml = `<?xml version="1.0"?><ICECAT-interface><Product Product_ID="123" Brand="Example" Name="Example Tablet" Prod_id="TAB-1" ReleaseDate="2024-01-01"><Category ID="test-tablets"/><EanCode EAN="1234567890123"/><Feature Name="Memory" Value="128" Measure="GB"/><ProductGallery><ProductPicture Original="https://example.invalid/one.jpg" IsMain="Y" PicWidth="1000" PicHeight="700"/><ProductPicture Original="https://example.invalid/two.jpg" IsRich="Y"/></ProductGallery></Product></ICECAT-interface>`;
 const product = normalizeIcecatProduct(sampleXml, { categoryMap: { mappings: [{ sourceCategoryId: 'test-tablets', lavaallCategory: 'tablets' }] } });
 assert.equal(product.id, 'icecat-123'); assert.equal(product.category, 'tablets'); assert.equal(product.gtin, '1234567890123');
+assert.deepEqual(product.gtins, ['1234567890123']); assert.equal(product.sourceSupplierName, 'Example'); assert.equal(product.sourceSupplierId, null);
 assert.equal(product.specifications[0].name, 'Memory'); assert.equal(product._gallery.length, 2); assert.equal(mediaSkipReason(product._gallery[1]), 'restricted-image');
 const seen = new Map(); rememberProduct(product, seen); assert.ok(findDuplicate({ ...product, id: 'other' }, seen).duplicate);
 assert.equal(findDuplicate({ brand: 'Brand A', mpn: 'SHARED' }, new Map()).duplicate, null);
@@ -17,4 +18,11 @@ assert.ok(validateSeed({ limits: { maxProducts: 1, maxImagesPerProduct: 4 }, tar
 const pilot = { approved: Array.from({ length: 19 }, (_, index) => ({ icecatId: String(index + 1), approved: true })) };
 assert.doesNotThrow(() => assertApprovedPilotSeed({ targets: [{ identifiers: pilot.approved.map(item => ({ value: item.icecatId })) }] }, pilot));
 assert.throws(() => assertApprovedPilotSeed({ targets: [{ identifiers: [{ value: '1' }] }] }, pilot), /exactly match/);
+const locked = { brand: 'Lenovo', mpn: '21XE000VGE', gtin: '0199275463945' };
+assert.deepEqual(validateLockedProductIdentity({ brand: 'Lenovo', mpn: '21XE000VGE', gtins: ['0199275463945'] }, locked), { valid: true });
+assert.equal(validateLockedProductIdentity({ brand: 'R-Go Tools', mpn: '21XE000VGE', gtins: ['0199275463945'] }, locked).reason, 'source-supplier-mismatch');
+assert.equal(validateLockedProductIdentity({ brand: 'Lenovo', sourceSupplierName: 'R-Go Tools', mpn: '21XE000VGE', gtins: ['0199275463945'] }, locked).reason, 'source-supplier-mismatch');
+assert.equal(validateLockedProductIdentity({ brand: 'Lenovo', mpn: 'DIFFERENT', gtins: ['0199275463945'] }, locked).reason, 'source-mpn-mismatch');
+assert.equal(validateLockedProductIdentity({ brand: 'Lenovo', mpn: '21XE000VGE', gtins: ['0000000000000'] }, locked).reason, 'source-gtin-mismatch');
+assert.equal(validateLockedProductIdentity({ brand: 'Lenovo Compatible Accessory', mpn: '21XE000VGE', gtins: ['0199275463945'] }, locked).reason, 'source-supplier-mismatch');
 console.log('catalog-import self-test: passed');
