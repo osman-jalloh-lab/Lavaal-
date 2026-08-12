@@ -31,7 +31,7 @@ export function normalizeIcecatProduct(xml, { categoryMap }) {
   const specifications = featureNodes.map(node => ({
     name: attribute(node, 'Name') ?? attribute(first(node, 'Name'), 'Value') ?? text(first(node, 'Name')),
     value: attribute(node, 'Presentation_Value', 'Value') ?? attribute(first(node, 'LocalValue'), 'Value') ?? attribute(first(node, 'Value'), 'Value') ?? text(first(node, 'Value')),
-    unit: attribute(node, 'Measure') ?? text(first(first(node, 'LocalValue'), 'Sign')) ?? text(first(first(node, 'Feature'), 'Sign')) ?? attribute(first(node, 'Measure'), 'Signs') ?? null
+    unit: attribute(node, 'Measure') ?? text(descendants(node, 'Sign')[0]) ?? attribute(first(node, 'Measure'), 'Signs') ?? null
   })).filter(item => item.name && item.value);
   const gallery = descendants(product, 'ProductPicture').map(node => ({
     sourceUrl: attribute(node, 'Original', 'Pic'), isMain: attribute(node, 'IsMain') === 'Y', isRich: attribute(node, 'IsRich') === 'Y',
