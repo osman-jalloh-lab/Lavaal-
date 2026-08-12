@@ -7,4 +7,6 @@
   <file Product_ID="9005" Supplier_id="10" Prod_ID="FAKE-UNKNOWN" Catid="999" Model_Name="FAKE UNKNOWN" Quality="ICECAT" On_Market="1" Limited="0" Updated="20990101010105"/>
   <file Product_ID="9006" Supplier_id="10" Prod_ID="FAKE-TAB-DUP" Catid="100" Model_Name="FAKE TABLET DUP" Quality="ICECAT" On_Market="1" Limited="0" Updated="20990101010106"><EAN_UPCS><EAN_UPC Value="1000000000001"/></EAN_UPCS><Country_Markets><Country_Market Value="US"/></Country_Markets></file>
   <file Product_ID="9007" Supplier_id="10" Prod_ID="FAKE-TAB-NOTMARKET" Catid="100" Model_Name="FAKE TABLET NOT MARKET" Quality="ICECAT" On_Market="0" Limited="0" Updated="20990101010107"><Country_Markets><Country_Market Value="US"/></Country_Markets></file>
+  <file Product_ID="9008" Supplier_id="10" Prod_ID="FAKE-WEAK" Catid="100" Model_Name="123" Quality="SUPPLIER" On_Market="1" Limited="0" Updated="20990101010108"/>
+  <file Product_ID="9009" Supplier_id="10" Prod_ID="FAKE-STRONG" Catid="100" Model_Name="FAKE STRONG TABLET" Quality="ICECAT" On_Market="1" Limited="0" Updated="20990101010109" HighPic="https://invalid.example/9009.jpg"><EAN_UPCS><EAN_UPC Value="1000000000009"/></EAN_UPCS><Country_Markets><Country_Market Value="US"/><Country_Market Value="CA"/></Country_Markets></file>
 </files.index>

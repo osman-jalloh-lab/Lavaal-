@@ -1,6 +1,10 @@
 node_modules/
 .env
 scripts/catalog-import/cache/
+scripts/catalog-import/discovery/candidates*.json
+scripts/catalog-import/discovery/candidate-review*.json
+scripts/catalog-import/discovery/proposed-category-map.json
+scripts/catalog-import/discovery-targets.json
 .DS_Store
 *.log
 temp_*.html

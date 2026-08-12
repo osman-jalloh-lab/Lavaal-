@@ -1,4 +1,5 @@
 import { normalizeIdentityPart } from './identity.mjs';
+import { compareCandidateQuality } from './candidate-quality.mjs';
 
 const LAVAALL_CATEGORIES = new Set(['phones', 'tablets', 'computers', 'tvs', 'monitors', 'gaming', 'audio', 'watches', 'cameras', 'printers', 'networking', 'servers', 'refrigeration', 'accessories']);
 const brandKey = brand => normalizeIdentityPart(brand);
@@ -28,7 +29,7 @@ export function candidateFromRecord(record) {
 
 export function createDiscoverySession({ targets, suppliers, categoryMap, market, onMarketOnly = false, maxCandidatesPerTarget, categories = [] }) {
   const errors = validateDiscoveryTargets({ targets }); if (errors.length) throw new Error(errors.join(','));
-  const { resolved, unresolved } = resolveBrands(targets, suppliers); const groups = []; const duplicateKeys = new Set(); const unmapped = new Map(); const targetCounts = new Map();
+  const { resolved, unresolved } = resolveBrands(targets, suppliers); const groups = []; const identityOwners = new Map(); const unmapped = new Map(); const pools = new Map(); const replacements = [];
   const requestedBrand = supplierId => [...resolved.entries()].find(([, supplier]) => String(supplier.id) === String(supplierId))?.[0] ?? null;
   const groupFor = (category, supplierId, sourceCategoryId) => {
     const brand = requestedBrand(supplierId);
@@ -46,16 +47,35 @@ export function createDiscoverySession({ targets, suppliers, categoryMap, market
     if (!mappedCategory) { if (record.sourceCategoryId) unmapped.set(record.sourceCategoryId, true); return; }
     const group = groupFor(mappedCategory, record.supplierId, record.sourceCategoryId); if (!group || !record.icecatId || record.limited || (onMarketOnly && !record.onMarket)) return;
     if (market && !record.countryMarkets.includes(market)) return;
-    const identity = record.gtins[0] ? `gtin:${record.gtins[0]}` : `icecat:${record.icecatId}`;
+    const candidate = { ...candidateFromRecord(record), _groupKey: group._key }; const identity = record.gtins[0] ? `gtin:${record.gtins[0]}` : `icecat:${record.icecatId}`;
     const countKey = `${mappedCategory}:${record.supplierId}`;
-    if (duplicateKeys.has(identity) || (targetCounts.get(countKey) ?? 0) >= maxCandidatesPerTarget) return;
-    duplicateKeys.add(identity); targetCounts.set(countKey, (targetCounts.get(countKey) ?? 0) + 1); group.candidates.push(candidateFromRecord(record));
+    const owner = identityOwners.get(identity);
+    if (owner && compareCandidateQuality(candidate, owner.candidate) <= 0) return;
+    if (owner) {
+      const ownerPool = pools.get(owner.countKey) ?? []; const ownerIndex = ownerPool.indexOf(owner.candidate);
+      if (ownerIndex >= 0) ownerPool.splice(ownerIndex, 1);
+      identityOwners.delete(identity);
+    }
+    const pool = pools.get(countKey) ?? []; pools.set(countKey, pool);
+    if (pool.length < maxCandidatesPerTarget) {
+      pool.push(candidate); identityOwners.set(identity, { candidate, countKey }); return;
+    }
+    let weakestIndex = 0;
+    for (let index = 1; index < pool.length; index += 1) if (compareCandidateQuality(pool[index], pool[weakestIndex]) < 0) weakestIndex = index;
+    const weakest = pool[weakestIndex];
+    if (compareCandidateQuality(candidate, weakest) <= 0) return;
+    const displacedIdentity = weakest.gtins[0] ? `gtin:${weakest.gtins[0]}` : `icecat:${weakest.icecatId}`;
+    identityOwners.delete(displacedIdentity); pool[weakestIndex] = candidate; identityOwners.set(identity, { candidate, countKey });
+    if (replacements.length < 50) replacements.push({ lavaallCategory: mappedCategory, supplierId: String(record.supplierId), displacedIcecatId: weakest.icecatId, replacementIcecatId: candidate.icecatId });
   }
   return {
     consider,
     result: () => {
-      for (const group of groups) group.candidates.sort((a, b) => Number(b.onMarket) - Number(a.onMarket) || Number(b.gtins.length > 0) - Number(a.gtins.length > 0) || String(b.updated ?? '').localeCompare(String(a.updated ?? '')));
-      return { targets: groups.map(({ _key, ...group }) => group), unresolvedBrands: unresolved, proposedCategoryMap: [...unmapped.keys()].map(sourceCategoryId => ({ sourceCategoryId, sourceCategoryName: categories.find(category => String(category.id) === String(sourceCategoryId))?.name ?? null, lavaallCategory: null })) };
+      for (const group of groups) {
+        const pool = pools.get(`${group.lavaallCategory}:${group.sourceBrandId}`) ?? [];
+        group.candidates = pool.filter(candidate => candidate._groupKey === group._key).sort((a, b) => compareCandidateQuality(b, a));
+      }
+      return { targets: groups.map(({ _key, candidates, ...group }) => ({ ...group, candidates: candidates.map(({ _groupKey, ...candidate }) => candidate) })), unresolvedBrands: unresolved, proposedCategoryMap: [...unmapped.keys()].map(sourceCategoryId => ({ sourceCategoryId, sourceCategoryName: categories.find(category => String(category.id) === String(sourceCategoryId))?.name ?? null, lavaallCategory: null })), qualityReplacements: replacements };
     }
   };
 }
