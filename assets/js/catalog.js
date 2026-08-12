@@ -76,6 +76,105 @@
   function findBrand(cat, slug) { return cat && cat.brands.find(b => slugify(b.name) === slug); }
   function findFamily(brand, slug) { return brand && brand.families.find(f => slugify(f.name) === slug); }
 
+  /* ---------------------------------------------------------------------
+   * Verified generated-catalog boundary
+   *
+   * The handwritten CATALOG remains the Layer-1 source of truth. This loader
+   * only adds records that have crossed every import and visual-approval gate
+   * to their existing Layer-2 category. It intentionally ignores incomplete,
+   * quarantined, remote, or review-only source records.
+   * ------------------------------------------------------------------- */
+  function generatedSpec(product, names) {
+    const entry = (product.specifications || []).find(function (item) { return names.indexOf(item.name) !== -1 && item.value; });
+    if (!entry) return null;
+    const value = String(entry.value).trim();
+    const unit = String(entry.unit || '').trim();
+    return unit && !value.toLowerCase().endsWith(unit.toLowerCase()) ? value + ' ' + unit : value;
+  }
+
+  function isLocalCatalogPath(value) {
+    return typeof value === 'string' && /^images\/catalog\/[a-z0-9/_-]+\.webp$/i.test(value);
+  }
+
+  function isApprovedGeneratedProduct(product) {
+    if (!product || product.integrationApproved !== true) return false;
+    if (product.identityStatus !== 'verified' || product.mediaUsageStatus !== 'permitted') return false;
+    if (product.quarantined === true || product.identityStatus === 'quarantined') return false;
+    if (!product.sourceProductId || !product.name || !product.brand || !(product.mpn || product.modelNumber)) return false;
+    const paths = (product.images || []).map(function (image) { return image && (image.path || image.src); }).filter(isLocalCatalogPath);
+    return paths.length > 0 && paths.indexOf(product.primaryImage) !== -1;
+  }
+
+  function generatedProductToModel(product) {
+    const paths = [];
+    (product.images || []).forEach(function (image) {
+      const path = image && (image.path || image.src);
+      if (isLocalCatalogPath(path) && paths.indexOf(path) === -1) paths.push(path);
+    });
+    const primary = product.primaryImage;
+    const orderedPaths = [primary].concat(paths.filter(function (path) { return path !== primary; }));
+    const specs = [
+      generatedSpec(product, ['Display diagonal']),
+      generatedSpec(product, ['Processor family', 'Processor model']),
+      generatedSpec(product, ['Internal memory']),
+      generatedSpec(product, ['Internal storage capacity']),
+      generatedSpec(product, ['Display resolution', 'HD type'])
+    ].filter(Boolean).slice(0, 4);
+    const label = String(product.brand).trim() + ' ' + String(product.name).trim();
+    return {
+      id: 'icecat-' + String(product.sourceProductId),
+      name: String(product.name).trim(),
+      sourceProductId: String(product.sourceProductId),
+      mpn: String(product.mpn || product.modelNumber),
+      gtin: product.gtin ? String(product.gtin) : null,
+      primaryImage: primary,
+      images: orderedPaths.map(function (src, index) {
+        return { src: src, alt: label + ' — image ' + (index + 1), isMain: index === 0 };
+      }),
+      specLine: specs.join(' · '),
+      desc: product.shortDescription ? String(product.shortDescription).trim() : '',
+      fields: [{ key: 'quantity', label: 'Quantity', type: 'number', min: 1, value: 1 }]
+    };
+  }
+
+  function mergeApprovedGeneratedCatalog(catalog) {
+    let added = 0;
+    (catalog && Array.isArray(catalog.products) ? catalog.products : []).forEach(function (product) {
+      if (!isApprovedGeneratedProduct(product)) return;
+      const category = findCategory(slugify(product.category));
+      if (!category) return; // Never manufacture a new Layer-1 category from source data.
+      let brand = category.brands.find(function (item) { return slugify(item.name) === slugify(product.brand); });
+      if (!brand) { brand = { name: String(product.brand).trim(), families: [] }; category.brands.push(brand); }
+      // "Models" is a neutral browser grouping when the source does not offer
+      // a family/series. It avoids inventing taxonomy while retaining depth.
+      const familyName = String(product.family || product.series || 'Models').trim();
+      let family = brand.families.find(function (item) { return item.name === familyName; });
+      if (!family) { family = { name: familyName, models: [] }; brand.families.push(family); }
+      const modelId = 'icecat-' + String(product.sourceProductId);
+      if (family.models.some(function (model) { return model.id === modelId; })) return;
+      family.models.push(generatedProductToModel(product));
+      added += 1;
+    });
+    return added;
+  }
+
+  let generatedCatalogLoadStarted = false;
+  function loadApprovedGeneratedCatalog() {
+    if (generatedCatalogLoadStarted || !window.fetch) return;
+    generatedCatalogLoadStarted = true;
+    fetch('assets/data/catalog-generated.json', { credentials: 'same-origin' })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (catalog) {
+        if (!mergeApprovedGeneratedCatalog(catalog)) return;
+        overviewRendered = false;
+        renderOverview();
+        route(false);
+      })
+      // The handwritten catalog remains fully usable if generated data is not
+      // deployed yet; do not turn an optional data fetch into a page failure.
+      .catch(function () {});
+  }
+
   function allModelsFlat() {
     const out = [];
     CATALOG.forEach(cat => cat.brands.forEach(brand => brand.families.forEach(fam => fam.models.forEach(model => {
@@ -209,7 +308,10 @@
       '<div class="model-card-brand">' + esc(brand.name) + '</div>' +
       '<div class="model-card-name">' + esc(model.name) + '</div>' +
       '<div class="model-card-spec">' + esc(model.specLine || '') + '</div>' +
-      '<button class="pbtn model-quote-btn" style="width:100%">Request Quote &#9662;</button>' +
+      '<div style="display:flex;gap:8px;">' +
+      '<button type="button" class="pbtn model-details-btn" style="flex:1">View Details</button>' +
+      '<button type="button" class="pbtn model-quote-btn" style="flex:1">Request Quote &#9662;</button>' +
+      '</div>' +
       '</div></div>';
   }
 
@@ -234,7 +336,7 @@
     crumbEl.appendChild(label);
 
     const matches = allModelsFlat().filter(({ model, category, brand, family }) => {
-      const hay = [model.name, model.specLine, brand.name, family.name, category.name].join(' ').toLowerCase();
+      const hay = [model.name, model.specLine, model.mpn, model.modelNumber, model.gtin, brand.name, family.name, category.name].join(' ').toLowerCase();
       return q.split(/\s+/).every(term => hay.indexOf(term) !== -1);
     }).slice(0, 60);
 
@@ -261,7 +363,7 @@
       const hit = matches.find(m => m.model.id === id);
       if (!hit) return;
       cardEl.addEventListener('click', e => {
-        if (e.target.closest('.model-quote-btn')) {
+        if (e.target.closest('.model-quote-btn') || e.target.closest('.model-details-btn')) {
           openModelQuote(hit.model, hit.category, hit.brand, hit.family);
         }
       });
@@ -274,7 +376,7 @@
       const model = fam.models.find(m => m.id === id);
       if (!model) return;
       cardEl.addEventListener('click', e => {
-        if (e.target.closest('.model-quote-btn')) {
+        if (e.target.closest('.model-quote-btn') || e.target.closest('.model-details-btn')) {
           openModelQuote(model, cat, brand, fam);
         }
       });
@@ -391,7 +493,7 @@
     currentModelCtx = { model, cat, brand, fam, values: {} };
 
     document.getElementById('pgal-title').textContent = displayName(brand, model);
-    document.getElementById('pgal-desc').textContent = model.desc || model.specLine || '';
+    document.getElementById('pgal-desc').textContent = [model.desc, model.mpn && ('MPN: ' + model.mpn), model.specLine].filter(Boolean).join(' · ');
 
     renderProductGallery(model, displayName(brand, model), cat.icon);
 
@@ -746,6 +848,7 @@
     // permanently empty. renderOverview() is idempotent (overviewRendered
     // guard), so calling it here plus whatever route() does next is safe.
     renderOverview();
+    loadApprovedGeneratedCatalog();
     // A refreshed deep link should land on the rendered category browser,
     // while ordinary initial loads keep their existing position.
     route(location.hash.indexOf('#products/') === 0);
