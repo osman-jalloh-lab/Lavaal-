@@ -100,11 +100,13 @@ with sync_playwright() as p:
             thumb_count = thumbs.count()
             if thumb_count > 1:
                 for thumb in range(thumb_count):
+                    expected_src = thumbs.nth(thumb).locator('img').evaluate('im => im.src')
                     thumbs.nth(thumb).click()
                     # Remote production images can take longer than a local
-                    # cached file. Wait for a real decode/load, not one frame.
+                    # cached file. Wait for this exact selected source to
+                    # decode; the prior main image may still have dimensions.
                     try:
-                        page.wait_for_function('document.querySelector("#pgal-main-img").naturalWidth > 0', timeout=5000)
+                        page.wait_for_function('(expected) => { const im = document.querySelector("#pgal-main-img"); return im.currentSrc === expected && im.naturalWidth > 0; }', expected_src, timeout=5000)
                     except Exception:
                         pass
                     state = page.evaluate('''() => ({w:document.querySelector('#pgal-main-img').naturalWidth, pressed:[...document.querySelectorAll('.pgal-thumbs button')].map(b=>b.getAttribute('aria-pressed'))})''')
