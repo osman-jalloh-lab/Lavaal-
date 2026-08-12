@@ -62,7 +62,7 @@
     "sourceType": "original-category",
     "representativeModel": "Unbranded fiber optic cable reel",
     "usageStatus": "original",
-    "notes": "Original neutral category visual; no manufacturer logo, model number, or specific hardware claim. Not wired into the catalog."
+    "notes": "Original neutral category visual; no manufacturer logo, model number, or specific hardware claim. Wired into the catalog."
   },
   {
     "id": "structured-cabling",
@@ -75,7 +75,7 @@
     "sourceType": "original-category",
     "representativeModel": "Unbranded cable reel, patch panel, and keystone modules",
     "usageStatus": "original",
-    "notes": "Original neutral category visual; no manufacturer logo, model number, or specific product ecosystem claim. Not wired into the catalog."
+    "notes": "Original neutral category visual; no manufacturer logo, model number, or specific product ecosystem claim. Wired into the catalog."
   },
   {
     "id": "refrigerator-compact",
@@ -88,7 +88,7 @@
     "sourceType": "original-category",
     "representativeModel": "Unbranded compact single-door refrigerator",
     "usageStatus": "original",
-    "notes": "Original neutral category visual; no brand or model claim. Not wired into the catalog."
+    "notes": "Original neutral category visual; no brand or model claim. Wired into the catalog."
   },
   {
     "id": "tvs",
@@ -101,7 +101,7 @@
     "sourceType": "original-category",
     "representativeModel": "Unbranded modern television with abstract display",
     "usageStatus": "original",
-    "notes": "Original neutral category visual; no brand, UI, or model claim. Not wired into the catalog."
+    "notes": "Original neutral category visual; no brand, UI, or model claim. Wired into the catalog."
   },
   {
     "id": "monitors",
@@ -114,7 +114,7 @@
     "sourceType": "original-category",
     "representativeModel": "Unbranded professional monitor with abstract display",
     "usageStatus": "original",
-    "notes": "Original neutral category visual; no brand, UI, or model claim. Not wired into the catalog."
+    "notes": "Original neutral category visual; no brand, UI, or model claim. Wired into the catalog."
   },
   {
     "id": "cameras",
@@ -127,7 +127,7 @@
     "sourceType": "original-category",
     "representativeModel": "Unbranded interchangeable-lens camera body and dome security camera",
     "usageStatus": "original",
-    "notes": "Original neutral category visual; it represents both camera and CCTV sourcing without claiming a supported SKU. Not wired into the catalog."
+    "notes": "Original neutral category visual; it represents both camera and CCTV sourcing without claiming a supported SKU. Wired into the catalog."
   },
   {
     "id": "accessories",
@@ -140,6 +140,6 @@
     "sourceType": "original-category",
     "representativeModel": "Unbranded charger, USB-C cable, power bank, and phone case",
     "usageStatus": "original",
-    "notes": "Original neutral category visual; no brand, compatibility, or model claim. Not wired into the catalog."
+    "notes": "Original neutral category visual; no brand, compatibility, or model claim. Wired into the catalog."
   }
 ]
