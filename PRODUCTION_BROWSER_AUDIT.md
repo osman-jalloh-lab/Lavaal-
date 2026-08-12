@@ -1,6 +1,6 @@
 # Production browser audit
 
-**Target:** https://www.lavaall.com  
+**Target:** https://www.lavaall.com
 **Result:** PASS — 12 August 2026
 
 The reusable audit began at the customer-facing Products overview, discovered
