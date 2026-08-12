@@ -1,6 +1,6 @@
 # Catalog completion report
 
-**Scope:** marketplace-quality legacy conversion — 12 August 2026  
+**Scope:** marketplace-quality legacy conversion — 12 August 2026
 **Production target:** https://www.lavaall.com
 
 ## Before → after
