@@ -98,7 +98,7 @@
 
   function isApprovedGeneratedProduct(product) {
     if (!product || product.integrationApproved !== true) return false;
-    if (product.identityStatus !== 'verified' || product.mediaUsageStatus !== 'permitted') return false;
+    if (product.identityStatus !== 'verified' || product.visualQaStatus !== 'PASS' || product.mediaUsageStatus !== 'permitted') return false;
     if (product.quarantined === true || product.identityStatus === 'quarantined') return false;
     if (!product.sourceProductId || !product.name || !product.brand || !(product.mpn || product.modelNumber)) return false;
     const paths = (product.images || []).map(function (image) { return image && (image.path || image.src); }).filter(isLocalCatalogPath);
@@ -162,6 +162,18 @@
   function loadApprovedGeneratedCatalog() {
     if (generatedCatalogLoadStarted) return;
     generatedCatalogLoadStarted = true;
+    // Production receives this deterministic bundle before catalog.js. It keeps
+    // the verified Layer-2 catalog available even if a static JSON request is
+    // delayed, rewritten, or unavailable on a hosting platform.
+    if (window.LAVAALL_GENERATED_CATALOG) {
+      if (mergeApprovedGeneratedCatalog(window.LAVAALL_GENERATED_CATALOG)) {
+        overviewRendered = false;
+        renderOverview();
+        route(false);
+      }
+      return;
+    }
+    // JSON remains a development/backwards-compatible fallback only.
     const readCatalog = window.fetch
       ? fetch('assets/data/catalog-generated.json', { credentials: 'same-origin' })
           .then(function (response) { return response.ok ? response.json() : null; })

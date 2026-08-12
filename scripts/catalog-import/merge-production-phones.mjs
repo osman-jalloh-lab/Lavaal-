@@ -52,6 +52,7 @@ for (const [id, selection] of curation) {
     integrationApproved: true,
     productionApprovedAt: new Date().toISOString()
   });
+  delete products[products.length - 1].visualQAStatus;
 }
 
 catalog.products = [...(catalog.products ?? []), ...products];

@@ -13132,7 +13132,6 @@
       "releaseDate": "2025-09-04",
       "integrationApproved": true,
       "identityStatus": "verified",
-      "visualQAStatus": "pending-browser-qa",
       "provenance": {
         "source": "open-icecat",
         "sourceProductId": "134687004",
@@ -13873,7 +13872,6 @@
       "releaseDate": "2026-07-22",
       "integrationApproved": true,
       "identityStatus": "verified",
-      "visualQAStatus": "pending-browser-qa",
       "provenance": {
         "source": "open-icecat",
         "sourceProductId": "148400072",
@@ -14635,7 +14633,6 @@
       "releaseDate": "2026-07-22",
       "integrationApproved": true,
       "identityStatus": "verified",
-      "visualQAStatus": "pending-browser-qa",
       "provenance": {
         "source": "open-icecat",
         "sourceProductId": "148400062",
@@ -15441,7 +15438,6 @@
       "releaseDate": "2026-07-22",
       "integrationApproved": true,
       "identityStatus": "verified",
-      "visualQAStatus": "pending-browser-qa",
       "provenance": {
         "source": "open-icecat",
         "sourceProductId": "148400059",
@@ -16139,7 +16135,6 @@
       "releaseDate": "2025-06-16",
       "integrationApproved": true,
       "identityStatus": "verified",
-      "visualQAStatus": "pending-browser-qa",
       "provenance": {
         "source": "open-icecat",
         "sourceProductId": "132622687",
@@ -16862,7 +16857,6 @@
       "releaseDate": "2025-06-16",
       "integrationApproved": true,
       "identityStatus": "verified",
-      "visualQAStatus": "pending-browser-qa",
       "provenance": {
         "source": "open-icecat",
         "sourceProductId": "132622684",
@@ -17396,7 +17390,6 @@
       "releaseDate": "2026-03-25",
       "integrationApproved": true,
       "identityStatus": "verified",
-      "visualQAStatus": "pending-browser-qa",
       "provenance": {
         "source": "open-icecat",
         "sourceProductId": "142313844",
@@ -18004,7 +17997,6 @@
       "releaseDate": "2026-03-25",
       "integrationApproved": true,
       "identityStatus": "verified",
-      "visualQAStatus": "pending-browser-qa",
       "provenance": {
         "source": "open-icecat",
         "sourceProductId": "141819608",
@@ -18606,7 +18598,6 @@
       "releaseDate": "2025-09-24",
       "integrationApproved": true,
       "identityStatus": "verified",
-      "visualQAStatus": "pending-browser-qa",
       "provenance": {
         "source": "open-icecat",
         "sourceProductId": "134662666",

@@ -28,7 +28,7 @@ export function generatedProductToModel(product) {
 export function approvedGeneratedCatalog(catalog) {
   const categories = new Map();
   for (const product of catalog.products ?? []) {
-    if (product.integrationApproved !== true || product.identityStatus !== 'verified' || product.mediaUsageStatus !== 'permitted') continue;
+    if (product.integrationApproved !== true || product.identityStatus !== 'verified' || product.visualQaStatus !== 'PASS' || product.mediaUsageStatus !== 'permitted') continue;
     const categoryId = slug(product.category); const brandName = product.brand; const familyName = product.family || product.series || product.name;
     if (!categories.has(categoryId)) categories.set(categoryId, { id: categoryId, name: product.category, icon: 'box', brands: [] });
     const category = categories.get(categoryId); let brand = category.brands.find(item => item.name === brandName);
