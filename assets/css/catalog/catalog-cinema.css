@@ -1,0 +1,4 @@
+.catalog-shell[data-catalog-theme="cinema"] .catalog-product-media,.catalog-shell #catalog-browser[data-catalog-theme="cinema"] .catalog-product-media{aspect-ratio:16/10;min-height:0;background:#fff;}
+.catalog-shell #catalog-browser[data-catalog-theme="cinema"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:24px;}
+#pgal-overlay[data-catalog-theme="cinema"] .pgal-main{aspect-ratio:16/10;background:#fff;}
+#pgal-overlay[data-catalog-theme="cinema"] .pgal-body{padding:42px 34px;}

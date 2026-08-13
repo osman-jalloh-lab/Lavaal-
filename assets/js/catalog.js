@@ -23,6 +23,7 @@
   const overviewGrid = document.getElementById('catalog-overview-grid');
   const browserEl = document.getElementById('catalog-browser');
   const backBtn = document.getElementById('catalog-back-btn');
+  const catalogShell = document.querySelector('.catalog-shell');
   const mediaDebugEnabled = new URLSearchParams(window.location.search).get('mediaDebug') === '1';
   let mediaDebugLastError = null;
   let mediaDebugLastNoCacheTest = null;
@@ -193,6 +194,22 @@
       : brand.name + ' ' + model.name;
   }
   function isVerifiedModel(model) { return model && model.listingType === 'verified'; }
+  const CATALOG_PRESENTATION = {
+    computers: 'enterprise', monitors: 'enterprise', servers: 'enterprise', networking: 'enterprise',
+    cables: 'enterprise', switches: 'enterprise', power: 'enterprise', fiber: 'enterprise',
+    tvs: 'cinema', phones: 'mobile', tablets: 'mobile', watches: 'mobile',
+    refrigeration: 'appliance', accessories: 'procurement'
+  };
+  function catalogPresentation(cat, model) {
+    if (model && !isVerifiedModel(model)) return 'procurement';
+    return CATALOG_PRESENTATION[cat && cat.id] || 'enterprise';
+  }
+  function applyCatalogPresentation(cat, model) {
+    const theme = catalogPresentation(cat, model);
+    if (catalogShell) catalogShell.setAttribute('data-catalog-theme', theme);
+    if (browserEl) browserEl.setAttribute('data-catalog-theme', theme);
+    return theme;
+  }
   function catalogText(key) {
     const french = document.documentElement.lang === 'fr';
     const strings = {
@@ -349,11 +366,14 @@
    * consistent across every shape. Falls back to a line-icon placeholder
    * on missing image or load error (no broken-image icons, ever).
    * ------------------------------------------------------------------- */
-  function productImageHtml(imageUrl, alt, iconKey) {
+  function productImageHtml(imageUrl, alt, iconKey, options) {
     if (imageUrl) {
+      const unavailable = options && options.explicitFailure
+        ? '<div class="catalog-image-unavailable" role="status"><strong>Product image temporarily unavailable</strong><span>Please request a quote for verified product details.</span></div>'
+        : placeholderInnerHtml(iconKey);
       return '<div class="product-image">' +
         '<img src="' + esc(imageUrl) + '" alt="' + esc(alt) + '" loading="lazy" ' +
-        'onerror="this.closest(\'.product-image\').innerHTML=' + "'" + esc(placeholderInnerHtml(iconKey)).replace(/'/g, "\\'") + "'" + '">' +
+        'onerror="this.closest(\'.product-image\').innerHTML=' + "'" + esc(unavailable).replace(/'/g, "\\'") + "'" + '">' +
         '</div>';
     }
     return '<div class="product-image ph">' + placeholderInnerHtml(iconKey) + '</div>';
@@ -418,6 +438,7 @@
    * Card grid renderers
    * ------------------------------------------------------------------- */
   function renderCategoryGrid() {
+    applyCatalogPresentation(null);
     renderBreadcrumbs([{ label: 'Products', hash: '#products' }]);
     const cards = CATALOG.map(cat => {
       const count = cat.brands.reduce((n, b) => n + b.families.reduce((m, f) => m + f.models.length, 0), 0);
@@ -431,6 +452,7 @@
   }
 
   function renderBrandGrid(cat) {
+    applyCatalogPresentation(cat);
     renderBreadcrumbs([
       { label: 'Products', hash: '#products' },
       { label: cat.name, hash: '#products/' + cat.id },
@@ -447,6 +469,7 @@
   }
 
   function renderFamilyGrid(cat, brand) {
+    applyCatalogPresentation(cat);
     renderBreadcrumbs([
       { label: 'Products', hash: '#products' },
       { label: cat.name, hash: '#products/' + cat.id },
@@ -467,13 +490,16 @@
     // Handwritten records have no source identity/provenance. Do not let an
     // old local image imply that it is exact media for a named SKU.
     const primary = verified ? primaryProductImage(model, displayName(brand, model)) : null;
-    const img = productImageHtml(primary && primary.src, primary ? primary.alt : displayName(brand, model), cat.icon);
+    const media = verified
+      ? '<div class="catalog-product-media">' + productImageHtml(primary && primary.src, primary ? primary.alt : displayName(brand, model), cat.icon, { explicitFailure: true }) + '</div>'
+      : '<div class="catalog-procurement-mark" aria-hidden="true">' + iconSvg(cat.icon) + '</div>';
     const listing = modelListingType(model);
+    const theme = catalogPresentation(cat, model);
     const actions = verified
       ? '<div style="display:flex;gap:8px;"><button type="button" class="pbtn model-details-btn" style="flex:1">' + esc(catalogText('viewDetails')) + '</button><button type="button" class="pbtn model-quote-btn" style="flex:1">' + esc(catalogText('requestQuote')) + ' &#9662;</button></div>'
       : '<div class="model-card-actions--single"><button type="button" class="pbtn model-details-btn" style="width:100%">' + esc(catalogText('requestSourcing')) + ' &#9662;</button></div>';
-    return '<div class="model-card model-card--' + listing + '" data-model-id="' + esc(model.id) + '" data-listing-type="' + listing + '">' +
-      img +
+    return '<div class="model-card model-card--' + listing + '" data-model-id="' + esc(model.id) + '" data-listing-type="' + listing + '" data-catalog-theme="' + theme + '">' +
+      media +
       '<div class="model-card-body">' +
       '<div class="listing-badge listing-badge--' + listing + '">' + esc(catalogText(listing)) + '</div>' +
       '<div class="model-card-brand">' + esc(brand.name) + '</div>' +
@@ -484,6 +510,7 @@
   }
 
   function renderModelGrid(cat, brand, fam) {
+    applyCatalogPresentation(cat);
     renderBreadcrumbs([
       { label: 'Products', hash: '#products' },
       { label: cat.name, hash: '#products/' + cat.id },
@@ -496,6 +523,7 @@
   }
 
   function renderSearchResults(query) {
+    applyCatalogPresentation(null);
     const q = query.trim().toLowerCase();
     crumbEl.innerHTML = '';
     const label = document.createElement('span');
@@ -659,8 +687,13 @@
 
   function openModelQuote(model, cat, brand, fam) {
     const sourcing = !isVerifiedModel(model);
+    const theme = applyCatalogPresentation(cat, model);
     currentModelCtx = { model, cat, brand, fam, isSourcing: sourcing, values: {} };
+    document.getElementById('pgal-overlay').setAttribute('data-catalog-theme', theme);
 
+    document.getElementById('pgal-kicker').textContent = sourcing
+      ? catalogText('sourcing') + ' · ' + brand.name
+      : catalogText('verified') + ' · ' + brand.name;
     document.getElementById('pgal-title').textContent = displayName(brand, model);
     document.getElementById('pgal-desc').textContent = sourcing
       ? [catalogText('sourcingDescription'), catalogText('sourcingNote')].join(' ')
@@ -755,6 +788,8 @@
    * model/brand/family attached. */
   function openCategoryQuote(cat, image) {
     currentModelCtx = { isCategoryQuote: true, cat, values: {} };
+    document.getElementById('pgal-overlay').setAttribute('data-catalog-theme', catalogPresentation(cat, null));
+    document.getElementById('pgal-kicker').textContent = catalogText('sourcing') + ' · ' + cat.name;
 
     document.getElementById('pgal-title').textContent = cat.name;
     document.getElementById('pgal-desc').textContent =

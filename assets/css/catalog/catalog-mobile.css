@@ -1,0 +1,4 @@
+.catalog-shell[data-catalog-theme="mobile"] .catalog-product-media,.catalog-shell #catalog-browser[data-catalog-theme="mobile"] .catalog-product-media{aspect-ratio:4/5;min-height:0;background:#f5f5f7;}
+.catalog-shell #catalog-browser[data-catalog-theme="mobile"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));}
+#pgal-overlay[data-catalog-theme="mobile"] .pgal-main{aspect-ratio:4/5;background:#f5f5f7;}
+#pgal-overlay[data-catalog-theme="mobile"] .pgal-body{padding:40px 32px;}

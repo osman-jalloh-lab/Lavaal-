@@ -1,0 +1,4 @@
+.catalog-shell[data-catalog-theme="appliance"] .catalog-product-media,.catalog-shell #catalog-browser[data-catalog-theme="appliance"] .catalog-product-media{aspect-ratio:3/4;min-height:0;background:#f7fbff;}
+.catalog-shell #catalog-browser[data-catalog-theme="appliance"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(245px,1fr));}
+#pgal-overlay[data-catalog-theme="appliance"] .pgal-main{aspect-ratio:3/4;background:#f7fbff;}
+#pgal-overlay[data-catalog-theme="appliance"] .pgal-panel{max-width:1040px;}

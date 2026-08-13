@@ -1,0 +1,6 @@
+.catalog-shell[data-catalog-theme="procurement"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px;}
+.catalog-shell .model-card--sourcing .model-card-body{padding:16px 18px 18px;}
+.catalog-shell .model-card--sourcing .model-card-spec{margin-bottom:14px;}
+#pgal-overlay[data-catalog-theme="procurement"] .pgal-panel{grid-template-columns:minmax(0,1fr);max-width:620px;}
+#pgal-overlay[data-catalog-theme="procurement"] .pgal-media{display:none;}
+#pgal-overlay[data-catalog-theme="procurement"] .pgal-body{padding:38px 34px;min-height:340px;}
