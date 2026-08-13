@@ -111,14 +111,17 @@ with sync_playwright() as p:
         page.goto(base + '/' + route, wait_until='domcontentloaded')
         page.wait_for_function('Boolean(window.LAVAALL_GENERATED_CATALOG && window.LAVAALL_GENERATED_CATALOG.products)', timeout=5000)
         wait(page, 500)
-        cats = page.locator('#catalog-root a.cat-card[href^="#products/"]').evaluate_all('(els) => els.map(e => e.getAttribute("href"))')
+        cats = page.locator('#catalog-root a.cat-card[href^="#products/"], #catalog-root a.samsung-collection-link[href^="#products/"]').evaluate_all('(els) => els.map(e => e.getAttribute("href"))')
         cards = page.locator('#catalog-root .model-card').count()
         report['routesVisited'].append(route)
         parts = route.split('/')
         if len(parts) > 1: report['categoriesVisited'].append(parts[1])
         if len(parts) > 2: report['brandsVisited'].append('/'.join(parts[1:3]))
         if len(parts) > 3: report['familiesVisited'].append('/'.join(parts[1:4]))
-        if not cats and not cards: report['blankRoutes'].append(route)
+        # Samsung's approved collection navigation is deliberately rendered as
+        # compact editorial rows rather than generic square category cards.
+        # It remains a populated, clickable customer-facing route.
+        if not cats and not cards and not page.locator('#catalog-root .samsung-collection-nav').count(): report['blankRoutes'].append(route)
         if cards: leaves.append(route)
         queue.extend(x for x in cats if x not in seen)
     # A generated family can be appended during the catalog's post-load merge.
@@ -130,7 +133,7 @@ with sync_playwright() as p:
         page.goto(base + '/' + route, wait_until='domcontentloaded')
         page.wait_for_function('Boolean(window.LAVAALL_GENERATED_CATALOG && window.LAVAALL_GENERATED_CATALOG.products)', timeout=5000)
         wait(page, 900)
-        cats = page.locator('#catalog-root a.cat-card[href^="#products/"]').evaluate_all('(els) => els.map(e => e.getAttribute("href"))')
+        cats = page.locator('#catalog-root a.cat-card[href^="#products/"], #catalog-root a.samsung-collection-link[href^="#products/"]').evaluate_all('(els) => els.map(e => e.getAttribute("href"))')
         cards = page.locator('#catalog-root .model-card').count()
         if cards and route not in leaves: leaves.append(route)
         for child in cats:
