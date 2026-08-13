@@ -452,6 +452,7 @@ footer{padding:40px 5% 30px;}
 <link rel="stylesheet" href="assets/css/catalog/catalog-mobile.css"/>
 <link rel="stylesheet" href="assets/css/catalog/catalog-appliance.css"/>
 <link rel="stylesheet" href="assets/css/catalog/catalog-procurement.css"/>
+<link rel="stylesheet" href="assets/css/catalog/catalog-brand-showrooms.css"/>
 </head>
 <body>
 <!-- SPLASH: logo boot animation, plays once per session (see initSplash in the main script) -->
@@ -1253,6 +1254,7 @@ function setLang(l){
   });
   
   document.documentElement.lang = l;
+  window.dispatchEvent(new CustomEvent('lavaall-languagechange'));
   
   // Refresh coverage note
   const active = document.querySelector('.ctry.on[data-code]');

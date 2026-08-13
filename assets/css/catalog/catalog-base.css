@@ -45,4 +45,8 @@
 #pgal-overlay[data-catalog-theme] .pgal-kicker{margin:0 0 8px;color:#616161;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;}
 #pgal-overlay[data-catalog-theme] .pgal-thumb.on{border-color:#0067b8;box-shadow:0 0 0 2px rgba(0,103,184,.18);}
 #pgal-overlay[data-catalog-theme] .pgal-thumb:focus-visible{outline:3px solid rgba(0,103,184,.45);outline-offset:2px;}
+/* Keep the quantity field's visual treatment consistent across engines while
+   retaining its native number semantics, keyboard input and constraints. */
+#pgal-overlay[data-catalog-theme] input[type="number"]{appearance:textfield;-moz-appearance:textfield;}
+#pgal-overlay[data-catalog-theme] input[type="number"]::-webkit-inner-spin-button,#pgal-overlay[data-catalog-theme] input[type="number"]::-webkit-outer-spin-button{appearance:none;margin:0;}
 @media(max-width:768px){.catalog-shell #catalog-browser[data-catalog-theme]{padding:18px 14px;}.catalog-shell .model-grid{grid-template-columns:1fr;}.catalog-shell .cat-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.catalog-product-media{min-height:260px;}}

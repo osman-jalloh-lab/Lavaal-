@@ -25,10 +25,16 @@ cases = [
     ('05-dell-p2726he-monitor', '#products/monitors/dell/models', 'icecat-143869546'),
     ('06-dell-poweredge-sourcing', '#products/servers/dell/poweredge', 'dell-poweredge'),
     ('07-tv-marketplace', '#products/tvs', None),
-    ('08-lg-65ua731-detail', '#products/tvs/lg/models', 'icecat-139920272'),
-    ('09-phone-tablet-marketplace', '#products/tablets/samsung/models', 'icecat-134687128'),
-    ('10-refrigeration-marketplace', '#products/refrigeration', None),
-    ('11-samsung-rz70-detail', '#products/refrigeration/samsung/models', 'icecat-141982141'),
+    ('08-lg-results', '#products/tvs/lg/models', None),
+    ('09-lg-65ua731-detail', '#products/tvs/lg/models', 'icecat-139920272'),
+    ('10-samsung-tablet-family', '#products/tablets/samsung', None),
+    ('11-samsung-tablet-detail', '#products/tablets/samsung/models', 'icecat-134687128'),
+    ('12-samsung-phone-family', '#products/phones/samsung', None),
+    ('13-samsung-phone-detail', '#products/phones/samsung/galaxy-z', 'icecat-148400072'),
+    ('14-refrigeration-marketplace', '#products/refrigeration', None),
+    ('15-samsung-rz70-detail', '#products/refrigeration/samsung/models', 'icecat-141982141'),
+    ('16-lenovo-family', '#products/computers/lenovo', None),
+    ('17-lenovo-p16s-detail', '#products/computers/lenovo/models', 'icecat-149919314'),
 ]
 base = args.base_url.rstrip('/')
 out = Path(args.output); out.mkdir(parents=True, exist_ok=True)
@@ -73,6 +79,16 @@ with sync_playwright() as p:
                     active=[item for item in thumb_state['thumbs'] if item['pressed']=='true']
                     if len(active)!=1 or not thumb_state['image'] or thumb_state['image']['naturalWidth']<=0:
                         raise RuntimeError(f'Gallery visual/state failure: {model_id}')
+                if model_id == 'icecat-149919314':
+                    panel = page.locator('.pgal-panel')
+                    panel.evaluate('(element) => { element.scrollTop = element.scrollHeight; }')
+                    page.wait_for_timeout(250)
+                    quote = page.locator('#pgal-request-btn')
+                    quote.scroll_into_view_if_needed()
+                    page.screenshot(path=str(out/f'{name}-quote-visible.png'), full_page=False)
+                    quote_state = quote.evaluate('''(element) => { const rect=element.getBoundingClientRect(); const style=getComputedStyle(element); return {top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height,background:style.backgroundColor,color:style.color,visible:style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0}; }''')
+                    if not quote_state['visible'] or quote_state['bottom'] > page.viewport_size['height'] or quote_state['background'] != 'rgb(226, 35, 26)' or quote_state['color'] != 'rgb(255, 255, 255)':
+                        raise RuntimeError(f'Lenovo quote CTA is not visibly high contrast: {quote_state}')
                 page.keyboard.press('Escape')
             if model_id == 'dell-poweredge' and any(card['hasImageStage'] for card in state['sourcingCards']):
                 raise RuntimeError('Sourcing listing rendered a product media stage')

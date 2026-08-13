@@ -1,0 +1,124 @@
+/* Brand showroom layer: scoped Layer 2 presentation only. Data, routes and
+   the LAVAALL overview remain outside this file. */
+#catalog-browser[data-catalog-brand]{position:relative;isolation:isolate;}
+#catalog-browser[data-catalog-brand] .catalog-toolbar{position:relative;z-index:2;}
+.brand-showroom-header{position:relative;display:grid;grid-template-columns:10px minmax(0,1fr) minmax(280px,42%);min-height:260px;margin:0 0 24px;overflow:hidden;background:#fff;border:1px solid var(--catalog-border);}
+.brand-showroom-rail{background:var(--catalog-primary);}
+.brand-showroom-copy{position:relative;z-index:1;align-self:center;padding:42px 36px;}
+.brand-showroom-copy p,.brand-showroom-copy>span{margin:0;color:#66717d;font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;}
+.brand-showroom-copy h2{margin:10px 0 18px;color:#0a0a14;font-size:clamp(30px,4vw,52px);line-height:.94;letter-spacing:-.04em;}
+.brand-showroom-index{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px;color:#5d6872;font-size:12px;}
+.brand-showroom-index span{color:#a8b0b8;}
+.brand-showroom-feature-media{display:grid;place-items:center;min-width:0;padding:26px;background:#f8fafc;overflow:hidden;}
+.brand-showroom-feature-media img{display:block;width:100%;height:100%;max-width:94%;max-height:94%;object-fit:contain;object-position:center;opacity:1;visibility:visible;}
+
+/* Dell: an exact, restrained comparison workspace rather than a display-led campaign. */
+#catalog-browser[data-catalog-brand="dell"]{font-family:"Segoe UI",ui-sans-serif,system-ui,sans-serif;background:#f5f8fb;border-color:#cbd8e4;}
+#catalog-browser[data-catalog-brand="dell"] .brand-showroom-header{grid-template-columns:210px minmax(0,1fr) minmax(300px,40%);border-color:#cbd8e4;}
+#catalog-browser[data-catalog-brand="dell"] .brand-showroom-rail{display:flex;align-items:flex-end;background:linear-gradient(90deg,#f3f7fb 0 100%);border-right:1px solid #cbd8e4;}
+#catalog-browser[data-catalog-brand="dell"] .brand-showroom-rail:after{content:"DELL / VERIFIED";padding:24px 14px;color:#0672cb;font-size:10px;font-weight:800;letter-spacing:.12em;writing-mode:vertical-rl;transform:rotate(180deg);}
+#catalog-browser[data-catalog-brand="dell"] .brand-showroom-copy h2{font-family:inherit;font-size:clamp(28px,3.2vw,42px);font-weight:650;letter-spacing:-.035em;}
+#catalog-browser[data-catalog-brand="dell"] .brand-showroom-feature-media{background:#f9fbfd;border-left:1px solid #cbd8e4;}
+#catalog-browser[data-catalog-brand="dell"] .cat-grid,#catalog-browser[data-catalog-brand="dell"] .model-grid{gap:1px;background:#cbd8e4;border:1px solid #cbd8e4;}
+#catalog-browser[data-catalog-brand="dell"] .cat-card,#catalog-browser[data-catalog-brand="dell"] .model-card{border:0;border-radius:0;box-shadow:none;}
+#catalog-browser[data-catalog-brand="dell"] .model-card{border-top:3px solid transparent;}
+#catalog-browser[data-catalog-brand="dell"] .model-card:hover{border-top-color:#0672cb;box-shadow:none;transform:none;}
+#catalog-browser[data-catalog-brand="dell"] .model-card-body{padding:15px 16px 17px;}
+#catalog-browser[data-catalog-brand="dell"] .listing-badge{border-radius:0;}
+#catalog-browser[data-catalog-brand="dell"] .model-card .pbtn{border-radius:0;}
+#pgal-overlay[data-catalog-brand="dell"] .pgal-panel{border-radius:0;border-top:4px solid #0672cb;}
+#pgal-overlay[data-catalog-brand="dell"] .pgal-body{background:#fff;}
+
+/* Samsung: one quiet visual language, then geometry shifts by department. */
+#catalog-browser[data-catalog-brand="samsung"]{background:#f5f5f7;border-color:#e4e4e7;}
+#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-header{min-height:430px;grid-template-columns:1fr minmax(340px,54%);border:0;background:#f5f5f7;}
+#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-rail{display:none;}
+#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-copy{padding:58px clamp(28px,5vw,76px);align-self:start;}
+#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-copy h2{font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-weight:500;font-size:clamp(42px,6vw,78px);letter-spacing:-.065em;}
+#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-feature-media{background:transparent;padding:24px 10% 14px;}
+#catalog-browser[data-catalog-brand="samsung"] .model-grid{gap:24px;}
+#catalog-browser[data-catalog-brand="samsung"] .model-card{border:0;border-radius:0;box-shadow:none;background:transparent;}
+#catalog-browser[data-catalog-brand="samsung"] .model-card:hover{transform:none;box-shadow:none;border-color:transparent;}
+#catalog-browser[data-catalog-brand="samsung"] .catalog-product-media{border:0;background:#f5f5f7;}
+#catalog-browser[data-catalog-brand="samsung"] .model-card-body{padding:16px 4px 18px;}
+#catalog-browser[data-catalog-brand="samsung"] .model-card .pbtn{border-radius:999px;}
+#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-summary{margin:0 0 8px;color:#6a717c;font-size:12px;letter-spacing:.04em;}
+#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-nav{display:grid;gap:0;border-top:1px solid #d9dade;background:#fff;}
+#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 2px;border-bottom:1px solid #d9dade;color:#0a0a14;text-decoration:none;}
+#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link:hover{color:#0067b8;background:#fafafa;}
+#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link strong{display:block;font-size:19px;font-weight:500;letter-spacing:-.025em;}
+#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link small{display:block;margin-top:5px;color:#6a717c;font-size:13px;}
+#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link b{font-size:22px;font-weight:400;color:#0067b8;}
+#pgal-overlay[data-catalog-brand="samsung"] .pgal-panel{border:0;border-radius:0;background:#f5f5f7;}
+#pgal-overlay[data-catalog-brand="samsung"] .pgal-media,#pgal-overlay[data-catalog-brand="samsung"] .pgal-main{border:0;background:#f5f5f7;}
+#pgal-overlay[data-catalog-brand="samsung"] .pgal-body{background:#f5f5f7;}
+#pgal-overlay[data-catalog-brand="samsung"] .pgal-body h3{font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-weight:500;letter-spacing:-.045em;}
+#pgal-overlay[data-catalog-brand="samsung"] .pgal-request-btn{border-radius:999px;}
+
+/* LG: warm, horizontal cinema showroom; LG refrigeration retains the same DNA but tall geometry. */
+#catalog-browser[data-catalog-brand="lg"]{background:#f0ece4;border-color:#ddd6cb;}
+#catalog-browser[data-catalog-brand="lg"] .brand-showroom-header{min-height:390px;grid-template-columns:minmax(0,42%) minmax(340px,58%);border-color:#333;background:#27282b;}
+#catalog-browser[data-catalog-brand="lg"] .brand-showroom-rail{display:none;}
+#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy{padding:58px 9%;color:#fff;}
+#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy p,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy>span{color:#f4b8c8;}
+#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy h2{color:#fff;font-family:"Clash Display",Impact,"Arial Narrow",sans-serif;font-size:clamp(46px,6vw,82px);}
+#catalog-browser[data-catalog-brand="lg"] .brand-showroom-index{color:#d1d1d4;}
+#catalog-browser[data-catalog-brand="lg"] .brand-showroom-feature-media{background:#27282b;padding:34px 8%;}
+#catalog-browser[data-catalog-brand="lg"] .model-grid{gap:22px;}
+#catalog-browser[data-catalog-brand="lg"] .model-card{border-color:#d4cbc0;border-radius:0;box-shadow:none;background:#fbfaf8;}
+#catalog-browser[data-catalog-brand="lg"] .model-card:hover{border-color:#a50034;box-shadow:none;transform:none;}
+#catalog-browser[data-catalog-brand="lg"] .model-card .pbtn{background:#a50034;border-color:#a50034;border-radius:2px;}
+#catalog-browser[data-catalog-brand="lg"] .model-card .pbtn:hover{background:#7e0027;}
+#pgal-overlay[data-catalog-brand="lg"] .pgal-panel{border:0;border-radius:0;background:#f0ece4;}
+#pgal-overlay[data-catalog-brand="lg"] .pgal-media,#pgal-overlay[data-catalog-brand="lg"] .pgal-main{border:0;background:#27282b;}
+#pgal-overlay[data-catalog-brand="lg"] .pgal-body{background:#f0ece4;}
+#pgal-overlay[data-catalog-brand="lg"] .pgal-request-btn{background:#a50034;border-color:#a50034;}
+
+/* Lenovo: editorial black/white/red architecture, with the product as the red-free focal point. */
+#catalog-browser[data-catalog-brand="lenovo"]{background:#f7f7f5;border-color:#111;}
+#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-header{grid-template-columns:76px minmax(0,.8fr) minmax(340px,1.2fr);min-height:410px;border-color:#111;}
+#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-rail{background:#111;}
+#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-rail:after{content:"LENOVO";display:block;height:100%;padding:25px 28px;color:#fff;font-size:10px;font-weight:800;letter-spacing:.18em;writing-mode:vertical-rl;}
+#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-rail:before{content:"";position:absolute;left:37px;top:86px;bottom:80px;width:2px;background:#e2231a;}
+#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy{align-self:stretch;padding:64px 34px 28px;background:#f7f7f5;}
+#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy p,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy>span{color:#e2231a;}
+#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy h2{font-family:Impact,"Arial Narrow",sans-serif;font-size:clamp(48px,6vw,78px);letter-spacing:-.03em;}
+#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-feature-media{border-left:1px solid #111;background:#fff;}
+#catalog-browser[data-catalog-brand="lenovo"] .model-grid{gap:14px;}
+#catalog-browser[data-catalog-brand="lenovo"] .model-card{border:0;border-top:3px solid #111;border-radius:0;box-shadow:none;}
+#catalog-browser[data-catalog-brand="lenovo"] .model-card:first-child{border-top-color:#e2231a;}
+#catalog-browser[data-catalog-brand="lenovo"] .model-card:hover{box-shadow:none;transform:none;border-top-color:#e2231a;}
+#catalog-browser[data-catalog-brand="lenovo"] .model-card .pbtn{background:#111;border-color:#111;border-radius:0;}
+#catalog-browser[data-catalog-brand="lenovo"] .model-card .pbtn:hover{background:#e2231a;border-color:#e2231a;}
+#pgal-overlay[data-catalog-brand="lenovo"] .pgal-panel{border:0;border-radius:0;background:#111;color:#fff;}
+#pgal-overlay[data-catalog-brand="lenovo"] .pgal-media,#pgal-overlay[data-catalog-brand="lenovo"] .pgal-main{border:0;background:#fff;}
+#pgal-overlay[data-catalog-brand="lenovo"] .pgal-body{background:#111;color:#fff;}
+#pgal-overlay[data-catalog-brand="lenovo"] .pgal-body h3{font-size:24px;line-height:1.08;}
+#pgal-overlay[data-catalog-brand="lenovo"] .pgal-kicker{color:#ff8d87;}
+#pgal-overlay[data-catalog-brand="lenovo"] .pgal-desc,#pgal-overlay[data-catalog-brand="lenovo"] .pgal-body p{color:#ededf0;line-height:1.58;}
+#pgal-overlay[data-catalog-brand="lenovo"] .pgal-fields label{color:#f4f4f5;}
+#pgal-overlay[data-catalog-brand="lenovo"] .pgal-fields input{border-color:#b7b7be;background:#fff;color:#111;}
+#pgal-overlay[data-catalog-brand="lenovo"] #pgal-request-btn{position:sticky;bottom:0;z-index:2;margin-top:20px!important;background:#e2231a!important;border-color:#e2231a!important;color:#fff!important;box-shadow:0 0 0 2px #111,0 0 0 4px #e2231a;font-weight:800;}
+
+/* Samsung/LG retain their recognizable DNA when category geometry changes. */
+#catalog-browser[data-catalog-brand="samsung"][data-catalog-geometry="wide"] .brand-showroom-header{min-height:360px;}
+#catalog-browser[data-catalog-brand="samsung"][data-catalog-geometry="tall"] .brand-showroom-header{min-height:490px;}
+#catalog-browser[data-catalog-brand="lg"][data-catalog-geometry="tall"] .brand-showroom-header{min-height:490px;grid-template-columns:minmax(0,46%) minmax(300px,54%);}
+#catalog-browser[data-catalog-brand="lg"][data-catalog-geometry="tall"] .brand-showroom-feature-media img{max-height:96%;}
+
+@media (max-width:768px){
+  .brand-showroom-header,#catalog-browser[data-catalog-brand="dell"] .brand-showroom-header,#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-header,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-header,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-header{grid-template-columns:1fr;min-height:0;}
+  .brand-showroom-rail,#catalog-browser[data-catalog-brand="dell"] .brand-showroom-rail,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-rail{display:none;}
+  .brand-showroom-copy,#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-copy,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy{padding:34px 22px 20px;}
+  .brand-showroom-copy h2,#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-copy h2,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy h2,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy h2{font-size:clamp(38px,13vw,58px);}
+  .brand-showroom-feature-media,#catalog-browser[data-catalog-brand="dell"] .brand-showroom-feature-media,#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-feature-media,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-feature-media,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-feature-media{min-height:240px;padding:20px 10%;border-left:0;border-top:1px solid currentColor;}
+  #catalog-browser[data-catalog-brand="lg"] .brand-showroom-feature-media{border-color:#555;}
+  #catalog-browser[data-catalog-brand="dell"] .cat-grid,#catalog-browser[data-catalog-brand="dell"] .model-grid{gap:1px;}
+  #pgal-overlay[data-catalog-brand="lenovo"] .pgal-panel{max-height:92vh;}
+  #pgal-overlay[data-catalog-brand="lenovo"] .pgal-body{padding:24px 20px 22px;}
+  #pgal-overlay[data-catalog-brand="lenovo"] .pgal-body h3{font-size:22px;}
+  #pgal-overlay[data-catalog-brand="lenovo"] .pgal-body p{margin-bottom:14px;}
+  #pgal-overlay[data-catalog-brand="samsung"][data-catalog-geometry="portrait"] .pgal-main{aspect-ratio:1/1;}
+  #pgal-overlay[data-catalog-brand="samsung"] .pgal-body{padding:24px 22px 20px;}
+  #pgal-overlay[data-catalog-brand="samsung"] .pgal-body p{margin-bottom:14px;}
+}

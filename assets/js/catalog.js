@@ -200,16 +200,62 @@
     tvs: 'cinema', phones: 'mobile', tablets: 'mobile', watches: 'mobile',
     refrigeration: 'appliance', accessories: 'procurement'
   };
+  const BRAND_SHOWROOMS = {
+    dell: 'dell', samsung: 'samsung', lg: 'lg', lenovo: 'lenovo'
+  };
   function catalogPresentation(cat, model) {
     if (model && !isVerifiedModel(model)) return 'procurement';
     return CATALOG_PRESENTATION[cat && cat.id] || 'enterprise';
   }
-  function applyCatalogPresentation(cat, model) {
+  function catalogGeometry(cat) {
+    if (!cat) return 'landscape';
+    if (cat.id === 'tvs') return 'wide';
+    if (cat.id === 'refrigeration') return 'tall';
+    if (cat.id === 'phones' || cat.id === 'tablets' || cat.id === 'watches') return 'portrait';
+    return 'landscape';
+  }
+  function brandShowroom(brand, model) {
+    if (!brand || (model && !isVerifiedModel(model))) return '';
+    return BRAND_SHOWROOMS[String(brand.name || '').toLowerCase()] || '';
+  }
+  function applyCatalogPresentation(cat, model, brand) {
     const theme = catalogPresentation(cat, model);
-    if (catalogShell) catalogShell.setAttribute('data-catalog-theme', theme);
-    if (browserEl) browserEl.setAttribute('data-catalog-theme', theme);
+    const showroom = brandShowroom(brand, model);
+    const geometry = catalogGeometry(cat);
+    [catalogShell, browserEl].forEach(function (element) {
+      if (!element) return;
+      element.setAttribute('data-catalog-theme', theme);
+      element.setAttribute('data-catalog-geometry', geometry);
+      if (showroom) element.setAttribute('data-catalog-brand', showroom);
+      else element.removeAttribute('data-catalog-brand');
+    });
+    setCatalogSearchContext(cat, brand);
     return theme;
   }
+  function catalogSearchCategory(cat) {
+    const labels = {
+      computers: ['computers', 'ordinateurs'], monitors: ['monitors', 'moniteurs'],
+      tvs: ['televisions', 'téléviseurs'], phones: ['phones', 'téléphones'],
+      tablets: ['tablets', 'tablettes'], watches: ['watches', 'montres'],
+      refrigeration: ['refrigeration', 'réfrigération'], servers: ['servers', 'serveurs']
+    };
+    const pair = labels[cat && cat.id];
+    return pair ? pair[document.documentElement.lang === 'fr' ? 1 : 0] : (cat ? String(cat.name).toLowerCase() : 'products');
+  }
+  let catalogSearchContext = { cat: null, brand: null };
+  function setCatalogSearchContext(cat, brand) {
+    catalogSearchContext = { cat: cat || null, brand: brand || null };
+    if (!searchInput) return;
+    const french = document.documentElement.lang === 'fr';
+    if (!cat) {
+      searchInput.placeholder = french ? 'Rechercher des produits' : 'Search products';
+      return;
+    }
+    searchInput.placeholder = (french ? 'Rechercher ' : 'Search ') + (brand ? brand.name + ' ' : '') + catalogSearchCategory(cat);
+  }
+  window.addEventListener('lavaall-languagechange', function () {
+    setCatalogSearchContext(catalogSearchContext.cat, catalogSearchContext.brand);
+  });
   function catalogText(key) {
     const french = document.documentElement.lang === 'fr';
     const strings = {
@@ -222,6 +268,8 @@
       sourcingNote: ['Share your preferred configuration and quantity for a tailored quote.', 'Indiquez la configuration souhaitée et la quantité pour un devis adapté.'],
       sourcingRequest: ['Product sourcing', 'Approvisionnement produit'],
       requestedModel: ['Requested family/model', 'Famille/modèle demandé'],
+      verifiedModel: ['verified model', 'modèle vérifié'],
+      verifiedModels: ['verified models', 'modèles vérifiés'],
     };
     return (strings[key] || [key, key])[french ? 1 : 0];
   }
@@ -237,12 +285,21 @@
    * to their existing Layer-2 category. It intentionally ignores incomplete,
    * quarantined, remote, or review-only source records.
    * ------------------------------------------------------------------- */
+  function escapeRegExp(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  // Source values sometimes already embed the declared unit (for example
+  // "37.1 cm (14.6\")" with unit "cm"). Keep source text intact but never
+  // repeat that unit in customer-facing summaries.
+  function formatSourceSpecification(value, unit) {
+    const text = String(value || '').trim();
+    const suffix = String(unit || '').trim();
+    if (!text || !suffix) return text;
+    const unitPattern = new RegExp('(^|[^a-z0-9])' + escapeRegExp(suffix) + '(?=$|[^a-z0-9])', 'i');
+    return unitPattern.test(text) ? text : text + ' ' + suffix;
+  }
   function generatedSpec(product, names) {
     const entry = (product.specifications || []).find(function (item) { return names.indexOf(item.name) !== -1 && item.value; });
     if (!entry) return null;
-    const value = String(entry.value).trim();
-    const unit = String(entry.unit || '').trim();
-    return unit && !value.toLowerCase().endsWith(unit.toLowerCase()) ? value + ' ' + unit : value;
+    return formatSourceSpecification(entry.value, entry.unit);
   }
 
   function isLocalCatalogPath(value) {
@@ -468,21 +525,61 @@
     root.innerHTML = '<div class="cat-grid">' + cards + '</div>';
   }
 
+  function verifiedBrandFeature(brand, fallbackAlt) {
+    for (let f = 0; f < brand.families.length; f += 1) {
+      const model = brand.families[f].models.find(isVerifiedModel);
+      if (model) {
+        const image = primaryProductImage(model, fallbackAlt);
+        if (image) return { model: model, image: image };
+      }
+    }
+    return null;
+  }
+  function brandShowroomHeader(cat, brand, family) {
+    const showroom = brandShowroom(brand);
+    if (!showroom) return '';
+    const feature = verifiedBrandFeature(brand, brand.name + ' ' + cat.name);
+    const familyLabel = family ? family.name : cat.name;
+    const familyList = brand.families.slice(0, 4).map(function (item) { return esc(item.name); }).join('<span aria-hidden="true">/</span>');
+    const media = feature
+      ? '<div class="brand-showroom-feature-media"><img src="' + esc(feature.image.src) + '" alt="' + esc(feature.image.alt || displayName(brand, feature.model)) + '" loading="eager"></div>'
+      : '';
+    return '<section class="brand-showroom-header brand-showroom-header--' + showroom + '" data-brand-showroom="' + showroom + '">' +
+      '<div class="brand-showroom-rail" aria-hidden="true"></div>' +
+      '<div class="brand-showroom-copy"><p>' + esc(brand.name) + ' · ' + esc(cat.name) + '</p>' +
+      '<h2>' + esc(familyLabel) + '</h2>' +
+      '<span>' + esc(catalogText('verified')) + ' · ' + esc(brand.name) + '</span>' +
+      '<div class="brand-showroom-index">' + familyList + '</div></div>' + media +
+      '</section>';
+  }
   function renderFamilyGrid(cat, brand) {
-    applyCatalogPresentation(cat);
+    applyCatalogPresentation(cat, null, brand);
     renderBreadcrumbs([
       { label: 'Products', hash: '#products' },
       { label: cat.name, hash: '#products/' + cat.id },
       { label: brand.name, hash: '#products/' + cat.id + '/' + slugify(brand.name) },
     ]);
+    const samsungCollections = brandShowroom(brand) === 'samsung' && (cat.id === 'phones' || cat.id === 'tablets');
+    const totalVerified = brand.families.reduce(function (count, fam) { return count + fam.models.filter(isVerifiedModel).length; }, 0);
     const cards = brand.families.map(fam => {
+      if (samsungCollections) {
+        const verifiedCount = fam.models.filter(isVerifiedModel).length;
+        const label = fam.name === 'Models' ? 'All ' + brand.name + ' ' + cat.name.toLowerCase() : fam.name;
+        const countLabel = verifiedCount
+          ? verifiedCount + ' ' + catalogText(verifiedCount === 1 ? 'verifiedModel' : 'verifiedModels')
+          : catalogText('sourcing');
+        return '<a class="samsung-collection-link" href="#products/' + cat.id + '/' + slugify(brand.name) + '/' + slugify(fam.name) + '">' +
+          '<span><strong>' + esc(label) + '</strong><small>' + esc(countLabel) + '</small></span><b aria-hidden="true">→</b></a>';
+      }
       return '<a class="cat-card" href="#products/' + cat.id + '/' + slugify(brand.name) + '/' + slugify(fam.name) + '">' +
         '<span class="cat-card-icon">' + iconSvg(cat.icon) + '</span>' +
         '<span class="cat-card-name">' + esc(fam.name) + '</span>' +
         '<span class="cat-card-count">' + fam.models.length + (fam.models.length === 1 ? ' model' : ' models') + '</span>' +
         '</a>';
     }).join('');
-    root.innerHTML = '<div class="cat-grid">' + cards + '</div>';
+    const collectionSummary = samsungCollections && totalVerified
+      ? '<div class="samsung-collection-summary">' + totalVerified + ' ' + esc(catalogText(totalVerified === 1 ? 'verifiedModel' : 'verifiedModels')) + '</div>' : '';
+    root.innerHTML = brandShowroomHeader(cat, brand) + collectionSummary + '<div class="' + (samsungCollections ? 'samsung-collection-nav' : 'cat-grid') + '">' + cards + '</div>';
   }
 
   function modelCardHtml(model, cat, brand, fam) {
@@ -495,10 +592,11 @@
       : '<div class="catalog-procurement-mark" aria-hidden="true">' + iconSvg(cat.icon) + '</div>';
     const listing = modelListingType(model);
     const theme = catalogPresentation(cat, model);
+    const showroom = brandShowroom(brand, model);
     const actions = verified
       ? '<div style="display:flex;gap:8px;"><button type="button" class="pbtn model-details-btn" style="flex:1">' + esc(catalogText('viewDetails')) + '</button><button type="button" class="pbtn model-quote-btn" style="flex:1">' + esc(catalogText('requestQuote')) + ' &#9662;</button></div>'
       : '<div class="model-card-actions--single"><button type="button" class="pbtn model-details-btn" style="width:100%">' + esc(catalogText('requestSourcing')) + ' &#9662;</button></div>';
-    return '<div class="model-card model-card--' + listing + '" data-model-id="' + esc(model.id) + '" data-listing-type="' + listing + '" data-catalog-theme="' + theme + '">' +
+    return '<div class="model-card model-card--' + listing + '" data-model-id="' + esc(model.id) + '" data-listing-type="' + listing + '" data-catalog-theme="' + theme + '" data-catalog-geometry="' + catalogGeometry(cat) + '"' + (showroom ? ' data-catalog-brand="' + showroom + '"' : '') + '>' +
       media +
       '<div class="model-card-body">' +
       '<div class="listing-badge listing-badge--' + listing + '">' + esc(catalogText(listing)) + '</div>' +
@@ -510,7 +608,7 @@
   }
 
   function renderModelGrid(cat, brand, fam) {
-    applyCatalogPresentation(cat);
+    applyCatalogPresentation(cat, null, brand);
     renderBreadcrumbs([
       { label: 'Products', hash: '#products' },
       { label: cat.name, hash: '#products/' + cat.id },
@@ -518,7 +616,7 @@
       { label: fam.name, hash: '#products/' + cat.id + '/' + slugify(brand.name) + '/' + slugify(fam.name) },
     ]);
     const cards = fam.models.map(model => modelCardHtml(model, cat, brand, fam)).join('');
-    root.innerHTML = '<div class="model-grid">' + cards + '</div>';
+    root.innerHTML = brandShowroomHeader(cat, brand, fam) + '<div class="model-grid">' + cards + '</div>';
     wireModelCards(root, cat, brand, fam);
   }
 
@@ -687,9 +785,13 @@
 
   function openModelQuote(model, cat, brand, fam) {
     const sourcing = !isVerifiedModel(model);
-    const theme = applyCatalogPresentation(cat, model);
+    const theme = applyCatalogPresentation(cat, model, brand);
     currentModelCtx = { model, cat, brand, fam, isSourcing: sourcing, values: {} };
-    document.getElementById('pgal-overlay').setAttribute('data-catalog-theme', theme);
+    const modal = document.getElementById('pgal-overlay');
+    modal.setAttribute('data-catalog-theme', theme);
+    modal.setAttribute('data-catalog-geometry', catalogGeometry(cat));
+    const showroom = brandShowroom(brand, model);
+    if (showroom) modal.setAttribute('data-catalog-brand', showroom); else modal.removeAttribute('data-catalog-brand');
 
     document.getElementById('pgal-kicker').textContent = sourcing
       ? catalogText('sourcing') + ' · ' + brand.name
