@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '17 08 * * *'
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -31,6 +33,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Audit quote API contract
+        run: node scripts/qa/quote-api-audit.mjs
 
       - name: Set up Python
         uses: actions/setup-python@v5
