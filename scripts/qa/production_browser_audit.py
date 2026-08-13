@@ -152,9 +152,14 @@ with sync_playwright() as p:
         for i in range(cards.count()):
             card = cards.nth(i)
             card.evaluate('el => el.scrollIntoView({block: "center", inline: "nearest"})')
-            card_data = card.evaluate('''el => { const im=el.querySelector('img'); const r=im && im.getBoundingClientRect(); return { id:el.dataset.modelId, text:el.innerText, placeholder:!!el.querySelector('.product-image.ph'), image:im && {src:im.src, complete:im.complete, w:im.naturalWidth, h:im.naturalHeight, rw:r.width, rh:r.height} }; }''')
+            card_data = card.evaluate('''el => { const im=el.querySelector('img'); const r=im && im.getBoundingClientRect(); const sourcing=el.dataset.listingType === 'sourcing'; return { id:el.dataset.modelId, text:el.innerText, sourcing, placeholder:!!el.querySelector('.product-image.ph'), procurementCompact:!!el.querySelector('.catalog-procurement-mark'), image:im && {src:im.src, complete:im.complete, w:im.naturalWidth, h:im.naturalHeight, rw:r.width, rh:r.height} }; }''')
             report['cardsInspected'] += 1
-            if card_data['placeholder']:
+            # Sourcing listings intentionally use Procurement Compact: a small
+            # semantic icon and CTA, not a faux product-image stage. Treat it
+            # as an intentional fallback, never as a broken exact SKU image.
+            if card_data['sourcing'] and card_data['procurementCompact']:
+                report['fallbackImages'].append({'route': route, 'id': card_data['id'], 'type': 'sourcing-procurement'})
+            elif card_data['placeholder']:
                 report['fallbackImages'].append({'route': route, 'id': card_data['id']})
             elif not card_data['image'] or not card_data['image']['complete'] or not card_data['image']['w']:
                 report['brokenImages'].append({'scope':'card','route':route,'id':card_data['id'],'image':card_data['image']})

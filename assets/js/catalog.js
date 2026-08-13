@@ -219,7 +219,7 @@
       requestQuote: ['Request Quote', 'Demander un devis'],
       requestSourcing: ['Request sourcing', 'Demander un approvisionnement'],
       sourcingDescription: ['Sourcing request — availability and configuration vary by market.', 'Demande d’approvisionnement — la disponibilité et la configuration varient selon le marché.'],
-      sourcingNote: ['Availability varies by market. Share your preferred configuration and quantity for a tailored quote.', 'La disponibilité varie selon le marché. Indiquez la configuration souhaitée et la quantité pour un devis adapté.'],
+      sourcingNote: ['Share your preferred configuration and quantity for a tailored quote.', 'Indiquez la configuration souhaitée et la quantité pour un devis adapté.'],
       sourcingRequest: ['Product sourcing', 'Approvisionnement produit'],
       requestedModel: ['Requested family/model', 'Famille/modèle demandé'],
     };
