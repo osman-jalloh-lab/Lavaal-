@@ -16,8 +16,9 @@ export function enrichCandidateMetadata(candidate, xml, categoryMap) {
   const officialGtins = values([...descendants(product, 'EanCode'), ...descendants(product, 'EANCode')], ['EAN', 'Value']);
   const family = attribute(product, 'Family') ?? attribute(first(product, 'Family'), 'Name', 'Value') ?? text(first(product, 'Family')) ?? null;
   const series = attribute(product, 'Series') ?? attribute(first(product, 'Series'), 'Name', 'Value') ?? text(first(product, 'Series')) ?? null;
-  const haystack = [productName, normalized.shortDescription, ...normalized.specifications.flatMap(item => [item.name, item.value])].filter(Boolean).join(' ');
-  const conditionMatch = haystack.match(/\brefurbished\b/i);
+  const haystack = [productName, normalized.shortDescription].filter(Boolean).join(' ');
+  const conditionFeature = normalized.specifications.find(item => /\b(refurbished|renewed|used|open.box)\b/i.test(item.name || '') && /\b(yes|refurbished|renewed|used|open.box)\b/i.test(item.value || ''));
+  const conditionMatch = `${haystack} ${conditionFeature ? `${conditionFeature.name} ${conditionFeature.value}` : ''}`.match(/\b(refurbished|renewed|used|open.box)\b/i);
   const gallery = normalized._gallery ?? []; const permitted = gallery.filter(item => !item.isRich && !item.expirationDate);
   const base = {
     lavaallCategory: candidate.lavaallCategory, brand: candidate.brand, icecatId: String(candidate.icecatId), mpn: candidate.mpn ?? null, gtins: candidate.gtins ?? [], indexModelName: candidate.modelName ?? null, countryMarkets: candidate.countryMarkets ?? [], indexUpdated: candidate.updated ?? null, selected: false,

@@ -27,6 +27,17 @@ honeypot. No customer data was submitted.
 Each integrated SKU has authoritative supplier/category/MPN/GTIN, four
 curated permitted local images and passing media validation.
 
+### Condition reconciliation: ThinkBook 14 G7 (`120862582`)
+
+Fresh authoritative Product XML confirms supplier **Lenovo** (`728`), category
+**Laptops** (`151` → `computers`), product **ThinkBook 14 G7 ARP**, MPN
+`21MV001HGE`, and GTIN `0198153150373`. Its only condition-related source
+feature is `Certified refurbished: No`; no renewed, used, open-box or other
+condition evidence appears in the normalized record. The prior defer was a
+parser false positive that matched the feature *name* rather than its value.
+The enrichment rule and regression test now require affirmative condition
+evidence, so this SKU remains eligible and production-approved.
+
 ## Monitor and refrigeration discovery
 
 The cached source index and authoritative XML support a monitor shortlist
