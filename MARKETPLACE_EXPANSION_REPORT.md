@@ -70,12 +70,11 @@ adapter tests, quote API audit and syntax checks passed.
 2. Perform import, visual curation and browser QA for the discovered monitor
    and refrigeration shortlists before production integration.
 
-## Release-gate promotion (pending deployment verification)
+## Release-gate promotion
 
 Nine monitors and nine freezer products have now passed authoritative identity,
 condition, source-entitlement, local-media, and visual-curation gates. The
-browser bundle contains 49 approved exact SKUs pending the Vercel release
-check. Monitor coverage adds five Dell displays, two HP displays, and two
+browser bundle contains 49 approved exact SKUs. Monitor coverage adds five Dell displays, two HP displays, and two
 Lenovo ThinkVision displays. Refrigeration adds Samsung, LG, Whirlpool, Beko,
 Haier, and Hisense freezer models; product names and all displayed
 specifications remain source-backed.
@@ -92,3 +91,11 @@ dimensions; tries `decode()`; and makes one controlled retry of that same
 selected source. It records source, dimensions, elapsed time, and correlated
 network response rather than treating a single cold-cache sample as either a
 pass or a failure.
+
+Vercel served the deployed browser bundle with 49 production-approved products
+at `cle1::98fml-1786584627634-5a5dd9cd87b7`. Three full fresh-context production
+crawls passed: desktop A, desktop B, and 390px mobile. Each opened 185 customer
+listings (49 verified, 136 sourcing), visited 185 routes, activated 193 gallery
+thumbnails, checked 49 exact searches and 185 quote-prefill paths, and found
+zero broken or wrong images, blank routes, dead controls, console errors,
+network errors, or quarantined products.
