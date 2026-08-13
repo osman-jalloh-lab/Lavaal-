@@ -69,3 +69,26 @@ adapter tests, quote API audit and syntax checks passed.
    input and reports delivery unavailable.
 2. Perform import, visual curation and browser QA for the discovered monitor
    and refrigeration shortlists before production integration.
+
+## Release-gate promotion (pending deployment verification)
+
+Nine monitors and nine freezer products have now passed authoritative identity,
+condition, source-entitlement, local-media, and visual-curation gates. The
+browser bundle contains 49 approved exact SKUs pending the Vercel release
+check. Monitor coverage adds five Dell displays, two HP displays, and two
+Lenovo ThinkVision displays. Refrigeration adds Samsung, LG, Whirlpool, Beko,
+Haier, and Hisense freezer models; product names and all displayed
+specifications remain source-backed.
+
+The monitor hard-blocks `120864701`, `132357964`, and `132365290` remain out:
+their authoritative XML supplier is R-Go Tools. Refrigeration exclusions are
+Samsung `146926165`, AEG `124288549`, and Electrolux `122923549`, each because
+the permitted gallery did not include a clean truthful exterior hero. HP
+`131284986` is excluded for the same visual reason.
+
+The browser crawler now performs a strict, bounded image state machine: it
+requires an attached, visible selected image with nonzero natural and rendered
+dimensions; tries `decode()`; and makes one controlled retry of that same
+selected source. It records source, dimensions, elapsed time, and correlated
+network response rather than treating a single cold-cache sample as either a
+pass or a failure.

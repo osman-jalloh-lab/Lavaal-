@@ -8,7 +8,7 @@ parser.add_argument('--report', default='scripts/qa/reports/production-browser-a
 parser.add_argument('--mobile', action='store_true')
 args = parser.parse_args()
 base = args.base_url.rstrip('/')
-report = {'baseUrl': base, 'mobile': args.mobile, 'categoriesVisited': [], 'brandsVisited': [], 'familiesVisited': [], 'routesVisited': [], 'productsOpened': [], 'cardsInspected': 0, 'imagesInspected': 0, 'galleryThumbnailsClicked': 0, 'searchesPerformed': 0, 'quoteChecks': 0, 'sourcingQuoteChecks': 0, 'listingCounts': {'verified': 0, 'sourcing': 0}, 'languageChecks': {}, 'brokenImages': [], 'wrongImages': [], 'fallbackImages': [], 'blankRoutes': [], 'deadButtons': [], 'consoleErrors': [], 'networkErrors': [], 'routingFailures': [], 'searchFailures': [], 'quoteFailures': [], 'quarantinedVisible': [], 'generatedCatalogMissing': False}
+report = {'baseUrl': base, 'mobile': args.mobile, 'categoriesVisited': [], 'brandsVisited': [], 'familiesVisited': [], 'routesVisited': [], 'productsOpened': [], 'cardsInspected': 0, 'imagesInspected': 0, 'galleryThumbnailsClicked': 0, 'galleryImageChecks': [], 'searchesPerformed': 0, 'quoteChecks': 0, 'sourcingQuoteChecks': 0, 'listingCounts': {'verified': 0, 'sourcing': 0}, 'languageChecks': {}, 'brokenImages': [], 'wrongImages': [], 'fallbackImages': [], 'blankRoutes': [], 'deadButtons': [], 'consoleErrors': [], 'networkErrors': [], 'routingFailures': [], 'searchFailures': [], 'quoteFailures': [], 'quarantinedVisible': [], 'generatedCatalogMissing': False}
 
 def wait(page, ms=220):
     page.wait_for_timeout(ms)
@@ -16,13 +16,86 @@ def wait(page, ms=220):
 def slug(value):
     return re.sub(r'^-|-$', '', re.sub(r'[^a-z0-9]+', '-', str(value).lower()))
 
+def verify_gallery_image(page, expected_src):
+    """Verify one selected gallery image with one controlled decode retry.
+
+    A successful HTTP response alone is not sufficient: the selected DOM image
+    must be visible, use the selected thumbnail source, and have decoded
+    dimensions. Conversely, a cold-cache decode can settle just after the
+    selection event, so the first attempt waits for decode and the second
+    reassigns the same selected source once before declaring a real failure.
+    """
+    started = time.monotonic()
+    attempts = []
+    for number in (1, 2):
+        state = page.evaluate('''async ({expected, retry}) => {
+            const img = document.querySelector('#pgal-main-img');
+            const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+            const snapshot = () => {
+                if (!img) return { attached:false, visible:false, sourceMatches:false, complete:false, naturalWidth:0, naturalHeight:0, renderedWidth:0, renderedHeight:0, src:'', currentSrc:'' };
+                const rect = img.getBoundingClientRect();
+                const style = getComputedStyle(img);
+                return {
+                    attached: img.isConnected,
+                    visible: style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0 && rect.width > 0 && rect.height > 0,
+                    sourceMatches: img.currentSrc === expected || img.src === expected,
+                    complete: img.complete,
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight,
+                    renderedWidth: rect.width,
+                    renderedHeight: rect.height,
+                    src: img.src,
+                    currentSrc: img.currentSrc
+                };
+            };
+            if (!img) return snapshot();
+            img.scrollIntoView({ block:'center', inline:'nearest' });
+            for (let tick = 0; tick < 50 && !snapshot().sourceMatches; tick += 1) await sleep(50);
+            let before = snapshot();
+            if (before.sourceMatches && before.complete && before.naturalWidth > 0 && before.naturalHeight > 0) return before;
+            try { await Promise.race([img.decode(), sleep(6000)]); } catch (_) { /* snapshot below decides */ }
+            let afterDecode = snapshot();
+            if (afterDecode.sourceMatches && afterDecode.complete && afterDecode.naturalWidth > 0 && afterDecode.naturalHeight > 0) return afterDecode;
+            if (retry && afterDecode.sourceMatches) {
+                // One controlled retry of the exact selected source. This
+                // neither changes gallery selection nor masks a wrong image.
+                img.src = expected;
+                try { await Promise.race([img.decode(), sleep(6000)]); } catch (_) { /* snapshot below decides */ }
+            }
+            return snapshot();
+        }''', {'expected': expected_src, 'retry': number == 2})
+        state['attempt'] = number
+        state['elapsedMs'] = round((time.monotonic() - started) * 1000)
+        attempts.append(state)
+        if state['attached'] and state['visible'] and state['sourceMatches'] and state['complete'] and state['naturalWidth'] > 0 and state['naturalHeight'] > 0:
+            return {'outcome': 'HTTP_OK_DECODE_OK' if number == 1 else 'HTTP_OK_DECODE_DELAYED', 'attempts': attempts, 'final': state}
+    final = attempts[-1]
+    if not final['attached'] or not final['visible'] or not final['renderedWidth'] or not final['renderedHeight']:
+        outcome = 'RENDERED_ZERO_SIZE'
+    elif not final['sourceMatches']:
+        outcome = 'WRONG_PRODUCT_MEDIA'
+    else:
+        outcome = 'HTTP_OK_DECODE_FAILED'
+    return {'outcome': outcome, 'attempts': attempts, 'final': final}
+
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     context = browser.new_context(viewport={'width': 390, 'height': 844} if args.mobile else {'width': 1440, 'height': 900})
     page = context.new_page()
+    image_responses = {}
+    def record_response(res):
+        if '/images/catalog/' in res.url:
+            image_responses[res.url] = {
+                'status': res.status,
+                'contentType': res.headers.get('content-type', ''),
+                'completedAt': round(time.time() * 1000),
+                'route': page.url
+            }
+        if res.status >= 400:
+            report['networkErrors'].append({'url': res.url, 'status': res.status, 'route': page.url})
     page.on('console', lambda msg: report['consoleErrors'].append({'type': msg.type, 'text': msg.text, 'url': page.url}) if msg.type in ('error', 'warning') else None)
     page.on('requestfailed', lambda req: report['networkErrors'].append({'url': req.url, 'error': req.failure, 'route': page.url}))
-    page.on('response', lambda res: report['networkErrors'].append({'url': res.url, 'status': res.status, 'route': page.url}) if res.status >= 400 else None)
+    page.on('response', record_response)
     page.goto(base + '/#products', wait_until='domcontentloaded')
     wait(page, 900)
     report['generatedCatalogMissing'] = not bool(page.evaluate('Boolean(window.LAVAALL_GENERATED_CATALOG && window.LAVAALL_GENERATED_CATALOG.products)'))
@@ -78,7 +151,7 @@ with sync_playwright() as p:
         cards = page.locator('#catalog-root .model-card')
         for i in range(cards.count()):
             card = cards.nth(i)
-            card.scroll_into_view_if_needed()
+            card.evaluate('el => el.scrollIntoView({block: "center", inline: "nearest"})')
             card_data = card.evaluate('''el => { const im=el.querySelector('img'); const r=im && im.getBoundingClientRect(); return { id:el.dataset.modelId, text:el.innerText, placeholder:!!el.querySelector('.product-image.ph'), image:im && {src:im.src, complete:im.complete, w:im.naturalWidth, h:im.naturalHeight, rw:r.width, rh:r.height} }; }''')
             report['cardsInspected'] += 1
             if card_data['placeholder']:
@@ -100,25 +173,27 @@ with sync_playwright() as p:
             page.locator('.pgal-overlay.show').wait_for(state='visible')
             wait(page, 15)
             modal = page.evaluate('''() => { const im=document.querySelector('#pgal-main-img'); const ph=document.querySelector('#pgal-main-placeholder'); return {title:document.querySelector('#pgal-title')?.textContent || '', desc:document.querySelector('#pgal-desc')?.textContent || '', src:im?.src || '', w:im?.naturalWidth || 0, h:im?.naturalHeight || 0, placeholder:!!ph && getComputedStyle(ph).display !== 'none'}; }''')
-            if not modal['title'] or 'undefined' in (modal['title'] + modal['desc']).lower() or (not modal['placeholder'] and not modal['w']):
-                report['brokenImages'].append({'scope':'detail','route':route,'id':card_data['id'],'modal':modal})
+            initial_check = None if modal['placeholder'] or not modal['src'] else verify_gallery_image(page, modal['src'])
+            if not modal['title'] or 'undefined' in (modal['title'] + modal['desc']).lower() or (initial_check and initial_check['outcome'] not in ('HTTP_OK_DECODE_OK', 'HTTP_OK_DECODE_DELAYED')):
+                report['brokenImages'].append({'scope':'detail','route':route,'id':card_data['id'],'modal':modal,'imageCheck':initial_check})
             thumbs = page.locator('.pgal-thumbs button')
             thumb_count = thumbs.count()
             if thumb_count > 1:
                 for thumb in range(thumb_count):
                     expected_src = thumbs.nth(thumb).locator('img').evaluate('im => im.src')
                     thumbs.nth(thumb).click()
-                    # Remote production images can take longer than a local
-                    # cached file. Wait for this exact selected source to
-                    # decode; the prior main image may still have dimensions.
-                    try:
-                        page.wait_for_function('(expected) => { const im = document.querySelector("#pgal-main-img"); return (im.currentSrc === expected || im.src === expected) && im.complete && im.naturalWidth > 0; }', expected_src, timeout=30000)
-                    except Exception:
-                        pass
-                    state = page.evaluate('''() => ({w:document.querySelector('#pgal-main-img').naturalWidth, pressed:[...document.querySelectorAll('.pgal-thumbs button')].map(b=>b.getAttribute('aria-pressed'))})''')
+                    image_check = verify_gallery_image(page, expected_src)
+                    state = page.evaluate('''() => ({pressed:[...document.querySelectorAll('.pgal-thumbs button')].map(b=>b.getAttribute('aria-pressed'))})''')
                     report['galleryThumbnailsClicked'] += 1
-                    if not state['w'] or state['pressed'].count('true') != 1 or state['pressed'][thumb] != 'true':
-                        report['brokenImages'].append({'scope':'gallery','route':route,'id':card_data['id'],'thumbnail':thumb,'state':state})
+                    network = image_responses.get(expected_src)
+                    if network and network['status'] >= 400:
+                        image_check['outcome'] = 'HTTP_FAILED'
+                    diagnostic = {'route': route, 'id': card_data['id'], 'thumbnail': thumb, 'url': expected_src, 'outcome': image_check['outcome'], 'attempts': image_check['attempts'], 'network': network, 'ariaPressed': state['pressed']}
+                    report['galleryImageChecks'].append(diagnostic)
+                    if image_check['outcome'] == 'WRONG_PRODUCT_MEDIA':
+                        report['wrongImages'].append(diagnostic)
+                    if image_check['outcome'] not in ('HTTP_OK_DECODE_OK', 'HTTP_OK_DECODE_DELAYED') or state['pressed'].count('true') != 1 or state['pressed'][thumb] != 'true':
+                        report['brokenImages'].append({'scope':'gallery', **diagnostic})
                 thumbs.nth(0).click()
                 report['galleryThumbnailsClicked'] += 1
             if verified:
