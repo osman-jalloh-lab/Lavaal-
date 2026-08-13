@@ -435,6 +435,16 @@ footer{padding:40px 5% 30px;}
 .splash-refl{position:absolute;left:0;top:100%;width:100%;height:100%;object-fit:contain;transform:scaleY(-1);-webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,0));mask-image:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,0));animation:lv-refl 3.4s ease-in-out infinite;pointer-events:none;filter:blur(1px);}
 .splash-skip{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.3);opacity:0;animation:lv-boot .6s ease .8s both;}
 @media(prefers-reduced-motion:reduce){.splash{display:none;}}
+/* Opt-in human-device media forensics. This is injected only by ?mediaDebug=1. */
+#media-debug-panel{position:fixed;right:12px;bottom:12px;z-index:10001;width:min(360px,calc(100vw - 24px));background:#101722;color:#f5f7fa;border:1px solid rgba(139,215,255,.7);box-shadow:0 12px 32px rgba(0,0,0,.35);font:12px/1.4 Arial,sans-serif;}
+#media-debug-panel details>summary{padding:9px 11px;cursor:pointer;font-weight:700;letter-spacing:.04em;}
+#media-debug-panel .media-debug-body{padding:0 11px 11px;border-top:1px solid rgba(139,215,255,.25);}
+#media-debug-panel .media-debug-title{margin-top:9px;color:#aee8ff;font-weight:700;}
+#media-debug-panel [data-media-debug-summary]{margin:6px 0;overflow-wrap:anywhere;}
+#media-debug-panel .media-debug-actions{display:flex;flex-wrap:wrap;gap:6px;}
+#media-debug-panel button{border:1px solid rgba(174,232,255,.8);background:#172638;color:#f5f7fa;padding:5px 7px;cursor:pointer;font:inherit;}
+#media-debug-panel button:hover{background:#24415e;}
+#media-debug-panel pre{max-height:190px;margin:9px 0 0;padding:7px;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#090d13;color:#d7ebf7;font:10px/1.3 ui-monospace,Consolas,monospace;}
 </style>
 </head>
 <body>

@@ -23,6 +23,9 @@
   const overviewGrid = document.getElementById('catalog-overview-grid');
   const browserEl = document.getElementById('catalog-browser');
   const backBtn = document.getElementById('catalog-back-btn');
+  const mediaDebugEnabled = new URLSearchParams(window.location.search).get('mediaDebug') === '1';
+  let mediaDebugLastError = null;
+  let mediaDebugLastNoCacheTest = null;
   if (!root) return; // catalog markup not present on this page
 
   /* ---------------------------------------------------------------------
@@ -65,6 +68,123 @@
     const d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
     return d.innerHTML;
+  }
+
+  /* ---------------------------------------------------------------------
+   * Human-device media forensics (opt-in only: ?mediaDebug=1)
+   *
+   * This intentionally observes the displayed gallery image rather than
+   * repairing it. In debug mode image errors are retained for inspection;
+   * automatic gallery fallback is suspended so a human can capture the state
+   * that actually failed on their device.
+   * ------------------------------------------------------------------- */
+  function mediaDebugValue(value) { return value == null ? null : value; }
+  function mediaDebugRect(element) {
+    if (!element) return null;
+    const rect = element.getBoundingClientRect(); const style = getComputedStyle(element);
+    return { width: rect.width, height: rect.height, display: style.display, visibility: style.visibility, overflow: style.overflow, opacity: style.opacity };
+  }
+  function mediaDebugStorage(storage) {
+    const values = {};
+    try { for (let index = 0; index < storage.length; index += 1) { const key = storage.key(index); if (key && /(catalog|product|gallery|lavaall)/i.test(key)) values[key] = storage.getItem(key); } } catch (_) {}
+    return values;
+  }
+  function mediaDebugProduct() {
+    if (!currentModelCtx || currentModelCtx.isCategoryQuote) return null;
+    const model = currentModelCtx.model;
+    return {
+      sourceProductId: mediaDebugValue(model.sourceProductId), name: mediaDebugValue(model.name),
+      primaryImage: mediaDebugValue(model.primaryImage), images: (model.images || []).map(function (image) { return image && image.src; }).filter(Boolean),
+      mpn: mediaDebugValue(model.mpn || model.modelNumber), category: mediaDebugValue(currentModelCtx.cat && currentModelCtx.cat.id), brand: mediaDebugValue(currentModelCtx.brand && currentModelCtx.brand.name)
+    };
+  }
+  async function mediaDebugResource(url) {
+    if (!url) return null;
+    const match = performance.getEntriesByType('resource').filter(function (entry) { return entry.name === url; }).pop();
+    const result = match ? { name: match.name, initiatorType: match.initiatorType, duration: match.duration, transferSize: match.transferSize, encodedBodySize: match.encodedBodySize, decodedBodySize: match.decodedBodySize } : null;
+    try {
+      const response = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
+      result && (result.diagnosticFetch = {});
+      const target = result ? result.diagnosticFetch : (result || {});
+      target.status = response.status; target.contentType = response.headers.get('content-type'); target.contentLength = response.headers.get('content-length');
+      return result || { diagnosticFetch: target };
+    } catch (error) { return { diagnosticFetch: { error: String(error) } }; }
+  }
+  async function mediaDebugReport() {
+    const image = document.getElementById('pgal-main-img');
+    const style = image ? getComputedStyle(image) : null;
+    const rect = image && image.getBoundingClientRect();
+    const expected = mediaDebugProduct();
+    let worker = { registrations: [], cacheKeys: [] };
+    try { worker.registrations = (await navigator.serviceWorker.getRegistrations()).map(function (registration) { return registration.scope; }); } catch (_) {}
+    try { worker.cacheKeys = await caches.keys(); } catch (_) {}
+    const displayed = image ? {
+      src: image.src, currentSrc: image.currentSrc, complete: image.complete, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight,
+      renderedWidth: rect.width, renderedHeight: rect.height, display: style.display, visibility: style.visibility, opacity: style.opacity,
+      objectFit: style.objectFit, objectPosition: style.objectPosition, parents: [mediaDebugRect(image.parentElement), mediaDebugRect(image.parentElement && image.parentElement.parentElement)]
+    } : null;
+    const currentSource = displayed && (displayed.currentSrc || displayed.src);
+    const resource = await mediaDebugResource(currentSource);
+    const fetchState = resource && resource.diagnosticFetch;
+    const catalogCommit = window.LAVAALL_GENERATED_CATALOG?.commit || window.LAVAALL_GENERATED_CATALOG?.generatedCommit || null;
+    let deployment = { deployedCommit: document.querySelector('meta[name="lavaall-build"]')?.content || null, vercelId: null, vercelCache: null };
+    try {
+      const response = await fetch(location.href, { cache: 'no-store', credentials: 'same-origin' });
+      deployment.vercelId = response.headers.get('x-vercel-id');
+      deployment.vercelCache = response.headers.get('x-vercel-cache');
+    } catch (_) {}
+    let classification = 'NO_ACTIVE_PRODUCT';
+    if (displayed) {
+      const expectedSources = expected && expected.images ? expected.images.map(function (source) { return new URL(source, location.href).href; }) : [];
+      const mixedVersion = deployment.deployedCommit && catalogCommit && deployment.deployedCommit !== catalogCommit;
+      if (mixedVersion) classification = 'CASE_G_MIXED_BUILD_OR_CATALOG_VERSION';
+      else if (expectedSources.length && expectedSources.indexOf(currentSource) === -1) classification = 'CASE_E_ROUTE_OR_GALLERY_STATE';
+      else if (displayed.naturalWidth > 0 && (!displayed.renderedWidth || !displayed.renderedHeight)) classification = 'CASE_A_LAYOUT_OR_CSS';
+      else if (displayed.naturalWidth > 0 && displayed.renderedWidth > 0 && displayed.renderedHeight > 0 && (displayed.display === 'none' || displayed.visibility === 'hidden' || Number(displayed.opacity) === 0)) classification = 'CASE_B_COMPOSITING_OR_VISIBILITY';
+      else if (!displayed.naturalWidth && mediaDebugLastNoCacheTest && mediaDebugLastNoCacheTest.ok) classification = 'CASE_F_STALE_CLIENT_OR_CDN_CACHE';
+      else if (!displayed.naturalWidth && fetchState && !fetchState.error && fetchState.status >= 200 && fetchState.status < 300 && /^image\//i.test(fetchState.contentType || '')) classification = 'CASE_D_BROWSER_DECODE_OR_LOAD';
+      else if (!displayed.naturalWidth && fetchState) classification = 'CASE_C_NETWORK_CDN_OR_PATH';
+      else if (displayed.naturalWidth && displayed.renderedWidth && displayed.renderedHeight) classification = 'RENDERED_AT_CAPTURE';
+    }
+    return {
+      schema: 'lavaall-media-debug-v1', capturedAt: new Date().toISOString(), version: {
+        deployedCommit: deployment.deployedCommit,
+        vercelId: deployment.vercelId, vercelCache: deployment.vercelCache, catalogCommit: catalogCommit, catalogGeneratedAt: window.LAVAALL_GENERATED_CATALOG?.generatedAt || null,
+        catalogProductCount: window.LAVAALL_GENERATED_CATALOG?.products?.length || 0
+      },
+      browser: { userAgent: navigator.userAgent, viewport: { width: innerWidth, height: innerHeight }, devicePixelRatio: devicePixelRatio, route: location.hash, visibilityState: document.visibilityState, online: navigator.onLine },
+      product: expected, displayedImage: displayed, resource: resource, cacheState: { serviceWorker: worker, localStorage: mediaDebugStorage(localStorage), sessionStorage: mediaDebugStorage(sessionStorage) },
+      lastImageError: mediaDebugLastError, noCacheTest: mediaDebugLastNoCacheTest, classification: classification
+    };
+  }
+  function updateMediaDebugPanel() {
+    if (!mediaDebugEnabled) return;
+    const panel = document.getElementById('media-debug-panel'); if (!panel) return;
+    mediaDebugReport().then(function (report) {
+      panel.querySelector('[data-media-debug-summary]').textContent = report.classification + ' · ' + (report.product ? report.product.sourceProductId : 'no product');
+      panel.querySelector('[data-media-debug-preview]').textContent = JSON.stringify({ product: report.product, displayedImage: report.displayedImage, resource: report.resource, classification: report.classification }, null, 2);
+      panel._mediaDebugReport = report;
+    });
+  }
+  function initMediaDebug() {
+    if (!mediaDebugEnabled || document.getElementById('media-debug-panel')) return;
+    const panel = document.createElement('aside'); panel.id = 'media-debug-panel'; panel.setAttribute('aria-label', 'Media diagnostics');
+    panel.innerHTML = '<details><summary>Media diagnostics</summary><div class="media-debug-body"><div class="media-debug-title">Rendered image forensics</div><div data-media-debug-summary>Open a product to inspect its rendered image.</div><div class="media-debug-actions"><button type="button" data-media-debug-copy>Copy debug report</button><button type="button" data-media-debug-recheck>Recheck image</button><button type="button" data-media-debug-nocache>Test no-cache image</button></div><pre data-media-debug-preview></pre></div></details>';
+    document.body.appendChild(panel);
+    panel.querySelector('[data-media-debug-copy]').addEventListener('click', function () {
+      const report = panel._mediaDebugReport; if (!report) return;
+      const text = JSON.stringify(report, null, 2);
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(function () { window.prompt('Copy this media debug report:', text); });
+      else window.prompt('Copy this media debug report:', text);
+    });
+    panel.querySelector('[data-media-debug-recheck]').addEventListener('click', updateMediaDebugPanel);
+    panel.querySelector('[data-media-debug-nocache]').addEventListener('click', function () {
+      const main = document.getElementById('pgal-main-img'); const src = main && (main.currentSrc || main.src); if (!src) return;
+      const diagnostic = new Image(); const url = new URL(src, location.href); url.searchParams.set('__mediaDebug', Date.now().toString());
+      diagnostic.onload = function () { mediaDebugLastNoCacheTest = { url: url.href, ok: true, naturalWidth: diagnostic.naturalWidth, naturalHeight: diagnostic.naturalHeight }; updateMediaDebugPanel(); };
+      diagnostic.onerror = function () { mediaDebugLastNoCacheTest = { url: url.href, ok: false }; updateMediaDebugPanel(); };
+      diagnostic.src = url.href;
+    });
   }
   function displayName(brand, model) {
     // avoid "Dell Dell OptiPlex" when the model name already includes the brand
@@ -559,6 +679,7 @@
 
     document.getElementById('pgal-overlay').classList.add('show');
     document.body.style.overflow = 'hidden';
+    updateMediaDebugPanel();
   }
 
   function renderProductGallery(model, fallbackAlt, iconKey) {
@@ -589,9 +710,12 @@
         thumb.classList.toggle('on', thumbIndex === index);
         thumb.setAttribute('aria-pressed', String(thumbIndex === index));
       });
+      updateMediaDebugPanel();
     }
 
     mainImg.onerror = function () {
+      mediaDebugLastError = { role: 'main-image', source: mainImg.currentSrc || mainImg.src, activeIndex: activeIndex, at: new Date().toISOString() };
+      if (mediaDebugEnabled) { updateMediaDebugPanel(); return; }
       failed.add(activeIndex);
       const failedThumb = thumbs.children[activeIndex];
       if (failedThumb) failedThumb.style.display = 'none';
@@ -610,6 +734,8 @@
       thumbnail.src = image.src;
       thumbnail.alt = image.alt || fallbackAlt;
       thumbnail.onerror = function () {
+        mediaDebugLastError = { role: 'thumbnail', source: thumbnail.currentSrc || thumbnail.src, index: index, at: new Date().toISOString() };
+        if (mediaDebugEnabled) { updateMediaDebugPanel(); return; }
         failed.add(index);
         button.style.display = 'none';
         if (index === activeIndex) mainImg.onerror();
@@ -620,6 +746,7 @@
     });
     thumbs.style.display = images.length > 1 ? '' : 'none';
     setActive(0);
+    updateMediaDebugPanel();
   }
 
   /* Category-level "I don't know the exact model" sourcing enquiry — reuses
@@ -657,6 +784,7 @@
 
     document.getElementById('pgal-overlay').classList.add('show');
     document.body.style.overflow = 'hidden';
+    updateMediaDebugPanel();
   }
 
   function showFieldsPlaceholder(iconKey) {
@@ -906,6 +1034,7 @@
     // early for non-product hashes and would otherwise leave #catalog-overview
     // permanently empty. renderOverview() is idempotent (overviewRendered
     // guard), so calling it here plus whatever route() does next is safe.
+    initMediaDebug();
     renderOverview();
     loadApprovedGeneratedCatalog();
     // A refreshed deep link should land on the rendered category browser,
