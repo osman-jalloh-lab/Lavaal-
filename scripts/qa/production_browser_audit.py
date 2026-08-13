@@ -178,7 +178,18 @@ with sync_playwright() as p:
             # after scroll without waiting for that cosmetic transition to
             # settle, so exhaustive release QA is deterministic.
             details.click(force=True)
-            page.locator('.pgal-overlay.show').wait_for(state='visible')
+            try:
+                page.locator('.pgal-overlay.show').wait_for(state='visible', timeout=3500)
+            except Exception:
+                # A short transition can occasionally swallow the first forced
+                # click under a moving product card. Retry the same control
+                # once; a real dead detail action remains a release failure.
+                details.click(force=True)
+                try:
+                    page.locator('.pgal-overlay.show').wait_for(state='visible', timeout=3500)
+                except Exception:
+                    report['deadButtons'].append({'route':route,'id':card_data['id'],'reason':'detail-modal-did-not-open'})
+                    continue
             wait(page, 15)
             modal = page.evaluate('''() => { const im=document.querySelector('#pgal-main-img'); const ph=document.querySelector('#pgal-main-placeholder'); return {title:document.querySelector('#pgal-title')?.textContent || '', desc:document.querySelector('#pgal-desc')?.textContent || '', src:im?.src || '', w:im?.naturalWidth || 0, h:im?.naturalHeight || 0, placeholder:!!ph && getComputedStyle(ph).display !== 'none'}; }''')
             initial_check = None if modal['placeholder'] or not modal['src'] else verify_gallery_image(page, modal['src'])
