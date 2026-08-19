@@ -24402,6 +24402,14 @@
           "width": 3300,
           "height": 2805,
           "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/monitors/hp/128735604/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/c51acdbda933305b2f2b2cc6319287a025b5b669.jpeg",
+          "isMain": false,
+          "width": 2000,
+          "height": 2000,
+          "mediaUsageStatus": "permitted"
         }
       ],
       "source": "open-icecat",
@@ -25108,6 +25116,14 @@
           "isMain": false,
           "width": 1500,
           "height": 1412,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/monitors/hp/125298849/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/87ad85e3e527f69caa99b1edaadcc86c6f0ef1c7.png",
+          "isMain": false,
+          "width": 2000,
+          "height": 2000,
           "mediaUsageStatus": "permitted"
         }
       ],
@@ -27091,6 +27107,22 @@
           "width": 1600,
           "height": 1600,
           "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/lg/92642682/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/92642682_0019571761.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/lg/92642682/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/92642682_9896292475.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
         }
       ],
       "source": "open-icecat",
@@ -27319,6 +27351,30 @@
           "path": "images/catalog/refrigeration/whirlpool/32432874/01.webp",
           "sourceUrl": "https://images.icecat.biz/img/gallery_raw/7855f10f8f0bb2689d4e2197ef8d3e16936eac2d.jpeg",
           "isMain": true,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/whirlpool/32432874/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/7bbad9f422bde8009331af0b8afbf0d01b142e92.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/whirlpool/32432874/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/bb53c42598bb7050d8c86cc54b2d7e2df48d5f5a.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/whirlpool/32432874/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/b3bb6484031402004272c0c64f4c3088.jpeg",
+          "isMain": false,
           "width": 1600,
           "height": 1600,
           "mediaUsageStatus": "permitted"
@@ -27565,6 +27621,22 @@
           "path": "images/catalog/refrigeration/whirlpool/138782646/01.webp",
           "sourceUrl": "https://images.icecat.biz/img/gallery_raw/90554424d1b66c5176039605de9a9db0663c2a2e.jpeg",
           "isMain": true,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/whirlpool/138782646/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/da117d70d7cb4c11cf89d14f4a10ab10d8c623d2.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/whirlpool/138782646/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/7661c94a906b608b418618ff74cf75134d64ee4d.jpeg",
+          "isMain": false,
           "width": 1600,
           "height": 1600,
           "mediaUsageStatus": "permitted"
@@ -27847,6 +27919,22 @@
           "sourceUrl": "https://images.icecat.biz/img/gallery_raw/8419bda1374546155b0f08ef70c71d736ff36029.png",
           "isMain": true,
           "width": 594,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/beko/100728086/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/27c34035f56b1d68ad02c59409e8d7db83aaeae7.png",
+          "isMain": false,
+          "width": 748,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/beko/100728086/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/a4bb4adb1356100a4dcfa36d93eecc93e59ed607.png",
+          "isMain": false,
+          "width": 937,
           "height": 1600,
           "mediaUsageStatus": "permitted"
         }
@@ -28170,6 +28258,22 @@
           "width": 513,
           "height": 1600,
           "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/beko/108438264/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/1a3d2a8ecad043ac12d1fdc392c2788758a6f73b.png",
+          "isMain": false,
+          "width": 680,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/beko/108438264/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/0c1a2ab60c31758994d5b0568c4d1c488d5c0c48.png",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
         }
       ],
       "source": "open-icecat",
@@ -28429,6 +28533,14 @@
           "sourceUrl": "https://images.icecat.biz/img/gallery_raw/0f18b0ab33b523213974e7740562a2cf3d7d4497.jpeg",
           "isMain": true,
           "width": 1402,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/haier/129531650/03.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/177ab65779bd0f3e9218d28cc09d6e482d324440.jpeg",
+          "isMain": false,
+          "width": 1600,
           "height": 1600,
           "mediaUsageStatus": "permitted"
         }
@@ -28734,6 +28846,22 @@
           "path": "images/catalog/refrigeration/haier/112196305/01.webp",
           "sourceUrl": "https://images.icecat.biz/img/gallery_raw/8c79f39d003f65412d0858b1192cccbed01c32f4.jpeg",
           "isMain": true,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/haier/112196305/02.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/e0bc92744f79cf75b8101eace67a9ee3cc09fe70.jpeg",
+          "isMain": false,
+          "width": 1600,
+          "height": 1600,
+          "mediaUsageStatus": "permitted"
+        },
+        {
+          "path": "images/catalog/refrigeration/haier/112196305/04.webp",
+          "sourceUrl": "https://images.icecat.biz/img/gallery_raw/1b5c97eede7fcad5a8ef824e73e3211bbdf1e70d.jpeg",
+          "isMain": false,
           "width": 1600,
           "height": 1600,
           "mediaUsageStatus": "permitted"

@@ -1,0 +1,94 @@
+/* ============================================================
+ * Audience filter — Business / B2B · Retail & End Users ·
+ *                   Students & Schools
+ * Rendered above the category card grid on the #products view.
+ * ============================================================ */
+
+/* ── Filter bar ─────────────────────────────────────────────── */
+.cat-aud-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── Individual chip ────────────────────────────────────────── */
+.cat-aud-chip {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 7px 15px;
+  border: 1.5px solid var(--catalog-border, #d7dce1);
+  border-radius: 99px;
+  background: var(--catalog-surface, #fff);
+  color: var(--catalog-muted, #616161);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.cat-aud-chip:hover {
+  border-color: var(--catalog-primary, #0067b8);
+  color: var(--catalog-primary, #0067b8);
+  background: #f0f6ff;
+}
+.cat-aud-chip:focus-visible {
+  outline: 3px solid rgba(0, 103, 184, 0.4);
+  outline-offset: 2px;
+}
+
+/* Active / selected state */
+.cat-aud-chip.cat-aud--active {
+  background: var(--catalog-primary, #0067b8);
+  border-color: var(--catalog-primary, #0067b8);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 103, 184, 0.28);
+}
+.cat-aud-chip.cat-aud--active:hover {
+  background: var(--catalog-primary-hover, #004a7f);
+  border-color: var(--catalog-primary-hover, #004a7f);
+  color: #fff;
+}
+
+/* ── Audience badge pills on each category card ─────────────── */
+.cat-card-aud-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 2px;
+}
+.cat-card-aud {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  line-height: 1.5;
+}
+/* Business / B2B → blue tint */
+.cat-card-aud--business {
+  background: #e8f0fb;
+  color: #1a4faa;
+}
+/* Consumer / Retail → green tint */
+.cat-card-aud--consumer {
+  background: #e8fbf4;
+  color: #0a6e45;
+}
+/* Education → amber tint */
+.cat-card-aud--education {
+  background: #fef8e8;
+  color: #7a5500;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .cat-aud-bar { gap: 6px; margin-bottom: 14px; }
+  .cat-aud-chip { font-size: 12px; padding: 6px 12px; }
+  .cat-card-aud { font-size: 9px; padding: 2px 5px; }
+}

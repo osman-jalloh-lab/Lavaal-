@@ -79,6 +79,30 @@ function simpleFields(conditions) {
 }
 
 const P = 'images/products/'; // shorthand for the existing real-photo folder
+const C = 'images/catalog/';  // shorthand for the imported distributor photo folder
+
+/** Build a standardised images[] for a product whose photos live in
+ *  images/catalog/{category}/{brand}/{srcId}/ numbered 01–{count}.webp
+ *  @param {string} category  e.g. 'phones', 'computers', 'tvs'
+ *  @param {string} brand     e.g. 'samsung', 'dell' (folder name, lowercase)
+ *  @param {string} srcId     numeric sourceProductId string e.g. '132622684'
+ *  @param {string} name      product display name, used for alt text
+ *  @param {number} [count=4] number of images in the folder
+ */
+function catalogImages(category, brand, srcId, name, count) {
+  var folder = C + category + '/' + brand + '/' + srcId + '/';
+  var arr = [];
+  for (var i = 1; i <= (count || 4); i++) {
+    arr.push({
+      src: folder + (i < 10 ? '0' + i : '' + i) + '.webp',
+      alt: name + ' – view ' + i,
+      isMain: i === 1,
+      source: 'distributor',
+      sourceProductId: srcId,
+    });
+  }
+  return arr;
+}
 
 /* =============================================================================
  * PHONES
@@ -138,18 +162,26 @@ function samsungModel(id, name, colors) {
     desc: 'Sourced to order — new or professionally refurbished, tested and warrantied.',
     fields: phoneFields(SAMSUNG_STORAGE, colors) };
 }
+/** samsungModel + distributor images wired in */
+function samsungModelImg(id, name, colors, srcId) {
+  var m = samsungModel(id, name, colors);
+  m.primaryImage = C + 'phones/samsung/' + srcId + '/01.webp';
+  m.images = catalogImages('phones', 'samsung', srcId, name);
+  return m;
+}
+
 const galaxyS = { name: 'Galaxy S', models: [
-  samsungModel('galaxy-s23', 'Galaxy S23', ['Phantom Black', 'Cream', 'Green', 'Lavender']),
-  samsungModel('galaxy-s24', 'Galaxy S24', ['Onyx Black', 'Marble Grey', 'Cobalt Violet', 'Amber Yellow']),
-  samsungModel('galaxy-s24-ultra', 'Galaxy S24 Ultra', ['Titanium Black', 'Titanium Grey', 'Titanium Violet']),
+  samsungModelImg('galaxy-s23', 'Galaxy S23', ['Phantom Black', 'Cream', 'Green', 'Lavender'], '132622684'),
+  samsungModelImg('galaxy-s24', 'Galaxy S24', ['Onyx Black', 'Marble Grey', 'Cobalt Violet', 'Amber Yellow'], '132622687'),
+  samsungModelImg('galaxy-s24-ultra', 'Galaxy S24 Ultra', ['Titanium Black', 'Titanium Grey', 'Titanium Violet'], '132622690'),
 ]};
 const galaxyA = { name: 'Galaxy A', models: [
-  samsungModel('galaxy-a54', 'Galaxy A54', ['Awesome Black', 'Awesome White', 'Awesome Lime']),
-  samsungModel('galaxy-a34', 'Galaxy A34', ['Awesome Silver', 'Awesome Violet', 'Awesome Lime']),
+  samsungModelImg('galaxy-a54', 'Galaxy A54', ['Awesome Black', 'Awesome White', 'Awesome Lime'], '134662666'),
+  samsungModelImg('galaxy-a34', 'Galaxy A34', ['Awesome Silver', 'Awesome Violet', 'Awesome Lime'], '134687004'),
 ]};
 const galaxyZ = { name: 'Galaxy Z', models: [
-  samsungModel('galaxy-z-flip5', 'Galaxy Z Flip5', ['Mint', 'Graphite', 'Cream', 'Lavender']),
-  samsungModel('galaxy-z-fold5', 'Galaxy Z Fold5', ['Icy Blue', 'Phantom Black', 'Cream']),
+  samsungModelImg('galaxy-z-flip5', 'Galaxy Z Flip5', ['Mint', 'Graphite', 'Cream', 'Lavender'], '140065173'),
+  samsungModelImg('galaxy-z-fold5', 'Galaxy Z Fold5', ['Icy Blue', 'Phantom Black', 'Cream'], '141819608'),
 ]};
 
 // Brands prepared for future expansion — one starter family/model each so the
@@ -164,6 +196,7 @@ function stubPhoneBrand(brandName, modelName, id) {
 
 const CATALOG_PHONES = {
   id: 'phones', name: 'Phones', icon: 'phone',
+  audiences: ['consumer', 'education', 'business'],
   brands: [
     { name: 'Apple', families: [iphone11, iphone12, iphone13, iphone14, iphone15, iphone16] },
     { name: 'Samsung', families: [galaxyS, galaxyA, galaxyZ] },
@@ -181,6 +214,7 @@ const CATALOG_PHONES = {
  * ============================================================================= */
 const CATALOG_TABLETS = {
   id: 'tablets', name: 'Tablets', icon: 'tablet',
+  audiences: ['consumer', 'education', 'business'],
   brands: [
     { name: 'Apple', families: [{ name: 'iPad', models: [
       { id: 'ipad-10th-gen', name: 'iPad (10th Gen)', image: null, specLine: '64GB · 256GB · Wi-Fi / Cellular',
@@ -191,7 +225,10 @@ const CATALOG_TABLETS = {
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(APPLE_STORAGE_NEW, ['Space Grey', 'Silver']) },
     ]}]},
     { name: 'Samsung', families: [{ name: 'Galaxy Tab', models: [
-      samsungModel('galaxy-tab-s9', 'Galaxy Tab S9', ['Graphite', 'Beige', 'Silver']),
+      Object.assign(samsungModel('galaxy-tab-s9', 'Galaxy Tab S9', ['Graphite', 'Beige', 'Silver']), {
+        primaryImage: C + 'tablets/samsung/134687128/01.webp',
+        images: catalogImages('tablets', 'samsung', '134687128', 'Samsung Galaxy Tab S9'),
+      }),
     ]}]},
   ],
 };
@@ -201,50 +238,69 @@ const CATALOG_TABLETS = {
  * ============================================================================= */
 const CATALOG_COMPUTERS = {
   id: 'computers', name: 'Computers', icon: 'laptop',
+  audiences: ['consumer', 'education', 'business'],
   brands: [
     { name: 'Dell', families: [
       { name: 'Latitude', models: [
-        { id: 'dell-latitude-5440', name: 'Dell Latitude 5440', image: null, specLine: '14" · Business laptop',
+        { id: 'dell-latitude-5440', name: 'Dell Latitude 5440', image: null,
+          primaryImage: C + 'computers/dell/131192058/01.webp',
+          images: catalogImages('computers', 'dell', '131192058', 'Dell Latitude 5440'),
+          specLine: '14" · Business laptop',
           desc: 'Business-grade laptop for corporate teams.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
       { name: 'OptiPlex', models: [
-        { id: 'dell-optiplex-workstation', name: 'Dell OptiPlex Workstation', image: null, specLine: 'Slim form factor · Intel Core',
+        { id: 'dell-optiplex-workstation', name: 'Dell OptiPlex Workstation', image: P + 'category-business-desktop-original.png', specLine: 'Slim form factor · Intel Core',
           desc: 'Enterprise desktop computers for corporate teams. Slim form factor with powerful Intel Core processors. Bulk orders with pre-configuration available.',
           fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
       { name: 'Precision', models: [
-        { id: 'dell-precision', name: 'Dell Precision Workstation', image: null, specLine: 'Mobile / tower workstation',
+        { id: 'dell-precision', name: 'Dell Precision Workstation', image: null,
+          primaryImage: C + 'computers/dell/131193979/01.webp',
+          images: catalogImages('computers', 'dell', '131193979', 'Dell Precision Workstation'),
+          specLine: 'Mobile / tower workstation',
           desc: 'High-performance workstation for engineering and design workloads.', fields: computerFields(['16GB', '32GB', '64GB'], ['512GB SSD', '1TB SSD', '2TB SSD'], ['Intel Core i7', 'Intel Core i9']) },
       ]},
       { name: 'XPS', models: [
-        { id: 'dell-xps-13', name: 'Dell XPS 13', image: null, specLine: '13" · Ultra-portable',
+        { id: 'dell-xps-13', name: 'Dell XPS 13', image: null,
+          primaryImage: C + 'computers/dell/131194172/01.webp',
+          images: catalogImages('computers', 'dell', '131194172', 'Dell XPS 13'),
+          specLine: '13" · Ultra-portable',
           desc: 'Premium ultra-portable laptop.', fields: computerFields(['16GB', '32GB'], ['512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
     ]},
     { name: 'HP', families: [
       { name: 'EliteBook', models: [
-        { id: 'hp-elitebook', name: 'HP EliteBook', image: null, specLine: 'Business ultrabook',
+        { id: 'hp-elitebook', name: 'HP EliteBook', image: null,
+          primaryImage: C + 'computers/hp/132385656/01.webp',
+          images: catalogImages('computers', 'hp', '132385656', 'HP EliteBook'),
+          specLine: 'Business ultrabook',
           desc: 'Premium business laptop with enterprise security.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
       { name: 'ProBook', models: [
-        { id: 'hp-probook-laptop', name: 'HP ProBook Business Laptop', image: null, specLine: 'MIL-STD durability · All-day battery',
+        { id: 'hp-probook-laptop', name: 'HP ProBook Business Laptop', image: P + 'category-business-laptop-original.png', specLine: 'MIL-STD durability · All-day battery',
           desc: 'Professional-grade laptops built for corporate use. MIL-STD durability, all-day battery, and enterprise security features for your team.',
           fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
       { name: 'ZBook', models: [
-        { id: 'hp-zbook', name: 'HP ZBook Mobile Workstation', image: null, specLine: 'Mobile workstation',
+        { id: 'hp-zbook', name: 'HP ZBook Mobile Workstation', image: null,
+          primaryImage: C + 'computers/hp/132385729/01.webp',
+          images: catalogImages('computers', 'hp', '132385729', 'HP ZBook Mobile Workstation'),
+          specLine: 'Mobile workstation',
           desc: 'Mobile workstation for demanding creative and technical work.', fields: computerFields(['16GB', '32GB', '64GB'], ['512GB SSD', '1TB SSD'], ['Intel Core i7', 'Intel Core i9']) },
       ]},
       { name: 'ProDesk', models: [
-        { id: 'hp-prodesk', name: 'HP ProDesk Desktop', image: null, specLine: 'Small form factor desktop',
+        { id: 'hp-prodesk', name: 'HP ProDesk Desktop', image: null,
+          primaryImage: C + 'computers/hp/132906013/01.webp',
+          images: catalogImages('computers', 'hp', '132906013', 'HP ProDesk Desktop'),
+          specLine: 'Small form factor desktop',
           desc: 'Compact business desktop.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
     ]},
     { name: 'Lenovo', families: [
-      { name: 'ThinkPad', models: [ { id: 'lenovo-thinkpad', name: 'Lenovo ThinkPad', image: null, specLine: 'Business laptop', desc: 'Legendary ThinkPad reliability for business.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) } ]},
-      { name: 'ThinkCentre', models: [ { id: 'lenovo-thinkcentre', name: 'Lenovo ThinkCentre', image: null, specLine: 'Compact desktop', desc: 'Compact, manageable business desktop.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD'], null) } ]},
-      { name: 'IdeaPad', models: [ { id: 'lenovo-ideapad', name: 'Lenovo IdeaPad', image: null, specLine: 'Everyday laptop', desc: 'Everyday laptop for work and study.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) } ]},
-      { name: 'Yoga', models: [ { id: 'lenovo-yoga', name: 'Lenovo Yoga', image: null, specLine: '2-in-1 convertible', desc: 'Convertible 2-in-1 laptop.', fields: computerFields(['8GB', '16GB', '32GB'], ['512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) } ]},
+      { name: 'ThinkPad', models: [ { id: 'lenovo-thinkpad', name: 'Lenovo ThinkPad', image: null, primaryImage: C + 'computers/lenovo/120862582/01.webp', images: catalogImages('computers', 'lenovo', '120862582', 'Lenovo ThinkPad'), specLine: 'Business laptop', desc: 'Legendary ThinkPad reliability for business.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) } ]},
+      { name: 'ThinkCentre', models: [ { id: 'lenovo-thinkcentre', name: 'Lenovo ThinkCentre', image: null, primaryImage: C + 'computers/lenovo/130590632/01.webp', images: catalogImages('computers', 'lenovo', '130590632', 'Lenovo ThinkCentre'), specLine: 'Compact desktop', desc: 'Compact, manageable business desktop.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD'], null) } ]},
+      { name: 'IdeaPad', models: [ { id: 'lenovo-ideapad', name: 'Lenovo IdeaPad', image: null, primaryImage: C + 'computers/lenovo/137510906/01.webp', images: catalogImages('computers', 'lenovo', '137510906', 'Lenovo IdeaPad'), specLine: 'Everyday laptop', desc: 'Everyday laptop for work and study.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) } ]},
+      { name: 'Yoga', models: [ { id: 'lenovo-yoga', name: 'Lenovo Yoga', image: null, primaryImage: C + 'computers/lenovo/149919314/01.webp', images: catalogImages('computers', 'lenovo', '149919314', 'Lenovo Yoga'), specLine: '2-in-1 convertible', desc: 'Convertible 2-in-1 laptop.', fields: computerFields(['8GB', '16GB', '32GB'], ['512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) } ]},
     ]},
     { name: 'Apple', families: [
       { name: 'MacBook Air', models: [ { id: 'macbook-air', name: 'MacBook Air', image: null, specLine: '13" / 15" · M2 / M3', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['8GB', '16GB', '24GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Apple M2', 'Apple M3']) } ]},
@@ -267,20 +323,21 @@ function tvModel(id, name, spec) {
 }
 const CATALOG_TVS = {
   id: 'tvs', name: 'TVs', icon: 'tv',
+  audiences: ['consumer', 'business'],
   brands: [
     { name: 'LG', families: [
-      { name: 'OLED', models: [tvModel('lg-oled', 'LG OLED TV', 'Self-lit pixels · 4K/8K')] },
-      { name: 'QNED', models: [tvModel('lg-qned', 'LG QNED TV', 'Quantum dot NanoCell · 4K')] },
-      { name: 'UHD', models: [tvModel('lg-uhd', 'LG UHD TV', '4K UHD · webOS')] },
+      { name: 'OLED', models: [Object.assign(tvModel('lg-oled', 'LG OLED TV', 'Self-lit pixels · 4K/8K'), { primaryImage: C + 'tvs/lg/139920272/01.webp', images: catalogImages('tvs', 'lg', '139920272', 'LG OLED TV') })] },
+      { name: 'QNED', models: [Object.assign(tvModel('lg-qned', 'LG QNED TV', 'Quantum dot NanoCell · 4K'), { primaryImage: C + 'tvs/lg/55170975/01.webp', images: catalogImages('tvs', 'lg', '55170975', 'LG QNED TV') })] },
+      { name: 'UHD', models: [Object.assign(tvModel('lg-uhd', 'LG UHD TV', '4K UHD · webOS'), { primaryImage: C + 'tvs/lg/36393926/01.webp', images: catalogImages('tvs', 'lg', '36393926', 'LG UHD TV') })] },
     ]},
     { name: 'Samsung', families: [
-      { name: 'QLED', models: [tvModel('samsung-qled', 'Samsung QLED TV', 'Quantum dot · 4K')] },
-      { name: 'Neo QLED', models: [tvModel('samsung-neo-qled', 'Samsung Neo QLED TV', 'Mini-LED · 4K/8K')] },
+      { name: 'QLED', models: [Object.assign(tvModel('samsung-qled', 'Samsung QLED TV', 'Quantum dot · 4K'), { primaryImage: C + 'tvs/samsung/79453785/01.webp', images: catalogImages('tvs', 'samsung', '79453785', 'Samsung QLED TV') })] },
+      { name: 'Neo QLED', models: [Object.assign(tvModel('samsung-neo-qled', 'Samsung Neo QLED TV', 'Mini-LED · 4K/8K'), { primaryImage: C + 'tvs/samsung/79809054/01.webp', images: catalogImages('tvs', 'samsung', '79809054', 'Samsung Neo QLED TV') })] },
       { name: 'UHD', models: [tvModel('samsung-uhd', 'Samsung UHD TV', '4K UHD · Tizen')] },
     ]},
     { name: 'Sony', families: [{ name: 'Bravia', models: [tvModel('sony-bravia', 'Sony Bravia TV', '4K HDR · Google TV')] }]},
     { name: 'TCL', families: [{ name: 'UHD', models: [tvModel('tcl-uhd', 'TCL UHD TV', '4K UHD · Android TV')] }]},
-    { name: 'Hisense', families: [{ name: 'ULED', models: [tvModel('hisense-uled', 'Hisense ULED TV', '4K ULED')] }]},
+    { name: 'Hisense', families: [{ name: 'ULED', models: [Object.assign(tvModel('hisense-uled', 'Hisense ULED TV', '4K ULED'), { primaryImage: C + 'tvs/hisense/120583473/01.webp', images: catalogImages('tvs', 'hisense', '120583473', 'Hisense ULED TV') })] }]},
     { name: 'Vizio', families: [{ name: 'Quantum', models: [tvModel('vizio-quantum', 'Vizio Quantum TV', '4K Quantum Dot')] }]},
   ],
 };
@@ -291,9 +348,13 @@ const CATALOG_TVS = {
  * ============================================================================= */
 const CATALOG_MONITORS = {
   id: 'monitors', name: 'Monitors', icon: 'monitor',
+  audiences: ['business', 'education'],
   brands: [
     { name: 'Dell', families: [{ name: 'UltraSharp', models: [
-      { id: 'dell-ultrasharp-27', name: 'Dell UltraSharp 27"', image: null, specLine: '27" · 4K · IPS',
+      { id: 'dell-ultrasharp-27', name: 'Dell UltraSharp 27"', image: null,
+        primaryImage: C + 'monitors/dell/129621622/01.webp',
+        images: catalogImages('monitors', 'dell', '129621622', 'Dell UltraSharp 27"'),
+        specLine: '27" · 4K · IPS',
         desc: 'Professional colour-accurate monitor.', fields: [{ key: 'size', label: 'Screen Size', type: 'select', options: ['24"', '27"', '32"'] }, { key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K'] }, qtyField(1)] },
     ]}]},
     { name: 'LG', families: [{ name: 'UltraGear', models: [
@@ -309,6 +370,7 @@ const CATALOG_MONITORS = {
 
 const CATALOG_NETWORKING = {
   id: 'networking', name: 'Networking', icon: 'router',
+  audiences: ['business'],
   brands: [
     { name: 'Cisco', families: [
       { name: 'Routers', models: [
@@ -340,14 +402,15 @@ const CATALOG_NETWORKING = {
 
 const CATALOG_SERVERS = {
   id: 'servers', name: 'Servers', icon: 'server',
+  audiences: ['business'],
   brands: [
     { name: 'Dell', families: [{ name: 'PowerEdge', models: [
-      { id: 'dell-poweredge', name: 'Dell PowerEdge Server', image: null, specLine: '1U / 2U / Tower',
+      { id: 'dell-poweredge', name: 'Dell PowerEdge Server', image: P + 'category-server-range-original.png', specLine: '1U / 2U / Tower',
         desc: 'High-performance rack and tower servers for enterprise workloads. Available in 1U, 2U, and tower. Custom configurations on request.',
         fields: serverFields(['16GB', '32GB', '64GB', '128GB+'], ['1TB HDD', '2TB HDD', '4x 1TB SSD RAID'], ['1U Rack', '2U Rack', 'Tower']) },
     ]}]},
     { name: 'HP', families: [{ name: 'ProLiant', models: [
-      { id: 'hp-proliant', name: 'HP ProLiant Server', image: null, specLine: 'Rack / Tower · iLO',
+      { id: 'hp-proliant', name: 'HP ProLiant Server', image: P + 'category-server-range-original.png', specLine: 'Rack / Tower · iLO',
         desc: 'Reliable ProLiant rack and tower servers for virtualization, databases, and business applications. HPE iLO remote management included.',
         fields: serverFields(['16GB', '32GB', '64GB', '128GB+'], ['1TB HDD', '2TB HDD', '4x 1TB SSD RAID'], ['1U Rack', '2U Rack', 'Tower']) },
     ]}]},
@@ -360,6 +423,7 @@ const CATALOG_SERVERS = {
 
 const CATALOG_PRINTERS = {
   id: 'printers', name: 'Printers', icon: 'printer',
+  audiences: ['business', 'education'],
   brands: [
     { name: 'HP', families: [{ name: 'LaserJet', models: [
       { id: 'hp-laserjet', name: 'HP LaserJet Printer', image: null, specLine: 'Mono / Color · Network-ready',
@@ -378,6 +442,7 @@ const CATALOG_PRINTERS = {
 
 const CATALOG_GAMING = {
   id: 'gaming', name: 'Gaming', icon: 'gaming',
+  audiences: ['consumer'],
   brands: [
     { name: 'Sony', families: [{ name: 'PlayStation', models: [
       { id: 'ps5', name: 'PlayStation 5', image: null, specLine: 'Standard / Digital Edition',
@@ -398,6 +463,7 @@ const CATALOG_GAMING = {
 
 const CATALOG_AUDIO = {
   id: 'audio', name: 'Audio', icon: 'audio',
+  audiences: ['consumer', 'business'],
   brands: [
     { name: 'Apple', families: [{ name: 'AirPods', models: [
       { id: 'airpods-pro', name: 'AirPods Pro', image: null, specLine: 'Active noise cancellation', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
@@ -413,6 +479,7 @@ const CATALOG_AUDIO = {
 
 const CATALOG_WATCHES = {
   id: 'watches', name: 'Smart Watches', icon: 'watch',
+  audiences: ['consumer'],
   brands: [
     { name: 'Apple', families: [{ name: 'Apple Watch', models: [
       { id: 'apple-watch-series-9', name: 'Apple Watch Series 9', image: null, specLine: '41mm / 45mm', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
@@ -426,6 +493,7 @@ const CATALOG_WATCHES = {
 
 const CATALOG_CAMERAS = {
   id: 'cameras', name: 'Cameras', icon: 'camera',
+  audiences: ['consumer', 'business'],
   brands: [
     { name: 'Canon', families: [{ name: 'EOS', models: [
       { id: 'canon-eos', name: 'Canon EOS Camera', image: null, specLine: 'Mirrorless / DSLR', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
@@ -441,6 +509,7 @@ const CATALOG_CAMERAS = {
 
 const CATALOG_ACCESSORIES = {
   id: 'accessories', name: 'Accessories', icon: 'accessory',
+  audiences: ['consumer', 'education', 'business'],
   brands: [
     { name: 'Various', families: [
       { name: 'Chargers & Cables', models: [ { id: 'charger-cable', name: 'Chargers & Charging Cables', image: null, specLine: 'USB-C · Lightning · Wireless', desc: 'Genuine and compatible charging accessories.', fields: simpleFields(CONDITION_NEW_ONLY) } ]},
@@ -455,6 +524,7 @@ const CATALOG_ACCESSORIES = {
  * ============================================================================= */
 const CATALOG_FIBER = {
   id: 'fiber', name: 'Fiber & Cabling', icon: 'fiber',
+  audiences: ['business'],
   brands: [
     { name: 'LAVAALL Supply', families: [
       { name: 'Fiber Optic', models: [
@@ -477,6 +547,7 @@ const CATALOG_FIBER = {
  * ============================================================================= */
 const CATALOG_CABLES = {
   id: 'cables', name: 'Cables & Accessories', icon: 'cable',
+  audiences: ['consumer', 'business'],
   brands: [{ name: 'Various', families: [
     { name: 'Armoured & Flex Cables', models: [
       { id: 'cable-armoured-15mm', name: '1.5mm 4-Core Armoured Cable', image: P + 'cables-armoured-reel.jpg', specLine: '4-core · Armoured', desc: 'Supplied by the reel or in custom lengths.', fields: simpleFields() },
@@ -499,6 +570,7 @@ const CATALOG_CABLES = {
 
 const CATALOG_SWITCHES = {
   id: 'switches', name: 'Switches & Sockets', icon: 'switch',
+  audiences: ['business'],
   brands: [{ name: 'Havells / Larsen & Toubro', families: [
     { name: 'DOL Starter Switches', models: [
       { id: 'dol-10hp-lt', name: '10HP DOL Starter (Larsen & Toubro)', image: P + 'switch-lt-dol-10hp.jpg', specLine: '10HP', desc: 'DOL starter switch.', fields: simpleFields() },
@@ -519,6 +591,7 @@ const CATALOG_SWITCHES = {
 
 const CATALOG_POWER = {
   id: 'power', name: 'Power Regulation', icon: 'power',
+  audiences: ['business'],
   brands: [{ name: 'Andeli', families: [
     { name: 'Single-Phase Stabilizers', models: [
       { id: 'stabilizer-1000w', name: 'Andeli 1000W Voltage Stabilizer', image: P + 'power-andeli-1000w.jpg', specLine: '1000W', desc: 'AC automatic voltage stabilizer.', fields: simpleFields() },
@@ -542,6 +615,7 @@ const CATALOG_POWER = {
 
 const CATALOG_HVAC = {
   id: 'hvac', name: 'HVAC & Cooling', icon: 'hvac',
+  audiences: ['business'],
   brands: [{ name: 'Various', families: [
     { name: 'Compressors', models: [
       { id: 'ac-compressor-12000btu', name: '12,000 BTU Rotary AC Compressor', image: P + 'hvac-compressor.jpg', specLine: '12,000 BTU', desc: 'Rotary air conditioner compressor.', fields: simpleFields() },
@@ -554,11 +628,21 @@ const CATALOG_HVAC = {
 
 const CATALOG_REFRIGERATION = {
   id: 'refrigeration', name: 'Refrigeration', icon: 'fridge',
+  audiences: ['consumer', 'business'],
   brands: [{ name: 'Various', families: [{ name: 'Refrigerators & Freezers', models: [
     { id: 'refrigerator-compact', name: 'Compact Refrigerator', image: P + 'appliance-compact-refrigerator.webp', specLine: 'Small kitchen / office use', desc: 'Compact refrigerators for homes, shops, and offices. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
-    { id: 'refrigerator-full', name: 'Full-Size Refrigerator', image: null, specLine: 'Full-size · Family use', desc: 'Full-size refrigerators. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
-    { id: 'freezer-chest', name: 'Chest Freezer', image: null, specLine: 'Chest style', desc: 'Chest freezers for commercial and home use.', fields: simpleFields(CONDITION_NEW_ONLY) },
-    { id: 'freezer-upright', name: 'Upright Freezer', image: null, specLine: 'Upright style', desc: 'Upright freezers for commercial and home use.', fields: simpleFields(CONDITION_NEW_ONLY) },
+    { id: 'refrigerator-full', name: 'Full-Size Refrigerator', image: null,
+      primaryImage: C + 'refrigeration/samsung/141982141/01.webp',
+      images: catalogImages('refrigeration', 'samsung', '141982141', 'Full-Size Refrigerator'),
+      specLine: 'Full-size · Family use', desc: 'Full-size refrigerators. Doorstep delivery available depending on location.', fields: simpleFields(CONDITION_NEW_ONLY) },
+    { id: 'freezer-chest', name: 'Chest Freezer', image: null,
+      primaryImage: C + 'refrigeration/haier/112196305/01.webp',
+      images: catalogImages('refrigeration', 'haier', '112196305', 'Chest Freezer'),
+      specLine: 'Chest style', desc: 'Chest freezers for commercial and home use.', fields: simpleFields(CONDITION_NEW_ONLY) },
+    { id: 'freezer-upright', name: 'Upright Freezer', image: null,
+      primaryImage: C + 'refrigeration/lg/92642682/01.webp',
+      images: catalogImages('refrigeration', 'lg', '92642682', 'Upright Freezer'),
+      specLine: 'Upright style', desc: 'Upright freezers for commercial and home use.', fields: simpleFields(CONDITION_NEW_ONLY) },
   ]}]}],
 };
 

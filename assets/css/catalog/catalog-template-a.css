@@ -1,0 +1,98 @@
+/* ============================================================
+ * Template A — Premium / Editorial
+ * Categories: Phones, Tablets, Computers, Wearables, Cameras,
+ *             Accessories
+ * Design intent: large centered product photography, colour
+ * swatches, clean minimal body text, gallery-like spacing.
+ * ============================================================ */
+
+/* Grid — slightly narrower minimum so more cards fit per row */
+.catalog-shell[data-catalog-template="a"] .model-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* Card shape — softer radius, no hard corners */
+.catalog-shell .model-card--tpl-a {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* Image area — portrait-ratio for phones/tablets when theme=mobile,
+   landscape for computers (theme=enterprise).
+   Overrides the geometry-agnostic min-height from catalog-base.css. */
+.catalog-shell .model-card--tpl-a .catalog-product-media {
+  min-height: 0;
+}
+/* phones / tablets / watches → tall portrait crop */
+.catalog-shell[data-catalog-geometry="portrait"] .model-card--tpl-a .catalog-product-media,
+.catalog-shell #catalog-browser[data-catalog-geometry="portrait"] .model-card--tpl-a .catalog-product-media {
+  aspect-ratio: 3 / 4;
+  background: #f5f5f7;
+}
+/* computers → standard landscape crop */
+.catalog-shell[data-catalog-geometry="landscape"] .model-card--tpl-a .catalog-product-media,
+.catalog-shell #catalog-browser[data-catalog-geometry="landscape"] .model-card--tpl-a .catalog-product-media {
+  aspect-ratio: 4 / 3;
+  background: #f8f8fa;
+}
+
+/* ── Colour swatches ────────────────────────────────────────── */
+.tpl-a-colors {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px 2px;
+  flex-wrap: wrap;
+  min-height: 34px;
+}
+
+/* Individual swatch circle */
+.tpl-a-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  /* white ring + outer stroke keeps light colours visible on white card */
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,.18);
+  flex-shrink: 0;
+  cursor: default;
+  transition: transform 0.15s ease;
+}
+.tpl-a-swatch:hover { transform: scale(1.25); }
+
+/* Overflow badge "+3" etc. */
+.tpl-a-swatch-more {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--catalog-muted, #616161);
+  letter-spacing: 0.03em;
+  margin-left: 2px;
+}
+
+/* ── Card body typography ───────────────────────────────────── */
+.catalog-shell .model-card--tpl-a .model-card-body {
+  padding: 14px 16px 18px;
+}
+.catalog-shell .model-card--tpl-a .model-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.catalog-shell .model-card--tpl-a .model-card-spec {
+  font-size: 12.5px;
+  margin-top: 3px;
+  margin-bottom: 14px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .catalog-shell[data-catalog-template="a"] .model-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .catalog-shell .model-card--tpl-a .model-card-name { font-size: 14px; }
+  .tpl-a-colors { padding: 8px 12px 2px; gap: 5px; }
+  .tpl-a-swatch { width: 12px; height: 12px; }
+}

@@ -31,7 +31,7 @@ body{font-family:'Bricolage Grotesque',sans-serif;background:var(--offwhite);col
 nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:0 6%;height:68px;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);border-bottom:2px solid var(--ink);}
 .logo{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:700;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:8px;}
 .logo-star{width:30px;height:30px;background:var(--sun);border-radius:50%;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:14px;animation:spin 8s linear infinite;}
-.logo-img{height:42px;width:auto;object-fit:contain;display:block;}
+.logo-img{height:52px;width:auto;object-fit:contain;display:block;}/* Phase 6: enlarged from 42px */
 @keyframes spin{to{transform:rotate(360deg);}}
 .nav-links{display:flex;gap:28px;list-style:none;}
 .nav-links a{font-size:14px;font-weight:500;color:var(--ink);text-decoration:none;position:relative;}
@@ -43,6 +43,24 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:cen
 .lb.on{background:var(--sun);color:var(--ink);}
 .nav-cta{padding:9px 22px;background:var(--ink);color:var(--white);border:2px solid var(--ink);border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;text-decoration:none;}
 .nav-cta:hover{background:var(--sun);color:var(--ink);}
+/* HAMBURGER BUTTON */
+.nav-hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;width:40px;height:40px;background:none;border:2px solid var(--ink);border-radius:8px;cursor:pointer;padding:0;gap:5px;transition:background .2s;}
+.nav-hamburger:hover{background:var(--sun);}
+.nav-hamburger:focus-visible{outline:3px solid var(--sky);outline-offset:2px;}
+.nav-hamburger span{display:block;width:20px;height:2px;background:var(--ink);border-radius:2px;transition:transform .25s,opacity .25s;}
+.nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.nav-hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0);}
+.nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+/* MOBILE DRAWER */
+.nav-mobile-drawer{position:fixed;top:68px;left:0;right:0;z-index:498;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-bottom:2px solid var(--ink);display:flex;flex-direction:column;transform:translateY(-110%);transition:transform .3s cubic-bezier(.4,0,.2,1);visibility:hidden;}
+.nav-mobile-drawer.open{transform:translateY(0);visibility:visible;}
+.nav-mobile-drawer ul{list-style:none;padding:0;margin:0;}
+.nav-mobile-drawer ul li a{display:block;padding:18px 6%;font-size:16px;font-weight:600;color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(10,10,20,.1);font-family:'Bricolage Grotesque',sans-serif;}
+.nav-mobile-drawer ul li a:hover{background:var(--offwhite);}
+.nav-mobile-drawer ul li a:focus-visible{outline:3px solid var(--sky);outline-offset:-3px;}
+.nav-mobile-drawer .drawer-cta{display:block;margin:20px 6%;padding:13px 22px;background:var(--ink);color:var(--white);border-radius:100px;font-size:15px;font-weight:600;text-decoration:none;text-align:center;font-family:'Bricolage Grotesque',sans-serif;transition:background .2s,color .2s;}
+.nav-mobile-drawer .drawer-cta:hover{background:var(--sun);color:var(--ink);}
+.nav-mobile-drawer .drawer-cta:focus-visible{outline:3px solid var(--sky);outline-offset:2px;}
 /* HERO */
 .hero{min-height:100vh;background:var(--sky);border-bottom:3px solid var(--ink);display:flex;align-items:center;padding:120px 6% 80px;position:relative;overflow:hidden;}
 .ring{position:absolute;border-radius:50%;border:2px solid rgba(0,0,0,.07);animation:expandRing 4s ease-out infinite;pointer-events:none;}
@@ -98,7 +116,7 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 /* SERVICES */
 #services{background:radial-gradient(circle at 90% 4%,rgba(0,194,255,.06) 0%,transparent 42%),radial-gradient(circle at 4% 96%,rgba(0,245,160,.06) 0%,transparent 42%),var(--white);border-bottom:2px solid var(--ink);}
 .srv-grid{display:grid;grid-template-columns:repeat(3,1fr);}
-.sc{padding:48px 40px;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);position:relative;overflow:hidden;transition:transform .3s;}
+.sc{padding:48px 40px;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);position:relative;overflow:hidden;transition:transform .3s;text-decoration:none;color:inherit;}
 .sc:nth-child(3n){border-right:none;}
 .sc:nth-child(n+4){border-bottom:none;}
 .sc::before{content:'';position:absolute;inset:0;background:var(--sky);transform:translateY(100%);transition:transform .42s cubic-bezier(.16,1,.3,1);z-index:0;}
@@ -225,6 +243,16 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 
 .pbtn{display:block;text-align:center;padding:12px 20px;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;border:2px solid var(--ink);background:transparent;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;text-decoration:none;transition:all .25s;}
 .pbtn:hover{background:var(--ink);color:var(--white);}
+.pbtn:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
+.cat-card:focus-visible{outline:3px solid var(--sky);outline-offset:3px;border-color:var(--sky);}
+.sc:focus-visible{outline:3px solid var(--sky);outline-offset:-3px;}
+.ctry:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
+.bp:focus-visible,.bs:focus-visible,.nav-cta:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
+.catalog-back-btn:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
+.pgal-thumb:focus-visible{outline:3px solid var(--sky);outline-offset:2px;opacity:1;}
+.pgal-close:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
+.faq-item summary:focus-visible{outline:3px solid var(--sky);outline-offset:3px;border-radius:4px;}
+.lb:focus-visible{outline:3px solid rgba(0,194,255,.6);outline-offset:2px;}
 /* COVERAGE */
 #coverage{background:radial-gradient(circle at 92% 10%,rgba(0,194,255,.08) 0%,transparent 45%),radial-gradient(circle at 2% 85%,rgba(255,224,61,.07) 0%,transparent 42%),var(--white);border-bottom:2px solid var(--ink);}
 /* FAQ */
@@ -240,7 +268,7 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .faq-item p{padding:0 2px 24px;font-size:15px;color:var(--muted);line-height:1.75;max-width:680px;}
 .faq-item p strong{color:var(--ink);}
 .countries{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
-.ctry{display:flex;align-items:center;gap:12px;padding:13px 22px;background:var(--offwhite);border:2px solid var(--ink);border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;}
+.ctry{display:flex;align-items:center;gap:12px;padding:13px 22px;background:var(--offwhite);border:2px solid var(--ink);border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;font-family:'Bricolage Grotesque',sans-serif;color:var(--ink);text-decoration:none;}
 .ctry:hover,.ctry.on{background:var(--sky);transform:translateY(-3px);}
 .flag{font-size:22px;}
 .bcloud-hint{margin-top:32px;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);}
@@ -317,12 +345,17 @@ footer a:hover{color:var(--sky);}
 /* RESPONSIVE */
 @media(max-width:900px){
 .nav-links{display:none;}
+.nav-hamburger{display:flex;}
 .hero{padding:100px 5% 80px;}
 .logo-orb{display:none;}
 .hero-content{max-width:100%;}
-.srv-grid{grid-template-columns:1fr;}
-.sc{border-right:none!important;}
-.sc:nth-child(n+4){border-bottom:2px solid var(--ink);}
+html,body{overflow-x:hidden;}
+/* Phase 5: srv-grid 2-col at tablet — was incorrectly jumping 3-col→1-col */
+.srv-grid{grid-template-columns:repeat(2,1fr);}
+.sc:nth-child(3n){border-right:2px solid var(--ink);}/* restore col-1 right border for 2-col layout */
+.sc:nth-child(2n){border-right:none;}/* col-2 cards: no right border */
+.sc:nth-child(n+4){border-bottom:2px solid var(--ink);}/* restore bottom borders removed by base 3-col rule */
+.sc:nth-child(n+5){border-bottom:none;}/* last row (cards 5-6): no bottom border */
 .stats{grid-template-columns:1fr 1fr;}
 .si:nth-child(2){border-right:none;}
 .si:nth-child(3){border-top:2px solid var(--ink);}
@@ -337,8 +370,14 @@ footer a:hover{color:var(--sky);}
 @media(max-width:600px){
 html,body{overflow-x:hidden;max-width:100vw;}
 img{max-width:100%;height:auto;}
+/* Phase 5: srv-grid collapses to 1-col at mobile (inheriting 2-col from 900px above) */
+.srv-grid{grid-template-columns:1fr;}
+.sc{border-right:none!important;}/* strip all right borders for 1-col list */
+.sc:nth-child(5){border-bottom:2px solid var(--ink);}/* card 5 is not last — restore its bottom border */
 nav{padding:0 4%;height:56px;}
+.nav-mobile-drawer{top:56px;}/* matches 56px mobile nav */
 .logo{font-size:18px;}
+.logo-img{height:44px;}/* Phase 6: scale down for 56px mobile nav */
 .nav-cta{padding:7px 14px;font-size:12px;}
 .lang-wrap{transform:scale(.85);}
 h1{font-size:36px;letter-spacing:-1px;line-height:1.05;margin-bottom:16px;}
@@ -453,6 +492,9 @@ footer{padding:40px 5% 30px;}
 <link rel="stylesheet" href="assets/css/catalog/catalog-appliance.css"/>
 <link rel="stylesheet" href="assets/css/catalog/catalog-procurement.css"/>
 <link rel="stylesheet" href="assets/css/catalog/catalog-brand-showrooms.css"/>
+<link rel="stylesheet" href="assets/css/catalog/catalog-template-a.css"/>
+<link rel="stylesheet" href="assets/css/catalog/catalog-template-b.css"/>
+<link rel="stylesheet" href="assets/css/catalog/catalog-audience.css"/>
 </head>
 <body>
 <!-- SPLASH: logo boot animation, plays once per session (see initSplash in the main script) -->
@@ -495,12 +537,26 @@ footer{padding:40px 5% 30px;}
 </ul>
 <div class="nav-r">
 <div class="lang-wrap">
-<button class="lb on" onclick="setLang('en')">EN</button>
-<button class="lb" onclick="setLang('fr')">FR</button>
+<button class="lb on" data-lang="en" onclick="setLang('en')">EN</button>
+<button class="lb" data-lang="fr" onclick="setLang('fr')">FR</button>
+<button class="lb" data-lang="kr" onclick="setLang('kr')">KR</button>
 </div>
 <a href="#signup" class="nav-cta" data-i18n="nav.cta">Request Quote</a>
+<button class="nav-hamburger" id="nav-hamburger" aria-label="Open navigation" aria-expanded="false" aria-controls="nav-mobile-drawer">
+<span></span><span></span><span></span>
+</button>
 </div>
 </nav>
+
+<!-- MOBILE NAV DRAWER -->
+<div class="nav-mobile-drawer" id="nav-mobile-drawer" aria-hidden="true" role="navigation" aria-label="Mobile navigation">
+<ul>
+<li><a href="#services" data-i18n="nav.services">Services</a></li>
+<li><a href="#products" data-i18n="nav.products">Products</a></li>
+<li><a href="#coverage" data-i18n="nav.coverage">Coverage</a></li>
+</ul>
+<a href="#signup" class="drawer-cta" data-i18n="nav.cta">Request Quote</a>
+</div>
 
 <!-- HERO -->
 <section class="hero" id="home">
@@ -554,42 +610,42 @@ footer{padding:40px 5% 30px;}
 <p class="ssub reveal" data-i18n="srv.sub">From equipment procurement and hardware supply to full-scale fiber optic installations and server deployments — your end-to-end technology partner.</p>
 </div>
 <div class="srv-grid">
-<div class="sc reveal" style="cursor:pointer;" onclick="window.location.href='#signup'">
+<a class="sc reveal" href="#signup">
 <div class="sico">&#128225;</div>
 <h3 data-i18n="srv1.h3">Routers &amp; Networking</h3>
 <p data-i18n="srv1.p">Supply and professional installation of enterprise-grade routers, switches, and wireless access points for offices of any size.</p>
 <ul class="sclist" data-i18n="srv1.ul"><li>Cisco, MikroTik &amp; Ubiquiti routers</li><li>Managed &amp; unmanaged switches</li><li>Wireless access points &amp; controllers</li><li>Firewall &amp; UTM appliances</li></ul>
-</div>
-<div class="sc reveal" style="transition-delay:.12s;cursor:pointer;" onclick="window.location.href='#signup'">
+</a>
+<a class="sc reveal" href="#signup" style="transition-delay:.12s;">
 <div class="sico">&#128421;</div>
 <h3 data-i18n="srv2.h3">Servers &amp; Infrastructure</h3>
 <p data-i18n="srv2.p">Procurement and deployment of enterprise servers, NAS storage, and full data room setup for mission-critical operations.</p>
 <ul class="sclist" data-i18n="srv2.ul"><li>Dell PowerEdge rack &amp; tower servers</li><li>HP ProLiant server series</li><li>NAS &amp; SAN storage systems</li><li>Server room build-out &amp; racking</li></ul>
-</div>
-<div class="sc reveal" style="transition-delay:.24s;cursor:pointer;" onclick="window.location.href='#signup'">
+</a>
+<a class="sc reveal" href="#signup" style="transition-delay:.24s;">
 <div class="sico">&#128279;</div>
 <h3 data-i18n="srv3.h3">Fiber Optic Cabling</h3>
 <p data-i18n="srv3.p">End-to-end fiber optic and structured cabling installations for offices, campuses, warehouses, and industrial facilities.</p>
 <ul class="sclist" data-i18n="srv3.ul"><li>Single-mode &amp; multi-mode fiber</li><li>Cat6 / Cat6A structured cabling</li><li>Fiber termination &amp; testing</li><li>Cable trays &amp; management systems</li></ul>
-</div>
-<div class="sc reveal" style="transition-delay:.06s;cursor:pointer;" onclick="window.location.href='#signup'">
+</a>
+<a class="sc reveal" href="#signup" style="transition-delay:.06s;">
 <div class="sico">&#128187;</div>
 <h3 data-i18n="srv4.h3">Computers &amp; Workstations</h3>
 <p data-i18n="srv4.p">Business-grade desktops, laptops, and workstations sourced and configured for corporate environments. Bulk orders welcome.</p>
 <ul class="sclist" data-i18n="srv4.ul"><li>Dell OptiPlex &amp; Precision desktops</li><li>HP ProBook &amp; EliteBook laptops</li><li>Lenovo ThinkCentre &amp; ThinkPad</li><li>Pre-configured bulk deployments</li></ul>
-</div>
-<div class="sc reveal" style="transition-delay:.18s;cursor:pointer;" onclick="window.location.href='#signup'">
+</a>
+<a class="sc reveal" href="#signup" style="transition-delay:.18s;">
 <div class="sico">&#128230;</div>
 <h3 data-i18n="srv5.h3">Equipment Procurement</h3>
 <p data-i18n="srv5.p">We source and procure any IT equipment for your company — directly from global distributors and manufacturers at competitive prices.</p>
 <ul class="sclist" data-i18n="srv5.ul"><li>Global supplier &amp; distributor network</li><li>Custom equipment sourcing</li><li>Bulk &amp; volume order management</li><li>Logistics &amp; last-mile delivery</li></ul>
-</div>
-<div class="sc reveal" style="transition-delay:.3s;cursor:pointer;" onclick="window.location.href='#signup'">
+</a>
+<a class="sc reveal" href="#signup" style="transition-delay:.3s;">
 <div class="sico">&#128736;</div>
 <h3 data-i18n="srv6.h3">IT Installation &amp; Deployment</h3>
 <p data-i18n="srv6.p">Professional on-site installation and commissioning of all IT infrastructure — from single-office setups to multi-site enterprise rollouts.</p>
 <ul class="sclist" data-i18n="srv6.ul"><li>On-site project management</li><li>Network commissioning &amp; testing</li><li>Multi-site &amp; remote deployments</li><li>Post-installation support &amp; training</li></ul>
-</div>
+</a>
 </div>
 </section>
 
@@ -638,9 +694,9 @@ footer{padding:40px 5% 30px;}
 <h2 class="stitle reveal" data-i18n="cov.h2">Where We Operate</h2>
 <p class="ssub reveal" data-i18n="cov.sub">Delivering enterprise IT hardware, professional installations, and equipment procurement services across West Africa.</p>
 <div class="countries reveal">
-<div class="ctry on" data-code="sl" onclick="pickCountry(this,'sl')"><span class="flag">&#127480;&#127473;</span><span data-i18n="cov.sl">Sierra Leone</span></div>
-<div class="ctry" data-code="gn" onclick="pickCountry(this,'gn')"><span class="flag">&#127468;&#127475;</span><span data-i18n="cov.gn">Guinea</span></div>
-<div class="ctry" data-code="gw" onclick="pickCountry(this,'gw')"><span class="flag">&#127468;&#127484;</span><span data-i18n="cov.gw">Guinea-Bissau</span></div>
+<button class="ctry on" data-code="sl" onclick="pickCountry(this,'sl')" aria-pressed="true"><span class="flag">&#127480;&#127473;</span><span data-i18n="cov.sl">Sierra Leone</span></button>
+<button class="ctry" data-code="gn" onclick="pickCountry(this,'gn')" aria-pressed="false"><span class="flag">&#127468;&#127475;</span><span data-i18n="cov.gn">Guinea</span></button>
+<button class="ctry" data-code="gw" onclick="pickCountry(this,'gw')" aria-pressed="false"><span class="flag">&#127468;&#127484;</span><span data-i18n="cov.gw">Guinea-Bissau</span></button>
 </div>
 <p class="bcloud-hint reveal">Tap a location to see its address</p>
 <div class="branch-cloud reveal" id="branch-cloud"></div>
@@ -1096,7 +1152,7 @@ function buildTicker(){
 // COVERAGE (SECURITY FIX: Safe DOM manipulation)
 // ============================================================================
 const covData={
-  sl:{flag:'🇸🇱',en:{name:'Sierra Leone',text:'Full service available across six branch locations nationwide.'},fr:{name:'Sierra Leone',text:'Service complet disponible dans six agences à travers le pays.'},
+  sl:{flag:'🇸🇱',en:{name:'Sierra Leone',text:'Full service available across six branch locations nationwide.'},fr:{name:'Sierra Leone',text:'Service complet disponible dans six agences à travers le pays.'},kr:{name:'Salone',text:'Ful sɛvis de na 6 brɛnch ol ova di kɔntri.'},
     branches:[
       {city:'Bo',address:'28 Bojon Street',phone:'076 658 960'},
       {city:'Makeni',address:'10 Rogbaneh Road'},
@@ -1105,8 +1161,8 @@ const covData={
       {city:'Kenema',address:'1 Main Street'},
       {city:'Kono',address:'1 Post Office Road'}
     ]},
-  gn:{flag:'🇬🇳',en:{name:'Guinea',text:'Full service available. Equipment procurement and installation in Conakry and major regional cities.'},fr:{name:'Guinée',text:'Service complet disponible. Approvisionnement en équipements et installation à Conakry et dans les principales villes régionales.'}},
-  gw:{flag:'🇬🇼',en:{name:'Guinea-Bissau',text:'Branch locations coming soon — contact us to confirm coverage for your area.'},fr:{name:'Guinée-Bissau',text:'Agences à venir prochainement — contactez-nous pour confirmer la couverture de votre zone.'}}
+  gn:{flag:'🇬🇳',en:{name:'Guinea',text:'Full service available. Equipment procurement and installation in Conakry and major regional cities.'},fr:{name:'Guinée',text:'Service complet disponible. Approvisionnement en équipements et installation à Conakry et dans les principales villes régionales.'},kr:{name:'Gini',text:'Ful sɛvis de. Wi prok ikwipmen en install na Conakry en ɔda big tong.'}},
+  gw:{flag:'🇬🇼',en:{name:'Guinea-Bissau',text:'Branch locations coming soon — contact us to confirm coverage for your area.'},fr:{name:'Guinée-Bissau',text:'Agences à venir prochainement — contactez-nous pour confirmer la couverture de votre zone.'},kr:{name:'Gini-Bisao',text:'Brɛnch de kɔmɔt sɔn — kɔntakt wi fɔ kɔnfɔm wɛdɛ wi de na unu eria.'}}
 };
 
 // SECURITY FIX: Validate code parameter and use safe DOM methods (no innerHTML on
@@ -1119,8 +1175,8 @@ function pickCountry(el,code){
     return;
   }
 
-  document.querySelectorAll('.ctry').forEach(c=>c.classList.remove('on'));
-  el.classList.add('on');
+  document.querySelectorAll('.ctry[data-code]').forEach(c=>{c.classList.remove('on');c.setAttribute('aria-pressed','false');});
+  el.classList.add('on');el.setAttribute('aria-pressed','true');
 
   const data = covData[code];
   const d = data[currentLang];
@@ -1204,33 +1260,383 @@ window.addEventListener('scroll',()=>document.querySelectorAll('.order-dd.show')
 // ============================================================================
 let currentLang='en';
 
-// Translation data (truncated for brevity - include full translations from original)
+// Complete translation data — EN (100%) + FR (100%)
 const translations={
   en:{
-    'nav.services':'Services','nav.products':'Products','nav.coverage':'Coverage','nav.cta':'Request Quote',
+    /* NAV */
+    'nav.services':'Services',
+    'nav.products':'Products',
+    'nav.coverage':'Coverage',
+    'nav.cta':'Request Quote',
+    /* HERO */
     'hero.sunlabel':'Enterprise<br/>IT<br/>Partner',
     'hero.badge':'Enterprise IT Hardware & Business Solutions for B2B Customers',
     'hero.h1':'Equip Your<br/><span class="hl">Business</span><br/>For Tomorrow',
     'hero.p':'We supply, install, and procure enterprise IT equipment — routers, servers, computers, and fiber optic cabling — for businesses across West Africa.',
-    'hero.btn1':'Request a Quote','hero.btn2':'Browse Equipment','hero.scroll':'SCROLL',
-    // ... include all other translations from original file
+    'hero.btn1':'Request a Quote',
+    'hero.btn2':'Browse Equipment',
+    'hero.scroll':'SCROLL',
+    /* SERVICES SECTION */
+    'srv.tag':'What We Do',
+    'srv.h2':'Complete IT Solutions<br/>For Your Business',
+    'srv.sub':'From equipment procurement and hardware supply to full-scale fiber optic installations and server deployments — your end-to-end technology partner.',
+    'srv1.h3':'Routers &amp; Networking',
+    'srv1.p':'Supply and professional installation of enterprise-grade routers, switches, and wireless access points for offices of any size.',
+    'srv1.ul':'<li>Cisco, MikroTik &amp; Ubiquiti routers</li><li>Managed &amp; unmanaged switches</li><li>Wireless access points &amp; controllers</li><li>Firewall &amp; UTM appliances</li>',
+    'srv2.h3':'Servers &amp; Infrastructure',
+    'srv2.p':'Procurement and deployment of enterprise servers, NAS storage, and full data room setup for mission-critical operations.',
+    'srv2.ul':'<li>Dell PowerEdge rack &amp; tower servers</li><li>HP ProLiant server series</li><li>NAS &amp; SAN storage systems</li><li>Server room build-out &amp; racking</li>',
+    'srv3.h3':'Fiber Optic Cabling',
+    'srv3.p':'End-to-end fiber optic and structured cabling installations for offices, campuses, warehouses, and industrial facilities.',
+    'srv3.ul':'<li>Single-mode &amp; multi-mode fiber</li><li>Cat6 / Cat6A structured cabling</li><li>Fiber termination &amp; testing</li><li>Cable trays &amp; management systems</li>',
+    'srv4.h3':'Computers &amp; Workstations',
+    'srv4.p':'Business-grade desktops, laptops, and workstations sourced and configured for corporate environments. Bulk orders welcome.',
+    'srv4.ul':'<li>Dell OptiPlex &amp; Precision desktops</li><li>HP ProBook &amp; EliteBook laptops</li><li>Lenovo ThinkCentre &amp; ThinkPad</li><li>Pre-configured bulk deployments</li>',
+    'srv5.h3':'Equipment Procurement',
+    'srv5.p':'We source and procure any IT equipment for your company — directly from global distributors and manufacturers at competitive prices.',
+    'srv5.ul':'<li>Global supplier &amp; distributor network</li><li>Custom equipment sourcing</li><li>Bulk &amp; volume order management</li><li>Logistics &amp; last-mile delivery</li>',
+    'srv6.h3':'IT Installation &amp; Deployment',
+    'srv6.p':'Professional on-site installation and commissioning of all IT infrastructure — from single-office setups to multi-site enterprise rollouts.',
+    'srv6.ul':'<li>On-site project management</li><li>Network commissioning &amp; testing</li><li>Multi-site &amp; remote deployments</li><li>Post-installation support &amp; training</li>',
+    /* STATS */
+    'stat1':'Enterprise Clients',
+    'stat2':'Projects Completed',
+    'stat3':'Countries Served',
+    'stat4':'After-Sales Support',
+    /* PRODUCTS */
+    'prod.tag':'Hardware Catalogue',
+    'prod.h2':'Enterprise-Grade Equipment',
+    'prod.sub':'Phones, computers, TVs, networking, servers, and more — sourced from the world\'s leading manufacturers. Browse by category, or search for a model. Contact us to request a quote for any item.',
+    /* COVERAGE */
+    'cov.tag':'Markets',
+    'cov.h2':'Where We Operate',
+    'cov.sub':'Delivering enterprise IT hardware, professional installations, and equipment procurement services across West Africa.',
+    'cov.sl':'Sierra Leone',
+    'cov.gn':'Guinea',
+    'cov.gw':'Guinea-Bissau',
+    'cov.wa':'West Africa',
+    /* INDUSTRIES */
+    'ind.tag':'Industries',
+    'ind.h2':'Industries We Serve',
+    'ind.sub':'We work with organizations of all sizes — from growing SMEs to large enterprises and government institutions.',
+    'ind1':'Banks &amp; Financial Services',
+    'ind2':'Government &amp; Public Sector',
+    'ind3':'Telecoms &amp; ISPs',
+    'ind4':'Healthcare Facilities',
+    'ind5':'Schools &amp; Universities',
+    'ind6':'Mining &amp; Industrial',
+    'ind7':'NGOs &amp; International Orgs',
+    /* FAQ */
+    'faq.tag':'FAQ',
+    'faq.h2':'Frequently Asked Questions',
+    'faq.sub':'Wholesale, retail, delivery, and everything else worth knowing before you reach out.',
+    'faq.q1':'Do you sell wholesale or retail?',
+    'faq.a1':'Both. We supply individual retail customers as well as bulk wholesale orders for resellers, distributors, and businesses across Sierra Leone.',
+    'faq.q2':'Do you deliver, and where?',
+    'faq.a2':'Yes — we deliver to your doorstep depending on your location. We have branches in Freetown (Brookfields), Bo, Makeni, Waterloo, Kenema, and Kono, with delivery available nationwide.',
+    'faq.q3':'Do you sell refurbished computers?',
+    'faq.a3':'Yes. We source, test, and refurbish computers and laptops, so you get a reliable device at a lower price point.',
+    'faq.q4':'What else do you supply besides IT hardware?',
+    'faq.a4':'Beyond routers, servers, computers, and fiber cabling, we also supply electrical cables &amp; switches, voltage stabilizers, HVAC equipment, and refrigerators &amp; freezers.',
+    'faq.q5':'How do I place a wholesale or bulk order?',
+    'faq.a5':'Use the quote form below and select your request type — our team will follow up with pricing and availability within 24 hours.',
+    'faq.q6':'How can I reach you directly?',
+    'faq.a6':'Call us at <strong>[phone number coming soon]</strong>, or reach out via WhatsApp or the quote form below.',
+    /* QUOTE FORM */
+    'form.h2':'Get a <span>Free Quote</span> Today',
+    'form.p':'Tell us what your business needs and our team will get back to you within 24 hours with pricing and availability.',
+    'form.title':'Request a Quote',
+    'form.note':'We will only contact you regarding your quote request. No spam.',
+    'form.submit':'Send Quote Request →',
+    'form.ok.h3':'Quote Request Received!',
+    'form.ok.p':'We will contact you within 24 hours with pricing and availability.',
+    /* PERKS */
+    'perk1':'Global equipment procurement &amp; sourcing',
+    'perk2':'Professional on-site installation',
+    'perk3':'Response within 24 hours',
+    'perk4':'Flexible payment &amp; financing options',
+    /* FORM LABELS */
+    'lbl.name':'Full Name',
+    'lbl.phone':'Phone / WhatsApp',
+    'lbl.email':'Email Address',
+    'lbl.company':'Company Name',
+    'lbl.country':'Country',
+    'lbl.reqtype':'Request Type',
+    'lbl.details':'Project Details',
+    /* PLACEHOLDERS */
+    'ph.name':'Jean Kamara',
+    'ph.email':'you@company.com',
+    'ph.company':'Your Company Ltd',
+    'ph.details':'Describe your requirements, quantities, site location, and any other details...',
+    /* FOOTER */
+    'ft.tag':'Enterprise IT Hardware &amp; Solutions · West Africa',
+    'ft.desc':'Enterprise IT hardware supplier and installation company serving West Africa. Routers, servers, computers, fiber optic cabling, and full-scale IT installations for businesses.',
+    'ft.srv.h4':'Services',
+    'ft.srv1':'Routers &amp; Networking',
+    'ft.srv2':'Servers &amp; Infrastructure',
+    'ft.srv3':'Fiber Optic Cabling',
+    'ft.srv4':'Computers &amp; Workstations',
+    'ft.srv5':'Equipment Procurement',
+    'ft.srv6':'IT Installations',
+    'ft.mkt.h4':'Markets',
+    'ft.ct.h4':'Contact Us',
+    'ft.cta':'Request a Quote →',
+    'ft.copy':'© 2026 LAVAALL. All rights reserved.'
   },
   fr:{
-    'nav.services':'Services','nav.products':'Produits','nav.coverage':'Couverture','nav.cta':'Demander un Devis',
-    // ... include all other French translations
+    /* NAV */
+    'nav.services':'Services',
+    'nav.products':'Produits',
+    'nav.coverage':'Couverture',
+    'nav.cta':'Demander un Devis',
+    /* HERO */
+    'hero.sunlabel':'Partenaire<br/>IT<br/>Entreprise',
+    'hero.badge':'Matériel Informatique Entreprise &amp; Solutions Business pour Clients B2B',
+    'hero.h1':'Équipez Votre<br/><span class="hl">Entreprise</span><br/>Pour Demain',
+    'hero.p':'Nous fournissons, installons et approvisionnons les équipements informatiques d\'entreprise — routeurs, serveurs, ordinateurs et câblage fibre optique — pour les entreprises en Afrique de l\'Ouest.',
+    'hero.btn1':'Demander un Devis',
+    'hero.btn2':'Parcourir les Équipements',
+    'hero.scroll':'DÉFILER',
+    /* SERVICES SECTION */
+    'srv.tag':'Ce Que Nous Faisons',
+    'srv.h2':'Solutions IT Complètes<br/>Pour Votre Entreprise',
+    'srv.sub':'De l\'approvisionnement en équipements et fourniture de matériel aux installations fibre optique et déploiements de serveurs à grande échelle — votre partenaire technologique de bout en bout.',
+    'srv1.h3':'Routeurs &amp; Réseaux',
+    'srv1.p':'Fourniture et installation professionnelle de routeurs, commutateurs et points d\'accès sans fil de niveau entreprise pour les bureaux de toute taille.',
+    'srv1.ul':'<li>Routeurs Cisco, MikroTik &amp; Ubiquiti</li><li>Commutateurs managés &amp; non managés</li><li>Points d\'accès sans fil &amp; contrôleurs</li><li>Appliances pare-feu &amp; UTM</li>',
+    'srv2.h3':'Serveurs &amp; Infrastructure',
+    'srv2.p':'Approvisionnement et déploiement de serveurs d\'entreprise, stockage NAS et aménagement complet de salles de données pour les opérations critiques.',
+    'srv2.ul':'<li>Serveurs rack &amp; tour Dell PowerEdge</li><li>Gamme de serveurs HP ProLiant</li><li>Systèmes de stockage NAS &amp; SAN</li><li>Aménagement de salle serveur &amp; racking</li>',
+    'srv3.h3':'Câblage Fibre Optique',
+    'srv3.p':'Installations de fibre optique et câblage structuré de bout en bout pour bureaux, campus, entrepôts et installations industrielles.',
+    'srv3.ul':'<li>Fibre monomode &amp; multimode</li><li>Câblage structuré Cat6 / Cat6A</li><li>Terminaison &amp; test de fibre</li><li>Chemins de câbles &amp; systèmes de gestion</li>',
+    'srv4.h3':'Ordinateurs &amp; Postes de Travail',
+    'srv4.p':'Ordinateurs de bureau, portables et postes de travail professionnels sourés et configurés pour les environnements d\'entreprise. Commandes en volume bienvenues.',
+    'srv4.ul':'<li>Ordinateurs de bureau Dell OptiPlex &amp; Precision</li><li>Portables HP ProBook &amp; EliteBook</li><li>Lenovo ThinkCentre &amp; ThinkPad</li><li>Déploiements groupés préconfigurés</li>',
+    'srv5.h3':'Approvisionnement en Équipements',
+    'srv5.p':'Nous sourceons et approvisionnons tout équipement informatique pour votre entreprise — directement auprès de distributeurs et fabricants mondiaux à des prix compétitifs.',
+    'srv5.ul':'<li>Réseau mondial de fournisseurs &amp; distributeurs</li><li>Approvisionnement d\'équipements sur mesure</li><li>Gestion de commandes en volume &amp; en gros</li><li>Logistique &amp; livraison dernier kilomètre</li>',
+    'srv6.h3':'Installation &amp; Déploiement IT',
+    'srv6.p':'Installation sur site et mise en service professionnelle de toute l\'infrastructure informatique — des configurations bureau unique aux déploiements entreprise multi-sites.',
+    'srv6.ul':'<li>Gestion de projet sur site</li><li>Mise en service &amp; test réseau</li><li>Déploiements multi-sites &amp; à distance</li><li>Support post-installation &amp; formation</li>',
+    /* STATS */
+    'stat1':'Clients Entreprises',
+    'stat2':'Projets Réalisés',
+    'stat3':'Pays Desservis',
+    'stat4':'Support Après-Vente',
+    /* PRODUCTS */
+    'prod.tag':'Catalogue Matériel',
+    'prod.h2':'Équipements Professionnels',
+    'prod.sub':'Téléphones, ordinateurs, téléviseurs, réseaux, serveurs et plus — sourés auprès des fabricants leaders mondiaux. Parcourez par catégorie ou recherchez un modèle. Contactez-nous pour demander un devis pour n\'importe quel article.',
+    /* COVERAGE */
+    'cov.tag':'Marchés',
+    'cov.h2':'Où Nous Opérons',
+    'cov.sub':'Livraison de matériel informatique entreprise, installations professionnelles et services d\'approvisionnement en équipements en Afrique de l\'Ouest.',
+    'cov.sl':'Sierra Leone',
+    'cov.gn':'Guinée',
+    'cov.gw':'Guinée-Bissau',
+    'cov.wa':'Afrique de l\'Ouest',
+    /* INDUSTRIES */
+    'ind.tag':'Secteurs',
+    'ind.h2':'Secteurs Que Nous Servons',
+    'ind.sub':'Nous travaillons avec des organisations de toutes tailles — des PME en croissance aux grandes entreprises et institutions gouvernementales.',
+    'ind1':'Banques &amp; Services Financiers',
+    'ind2':'Gouvernement &amp; Secteur Public',
+    'ind3':'Télécoms &amp; FAI',
+    'ind4':'Établissements de Santé',
+    'ind5':'Écoles &amp; Universités',
+    'ind6':'Mines &amp; Industrie',
+    'ind7':'ONG &amp; Organisations Internationales',
+    /* FAQ */
+    'faq.tag':'FAQ',
+    'faq.h2':'Questions Fréquemment Posées',
+    'faq.sub':'Vente en gros, au détail, livraison — tout ce qu\'il faut savoir avant de nous contacter.',
+    'faq.q1':'Vendez-vous en gros ou au détail ?',
+    'faq.a1':'Les deux. Nous approvisionnons des clients particuliers au détail ainsi que des commandes en gros pour les revendeurs, distributeurs et entreprises en Sierra Leone.',
+    'faq.q2':'Effectuez-vous des livraisons, et où ?',
+    'faq.a2':'Oui — nous livrons à votre porte selon votre localisation. Nous avons des succursales à Freetown (Brookfields), Bo, Makeni, Waterloo, Kenema et Kono, avec livraison disponible dans tout le pays.',
+    'faq.q3':'Vendez-vous des ordinateurs reconditionnés ?',
+    'faq.a3':'Oui. Nous sourceons, testons et remettons à neuf des ordinateurs et portables, vous offrant ainsi un appareil fiable à un prix avantageux.',
+    'faq.q4':'Que fournissez-vous en dehors du matériel informatique ?',
+    'faq.a4':'Outre les routeurs, serveurs, ordinateurs et câblage fibre, nous fournissons également des câbles électriques &amp; interrupteurs, des stabilisateurs de tension, des équipements CVC et des réfrigérateurs &amp; congélateurs.',
+    'faq.q5':'Comment passer une commande en gros ou en volume ?',
+    'faq.a5':'Utilisez le formulaire de devis ci-dessous et sélectionnez votre type de demande — notre équipe vous recontactera avec les tarifs et disponibilités sous 24 heures.',
+    'faq.q6':'Comment vous contacter directement ?',
+    'faq.a6':'Appelez-nous au <strong>[numéro à venir]</strong>, ou contactez-nous via WhatsApp ou le formulaire de devis ci-dessous.',
+    /* QUOTE FORM */
+    'form.h2':'Obtenez un <span>Devis Gratuit</span> Aujourd\'hui',
+    'form.p':'Dites-nous ce dont votre entreprise a besoin et notre équipe vous répondra sous 24 heures avec les tarifs et disponibilités.',
+    'form.title':'Demander un Devis',
+    'form.note':'Nous vous contacterons uniquement concernant votre demande de devis. Pas de spam.',
+    'form.submit':'Envoyer la Demande de Devis →',
+    'form.ok.h3':'Demande de Devis Reçue !',
+    'form.ok.p':'Nous vous contacterons sous 24 heures avec les tarifs et disponibilités.',
+    /* PERKS */
+    'perk1':'Approvisionnement &amp; sourcing d\'équipements mondial',
+    'perk2':'Installation professionnelle sur site',
+    'perk3':'Réponse sous 24 heures',
+    'perk4':'Options de paiement &amp; financement flexibles',
+    /* FORM LABELS */
+    'lbl.name':'Nom Complet',
+    'lbl.phone':'Téléphone / WhatsApp',
+    'lbl.email':'Adresse E-mail',
+    'lbl.company':'Nom de l\'Entreprise',
+    'lbl.country':'Pays',
+    'lbl.reqtype':'Type de Demande',
+    'lbl.details':'Détails du Projet',
+    /* PLACEHOLDERS */
+    'ph.name':'Jean Kamara',
+    'ph.email':'vous@entreprise.com',
+    'ph.company':'Votre Société SARL',
+    'ph.details':'Décrivez vos besoins, quantités, site d\'installation et tout autre détail...',
+    /* FOOTER */
+    'ft.tag':'Matériel Informatique Entreprise &amp; Solutions · Afrique de l\'Ouest',
+    'ft.desc':'Fournisseur de matériel informatique entreprise et société d\'installation au service de l\'Afrique de l\'Ouest. Routeurs, serveurs, ordinateurs, câblage fibre optique et installations IT complètes pour les entreprises.',
+    'ft.srv.h4':'Services',
+    'ft.srv1':'Routeurs &amp; Réseaux',
+    'ft.srv2':'Serveurs &amp; Infrastructure',
+    'ft.srv3':'Câblage Fibre Optique',
+    'ft.srv4':'Ordinateurs &amp; Postes de Travail',
+    'ft.srv5':'Approvisionnement en Équipements',
+    'ft.srv6':'Installations IT',
+    'ft.mkt.h4':'Marchés',
+    'ft.ct.h4':'Contactez-Nous',
+    'ft.cta':'Demander un Devis →',
+    'ft.copy':'© 2026 LAVAALL. Tous droits réservés.'
+  },
+  kr:{
+    /* NAV */
+    'nav.services':'Sɛvis',
+    'nav.products':'Prodɔks',
+    'nav.coverage':'Wia Wi De',
+    'nav.cta':'Aks Kwot',
+    /* HERO */
+    'hero.sunlabel':'Kompani<br/>IT<br/>Patna',
+    'hero.badge':'IT Hardwɛ Fɔ Bisnis &amp; B2B Klɛnt insay Wɛs Afrika',
+    'hero.h1':'Ikwip Unu<br/><span class="hl">Bisnis</span><br/>Fɔ Tumoro',
+    'hero.p':'Wi supply, install, en prok IT ikwipmen — ruta, sava, kompyuta, en fayba kebo — fɔ bisnis ol ova Wɛs Afrika.',
+    'hero.btn1':'Aks Kwot',
+    'hero.btn2':'Luk Ikwipmen',
+    'hero.scroll':'SKROL',
+    /* SERVICES SECTION */
+    'srv.tag':'Wetin Wi Du',
+    'srv.h2':'Ful IT Solushan<br/>Fɔ Unu Bisnis',
+    'srv.sub':'Frɔm ikwipmen prokɔmɛnt en hardwɛ supply go tu big skɛl fayba instaleshon en sava diploymɛnt — unu end-to-end teknoloji patna.',
+    'srv1.h3':'Ruta &amp; Netwok',
+    'srv1.p':'Supply en prɔfeshnol instaleshon fɔ enterprise ruta, swich, en waya aksɛs pɔynt fɔ any siz ɔfis.',
+    'srv1.ul':'<li>Cisco, MikroTik &amp; Ubiquiti ruta</li><li>Mɛnij &amp; unmɛnij swich</li><li>Waya aksɛs pɔynt &amp; kɔntrolɛ</li><li>Fayawol &amp; UTM aplayans</li>',
+    'srv2.h3':'Sava &amp; Infrastrɔkcha',
+    'srv2.p':'Prokɔmɛnt en diploymɛnt fɔ enterprise sava, NAS stɔrij, en ful data rum setup fɔ mishen-kritikal ɔpɛreshan.',
+    'srv2.ul':'<li>Dell PowerEdge rak &amp; towa sava</li><li>HP ProLiant sava siriz</li><li>NAS &amp; SAN stɔrij sistɛm</li><li>Sava rum biyd-owt &amp; rak</li>',
+    'srv3.h3':'Fayba Optik Kebo',
+    'srv3.p':'Ful fayba optik en strɔkchad kebo instaleshon fɔ ɔfis, kampɔs, wɛhaws, en industri fasiliti.',
+    'srv3.ul':'<li>Sɛngl-mod &amp; mɔlti-mod fayba</li><li>Cat6 / Cat6A strɔkchad kebo</li><li>Fayba tɛmineshon &amp; tɛst</li><li>Kebo trɛ &amp; mɛnijmɛnt sistɛm</li>',
+    'srv4.h3':'Kompyuta &amp; Wɔksteshon',
+    'srv4.p':'Bisnis-grɛd dɛsktɔp, lɛptɔp, en wɔksteshon wey wi sors en kɔnfiga fɔ kɔrpɔrɛt invayɔnmɛnt. Bɔlk ɔda wɛlkɔm.',
+    'srv4.ul':'<li>Dell OptiPlex &amp; Precision dɛsktɔp</li><li>HP ProBook &amp; EliteBook lɛptɔp</li><li>Lenovo ThinkCentre &amp; ThinkPad</li><li>Pri-kɔnfiga bɔlk diploymɛnt</li>',
+    'srv5.h3':'Ikwipmen Prokɔmɛnt',
+    'srv5.p':'Wi sors en prok any IT ikwipmen fɔ unu kompani — dɛrɛkt frɔm global distribyuta en manufikchara ɛt kɔmpetitiv prajs.',
+    'srv5.ul':'<li>Global supplaya &amp; distribyuta netwok</li><li>Kastom ikwipmen sɔsin</li><li>Bɔlk &amp; volum ɔda mɛnijmɛnt</li><li>Lojistiks &amp; las-mail delivɛri</li>',
+    'srv6.h3':'IT Instaleshon &amp; Diploymɛnt',
+    'srv6.p':'Prɔfeshnol on-sayt instaleshon en komishnin fɔ ɔl IT infrastrɔkcha — frɔm wan-ɔfis setup go tu mɔlti-sayt enterprise.',
+    'srv6.ul':'<li>On-sayt projɛkt mɛnijmɛnt</li><li>Netwok komishnin &amp; tɛst</li><li>Mɔlti-sayt &amp; rimot diploymɛnt</li><li>Pɔst-instaleshon sɔpɔt &amp; treenin</li>',
+    /* STATS */
+    'stat1':'Enterprise Klɛnt',
+    'stat2':'Projɛkt Dɔn',
+    'stat3':'Kɔntri Wi Sɛv',
+    'stat4':'Sɔpɔt Aftɛ Sel',
+    /* PRODUCTS */
+    'prod.tag':'Hardwɛ Katalɔg',
+    'prod.h2':'Enterprise-Grɛd Ikwipmen',
+    'prod.sub':'Fon, kompyuta, TV, netwok, sava, en mɔ — sɔrs frɔm wɔl top manufikchara. Luk bay katɛgri, ɔ sɔch fɔ modɛl. Kɔntakt wi fɔ aks kwot fɔ any item.',
+    /* COVERAGE */
+    'cov.tag':'Mɛkɛt',
+    'cov.h2':'Wia Wi De Wok',
+    'cov.sub':'Wi delivɛ enterprise IT hardwɛ, prɔfeshnol instaleshon, en ikwipmen prokɔmɛnt sɛvis ol ova Wɛs Afrika.',
+    'cov.sl':'Salone',
+    'cov.gn':'Gini',
+    'cov.gw':'Gini-Bisao',
+    'cov.wa':'Wɛs Afrika',
+    /* INDUSTRIES */
+    'ind.tag':'Indɔstri',
+    'ind.h2':'Indɔstri Wey Wi Sɛv',
+    'ind.sub':'Wi wok wit ɔganizeshon fɔ ɔl siz — frɔm smɔl SME go tu big enterprise en govɛnmɛnt.',
+    'ind1':'Bɛnk &amp; Fɛnɛnshol Sɛvis',
+    'ind2':'Govɛnmɛnt &amp; Pɔblik Sɛkta',
+    'ind3':'Telekɔm &amp; ISP',
+    'ind4':'Ospital &amp; Klinik',
+    'ind5':'Skul &amp; Yunivɛsiti',
+    'ind6':'Minin &amp; Industri',
+    'ind7':'NGO &amp; Intɛneshonol Ɔg',
+    /* FAQ */
+    'faq.tag':'FAQ',
+    'faq.h2':'Kwɛschon Wey Pɔpol Aks',
+    'faq.sub':'Hwolsɛl, risel, delivɛri — ɔda tin wey yu fɔ no bifɔ yu kɔntakt wi.',
+    'faq.q1':'Unu sel hwolsɛl ɔ risel?',
+    'faq.a1':'Bɔt tu. Wi supply risel klɛnt en bɔlk hwolsɛl ɔda fɔ risela, distribyuta, en bisnis ol ova Salone.',
+    'faq.q2':'Unu delivɛ, en wia?',
+    'faq.a2':'Yɛs — wi delivɛ go na unu dɔ dipɛndin pan unu lɔkeshon. Wi get brɛnch na Friton (Brookfields), Bo, Makeni, Waterloo, Kenema, en Kono, en wi delivɛ go ɔl ova di kɔntri.',
+    'faq.q3':'Unu sel rifɛbisht kompyuta?',
+    'faq.a3':'Yɛs. Wi sors, tɛst, en rifɛbish kompyuta en lɛptɔp, so yu go gɛt rɛlayabol divays ɛt lo prajs.',
+    'faq.q4':'Wetin ɛls unu supply bibɔd IT hardwɛ?',
+    'faq.a4':'Bibɔd ruta, sava, kompyuta, en fayba kebo, wi ɔlso supply ilɛktrikal kebo &amp; swich, vɔltij stabilayza, HVAC ikwipmen, en fridij &amp; frizɛ.',
+    'faq.q5':'Aw mi go pley hwolsɛl ɔ bɔlk ɔda?',
+    'faq.a5':'Yuz di kwot fɔm dɔng belo en sɛlɛkt taep rikwɛst — wi tim go fɔlɔ ɔp wit prajs en avɛlabiliti insay 24 awa.',
+    'faq.q6':'Aw mi go rich unu dɛrɛkt?',
+    'faq.a6':'Kɔl wi na <strong>[fon nɔmba de kɔmɔt sɔn]</strong>, ɔ rich wi bay WhatsApp ɔ kwot fɔm dɔng belo.',
+    /* QUOTE FORM */
+    'form.h2':'Gɛt <span>Fri Kwot</span> Tide',
+    'form.p':'Tɔl wi wetin unu bisnis nid en wi tim go kɔntakt unu insay 24 awa wit prajs en avɛlabiliti.',
+    'form.title':'Aks Kwot',
+    'form.note':'Wi go ɔnli kɔntakt unu abɔt unu kwot rikwɛst. No spɛm.',
+    'form.submit':'Sen Kwot Rikwɛst →',
+    'form.ok.h3':'Kwot Rikwɛst Risiivd!',
+    'form.ok.p':'Wi go kɔntakt unu insay 24 awa wit prajs en avɛlabiliti.',
+    /* PERKS */
+    'perk1':'Global ikwipmen prokɔmɛnt &amp; sɔsin',
+    'perk2':'Prɔfeshnol on-sayt instaleshon',
+    'perk3':'Rispon insay 24 awa',
+    'perk4':'Flɛksibɔl pɛmɛnt &amp; fɛnɛnsin ɔpshon',
+    /* FORM LABELS */
+    'lbl.name':'Ful Nem',
+    'lbl.phone':'Fon / WhatsApp',
+    'lbl.email':'Imel Adres',
+    'lbl.company':'Kompani Nem',
+    'lbl.country':'Kɔntri',
+    'lbl.reqtype':'Taep Rikwɛst',
+    'lbl.details':'Diytɛl Projɛkt',
+    /* PLACEHOLDERS */
+    'ph.name':'Jean Kamara',
+    'ph.email':'yu@kompani.com',
+    'ph.company':'Unu Kompani Ltd',
+    'ph.details':'Diyscrayb wetin yu nid, aw mɔch, wia di sayt de, en ɔda diytɛl...',
+    /* FOOTER */
+    'ft.tag':'Enterprise IT Hardwɛ &amp; Solushan · Wɛs Afrika',
+    'ft.desc':'Enterprise IT hardwɛ supplaya en instaleshon kompani wey de sɛv Wɛs Afrika. Ruta, sava, kompyuta, fayba optik kebo, en ful-skɛl IT instaleshon fɔ bisnis.',
+    'ft.srv.h4':'Sɛvis',
+    'ft.srv1':'Ruta &amp; Netwok',
+    'ft.srv2':'Sava &amp; Infrastrɔkcha',
+    'ft.srv3':'Fayba Optik Kebo',
+    'ft.srv4':'Kompyuta &amp; Wɔksteshon',
+    'ft.srv5':'Ikwipmen Prokɔmɛnt',
+    'ft.srv6':'IT Instaleshon',
+    'ft.mkt.h4':'Mɛkɛt',
+    'ft.ct.h4':'Kɔntakt Wi',
+    'ft.cta':'Aks Kwot →',
+    'ft.copy':'© 2026 LAVAALL. Ɔl Rayt Risɔvd.'
   }
 };
 
 // SECURITY FIX: Safe language switching with DOMPurify
 function setLang(l){
   // Validate language parameter
-  if (!['en', 'fr'].includes(l)) {
+  if (!['en', 'fr', 'kr'].includes(l)) {
     console.error('Invalid language code');
     return;
   }
   
   currentLang = l;
-  document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase()===l));
+  document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',b.getAttribute('data-lang')===l));
   const tr = translations[l];
   
   // SECURITY: Use DOMPurify for HTML content, fallback to textContent if unavailable
@@ -1263,6 +1669,51 @@ function setLang(l){
     pickCountry(active, code);
   }
 }
+
+// ============================================================================
+// HAMBURGER NAV DRAWER
+// ============================================================================
+(function(){
+  const btn=document.getElementById('nav-hamburger');
+  const drawer=document.getElementById('nav-mobile-drawer');
+  if(!btn||!drawer)return;
+  function openDrawer(){
+    btn.classList.add('open');
+    drawer.classList.add('open');
+    btn.setAttribute('aria-expanded','true');
+    drawer.setAttribute('aria-hidden','false');
+    btn.setAttribute('aria-label','Close navigation');
+  }
+  function closeDrawer(){
+    btn.classList.remove('open');
+    drawer.classList.remove('open');
+    btn.setAttribute('aria-expanded','false');
+    drawer.setAttribute('aria-hidden','true');
+    btn.setAttribute('aria-label','Open navigation');
+  }
+  btn.addEventListener('click',function(e){
+    e.stopPropagation();
+    drawer.classList.contains('open')?closeDrawer():openDrawer();
+  });
+  // Close on outside click
+  document.addEventListener('click',function(e){
+    if(drawer.classList.contains('open')&&!drawer.contains(e.target)&&!btn.contains(e.target)){
+      closeDrawer();
+    }
+  });
+  // Close on any link click inside drawer (scroll to section)
+  drawer.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click',function(){closeDrawer();});
+  });
+  // Close on Escape
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&drawer.classList.contains('open'))closeDrawer();
+  });
+  // Close on desktop resize (avoid invisible-but-open drawer state)
+  window.addEventListener('resize',function(){
+    if(window.innerWidth>900)closeDrawer();
+  });
+})();
 
 // ============================================================================
 // INITIALIZATION

@@ -214,6 +214,59 @@
     if (cat.id === 'phones' || cat.id === 'tablets' || cat.id === 'watches') return 'portrait';
     return 'landscape';
   }
+  // Template A = Premium/Editorial (Phones, Tablets, Computers, Wearables, Cameras, Accessories)
+  // Template B = Spec Grid        (TVs, Networking, Servers, Appliances, Cabling, etc.)
+  const TEMPLATE_A_CATS = { phones: 1, tablets: 1, computers: 1, watches: 1, cameras: 1, accessories: 1 };
+  function catalogTemplate(cat) { return (cat && TEMPLATE_A_CATS[cat.id]) ? 'a' : 'b'; }
+
+  // ── Color swatch lookup (Template A) ──────────────────────────────────────
+  const COLOR_HEX = {
+    'phantom black':'#1c1c1e','onyx black':'#111111','titanium black':'#2d2b2a',
+    'awesome black':'#1c1c1c','black':'#1a1a1a','graphite':'#636366',
+    'titanium grey':'#888888','marble grey':'#aeaeae','space grey':'#6c6c70',
+    'cream':'#f5f0e8','awesome white':'#f2eeea','starlight':'#f5f0e8','white':'#f5f5f7',
+    'green':'#6aaa6d','awesome lime':'#a8d460','lime':'#a8d460',
+    'lavender':'#c0a8e0','awesome violet':'#8264c0','cobalt violet':'#6050b0',
+    'titanium violet':'#907ab0','purple':'#8040c0',
+    'amber yellow':'#f0a830','yellow':'#f0c040',
+    'silver':'#c0c0c8','awesome silver':'#c8c8cc','titanium':'#8a8a8a',
+    'mint':'#90d4c0','icy blue':'#90b8d8','blue':'#4080c0',
+    'red':'#c82828','pink':'#f0a0b0','rose gold':'#e8b0a0','gold':'#d4a840',
+  };
+  function colorSwatchHex(name) {
+    return COLOR_HEX[String(name || '').toLowerCase().trim()] || null;
+  }
+
+  function templateASwatches(model) {
+    const colors = Array.isArray(model.colors) ? model.colors : [];
+    if (!colors.length) return '';
+    const MAX = 6;
+    const shown = colors.slice(0, MAX);
+    const overflow = colors.length - MAX;
+    const pills = shown.map(function (name) {
+      const hex = colorSwatchHex(name);
+      const bg = hex ? hex : '#cccccc';
+      return '<span class="tpl-a-swatch" style="background:' + bg + '" title="' + esc(name) + '" aria-label="' + esc(name) + '"></span>';
+    }).join('');
+    const more = overflow > 0 ? '<span class="tpl-a-swatch-more">+' + overflow + '</span>' : '';
+    return '<div class="tpl-a-colors" aria-label="Available colours">' + pills + more + '</div>';
+  }
+
+  function templateBSpecRows(model) {
+    const fields = Array.isArray(model.fields) ? model.fields : [];
+    const rows = [];
+    for (let fi = 0; fi < fields.length && rows.length < 2; fi++) {
+      const f = fields[fi];
+      if (!f || !f.label || f.key === 'qty' || f.key === 'quantity' || f.key === 'condition') continue;
+      if (!Array.isArray(f.options) || !f.options.length) continue;
+      const opts = f.options.filter(Boolean);
+      if (!opts.length) continue;
+      const val = opts.length === 1 ? opts[0] : opts[0] + ' – ' + opts[opts.length - 1];
+      rows.push('<div class="tpl-b-spec-row"><span class="tpl-b-spec-key">' + esc(f.label) + '</span><span class="tpl-b-spec-val">' + esc(val) + '</span></div>');
+    }
+    return rows.length ? '<div class="tpl-b-specs">' + rows.join('') + '</div>' : '';
+  }
+
   function brandShowroom(brand, model) {
     if (!brand || (model && !isVerifiedModel(model))) return '';
     return BRAND_SHOWROOMS[String(brand.name || '').toLowerCase()] || '';
@@ -222,56 +275,82 @@
     const theme = catalogPresentation(cat, model);
     const showroom = brandShowroom(brand, model);
     const geometry = catalogGeometry(cat);
+    const tpl = catalogTemplate(cat);
     [catalogShell, browserEl].forEach(function (element) {
       if (!element) return;
       element.setAttribute('data-catalog-theme', theme);
       element.setAttribute('data-catalog-geometry', geometry);
+      element.setAttribute('data-catalog-template', tpl);
       if (showroom) element.setAttribute('data-catalog-brand', showroom);
       else element.removeAttribute('data-catalog-brand');
     });
     setCatalogSearchContext(cat, brand);
     return theme;
   }
+  function catalogLangIdx() {
+    const l = document.documentElement.lang;
+    return l === 'fr' ? 1 : l === 'kr' ? 2 : 0;
+  }
   function catalogSearchCategory(cat) {
     const labels = {
-      computers: ['computers', 'ordinateurs'], monitors: ['monitors', 'moniteurs'],
-      tvs: ['televisions', 'téléviseurs'], phones: ['phones', 'téléphones'],
-      tablets: ['tablets', 'tablettes'], watches: ['watches', 'montres'],
-      refrigeration: ['refrigeration', 'réfrigération'], servers: ['servers', 'serveurs']
+      computers:    ['computers',    'ordinateurs',  'kompyuta'],
+      monitors:     ['monitors',     'moniteurs',    'monita'],
+      tvs:          ['televisions',  'téléviseurs',  'TV'],
+      phones:       ['phones',       'téléphones',   'fon'],
+      tablets:      ['tablets',      'tablettes',    'tablɛt'],
+      watches:      ['watches',      'montres',      'wɔch'],
+      refrigeration:['refrigeration','réfrigération','fridij'],
+      servers:      ['servers',      'serveurs',     'sava']
     };
-    const pair = labels[cat && cat.id];
-    return pair ? pair[document.documentElement.lang === 'fr' ? 1 : 0] : (cat ? String(cat.name).toLowerCase() : 'products');
+    const triple = labels[cat && cat.id];
+    return triple ? triple[catalogLangIdx()] : (cat ? String(cat.name).toLowerCase() : 'products');
   }
+  // Audience filter state — persists across breadcrumb back-navigation
+  let catalogAudienceFilter = 'all';
   let catalogSearchContext = { cat: null, brand: null };
   function setCatalogSearchContext(cat, brand) {
     catalogSearchContext = { cat: cat || null, brand: brand || null };
     if (!searchInput) return;
-    const french = document.documentElement.lang === 'fr';
+    const li = catalogLangIdx();
+    const prefixes = ['Search', 'Rechercher', 'Sɔch'];
+    const nocat    = ['Search products', 'Rechercher des produits', 'Sɔch prodɔks'];
     if (!cat) {
-      searchInput.placeholder = french ? 'Rechercher des produits' : 'Search products';
+      searchInput.placeholder = nocat[li];
       return;
     }
-    searchInput.placeholder = (french ? 'Rechercher ' : 'Search ') + (brand ? brand.name + ' ' : '') + catalogSearchCategory(cat);
+    searchInput.placeholder = prefixes[li] + ' ' + (brand ? brand.name + ' ' : '') + catalogSearchCategory(cat);
   }
   window.addEventListener('lavaall-languagechange', function () {
     setCatalogSearchContext(catalogSearchContext.cat, catalogSearchContext.brand);
+    // Re-render audience chips in the new language if the category grid is visible
+    if (!catalogSearchContext.cat && root && root.querySelector('.cat-aud-bar')) {
+      renderCategoryGrid();
+    }
   });
   function catalogText(key) {
-    const french = document.documentElement.lang === 'fr';
+    const li = catalogLangIdx();
     const strings = {
-      verified: ['Verified product', 'Produit vérifié'],
-      sourcing: ['Sourcing available', 'Disponible sur demande'],
-      viewDetails: ['View Details', 'Voir les détails'],
-      requestQuote: ['Request Quote', 'Demander un devis'],
-      requestSourcing: ['Request sourcing', 'Demander un approvisionnement'],
-      sourcingDescription: ['Sourcing request — availability and configuration vary by market.', 'Demande d’approvisionnement — la disponibilité et la configuration varient selon le marché.'],
-      sourcingNote: ['Share your preferred configuration and quantity for a tailored quote.', 'Indiquez la configuration souhaitée et la quantité pour un devis adapté.'],
-      sourcingRequest: ['Product sourcing', 'Approvisionnement produit'],
-      requestedModel: ['Requested family/model', 'Famille/modèle demandé'],
-      verifiedModel: ['verified model', 'modèle vérifié'],
-      verifiedModels: ['verified models', 'modèles vérifiés'],
+      verified:            ['Verified product',       'Produit vérifié',                              'Vɛrifayd prodɔkt'],
+      sourcing:            ['Sourcing available',     'Disponible sur demande',                        'Sɔsin de'],
+      viewDetails:         ['View Details',           'Voir les détails',                              'Si Diytɛl'],
+      requestQuote:        ['Request Quote',          'Demander un devis',                             'Aks Kwot'],
+      requestSourcing:     ['Request sourcing',       'Demander un approvisionnement',                 'Aks sɔsin'],
+      sourcingDescription: ['Sourcing request — availability and configuration vary by market.',
+                            'Demande d\'approvisionnement — la disponibilité et la configuration varient selon le marché.',
+                            'Sɔsin rikwɛst — avɛlabiliti en kɔnfigɛreshon difren bay mɛkɛt.'],
+      sourcingNote:        ['Share your preferred configuration and quantity for a tailored quote.',
+                            'Indiquez la configuration souhaitée et la quantité pour un devis adapté.',
+                            'Shayr wetin yu want en aw mɔch fɔ gɛt kwot wey fit yu.'],
+      sourcingRequest:     ['Product sourcing',       'Approvisionnement produit',                     'Prodɔkt sɔsin'],
+      requestedModel:      ['Requested family/model', 'Famille/modèle demandé',                        'Famili/modɛl wey aks'],
+      verifiedModel:       ['verified model',         'modèle vérifié',                                'vɛrifayd modɛl'],
+      verifiedModels:      ['verified models',        'modèles vérifiés',                              'vɛrifayd modɛl dɛm'],
+      audAll:              ['All',                    'Tout',                                          'Ɔl'],
+      audBusiness:         ['Business / B2B',         'Entreprises / B2B',                             'Bisnis / B2B'],
+      audConsumer:         ['Retail & End Users',     'Grand public',                                  'Risel & Yuzɛ'],
+      audEducation:        ['Students & Schools',     'Éducation',                                     'Stiyudɛnt & Skul'],
     };
-    return (strings[key] || [key, key])[french ? 1 : 0];
+    return (strings[key] || [key, key, key])[li];
   }
   function findCategory(id) { return CATALOG.find(c => c.id === id); }
   function findBrand(cat, slug) { return cat && cat.brands.find(b => slugify(b.name) === slug); }
@@ -494,18 +573,58 @@
   /* ---------------------------------------------------------------------
    * Card grid renderers
    * ------------------------------------------------------------------- */
+  /* Audience segments — rendered as filter chips above the category grid */
+  const AUDIENCE_CHIPS = [
+    { id: 'all',       labelKey: 'audAll' },
+    { id: 'business',  labelKey: 'audBusiness' },
+    { id: 'consumer',  labelKey: 'audConsumer' },
+    { id: 'education', labelKey: 'audEducation' },
+  ];
+
   function renderCategoryGrid() {
     applyCatalogPresentation(null);
     renderBreadcrumbs([{ label: 'Products', hash: '#products' }]);
-    const cards = CATALOG.map(cat => {
-      const count = cat.brands.reduce((n, b) => n + b.families.reduce((m, f) => m + f.models.length, 0), 0);
+
+    // ── Audience filter chips ──────────────────────────────────────────────
+    const chips = AUDIENCE_CHIPS.map(function (chip) {
+      const active = chip.id === catalogAudienceFilter ? ' cat-aud--active' : '';
+      return '<button type="button" class="cat-aud-chip' + active + '" data-aud="' + chip.id + '" aria-pressed="' + (chip.id === catalogAudienceFilter) + '">' +
+        esc(catalogText(chip.labelKey)) + '</button>';
+    }).join('');
+    const filterBar = '<div class="cat-aud-bar" role="group" aria-label="Filter by customer type">' + chips + '</div>';
+
+    // ── Filtered category cards ────────────────────────────────────────────
+    const visible = catalogAudienceFilter === 'all'
+      ? CATALOG
+      : CATALOG.filter(function (cat) { return Array.isArray(cat.audiences) && cat.audiences.indexOf(catalogAudienceFilter) !== -1; });
+
+    const cards = visible.map(function (cat) {
+      const count = cat.brands.reduce(function (n, b) { return n + b.families.reduce(function (m, f) { return m + f.models.length; }, 0); }, 0);
+      // Audience badge pills shown on each card
+      const audPills = Array.isArray(cat.audiences)
+        ? cat.audiences.map(function (a) { return '<span class="cat-card-aud cat-card-aud--' + a + '">' + esc(catalogText('aud' + a.charAt(0).toUpperCase() + a.slice(1))) + '</span>'; }).join('')
+        : '';
       return '<a class="cat-card" href="#products/' + cat.id + '">' +
         '<span class="cat-card-icon">' + iconSvg(cat.icon) + '</span>' +
         '<span class="cat-card-name">' + esc(cat.name) + '</span>' +
+        (audPills ? '<span class="cat-card-aud-wrap">' + audPills + '</span>' : '') +
         '<span class="cat-card-count">' + count + (count === 1 ? ' model' : ' models') + '</span>' +
         '</a>';
     }).join('');
-    root.innerHTML = '<div class="cat-grid">' + cards + '</div>';
+
+    const grid = cards
+      ? '<div class="cat-grid">' + cards + '</div>'
+      : '<p class="catalog-empty">No categories match this filter.</p>';
+
+    root.innerHTML = filterBar + grid;
+
+    // Wire chip clicks — update state, re-render in place (no hash change needed)
+    root.querySelectorAll('.cat-aud-chip').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        catalogAudienceFilter = btn.getAttribute('data-aud') || 'all';
+        renderCategoryGrid();
+      });
+    });
   }
 
   function renderBrandGrid(cat) {
@@ -593,16 +712,23 @@
     const listing = modelListingType(model);
     const theme = catalogPresentation(cat, model);
     const showroom = brandShowroom(brand, model);
+    const tpl = catalogTemplate(cat);
+    // Template A: colour swatches below the image (phones, tablets, etc.)
+    const swatches = (tpl === 'a' && verified) ? templateASwatches(model) : '';
+    // Template B: compact spec rows in the card body (TVs, networking, etc.)
+    const specRows = (tpl === 'b' && verified) ? templateBSpecRows(model) : '';
     const actions = verified
       ? '<div style="display:flex;gap:8px;"><button type="button" class="pbtn model-details-btn" style="flex:1">' + esc(catalogText('viewDetails')) + '</button><button type="button" class="pbtn model-quote-btn" style="flex:1">' + esc(catalogText('requestQuote')) + ' &#9662;</button></div>'
       : '<div class="model-card-actions--single"><button type="button" class="pbtn model-details-btn" style="width:100%">' + esc(catalogText('requestSourcing')) + ' &#9662;</button></div>';
-    return '<div class="model-card model-card--' + listing + '" data-model-id="' + esc(model.id) + '" data-listing-type="' + listing + '" data-catalog-theme="' + theme + '" data-catalog-geometry="' + catalogGeometry(cat) + '"' + (showroom ? ' data-catalog-brand="' + showroom + '"' : '') + '>' +
+    return '<div class="model-card model-card--' + listing + ' model-card--tpl-' + tpl + '" data-model-id="' + esc(model.id) + '" data-listing-type="' + listing + '" data-catalog-theme="' + theme + '" data-catalog-geometry="' + catalogGeometry(cat) + '" data-catalog-template="' + tpl + '"' + (showroom ? ' data-catalog-brand="' + showroom + '"' : '') + '>' +
       media +
+      swatches +
       '<div class="model-card-body">' +
       '<div class="listing-badge listing-badge--' + listing + '">' + esc(catalogText(listing)) + '</div>' +
       '<div class="model-card-brand">' + esc(brand.name) + '</div>' +
       '<div class="model-card-name">' + esc(model.name) + '</div>' +
       '<div class="model-card-spec">' + esc(model.specLine || '') + '</div>' +
+      specRows +
       actions +
       '</div></div>';
   }

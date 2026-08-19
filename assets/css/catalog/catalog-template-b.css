@@ -1,0 +1,79 @@
+/* ============================================================
+ * Template B — Spec Grid
+ * Categories: TVs, Networking, Servers, Appliances, Cabling,
+ *             Refrigeration, Switches, Power, HVAC, Fiber,
+ *             Printers, Gaming, Audio, Monitors
+ * Design intent: spec-forward cards, key options visible at a
+ * glance, wider cards to accommodate more data per row.
+ * ============================================================ */
+
+/* Grid — slightly wider minimum for data-dense cards */
+.catalog-shell[data-catalog-template="b"] .model-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+/* Card shape — keep sharp enterprise look */
+.catalog-shell .model-card--tpl-b {
+  border-radius: 8px;
+}
+
+/* Image area — let the existing geometry/theme rules govern aspect
+   ratio; just ensure the bottom border is always present */
+.catalog-shell .model-card--tpl-b .catalog-product-media {
+  border-bottom: 1px solid var(--catalog-border, #d7dce1);
+}
+
+/* ── Body ───────────────────────────────────────────────────── */
+.catalog-shell .model-card--tpl-b .model-card-body {
+  padding: 13px 15px 16px;
+}
+.catalog-shell .model-card--tpl-b .model-card-name {
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.catalog-shell .model-card--tpl-b .model-card-spec {
+  font-size: 12.5px;
+  margin-top: 2px;
+  margin-bottom: 8px;
+}
+
+/* ── Spec rows (key → value pairs) ─────────────────────────── */
+.tpl-b-specs {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--catalog-border, #d7dce1);
+}
+.tpl-b-spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--catalog-text, #262626);
+}
+.tpl-b-spec-key {
+  color: var(--catalog-muted, #616161);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tpl-b-spec-val {
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+  font-size: 11.5px;
+  color: var(--catalog-ink, #0a0a14);
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .catalog-shell[data-catalog-template="b"] .model-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
