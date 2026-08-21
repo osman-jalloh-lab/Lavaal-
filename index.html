@@ -66,7 +66,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:cen
 .ring{position:absolute;border-radius:50%;border:2px solid rgba(0,0,0,.07);animation:expandRing 4s ease-out infinite;pointer-events:none;}
 @keyframes expandRing{0%{transform:scale(.8);opacity:.7}100%{transform:scale(2.8);opacity:0}}
 /* LOGO ORB — animated brand mark, replaces the flat yellow sun-ball */
-.logo-orb{position:absolute;right:6%;top:50%;transform:translateY(-50%);width:420px;height:420px;display:flex;align-items:center;justify-content:center;animation:orbfloat 5s ease-in-out infinite;}
+.logo-orb{position:absolute;right:6%;top:50%;transform:translateY(-50%);width:560px;height:560px;display:flex;align-items:center;justify-content:center;animation:orbfloat 5s ease-in-out infinite;}
 @keyframes orbfloat{0%,100%{transform:translateY(-50%)}50%{transform:translateY(calc(-50% - 22px))}}
 .orb-halo{position:absolute;inset:-14%;border-radius:50%;background:radial-gradient(circle,rgba(0,194,255,.4) 0%,rgba(0,245,160,.16) 45%,transparent 72%);filter:blur(14px);animation:lv-halo 4.5s ease-in-out infinite;pointer-events:none;}
 .orb-ring1{position:absolute;inset:2%;border-radius:50%;background:conic-gradient(from 0deg,rgba(255,255,255,0) 0deg,rgba(255,255,255,.7) 40deg,rgba(255,255,255,0) 110deg,rgba(0,194,255,0) 180deg,rgba(0,245,160,.55) 230deg,rgba(0,194,255,0) 300deg);-webkit-mask:radial-gradient(circle,transparent 60%,#000 61%,#000 64%,transparent 65%);mask:radial-gradient(circle,transparent 60%,#000 61%,#000 64%,transparent 65%);animation:lv-ring-spin 9s linear infinite;pointer-events:none;}
@@ -484,6 +484,83 @@ footer{padding:40px 5% 30px;}
 #media-debug-panel button{border:1px solid rgba(174,232,255,.8);background:#172638;color:#f5f7fa;padding:5px 7px;cursor:pointer;font:inherit;}
 #media-debug-panel button:hover{background:#24415e;}
 #media-debug-panel pre{max-height:190px;margin:9px 0 0;padding:7px;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#090d13;color:#d7ebf7;font:10px/1.3 ui-monospace,Consolas,monospace;}
+
+/* ═══ SCROLL WALL ═══════════════════════════════════════════════════════ */
+.sw-wall{position:relative;height:300vh;/* 3 panels × 100vh */}
+.sw-track{position:sticky;top:0;height:100vh;overflow:hidden;border-bottom:3px solid rgba(255,255,255,.08);}
+.sw-sticky{position:relative;width:100%;height:100%;background:var(--ink);display:flex;align-items:center;justify-content:center;}
+
+/* Circuit grid background */
+.sw-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,194,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,194,255,.06) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+
+/* Ambient glow orbs */
+.sw-orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(80px);}
+.sw-orb-a{width:600px;height:600px;top:-20%;left:-15%;background:radial-gradient(circle,rgba(0,194,255,.12) 0%,transparent 70%);}
+.sw-orb-b{width:500px;height:500px;bottom:-20%;right:-10%;background:radial-gradient(circle,rgba(0,245,160,.1) 0%,transparent 70%);}
+
+/* Panels — all stacked absolutely, animated in/out */
+.sw-panel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:0 6%;opacity:0;transform:translateY(60px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1);pointer-events:none;}
+.sw-panel.sw-visible{opacity:1;transform:translateY(0);pointer-events:auto;}
+.sw-panel.sw-exit{opacity:0;transform:translateY(-40px);}
+
+.sw-panel-inner{position:relative;z-index:2;max-width:760px;width:100%;}
+.sw-panel-num{font-family:'Clash Display',sans-serif;font-size:13px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.2);display:block;margin-bottom:16px;}
+.sw-panel-tag{font-size:12px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--sky);margin-bottom:18px;}
+.sw-panel-h{font-family:'Clash Display',sans-serif;font-size:clamp(38px,6vw,76px);font-weight:700;line-height:1.0;letter-spacing:-2px;color:var(--white);margin-bottom:24px;}
+.sw-hl{background:linear-gradient(135deg,var(--lime),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.sw-panel-sub{font-size:18px;line-height:1.75;color:rgba(255,255,255,.6);max-width:580px;margin-bottom:32px;}
+.sw-chips{display:flex;gap:10px;flex-wrap:wrap;}
+.sw-chip{padding:7px 18px;border-radius:100px;border:1.5px solid rgba(255,255,255,.18);font-size:13px;font-weight:600;color:rgba(255,255,255,.65);background:rgba(255,255,255,.05);backdrop-filter:blur(8px);}
+
+/* Progress dots */
+.sw-dots{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:10;}
+.sw-dot{width:8px;height:8px;border-radius:50%;border:none;background:rgba(255,255,255,.2);cursor:pointer;padding:0;transition:all .3s;appearance:none;}
+.sw-dot.on{background:var(--sky);width:24px;border-radius:4px;}
+
+/* Scroll hint */
+.sw-scroll-hint{position:absolute;bottom:40px;right:6%;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);z-index:10;transition:opacity .4s;}
+.sw-scroll-hint.hide{opacity:0;}
+
+/* Mobile: collapse to normal flow panels */
+@media(max-width:768px){
+  .sw-wall{height:auto;}
+  .sw-track{position:relative;height:auto;}
+  .sw-panel{position:relative;inset:auto;opacity:1;transform:none;pointer-events:auto;padding:80px 5%;}
+  .sw-panel.sw-exit{opacity:1;transform:none;}
+  .sw-dots,.sw-scroll-hint{display:none;}
+  .sw-panel-h{font-size:clamp(32px,8vw,52px);}
+  .sw-panel-sub{font-size:16px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .sw-panel{transition:none;}
+}
+/* ═══ UI/UX PASS — ACCESSIBILITY, TOUCH TARGETS, MOTION ════════════════ */
+/* Skip-to-content */
+.skip-link{position:absolute;top:-100px;left:8px;z-index:9999;padding:9px 20px;background:var(--sky);color:var(--ink);font-size:14px;font-weight:700;border-radius:100px;border:2px solid var(--ink);text-decoration:none;transition:top .2s;}
+.skip-link:focus{top:8px;}
+/* Nav active state (scrollspy) */
+.nav-links a.nav-active{color:var(--sky);}
+.nav-links a.nav-active::after{transform:scaleX(1);}
+/* Social icons — 44×44 touch target */
+.social-icon{width:44px;height:44px;font-size:11px;}
+/* Filter chips — 44px min touch height */
+.chat-chip{min-height:44px;display:inline-flex;align-items:center;}
+/* Secondary product button hover lift */
+.pbtn:hover{background:var(--ink);color:var(--white);transform:translateY(-2px);}
+/* Footer focus rings */
+footer a:focus-visible{outline:3px solid var(--sky);outline-offset:3px;border-radius:4px;}
+.social-icon:focus-visible{outline:3px solid var(--sun);outline-offset:3px;}
+/* Drawer mobile nav link active */
+.nav-mobile-drawer ul li a.nav-active{color:var(--sky);background:rgba(0,194,255,.06);}
+/* Required asterisk */
+label .req{color:var(--coral);margin-left:2px;}
+/* ── Reduced motion — disable all animation for users who prefer it ────── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}
+  .reveal,.reveal-l,.reveal-r{opacity:1;transform:none;}
+  .logo-orb{animation:none;}
+  .ticker-track{animation:none;}
+}
 </style>
 <link rel="stylesheet" href="assets/css/catalog/catalog-base.css"/>
 <link rel="stylesheet" href="assets/css/catalog/catalog-enterprise.css"/>
@@ -497,6 +574,7 @@ footer{padding:40px 5% 30px;}
 <link rel="stylesheet" href="assets/css/catalog/catalog-audience.css"/>
 </head>
 <body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
 <!-- SPLASH: logo boot animation, plays once per session (see initSplash in the main script) -->
 <div class="splash" id="splash" aria-hidden="true">
   <div class="splash-grid"><i></i></div>
@@ -559,7 +637,7 @@ footer{padding:40px 5% 30px;}
 </div>
 
 <!-- HERO -->
-<section class="hero" id="home">
+<section class="hero" id="home" tabindex="-1"><a id="main-content" tabindex="-1" style="position:absolute;top:0;"></a>
 <div class="ring" style="width:500px;height:500px;top:50%;left:28%;margin:-250px 0 0 -250px;animation-delay:0s"></div>
 <div class="ring" style="width:320px;height:320px;top:50%;left:28%;margin:-160px 0 0 -160px;animation-delay:1.8s"></div>
 <div class="logo-orb">
@@ -611,37 +689,37 @@ footer{padding:40px 5% 30px;}
 </div>
 <div class="srv-grid">
 <a class="sc reveal" href="#signup">
-<div class="sico">&#128225;</div>
+<div class="sico" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg></div>
 <h3 data-i18n="srv1.h3">Routers &amp; Networking</h3>
 <p data-i18n="srv1.p">Supply and professional installation of enterprise-grade routers, switches, and wireless access points for offices of any size.</p>
 <ul class="sclist" data-i18n="srv1.ul"><li>Cisco, MikroTik &amp; Ubiquiti routers</li><li>Managed &amp; unmanaged switches</li><li>Wireless access points &amp; controllers</li><li>Firewall &amp; UTM appliances</li></ul>
 </a>
 <a class="sc reveal" href="#signup" style="transition-delay:.12s;">
-<div class="sico">&#128421;</div>
+<div class="sico" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></div>
 <h3 data-i18n="srv2.h3">Servers &amp; Infrastructure</h3>
 <p data-i18n="srv2.p">Procurement and deployment of enterprise servers, NAS storage, and full data room setup for mission-critical operations.</p>
 <ul class="sclist" data-i18n="srv2.ul"><li>Dell PowerEdge rack &amp; tower servers</li><li>HP ProLiant server series</li><li>NAS &amp; SAN storage systems</li><li>Server room build-out &amp; racking</li></ul>
 </a>
 <a class="sc reveal" href="#signup" style="transition-delay:.24s;">
-<div class="sico">&#128279;</div>
+<div class="sico" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
 <h3 data-i18n="srv3.h3">Fiber Optic Cabling</h3>
 <p data-i18n="srv3.p">End-to-end fiber optic and structured cabling installations for offices, campuses, warehouses, and industrial facilities.</p>
 <ul class="sclist" data-i18n="srv3.ul"><li>Single-mode &amp; multi-mode fiber</li><li>Cat6 / Cat6A structured cabling</li><li>Fiber termination &amp; testing</li><li>Cable trays &amp; management systems</li></ul>
 </a>
 <a class="sc reveal" href="#signup" style="transition-delay:.06s;">
-<div class="sico">&#128187;</div>
+<div class="sico" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
 <h3 data-i18n="srv4.h3">Computers &amp; Workstations</h3>
 <p data-i18n="srv4.p">Business-grade desktops, laptops, and workstations sourced and configured for corporate environments. Bulk orders welcome.</p>
 <ul class="sclist" data-i18n="srv4.ul"><li>Dell OptiPlex &amp; Precision desktops</li><li>HP ProBook &amp; EliteBook laptops</li><li>Lenovo ThinkCentre &amp; ThinkPad</li><li>Pre-configured bulk deployments</li></ul>
 </a>
 <a class="sc reveal" href="#signup" style="transition-delay:.18s;">
-<div class="sico">&#128230;</div>
+<div class="sico" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
 <h3 data-i18n="srv5.h3">Equipment Procurement</h3>
 <p data-i18n="srv5.p">We source and procure any IT equipment for your company — directly from global distributors and manufacturers at competitive prices.</p>
 <ul class="sclist" data-i18n="srv5.ul"><li>Global supplier &amp; distributor network</li><li>Custom equipment sourcing</li><li>Bulk &amp; volume order management</li><li>Logistics &amp; last-mile delivery</li></ul>
 </a>
 <a class="sc reveal" href="#signup" style="transition-delay:.3s;">
-<div class="sico">&#128736;</div>
+<div class="sico" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
 <h3 data-i18n="srv6.h3">IT Installation &amp; Deployment</h3>
 <p data-i18n="srv6.p">Professional on-site installation and commissioning of all IT infrastructure — from single-office setups to multi-site enterprise rollouts.</p>
 <ul class="sclist" data-i18n="srv6.ul"><li>On-site project management</li><li>Network commissioning &amp; testing</li><li>Multi-site &amp; remote deployments</li><li>Post-installation support &amp; training</li></ul>
@@ -656,6 +734,77 @@ footer{padding:40px 5% 30px;}
 <div class="si reveal" style="transition-delay:.2s"><div class="sn">4</div><div class="sl" data-i18n="stat3">Countries Served</div></div>
 <div class="si reveal" style="transition-delay:.3s"><div class="sn">24/7</div><div class="sl" data-i18n="stat4">After-Sales Support</div></div>
 </div>
+
+<!-- SCROLL WALL -->
+<section class="sw-wall" id="scrollwall" aria-label="Why Lavaall">
+  <div class="sw-track">
+    <div class="sw-sticky">
+      <!-- Circuit grid background -->
+      <div class="sw-grid" aria-hidden="true"></div>
+      <!-- Ambient glow orbs -->
+      <div class="sw-orb sw-orb-a" aria-hidden="true"></div>
+      <div class="sw-orb sw-orb-b" aria-hidden="true"></div>
+
+      <!-- Panel 1 -->
+      <div class="sw-panel" id="swp1">
+        <div class="sw-panel-inner">
+          <span class="sw-panel-num" aria-hidden="true">01</span>
+          <p class="sw-panel-tag">West Africa's Network</p>
+          <h2 class="sw-panel-h">Hardware delivered<br/>to your <span class="sw-hl">doorstep</span></h2>
+          <p class="sw-panel-sub">We source directly from global distributors — Dell, HP, Cisco, Lenovo — and handle last-mile delivery to your site, whether you're in Freetown, Conakry, or Bissau.</p>
+          <div class="sw-chips">
+            <span class="sw-chip">🌍 Sierra Leone</span>
+            <span class="sw-chip">Guinea</span>
+            <span class="sw-chip">Guinea-Bissau</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2 -->
+      <div class="sw-panel" id="swp2">
+        <div class="sw-panel-inner">
+          <span class="sw-panel-num" aria-hidden="true">02</span>
+          <p class="sw-panel-tag">End-to-End Installation</p>
+          <h2 class="sw-panel-h">We don't just sell —<br/>we <span class="sw-hl">install</span> it too</h2>
+          <p class="sw-panel-sub">Fiber optic runs, server rack builds, network commissioning, structured cabling — our certified engineers handle the full installation from rack to wall socket.</p>
+          <div class="sw-chips">
+            <span class="sw-chip">Fiber Optic</span>
+            <span class="sw-chip">Server Racks</span>
+            <span class="sw-chip">Cat6 / Cat6A</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3 -->
+      <div class="sw-panel" id="swp3">
+        <div class="sw-panel-inner">
+          <span class="sw-panel-num" aria-hidden="true">03</span>
+          <p class="sw-panel-tag">Enterprise Trust</p>
+          <h2 class="sw-panel-h">500+ projects.<br/><span class="sw-hl">Zero</span> compromises.</h2>
+          <p class="sw-panel-sub">From single-office setups to multi-site enterprise rollouts, we've built the IT backbone for banks, telecoms, schools, and government agencies across the region.</p>
+          <div class="sw-chips">
+            <span class="sw-chip">200+ Clients</span>
+            <span class="sw-chip">24/7 Support</span>
+            <span class="sw-chip">Since 2018</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll progress dots -->
+      <div class="sw-dots" aria-hidden="true">
+        <button class="sw-dot on" data-p="0" aria-label="Panel 1"></button>
+        <button class="sw-dot" data-p="1" aria-label="Panel 2"></button>
+        <button class="sw-dot" data-p="2" aria-label="Panel 3"></button>
+      </div>
+
+      <!-- Scroll hint -->
+      <div class="sw-scroll-hint" aria-hidden="true">
+        <span>SCROLL</span>
+        <svg width="16" height="24" viewBox="0 0 16 24" fill="none"><rect x="6" y="1" width="4" height="8" rx="2" fill="rgba(255,255,255,.4)"/><rect x="5" y="0" width="6" height="14" rx="3" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/><line x1="8" y1="17" x2="8" y2="23" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/><polyline points="5,20 8,23 11,20" stroke="rgba(255,255,255,.3)" stroke-width="1.5" fill="none"/></svg>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- PRODUCTS -->
 <section id="products">
@@ -784,11 +933,11 @@ footer{padding:40px 5% 30px;}
 <!-- SECURITY FIX: Add honeypot field (hidden from users, visible to bots) -->
 <input type="text" name="website" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true"/>
 <div class="fgrow">
-<div class="fg"><label data-i18n="lbl.name">Full Name</label><input type="text" name="name" required data-i18n-ph="ph.name" placeholder="Jean Kamara" maxlength="100"/></div>
-<div class="fg"><label data-i18n="lbl.phone">Phone / WhatsApp</label><input type="tel" name="phone" required placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20"/></div>
+<div class="fg"><label data-i18n="lbl.name">Full Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="name" required autocomplete="name" data-i18n-ph="ph.name" placeholder="Jean Kamara" maxlength="100" aria-required="true"/></div>
+<div class="fg"><label data-i18n="lbl.phone">Phone / WhatsApp<span class="req" aria-hidden="true">*</span></label><input type="tel" name="phone" required autocomplete="tel" placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20" aria-required="true"/></div>
 </div>
-<div class="fg"><label data-i18n="lbl.email">Email Address</label><input type="email" name="email" required data-i18n-ph="ph.email" placeholder="you@company.com" maxlength="100"/></div>
-<div class="fg"><label data-i18n="lbl.company">Company Name</label><input type="text" name="company" required data-i18n-ph="ph.company" placeholder="Your Company Ltd" maxlength="100"/></div>
+<div class="fg"><label data-i18n="lbl.email">Email Address<span class="req" aria-hidden="true">*</span></label><input type="email" name="email" required autocomplete="email" data-i18n-ph="ph.email" placeholder="you@company.com" maxlength="100" aria-required="true"/></div>
+<div class="fg"><label data-i18n="lbl.company">Company Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="company" required autocomplete="organization" data-i18n-ph="ph.company" placeholder="Your Company Ltd" maxlength="100" aria-required="true"/></div>
 <div class="fgrow">
 <div class="fg">
 <label data-i18n="lbl.country">Country</label>
@@ -846,9 +995,9 @@ footer{padding:40px 5% 30px;}
 <p class="fdesc" data-i18n="ft.desc">Enterprise IT hardware supplier and installation company serving West Africa. Routers, servers, computers, fiber optic cabling, and full-scale IT installations for businesses.</p>
 <div class="social-row">
 <!-- SECURITY NOTE: Contact methods visible but harder to scrape programmatically -->
-<a href="#signup" class="social-icon" style="background:#25D366;" title="Contact via WhatsApp">WA</a>
-<a href="#signup" class="social-icon" style="background:#0088cc;" title="Contact via Telegram">TG</a>
-<a href="#signup" class="social-icon" style="background:#006AFF;" title="Contact via Messenger">FB</a>
+<a href="#signup" class="social-icon" style="background:#25D366;" title="Contact via WhatsApp" aria-label="Contact via WhatsApp"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg></a>
+<a href="#signup" class="social-icon" style="background:#0088cc;" title="Contact via Telegram" aria-label="Contact via Telegram"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></a>
+<a href="#signup" class="social-icon" style="background:#006AFF;" title="Contact via Messenger" aria-label="Contact via Facebook Messenger"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 4.975 0 11.111c0 3.497 1.745 6.616 4.472 8.652V24l4.086-2.242c1.09.301 2.246.464 3.442.464 6.627 0 12-4.975 12-11.111C24 4.975 18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/></svg></a>
 </div>
 </div>
 <div>
@@ -1756,6 +1905,86 @@ function initSplash() {
   splash.addEventListener('click', () => { clearTimeout(timer); dismiss(); });
   window.addEventListener('keydown', function skip() { clearTimeout(timer); dismiss(); window.removeEventListener('keydown', skip); }, { once: true });
 }
+
+// ── NAV SCROLLSPY — highlight active section in desktop nav ────────────────
+(function(){
+  const sections=[{id:'services',href:'#services'},{id:'products',href:'#products'},{id:'coverage',href:'#coverage'}];
+  const links=document.querySelectorAll('.nav-links a, .nav-mobile-drawer ul li a');
+  const spy=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        links.forEach(l=>{
+          const match=sections.find(s=>s.id===e.target.id);
+          l.classList.toggle('nav-active',match?l.getAttribute('href')===match.href:false);
+        });
+      }
+    });
+  },{rootMargin:'-30% 0px -60% 0px'});
+  sections.forEach(s=>{const el=document.getElementById(s.id);if(el)spy.observe(el);});
+})();
+
+/* ── SCROLL WALL ─────────────────────────────────────── */
+(function(){
+  var wall=document.getElementById('scrollwall');
+  if(!wall)return;
+  var panels=[
+    document.getElementById('swp1'),
+    document.getElementById('swp2'),
+    document.getElementById('swp3')
+  ];
+  var dots=document.querySelectorAll('.sw-dot');
+  var hint=document.querySelector('.sw-scroll-hint');
+  var current=-1;
+
+  function activate(i){
+    if(i===current)return;
+    panels.forEach(function(p,idx){
+      if(!p)return;
+      p.classList.remove('sw-visible','sw-exit');
+      if(idx<i)p.classList.add('sw-exit');
+    });
+    if(panels[i])panels[i].classList.add('sw-visible');
+    dots.forEach(function(d,idx){d.classList.toggle('on',idx===i);});
+    if(hint)hint.classList.toggle('hide',i>0);
+    current=i;
+  }
+
+  function onScroll(){
+    var rect=wall.getBoundingClientRect();
+    var wallH=wall.offsetHeight;
+    var progress=-rect.top/wallH; // 0..1 across full 300vh
+    if(progress<0||progress>1)return;
+    // Each panel occupies 1/3 of scroll range
+    var idx=Math.min(2,Math.floor(progress*3));
+    activate(idx);
+  }
+
+  // Dot click: scroll to that panel's scroll position
+  dots.forEach(function(d,i){
+    d.addEventListener('click',function(){
+      var wallTop=wall.getBoundingClientRect().top+window.pageYOffset;
+      var target=wallTop+(wall.offsetHeight*(i/3+0.05));
+      window.scrollTo({top:target,behavior:'smooth'});
+    });
+  });
+
+  // Prefer IntersectionObserver for perf, fall back to scroll
+  if('IntersectionObserver' in window){
+    var panelObs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          var i=panels.indexOf(e.target);
+          if(i>-1)activate(i);
+        }
+      });
+    },{rootMargin:'-40% 0px -40% 0px'});
+    panels.forEach(function(p){if(p)panelObs.observe(p);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  // Trigger on load
+  onScroll();
+  activate(0);
+})();
 </script>
 <script src="assets/js/catalog-data.js"></script>
 <script src="assets/data/catalog-generated.js"></script>
