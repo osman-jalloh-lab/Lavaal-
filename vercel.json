@@ -1,0 +1,31 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://images.unsplash.com data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; block-all-mixed-content;" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.(js|css|jpg|jpeg|png)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.svg",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Content-Type", "value": "image/svg+xml" }
+      ]
+    }
+  ]
+}
