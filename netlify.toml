@@ -1,5 +1,8 @@
 # Netlify Configuration File
 # Security-hardened configuration for LAVAALL application
+#
+# NOTE: Vercel (see vercel.json) is production. This file only affects
+# Netlify-hosted previews/builds, if any are still connected to this repo.
 
 [build]
   publish = "."
@@ -77,20 +80,6 @@
     X-Content-Type-Options = "nosniff"
     Content-Type = "image/svg+xml"
 
-# ==============================================================================
-# FORM SUBMISSION SECURITY
-# ==============================================================================
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-# ==============================================================================
-# NETLIFY FUNCTIONS CONFIGURATION
-# ==============================================================================
-[functions]
-  directory = "netlify/functions"
-  
 # ==============================================================================
 # BUILD SETTINGS
 # ==============================================================================
