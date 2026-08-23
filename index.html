@@ -9,13 +9,15 @@
 <!-- Open Graph / Social sharing -->
 <meta property="og:title" content="LAVAALL – Enterprise IT Hardware &amp; Tech Solutions">
 <meta property="og:description" content="West Africa's B2B tech marketplace. Enterprise computers, phones, networking, power solutions and more. Request quotes instantly via WhatsApp.">
-<meta property="og:image" content="images/og-image.jpg">
+<meta property="og:image" content="https://lavaall.com/images/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://lavaall.com">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="LAVAALL – Enterprise IT Hardware &amp; Tech Solutions">
 <meta name="twitter:description" content="West Africa's B2B tech marketplace. Enterprise computers, phones, networking, power solutions and more.">
-<meta name="twitter:image" content="images/og-image.jpg">
+<meta name="twitter:image" content="https://lavaall.com/images/og-image.jpg">
 
 <!-- SECURITY: CSP via meta tag (frame-ancestors and X-Frame-Options are handled by netlify.toml HTTP headers) -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://images.unsplash.com data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; base-uri 'self'; form-action 'self';">
@@ -1390,6 +1392,8 @@ function initSplash() {
 (function(){
   var wall=document.getElementById('scrollwall');
   if(!wall)return;
+  // On mobile (≤768px) CSS handles stacked layout — skip scroll logic entirely
+  if(window.matchMedia('(max-width:768px)').matches)return;
   var panels=[
     document.getElementById('swp1'),
     document.getElementById('swp2'),
