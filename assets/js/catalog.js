@@ -449,44 +449,65 @@
   }
 
   let generatedCatalogLoadStarted = false;
+
+  /* ── Merge helper: called both by lazy script-load and JSON fallback ─── */
+  function applyGeneratedCatalog(catalog) {
+    if (!mergeApprovedGeneratedCatalog(catalog)) return;
+    overviewRendered = false;
+    renderOverview();
+    route(false);
+    // Remove loading indicator if still present
+    const loadingEl = document.getElementById('catalog-generated-loading');
+    if (loadingEl) loadingEl.remove();
+  }
+
   function loadApprovedGeneratedCatalog() {
     if (generatedCatalogLoadStarted) return;
     generatedCatalogLoadStarted = true;
-    // Production receives this deterministic bundle before catalog.js. It keeps
-    // the verified Layer-2 catalog available even if a static JSON request is
-    // delayed, rewritten, or unavailable on a hosting platform.
+    // If the script was already loaded synchronously (e.g., direct script tag),
+    // use it immediately.
     if (window.LAVAALL_GENERATED_CATALOG) {
-      if (mergeApprovedGeneratedCatalog(window.LAVAALL_GENERATED_CATALOG)) {
-        overviewRendered = false;
-        renderOverview();
-        route(false);
-      }
+      applyGeneratedCatalog(window.LAVAALL_GENERATED_CATALOG);
       return;
     }
-    // JSON remains a development/backwards-compatible fallback only.
-    const readCatalog = window.fetch
-      ? fetch('assets/data/catalog-generated.json', { credentials: 'same-origin' })
-          .then(function (response) { return response.ok ? response.json() : null; })
-      : new Promise(function (resolve) {
-          const request = new XMLHttpRequest();
-          request.open('GET', 'assets/data/catalog-generated.json', true);
-          request.onload = function () {
-            if (request.status < 200 || request.status >= 300) { resolve(null); return; }
-            try { resolve(JSON.parse(request.responseText)); } catch (error) { resolve(null); }
-          };
-          request.onerror = function () { resolve(null); };
-          request.send();
-        });
-    readCatalog
-      .then(function (catalog) {
-        if (!mergeApprovedGeneratedCatalog(catalog)) return;
-        overviewRendered = false;
-        renderOverview();
-        route(false);
-      })
-      // The handwritten catalog remains fully usable if generated data is not
-      // deployed yet; do not turn an optional data fetch into a page failure.
-      .catch(function () {});
+    // Lazy-load the generated catalog script (removed from static HTML).
+    // Show a subtle loading badge in the overview grid first.
+    if (overviewGrid && !document.getElementById('catalog-generated-loading')) {
+      const loadingEl = document.createElement('div');
+      loadingEl.id = 'catalog-generated-loading';
+      loadingEl.style.cssText = 'grid-column:1/-1;padding:12px 0;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;';
+      loadingEl.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Loading extended catalogue…</span>';
+      overviewGrid.appendChild(loadingEl);
+    }
+    // Inject the script; on load, merge and re-render.
+    const s = document.createElement('script');
+    s.src = 'assets/data/catalog-generated.js';
+    s.onload = function () {
+      if (window.LAVAALL_GENERATED_CATALOG) {
+        applyGeneratedCatalog(window.LAVAALL_GENERATED_CATALOG);
+      }
+    };
+    s.onerror = function () {
+      // Script failed — fall back to JSON.
+      const readCatalog = window.fetch
+        ? fetch('assets/data/catalog-generated.json', { credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+        : new Promise(function (resolve) {
+            const req = new XMLHttpRequest();
+            req.open('GET', 'assets/data/catalog-generated.json', true);
+            req.onload = function () {
+              if (req.status < 200 || req.status >= 300) { resolve(null); return; }
+              try { resolve(JSON.parse(req.responseText)); } catch (_) { resolve(null); }
+            };
+            req.onerror = function () { resolve(null); };
+            req.send();
+          });
+      readCatalog.then(applyGeneratedCatalog).catch(function () {
+        const loadingEl = document.getElementById('catalog-generated-loading');
+        if (loadingEl) loadingEl.remove();
+      });
+    };
+    document.body.appendChild(s);
   }
 
   function allModelsFlat() {
@@ -625,6 +646,7 @@
         renderCategoryGrid();
       });
     });
+    initRevealCards();
   }
 
   function renderBrandGrid(cat) {
@@ -642,6 +664,7 @@
         '</a>';
     }).join('');
     root.innerHTML = '<div class="cat-grid">' + cards + '</div>';
+    initRevealCards();
   }
 
   function verifiedBrandFeature(brand, fallbackAlt) {
@@ -699,6 +722,7 @@
     const collectionSummary = samsungCollections && totalVerified
       ? '<div class="samsung-collection-summary">' + totalVerified + ' ' + esc(catalogText(totalVerified === 1 ? 'verifiedModel' : 'verifiedModels')) + '</div>' : '';
     root.innerHTML = brandShowroomHeader(cat, brand) + collectionSummary + '<div class="' + (samsungCollections ? 'samsung-collection-nav' : 'cat-grid') + '">' + cards + '</div>';
+    initRevealCards();
   }
 
   function modelCardHtml(model, cat, brand, fam) {
@@ -744,6 +768,7 @@
     const cards = fam.models.map(model => modelCardHtml(model, cat, brand, fam)).join('');
     root.innerHTML = brandShowroomHeader(cat, brand, fam) + '<div class="model-grid">' + cards + '</div>';
     wireModelCards(root, cat, brand, fam);
+    initRevealCards();
   }
 
   function renderSearchResults(query) {
@@ -788,6 +813,7 @@
         }
       });
     });
+    initRevealCards();
   }
 
   function wireModelCards(container, cat, brand, fam) {
@@ -938,9 +964,12 @@
     const btn = document.getElementById('pgal-request-btn');
     btn.onclick = function (e) { handleModelQuoteClick(e, btn); };
 
+    // Capture focus origin so we can return it on close
+    _modalTrigger = document.activeElement || null;
     document.getElementById('pgal-overlay').classList.add('show');
     document.body.style.overflow = 'hidden';
     updateMediaDebugPanel();
+    requestAnimationFrame(openModalFocus);
   }
 
   function renderProductGallery(model, fallbackAlt, iconKey) {
@@ -1045,9 +1074,12 @@
     const btn = document.getElementById('pgal-request-btn');
     btn.onclick = function (e) { handleModelQuoteClick(e, btn); };
 
+    // Capture focus origin so we can return it on close
+    _modalTrigger = document.activeElement || null;
     document.getElementById('pgal-overlay').classList.add('show');
     document.body.style.overflow = 'hidden';
     updateMediaDebugPanel();
+    requestAnimationFrame(openModalFocus);
   }
 
   function showFieldsPlaceholder(iconKey) {
@@ -1095,8 +1127,10 @@
     fields.forEach(f => {
       const row = document.createElement('div');
       row.className = 'fg';
+      const fieldId = 'pgal-field-' + f.key;
       const label = document.createElement('label');
       label.textContent = f.label;
+      label.htmlFor = fieldId;
       row.appendChild(label);
 
       let input;
@@ -1117,6 +1151,7 @@
         input.min = f.min || 1;
         input.value = f.value || 1;
       }
+      input.id = fieldId;
       input.addEventListener('change', () => { currentModelCtx.values[f.key] = input.value; });
       input.addEventListener('input', () => { currentModelCtx.values[f.key] = input.value; });
       // seed default
@@ -1217,17 +1252,58 @@
     });
   }
 
+  /* ── Focus management & focus trap for the quote modal ───────────────── */
+  let _modalTrigger = null; // element that opened the modal — focus returns here on close
+
+  function getFocusableElements(container) {
+    return Array.from(container.querySelectorAll(
+      'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+    )).filter(el => !el.closest('[hidden]') && el.offsetParent !== null);
+  }
+
+  function trapFocus(e) {
+    const modal = document.getElementById('pgal-overlay');
+    if (!modal || !modal.classList.contains('show')) return;
+    const focusable = getFocusableElements(modal);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last  = focusable[focusable.length - 1];
+    if (e.key === 'Tab') {
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+      }
+    }
+  }
+
+  function openModalFocus() {
+    // Move focus inside the modal — to the close button (first focusable element)
+    const closeBtn = document.getElementById('pgal-close-btn');
+    if (closeBtn) closeBtn.focus();
+  }
+
   function closeGalleryModal() {
-    document.getElementById('pgal-overlay').classList.remove('show');
+    const overlay = document.getElementById('pgal-overlay');
+    overlay.classList.remove('show');
     document.body.style.overflow = '';
     const dd = document.getElementById('pgal-quote-dd');
     if (dd) dd.remove();
+    // Return focus to the element that triggered the modal
+    if (_modalTrigger && typeof _modalTrigger.focus === 'function') {
+      _modalTrigger.focus();
+      _modalTrigger = null;
+    }
   }
+
   const closeBtn = document.getElementById('pgal-close-btn');
   const backdrop = document.getElementById('pgal-backdrop');
   if (closeBtn) closeBtn.addEventListener('click', closeGalleryModal);
   if (backdrop) backdrop.addEventListener('click', closeGalleryModal);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGalleryModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeGalleryModal(); return; }
+    trapFocus(e);
+  });
 
   /* ---------------------------------------------------------------------
    * Router
@@ -1299,10 +1375,58 @@
     // guard), so calling it here plus whatever route() does next is safe.
     initMediaDebug();
     renderOverview();
-    loadApprovedGeneratedCatalog();
+
+    // ── Lazy-load catalog-generated.js (363 KB) behind IntersectionObserver ──
+    // The script is no longer in the static HTML. We inject it only when the
+    // #products section approaches the viewport (or on first catalog interaction).
+    // This avoids blocking page load on 3G connections.
+    const productsSection = document.getElementById('products');
+    if (productsSection && 'IntersectionObserver' in window) {
+      // Separate observer instance (threshold/rootMargin differ from scroll-reveal)
+      const lazyObserver = new IntersectionObserver(function (entries, obs) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            obs.disconnect();
+            loadApprovedGeneratedCatalog();
+          }
+        });
+      }, { rootMargin: '300px 0px' }); // start load 300px before the section enters view
+      lazyObserver.observe(productsSection);
+    } else {
+      // No IntersectionObserver support, or no #products element: load immediately.
+      loadApprovedGeneratedCatalog();
+    }
+
     // A refreshed deep link should land on the rendered category browser,
     // while ordinary initial loads keep their existing position.
     route(location.hash.indexOf('#products/') === 0);
+  }
+
+  /* ── Scroll-driven card reveal ──────────────────────────────────────────
+   * Adds .reveal-card to fresh cards and observes them with an
+   * IntersectionObserver (threshold 0.1).  CSS handles the actual
+   * opacity/transform transition, gated on prefers-reduced-motion.
+   * ----------------------------------------------------------------------- */
+  function initRevealCards() {
+    var cards = root ? root.querySelectorAll('.cat-card:not(.reveal-card), .model-card:not(.reveal-card)') : [];
+    if (!cards.length) return;
+    if (!('IntersectionObserver' in window)) {
+      // No IO support — show everything immediately
+      Array.prototype.forEach.call(cards, function (el) { el.classList.add('reveal-card', 'visible'); });
+      return;
+    }
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    Array.prototype.forEach.call(cards, function (el) {
+      el.classList.add('reveal-card');
+      observer.observe(el);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', initCatalog);
