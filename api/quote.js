@@ -1,3 +1,5 @@
+const { randomUUID } = require('node:crypto');
+
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_BODY = 12_000;
 const recent = new Map();
@@ -25,17 +27,47 @@ async function quote(req, res) {
   if (requestType === 'verified-product') {
     if (!clean(context.productName, 240) || !clean(context.sourceProductId, 64) || !clean(context.mpn, 128) || context.verified !== true) return json(res, 400, { error: 'invalid_verified_context' });
   } else if (!clean(context.category, 80) || !clean(context.requestedModel, 240) || context.sourceProductId || context.mpn || context.gtin) return json(res, 400, { error: 'invalid_sourcing_context' });
-  recent.set(ip, now);
+
   const webhook = process.env.QUOTE_WEBHOOK_URL;
-  if (webhook) {
+  const webhookSecret = process.env.QUOTE_WEBHOOK_SECRET;
+  if (webhook && webhookSecret) {
+    const deliveryId = randomUUID();
+    const receivedAt = new Date().toISOString();
+    const payload = {
+      deliveryId,
+      receivedAt,
+      requestType,
+      name,
+      email,
+      phone,
+      company,
+      country,
+      quantity,
+      message,
+      context,
+      sourcePage: clean(req.headers.referer || '', 500)
+    };
     try {
-      const delivery = await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType, name, email, phone, company, country, quantity, message, context, receivedAt: new Date().toISOString() }) });
-      if (delivery.ok) return json(res, 202, { accepted: true });
+      const delivery = await fetch(webhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret: webhookSecret, eventType: 'lead', payload }),
+        signal: AbortSignal.timeout(10_000)
+      });
+      const text = await delivery.text();
+      let acknowledgement = null;
+      try { acknowledgement = JSON.parse(text); } catch {}
+      if (delivery.ok && acknowledgement?.ok === true && acknowledgement?.accepted === true) {
+        recent.set(ip, now);
+        return json(res, 202, { accepted: true, requestId: deliveryId });
+      }
     } catch {}
     return json(res, 502, { error: 'delivery_failed', message: 'We could not deliver your quote request. Please try again shortly.' });
   }
-  // Delivery is intentionally unavailable until an authorized provider is
-  // configured. Never acknowledge a quote as delivered without durable handoff.
+
+  // Delivery is intentionally unavailable until both an authorized webhook
+  // destination and its shared server-side secret are configured in Vercel.
+  // Never acknowledge a quote as delivered without a durable handoff.
   return json(res, 503, { error: 'delivery_not_configured', message: 'Quote delivery is not configured yet. Please use the contact options in the quote panel.' });
 }
 module.exports = quote;
