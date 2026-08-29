@@ -442,7 +442,7 @@ footer{padding:40px 5% 30px;}
 .splash-circuit{position:absolute;inset:0;z-index:3;width:100%;height:100%;object-fit:contain;mix-blend-mode:screen;filter:brightness(1.9) saturate(1.7) hue-rotate(-6deg);animation:lv-circuit 2.6s ease-in-out infinite;pointer-events:none;}
 .splash-glitch{position:absolute;inset:0;z-index:6;width:100%;height:100%;object-fit:contain;mix-blend-mode:screen;filter:brightness(1.6) saturate(2) hue-rotate(-40deg);animation:lv-glitch 5s steps(1) infinite;pointer-events:none;}
 .splash-glitch.b{filter:brightness(1.6) saturate(2) hue-rotate(80deg);animation-delay:.03s;}
-.splash-sweepwrap,.splash-scanwrap{position:absolute;inset:0;overflow:hidden;-webkit-mask-image:url(images/logo.png);mask-image:url(images/logo.png);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;pointer-events:none;}
+.splash-sweepwrap,.splash-scanwrap{position:absolute;inset:0;overflow:hidden;-webkit-mask-image:url(/images/logo.png);mask-image:url(/images/logo.png);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;pointer-events:none;}
 .splash-sweepwrap{z-index:4;}
 .splash-sweep{position:absolute;top:0;left:0;width:60%;height:200%;background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.9) 48%,rgba(255,255,255,.98) 50%,rgba(255,255,255,.9) 52%,rgba(255,255,255,0) 100%);mix-blend-mode:screen;filter:blur(2px);animation:lv-sweep 5.5s ease-in-out infinite;}
 .splash-scanwrap{z-index:5;}
