@@ -345,6 +345,7 @@
 </div>
 <p class="bcloud-hint reveal">Tap a location to see its address</p>
 <div class="branch-cloud reveal" id="branch-cloud"></div>
+<div class="branch-detail" id="branch-detail"></div>
 </div>
 </section>
 
@@ -834,27 +835,26 @@ function pickCountry(el,code){
     ? data.branches
     : [{ city: d.name, address: d.text, note: true }];
 
-  items.forEach(item => {
-    const chip = document.createElement('div');
-    chip.className = 'bchip' + (item.note ? ' note' : '');
-    chip.tabIndex = 0;
-    chip.setAttribute('role', 'button');
-    chip.setAttribute('aria-expanded', 'false');
+  const detailWrap = document.getElementById('branch-detail');
 
-    const cityRow = document.createElement('div');
-    cityRow.className = 'bchip-city';
-    cityRow.textContent = item.city;
-    chip.appendChild(cityRow);
+  const showDetail = item => {
+    detailWrap.textContent = '';
 
-    const detail = document.createElement('div');
-    detail.className = 'bchip-detail';
-    detail.textContent = item.address;
+    const text = document.createElement('div');
+    text.className = 'branch-detail-text';
+    const cityB = document.createElement('b');
+    cityB.textContent = item.city;
+    text.appendChild(cityB);
+    text.appendChild(document.createTextNode(' \u2014 ' + item.address));
     if (item.phone) {
+      text.appendChild(document.createTextNode(' \u00b7 '));
       const telLink = document.createElement('a');
       telLink.href = 'tel:+232' + item.phone.replace(/\D/g,'').replace(/^0/,'');
       telLink.textContent = item.phone;
-      detail.appendChild(telLink);
+      text.appendChild(telLink);
     }
+    detailWrap.appendChild(text);
+
     if (!item.note && item.address) {
       const MAP_LABEL = {en:'View on Google Maps \u2192', fr:'Voir sur Google Maps \u2192', kr:'Luk na Google Maps \u2192'};
       const mapLink = document.createElement('a');
@@ -862,24 +862,28 @@ function pickCountry(el,code){
       mapLink.href = 'https://www.google.com/maps/search/?api=1&query=' + mapQuery;
       mapLink.target = '_blank';
       mapLink.rel = 'noopener noreferrer';
-      mapLink.className = 'bchip-map';
+      mapLink.className = 'branch-detail-link';
       mapLink.textContent = MAP_LABEL[currentLang] || MAP_LABEL.en;
-      mapLink.addEventListener('click', e => e.stopPropagation());
-      detail.appendChild(mapLink);
+      detailWrap.appendChild(mapLink);
     }
-    chip.appendChild(detail);
+  };
 
-    const toggle = () => {
-      const open = chip.classList.toggle('open');
-      chip.setAttribute('aria-expanded', open ? 'true' : 'false');
-    };
-    chip.addEventListener('click', toggle);
-    chip.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+  items.forEach((item, idx) => {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'bpill' + (idx === 0 ? ' on' : '');
+    pill.textContent = item.city;
+    pill.setAttribute('aria-pressed', idx === 0 ? 'true' : 'false');
+    pill.addEventListener('click', () => {
+      cloud.querySelectorAll('.bpill').forEach(p => { p.classList.remove('on'); p.setAttribute('aria-pressed','false'); });
+      pill.classList.add('on');
+      pill.setAttribute('aria-pressed','true');
+      showDetail(item);
     });
-
-    cloud.appendChild(chip);
+    cloud.appendChild(pill);
   });
+
+  if (items.length) showDetail(items[0]);
 }
 
 // ============================================================================
