@@ -1215,10 +1215,10 @@
 
     const links = [
       { href: '#signup-continue', bg: 'var(--ink)', label: '✓', text: 'Continue in Quote Form Below', close: true },
-      { href: 'https://wa.me/23276000000?text=' + waMsg, bg: '#25D366', label: 'WA', text: 'WhatsApp' },
+      { href: 'https://wa.me/23276658960?text=' + waMsg, bg: '#25D366', label: 'WA', text: 'WhatsApp' },
       { href: 'https://t.me/lavaall', bg: '#0088cc', label: 'TG', text: 'Telegram' },
       { href: 'https://m.me/lavaall', bg: '#006AFF', label: 'FB', text: 'Facebook Messenger' },
-      { href: 'mailto:hello@lavaall.com?subject=' + emailSubj + '&body=' + emailBody, bg: '#EA4335', label: '@', text: 'Email Us' },
+      { href: 'mailto:sales@lavaall.com?subject=' + emailSubj + '&body=' + emailBody, bg: '#EA4335', label: '@', text: 'Email Us' },
     ];
     links.forEach(linkData => {
       const a = document.createElement('a');
