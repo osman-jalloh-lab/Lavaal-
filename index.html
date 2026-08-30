@@ -855,6 +855,18 @@ function pickCountry(el,code){
       telLink.textContent = item.phone;
       detail.appendChild(telLink);
     }
+    if (!item.note && item.address) {
+      const MAP_LABEL = {en:'View on Google Maps \u2192', fr:'Voir sur Google Maps \u2192', kr:'Luk na Google Maps \u2192'};
+      const mapLink = document.createElement('a');
+      const mapQuery = encodeURIComponent(item.city + ', ' + item.address + ', ' + d.name);
+      mapLink.href = 'https://www.google.com/maps/search/?api=1&query=' + mapQuery;
+      mapLink.target = '_blank';
+      mapLink.rel = 'noopener noreferrer';
+      mapLink.className = 'bchip-map';
+      mapLink.textContent = MAP_LABEL[currentLang] || MAP_LABEL.en;
+      mapLink.addEventListener('click', e => e.stopPropagation());
+      detail.appendChild(mapLink);
+    }
     chip.appendChild(detail);
 
     const toggle = () => {
