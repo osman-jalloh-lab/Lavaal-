@@ -71,6 +71,9 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .bp:hover{background:var(--white);color:var(--ink);transform:translateY(-3px);}
 .bs{padding:16px 36px;background:transparent;color:var(--ink);border:2px solid var(--ink);border-radius:100px;font-size:16px;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;text-decoration:none;display:inline-block;transition:all .25s;}
 .bs:hover{background:var(--ink);color:var(--white);transform:translateY(-3px);}
+.hero-schedule-link{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:14px;font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px;}
+.hero-schedule-link:hover{opacity:.7;}
+.hero-schedule-link .svg-cal{flex-shrink:0;}
 .scrollhint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--ink);opacity:.55;z-index:0;}
 .scrollbar{width:2px;height:36px;background:var(--ink);animation:scrollpulse 1.6s ease-in-out infinite;}
 @keyframes scrollpulse{0%,100%{height:36px;opacity:.3}50%{height:18px;opacity:1}}

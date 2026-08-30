@@ -126,8 +126,39 @@
 <a href="#signup" class="bp" data-i18n="hero.btn1">Request a Quote</a>
 <a href="#products" class="bs" data-i18n="hero.btn2">Browse Equipment</a>
 </div>
+<a href="#" class="hero-schedule-link" id="hero-schedule-link"><svg class="svg-cal" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span data-i18n="hero.schedule">Or schedule a quick call &#8594;</span></a>
 </div>
 <div class="scrollhint"><div class="scrollbar"></div><span data-i18n="hero.scroll">SCROLL</span></div>
+<!-- SCHEDULE-A-MEETING: Calendly popup widget, lazy-loaded on click, zero cost to
+     normal pageloads. Swap CALENDLY_URL for the real link once the LAVAALL Calendly
+     account exists (https://calendly.com/help/how-to-create-a-custom-button-to-open-calendly). -->
+<script>
+(function(){
+  var CALENDLY_URL = 'https://calendly.com/lavaall-placeholder/30min'; // TODO: replace with real LAVAALL Calendly link
+  var calendlyReady = false;
+  function loadCalendly(cb){
+    if(calendlyReady){ cb(); return; }
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://calendly.com/assets/external/widget.css';
+    document.head.appendChild(css);
+    var script = document.createElement('script');
+    script.src = 'https://calendly.com/assets/external/widget.js';
+    script.onload = function(){ calendlyReady = true; cb(); };
+    script.onerror = function(){ window.location.href = 'mailto:PLACEHOLDER-EMAIL@lavaall.com?subject=Schedule%20a%20Meeting'; };
+    document.body.appendChild(script);
+  }
+  var btn = document.getElementById('hero-schedule-link');
+  if(btn){
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      loadCalendly(function(){
+        if(window.Calendly){ window.Calendly.initPopupWidget({url: CALENDLY_URL}); }
+      });
+    });
+  }
+})();
+</script>
 </section>
 
 <!-- TICKER -->
@@ -889,6 +920,7 @@ const translations={
     'hero.p':'We supply, install, and procure enterprise IT equipment — routers, servers, computers, and fiber optic cabling — for businesses across West Africa.',
     'hero.btn1':'Request a Quote',
     'hero.btn2':'Browse Equipment',
+    'hero.schedule':'Or schedule a quick call &#8594;',
     'hero.scroll':'SCROLL',
     /* SERVICES SECTION */
     'srv.tag':'What We Do',
@@ -1010,6 +1042,7 @@ const translations={
     'hero.p':'Nous fournissons, installons et approvisionnons les équipements informatiques d\'entreprise — routeurs, serveurs, ordinateurs et câblage fibre optique — pour les entreprises en Afrique de l\'Ouest.',
     'hero.btn1':'Demander un Devis',
     'hero.btn2':'Parcourir les Équipements',
+    'hero.schedule':'Ou planifiez un appel rapide &#8594;',
     'hero.scroll':'DÉFILER',
     /* SERVICES SECTION */
     'srv.tag':'Ce Que Nous Faisons',
@@ -1131,6 +1164,7 @@ const translations={
     'hero.p':'Wi supply, install, en prok IT ikwipmen — ruta, sava, kompyuta, en fayba kebo — fɔ bisnis ol ova Wɛs Afrika.',
     'hero.btn1':'Aks Kwot',
     'hero.btn2':'Luk Ikwipmen',
+    'hero.schedule':'ɔ buk wan kwik kɔl &#8594;',
     'hero.scroll':'SKROL',
     /* SERVICES SECTION */
     'srv.tag':'Wetin Wi Du',
