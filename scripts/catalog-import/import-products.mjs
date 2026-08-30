@@ -75,20 +75,38 @@ async function main() {
     throw error;
   }
   const categoryMap = JSON.parse(await fs.readFile(path.join(scriptDir, 'category-map.json'), 'utf8')); const seen = new Map(); const products = [];
+  const outputPath = path.join(rootDir, 'assets', 'data', 'catalog-generated.json');
+  const overwrite = process.argv.includes('--overwrite');
+  if (!overwrite) {
+    try {
+      const existing = JSON.parse(await fs.readFile(outputPath, 'utf8'));
+      for (const existingProduct of existing.products ?? []) { products.push(existingProduct); rememberProduct(existingProduct, seen); }
+      report.existingBeforeRun = products.length;
+    } catch (error) { if (error.code !== 'ENOENT') throw error; report.existingBeforeRun = 0; }
+  }
   const requests = seed.targets.flatMap(target => target.identifiers.map(identifier => ({ target, identifier }))).slice(0, seed.limits.maxProducts);
   report.requested = requests.length;
   for (const request of requests) {
     try {
       const response = await fetchProductXml(request.identifier, request.target.brand, { credentials });
       const product = normalizeIcecatProduct(response.xml, { categoryMap });
-      const approval = selection?.approved?.find(item => String(item.icecatId) === String(product.sourceProductId));
+      const approval = selection?.approved?.find(item => String(item.icecatId) === String(product.sourceProductId)) ?? { brand: request.target.brand };
       const lockedIdentity = validateLockedProductIdentity(product, approval);
       if (!lockedIdentity.valid) { report.quarantined.push({ item: request.identifier, reason: lockedIdentity.reason, expected: approval, authoritative: { brand: product.brand, supplierName: product.sourceSupplierName, supplierId: product.sourceSupplierId, category: product.category, mpn: product.mpn, gtins: product.gtins } }); continue; }
+      product.identityStatus = 'verified';
       if (product.category !== request.target.lavaallCategory) { addSkipped(report, request.identifier, 'unmapped-category'); continue; }
       const { identity, duplicate } = findDuplicate(product, seen);
       if (!identity) { addSkipped(report, request.identifier, 'missing-stable-identity'); continue; }
       if (duplicate) { report.duplicates.push({ item: request.identifier, reason: identity.type === 'gtin' ? 'duplicate-gtin' : identity.type === 'brand-mpn' ? 'duplicate-brand-mpn' : 'duplicate-source-product-id' }); continue; }
       await downloadPermittedImages(product, { rootDir, maxImages: seed.limits.maxImagesPerProduct, onSkipped: (image, reason) => addImageSkipped(report, image.sourceUrl, reason) });
+      const qualityTier = request.identifier.quality || 'SUPPLIER';
+      if (product.images.length > 0) {
+        product.integrationApproved = true;
+        product.visualQaStatus = qualityTier === 'ICECAT' ? 'PASS' : 'PENDING';
+      } else {
+        product.integrationApproved = false;
+        product.visualQaStatus = 'PENDING';
+      }
       report.imagesDownloaded += product.images.length; rememberProduct(product, seen); products.push(product); report.accepted += 1;
     } catch (error) {
       const status = error.status; const reason = status === 401 ? 'authentication-failed' : status === 403 ? 'restricted-product' : status === 404 ? 'product-not-found' : error.message === 'unmapped-category' ? 'unmapped-category' : error.message === 'missing-brand' ? 'missing-brand' : error.message === 'missing-name' ? 'missing-name' : 'network-error';
@@ -96,7 +114,7 @@ async function main() {
     }
     await sleep(seed.limits.requestDelayMs ?? 500);
   }
-  await fs.writeFile(path.join(rootDir, 'assets', 'data', 'catalog-generated.json'), `${JSON.stringify({ generatedAt: new Date().toISOString(), source: 'open-icecat', products }, null, 2)}\n`);
+  await fs.writeFile(outputPath, `${JSON.stringify({ generatedAt: new Date().toISOString(), source: 'open-icecat', products }, null, 2)}\n`);
   console.log(`Report: ${await writeReport(path.join(scriptDir, 'reports'), report)}`);
 }
 

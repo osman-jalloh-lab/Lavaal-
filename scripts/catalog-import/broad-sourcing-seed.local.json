@@ -1,0 +1,2555 @@
+{
+  "limits": {
+    "maxProducts": 478,
+    "maxImagesPerProduct": 3,
+    "requestDelayMs": 650
+  },
+  "targets": [
+    {
+      "lavaallCategory": "audio",
+      "brand": "JBL",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "93844186",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "73319967",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "99297167",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "116102606",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "117419424",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "79455354",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "29731931",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "77473268",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "77473251",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "77473254",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "85894502",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "77476695",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "77473269",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "77476694",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "cameras",
+      "brand": "Canon",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "130340546",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37288943",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37288944",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52149734",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36004528",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30688699",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52149732",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24603255",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38012965",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36600684",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36600685",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "31034910",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "31124599",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "3736882",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "26144772",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35551248",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30021637",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30688698",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30688700",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32125390",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "computers",
+      "brand": "ASUS",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "30409726",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "29956794",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32881404",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30375916",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30375902",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38158292",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39262398",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30151019",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33167395",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33094148",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37363070",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38243173",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33167391",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30310804",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30151017",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30226281",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38014256",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37480717",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30409748",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39262483",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "computers",
+      "brand": "Acer",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "37868613",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38335522",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37876671",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30361605",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30067745",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30067747",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30067746",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30067744",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30067748",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30046877",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24384987",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30657827",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30276472",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30046878",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30046871",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30046872",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30046879",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30046855",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30071780",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30046868",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "computers",
+      "brand": "DELL",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "35801959",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37406843",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24375848",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24375846",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24375653",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37406945",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24359156",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37406683",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37406676",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37406614",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37406484",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39262708",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37225656",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37225646",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37407083",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37406807",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37373476",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24384520",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24375850",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24349335",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "computers",
+      "brand": "HP",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "132869795",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "132551462",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "132357630",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "132551457",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130486804",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "129842208",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130486799",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130486798",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130486797",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "129438745",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130486800",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130486803",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130486801",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130486805",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130486802",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "100835935",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "106754946",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "100835938",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "100835922",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "100835913",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "computers",
+      "brand": "Lenovo",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "41742618",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36541949",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "133008448",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "41742626",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39279333",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "78844829",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70321761",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52000787",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "41742633",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "41742624",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "51991742",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "55230275",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30012390",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30272119",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30272123",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30774993",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30775001",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30351625",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30402729",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30774998",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "monitors",
+      "brand": "DELL",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "143869546",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "141908412",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "129621622",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120201699",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "141908406",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "143869544",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "143869577",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120201694",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "129543752",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "139271091",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "129621627",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "114148154",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "143869543",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120201692",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "129039636",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "109212354",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130465546",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "117352847",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "117352845",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "116065228",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "monitors",
+      "brand": "HP",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "131284986",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "125298850",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "125298849",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "125298844",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "125298845",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "118672771",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "124996126",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "124996129",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "124996128",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "124996127",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "122258336",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120982529",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120982533",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120982530",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120982531",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "118672772",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120566211",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "122083027",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120566210",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "122083026",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "monitors",
+      "brand": "LG",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "132553071",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120864695",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120543449",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "89555766",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "124919064",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "57967004",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35842647",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35842645",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "50453202",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "109030277",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "79268618",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "79268585",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "79040635",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35874526",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30823408",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "51990955",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "51315059",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36548772",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35875179",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35862352",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "monitors",
+      "brand": "Lenovo",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "91318919",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130587925",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "130803582",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "110484884",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "92045361",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39768712",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37986066",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "99403215",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38146406",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "31612910",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36519885",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32959042",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37987306",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "40214995",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37987304",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36519884",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32868484",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32826311",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "31540361",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "31540359",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "monitors",
+      "brand": "Samsung",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "95799994",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39284605",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39284608",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39284597",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39284601",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39262418",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33555014",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33555012",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "27314250",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "27138530",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "25079467",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "23093933",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "41738613",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39284610",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39284604",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "21923069",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "69782684",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "69205792",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "61039854",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39284615",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "phones",
+      "brand": "Motorola",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "55249290",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "55249293",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "55249292",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37289632",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37289633",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37116773",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "133944408",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "34810284",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70341674",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70049361",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "65703865",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "55910145",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "55892299",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "55892298",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "55892295",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38066965",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37440755",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37440754",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37440753",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37440752",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "phones",
+      "brand": "Samsung",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "30824940",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37384492",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36511236",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36367382",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37946198",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "47629398",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36511237",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "40791935",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "40356190",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37592481",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36511232",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36511235",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "55253734",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37946175",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "47629399",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "47629397",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "34620254",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "34620251",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36485348",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30824944",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "printers",
+      "brand": "Canon",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "1587599",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "30931596",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "796854",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52149593",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "61038891",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38728977",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32754324",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "10734508",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37963245",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32910834",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "29624209",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37957683",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36615747",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36615746",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "29381720",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33278672",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33278670",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32808039",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32779972",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32157994",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "printers",
+      "brand": "Epson",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "41183043",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "29728315",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24699122",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "14923628",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "26071262",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "26071261",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24446371",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24446370",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24446369",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "24446368",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "18012023",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "18000982",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "18000980",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "15947792",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "14824661",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "14745072",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "14745071",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "14745070",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "12783519",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "12783518",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "printers",
+      "brand": "HP",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "124205578",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "129717109",
+          "quality": "SUPPLIER"
+        },
+        {
+          "type": "icecat-id",
+          "value": "124205579",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "125347304",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "124763727",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37805987",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "67458094",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "67458128",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "16078060",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "15691077",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "8115255",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "4733403",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "3716793",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120883636",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120832668",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "120832671",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "78463495",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "78828029",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "91262491",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "128692744",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "servers",
+      "brand": "DELL",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "67462657",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "67462972",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "65336610",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "65336609",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "65336607",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "65336606",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "65336605",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "20463120",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "74334815",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "74334806",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52903950",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "66486730",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "74334813",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "72495150",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "72495141",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52903948",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "66486723",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "72495152",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52903947",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "66486726",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "servers",
+      "brand": "HP",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "36970688",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "servers",
+      "brand": "Lenovo",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "32127082",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "65113431",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "65113408",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37875885",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37552328",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37552275",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70322688",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37552037",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37552036",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37552032",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38158391",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37552141",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37552127",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "19669051",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "19669049",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "19665358",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "44564426",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "44564418",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37552294",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37552245",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "tablets",
+      "brand": "Samsung",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "36192714",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36343619",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32170557",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32170556",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32170555",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32127057",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "31995510",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "29735418",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "40333773",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "57968643",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33432421",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39279179",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38178772",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "57913820",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "39208769",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "32170562",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "57968644",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "57913588",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "29735141",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "31123850",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "tvs",
+      "brand": "Hisense",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "37026510",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38191018",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38191019",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "tvs",
+      "brand": "LG",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "53715416",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70411167",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70411154",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70411146",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70416019",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70416016",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70416014",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70416012",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70339042",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70339036",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70338993",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70339041",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70411177",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70397627",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70411131",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70338971",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "70339001",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "54942514",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "54942513",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "53712419",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "tvs",
+      "brand": "Samsung",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "36890382",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36367489",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37880864",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35843265",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52926883",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52953553",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35843271",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "71268736",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36569289",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "53136175",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "56210683",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "26546451",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "31067691",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "22659838",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "60026101",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "53128536",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52953558",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52953556",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52953554",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "52932777",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "tvs",
+      "brand": "TCL",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "57461585",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "66466528",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "67616823",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35774676",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36269627",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "35774679",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "53906970",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "53906971",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "53906967",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "53715488",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "53715486",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33622243",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36269626",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36269629",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33477866",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36269628",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36962894",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "36962893",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "58815904",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "80483763",
+          "quality": "ICECAT"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "watches",
+      "brand": "Samsung",
+      "identifiers": [
+        {
+          "type": "icecat-id",
+          "value": "38244263",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33327092",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33327091",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "40565548",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "60753385",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "60752749",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "74950240",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38703549",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "38869176",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "33394275",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "72697078",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "60737327",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "67115288",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "72697082",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "34396311",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "37888841",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "75671346",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "72697118",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "72697110",
+          "quality": "ICECAT"
+        },
+        {
+          "type": "icecat-id",
+          "value": "72697109",
+          "quality": "ICECAT"
+        }
+      ]
+    }
+  ]
+}
