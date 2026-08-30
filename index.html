@@ -145,7 +145,7 @@
     var script = document.createElement('script');
     script.src = 'https://calendly.com/assets/external/widget.js';
     script.onload = function(){ calendlyReady = true; cb(); };
-    script.onerror = function(){ window.location.href = 'mailto:PLACEHOLDER-EMAIL@lavaall.com?subject=Schedule%20a%20Meeting'; };
+    script.onerror = function(){ window.location.href = 'mailto:support@lavaall.com?subject=Schedule%20a%20Meeting'; };
     document.body.appendChild(script);
   }
   var btn = document.getElementById('hero-schedule-link');
