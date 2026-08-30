@@ -1334,6 +1334,15 @@
       return;
     }
     showBrowser();
+    // Direct/programmatic navigation into the browser (a deep link, a
+    // "Browse Category" click, back/forward) does not necessarily scroll
+    // #products through the viewport, so the IntersectionObserver in
+    // initCatalog() may never fire. Without this, the drill-down view can
+    // render using only the small static catalog-data.js entries while the
+    // real Icecat-sourced catalogue silently never loads. Idempotent
+    // (guarded by generatedCatalogLoadStarted) and safe to call here even
+    // though the observer may also call it.
+    loadApprovedGeneratedCatalog();
     if (searchInput && searchInput.value.trim()) return; // search takes over rendering
 
     const cat = findCategory(parts[1]);
