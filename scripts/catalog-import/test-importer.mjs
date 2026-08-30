@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { findDuplicate, rememberProduct } from './lib/identity.mjs';
-import { mediaSkipReason } from './download-images.mjs';
+import { collectApprovedGalleryImages, mediaSkipReason } from './download-images.mjs';
 import { normalizeIcecatProduct } from './normalize-product.mjs';
 import { assertApprovedPilotSeed, validateLockedProductIdentity, validateSeed } from './import-products.mjs';
 
@@ -9,6 +9,25 @@ const product = normalizeIcecatProduct(sampleXml, { categoryMap: { mappings: [{ 
 assert.equal(product.id, 'icecat-123'); assert.equal(product.category, 'tablets'); assert.equal(product.gtin, '1234567890123');
 assert.deepEqual(product.gtins, ['1234567890123']); assert.equal(product.sourceSupplierName, 'Example'); assert.equal(product.sourceSupplierId, null);
 assert.equal(product.specifications[0].name, 'Memory'); assert.equal(product._gallery.length, 2); assert.equal(mediaSkipReason(product._gallery[1]), 'restricted-image');
+const skippedGallery = [];
+const recoveredGallery = await collectApprovedGalleryImages([
+  { sourceUrl: 'https://example.invalid/one', isRich: true },
+  { sourceUrl: 'https://example.invalid/two', expirationDate: '2000-01-01' },
+  { sourceUrl: null },
+  { sourceUrl: 'https://example.invalid/four', isRich: true },
+  { sourceUrl: 'https://example.invalid/five' },
+  { sourceUrl: 'https://example.invalid/six' },
+  { sourceUrl: 'https://example.invalid/seven' },
+  { sourceUrl: 'https://example.invalid/eight' }
+], {
+  maxImages: 4,
+  onSkipped: (_image, reason) => skippedGallery.push(reason),
+  download: async (image, number) => ({ path: `images/test/${number}.webp`, sourceUrl: image.sourceUrl, isMain: number === 1 })
+});
+assert.deepEqual(recoveredGallery.map(image => image.sourceUrl), [
+  'https://example.invalid/five', 'https://example.invalid/six', 'https://example.invalid/seven', 'https://example.invalid/eight'
+]);
+assert.deepEqual(skippedGallery, ['restricted-image', 'expired-image', 'invalid-image', 'restricted-image']);
 const seen = new Map(); rememberProduct(product, seen); assert.ok(findDuplicate({ ...product, id: 'other' }, seen).duplicate);
 assert.equal(findDuplicate({ brand: 'Brand A', mpn: 'SHARED' }, new Map()).duplicate, null);
 const brandMpnSeen = new Map(); rememberProduct({ id: 'brand-a', brand: 'Brand A', mpn: 'SHARED' }, brandMpnSeen);

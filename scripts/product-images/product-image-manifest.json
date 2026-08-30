@@ -141,5 +141,44 @@
     "representativeModel": "Unbranded charger, USB-C cable, power bank, and phone case",
     "usageStatus": "original",
     "notes": "Original neutral category visual; no brand, compatibility, or model claim. Wired into the catalog."
+  },
+  {
+    "id": "server-range-original",
+    "displayName": "Server range sourcing artwork",
+    "type": "generic-category",
+    "sourcePage": "Generated locally with the built-in OpenAI image generation tool",
+    "sourceDomain": "OpenAI built-in image generation",
+    "imageUrl": "",
+    "localFile": "images/products/category-server-range-original.png",
+    "sourceType": "original-category",
+    "representativeModel": "Unbranded rack and tower server range",
+    "usageStatus": "original",
+    "notes": "Original neutral sourcing-family visual for server ranges only; no logo, manufacturer, or exact SKU claim. Used for Dell PowerEdge and HP ProLiant sourcing cards."
+  },
+  {
+    "id": "business-desktop-original",
+    "displayName": "Business desktop sourcing artwork",
+    "type": "generic-category",
+    "sourcePage": "Generated locally with the built-in OpenAI image generation tool",
+    "sourceDomain": "OpenAI built-in image generation",
+    "imageUrl": "",
+    "localFile": "images/products/category-business-desktop-original.png",
+    "sourceType": "original-category",
+    "representativeModel": "Unbranded compact business desktop",
+    "usageStatus": "original",
+    "notes": "Original neutral sourcing-family visual; no Dell logo, OptiPlex model, or exact SKU claim."
+  },
+  {
+    "id": "business-laptop-original",
+    "displayName": "Business laptop sourcing artwork",
+    "type": "generic-category",
+    "sourcePage": "Generated locally with the built-in OpenAI image generation tool",
+    "sourceDomain": "OpenAI built-in image generation",
+    "imageUrl": "",
+    "localFile": "images/products/category-business-laptop-original.png",
+    "sourceType": "original-category",
+    "representativeModel": "Unbranded business laptop",
+    "usageStatus": "original",
+    "notes": "Original neutral sourcing-family visual; no HP logo, ProBook model, or exact SKU claim."
   }
 ]

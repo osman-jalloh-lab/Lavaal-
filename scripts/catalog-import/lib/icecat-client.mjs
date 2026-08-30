@@ -54,7 +54,12 @@ export async function fetchProductXml(identifier, brand, options = {}) {
       }
     } catch (error) {
       if (error.status && (!transient(error.status) || attempt === retries)) throw error;
-      if (attempt === retries) throw error;
+      if (attempt === retries) {
+        const detail = error?.cause?.code ?? error?.code ?? error?.name ?? 'transport-error';
+        const wrapped = new Error(`Icecat transport failure (${detail}).`);
+        wrapped.cause = error;
+        throw wrapped;
+      }
     } finally { clearTimeout(timer); }
     await sleep(250 * (2 ** attempt));
   }

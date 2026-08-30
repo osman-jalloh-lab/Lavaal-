@@ -114,6 +114,7 @@ const APPLE_STORAGE_NEW = ['128GB', '256GB', '512GB', '1TB'];
 function iphoneFamily(name, models) {
   return { name: name, models: models.map(m => ({
     id: m.id, name: m.name, image: null,
+    primaryImage: m.primaryImage || null,
     specLine: m.storage.join(' · ') + ' · ' + m.colors.length + ' colors',
     desc: 'Sourced to order — new or professionally refurbished, tested and warrantied.',
     fields: phoneFields(m.storage, m.colors),
@@ -121,15 +122,15 @@ function iphoneFamily(name, models) {
 }
 
 const iphone11 = iphoneFamily('iPhone 11', [
-  { id: 'iphone-11', name: 'iPhone 11', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Green', 'Purple', 'Yellow', 'Red'] },
-  { id: 'iphone-11-pro', name: 'iPhone 11 Pro', storage: APPLE_STORAGE_OLD, colors: ['Midnight Green', 'Space Grey', 'Silver', 'Gold'] },
-  { id: 'iphone-11-pro-max', name: 'iPhone 11 Pro Max', storage: APPLE_STORAGE_OLD, colors: ['Midnight Green', 'Space Grey', 'Silver', 'Gold'] },
+  { id: 'iphone-11', name: 'iPhone 11', primaryImage: P + 'apple-iphone-11.png', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Green', 'Purple', 'Yellow', 'Red'] },
+  { id: 'iphone-11-pro', name: 'iPhone 11 Pro', primaryImage: P + 'apple-iphone-11.png', storage: APPLE_STORAGE_OLD, colors: ['Midnight Green', 'Space Grey', 'Silver', 'Gold'] },
+  { id: 'iphone-11-pro-max', name: 'iPhone 11 Pro Max', primaryImage: P + 'apple-iphone-11.png', storage: APPLE_STORAGE_OLD, colors: ['Midnight Green', 'Space Grey', 'Silver', 'Gold'] },
 ]);
 const iphone12 = iphoneFamily('iPhone 12', [
-  { id: 'iphone-12-mini', name: 'iPhone 12 mini', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Red', 'Green', 'Blue', 'Purple'] },
-  { id: 'iphone-12', name: 'iPhone 12', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Red', 'Green', 'Blue', 'Purple'] },
-  { id: 'iphone-12-pro', name: 'iPhone 12 Pro', storage: APPLE_STORAGE_MID, colors: ['Graphite', 'Silver', 'Gold', 'Pacific Blue'] },
-  { id: 'iphone-12-pro-max', name: 'iPhone 12 Pro Max', storage: APPLE_STORAGE_MID, colors: ['Graphite', 'Silver', 'Gold', 'Pacific Blue'] },
+  { id: 'iphone-12-mini', name: 'iPhone 12 mini', primaryImage: P + 'apple-iphone-12.png', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Red', 'Green', 'Blue', 'Purple'] },
+  { id: 'iphone-12', name: 'iPhone 12', primaryImage: P + 'apple-iphone-12.png', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Red', 'Green', 'Blue', 'Purple'] },
+  { id: 'iphone-12-pro', name: 'iPhone 12 Pro', primaryImage: P + 'apple-iphone-12.png', storage: APPLE_STORAGE_MID, colors: ['Graphite', 'Silver', 'Gold', 'Pacific Blue'] },
+  { id: 'iphone-12-pro-max', name: 'iPhone 12 Pro Max', primaryImage: P + 'apple-iphone-12.png', storage: APPLE_STORAGE_MID, colors: ['Graphite', 'Silver', 'Gold', 'Pacific Blue'] },
 ]);
 const iphone13 = iphoneFamily('iPhone 13', [
   { id: 'iphone-13-mini', name: 'iPhone 13 mini', storage: APPLE_STORAGE_OLD, colors: ['Midnight', 'Starlight', 'Red', 'Pink', 'Blue'] },
@@ -144,10 +145,10 @@ const iphone14 = iphoneFamily('iPhone 14', [
   { id: 'iphone-14-pro-max', name: 'iPhone 14 Pro Max', storage: APPLE_STORAGE_NEW, colors: ['Space Black', 'Silver', 'Gold', 'Deep Purple'] },
 ]);
 const iphone15 = iphoneFamily('iPhone 15', [
-  { id: 'iphone-15', name: 'iPhone 15', storage: APPLE_STORAGE_MID, colors: ['Black', 'Blue', 'Green', 'Yellow', 'Pink'] },
-  { id: 'iphone-15-plus', name: 'iPhone 15 Plus', storage: APPLE_STORAGE_MID, colors: ['Black', 'Blue', 'Green', 'Yellow', 'Pink'] },
-  { id: 'iphone-15-pro', name: 'iPhone 15 Pro', storage: APPLE_STORAGE_NEW, colors: ['Natural Titanium', 'Blue Titanium', 'White Titanium', 'Black Titanium'] },
-  { id: 'iphone-15-pro-max', name: 'iPhone 15 Pro Max', storage: APPLE_STORAGE_NEW, colors: ['Natural Titanium', 'Blue Titanium', 'White Titanium', 'Black Titanium'] },
+  { id: 'iphone-15', name: 'iPhone 15', primaryImage: P + 'apple-iphone-15.png', storage: APPLE_STORAGE_MID, colors: ['Black', 'Blue', 'Green', 'Yellow', 'Pink'] },
+  { id: 'iphone-15-plus', name: 'iPhone 15 Plus', primaryImage: P + 'apple-iphone-15.png', storage: APPLE_STORAGE_MID, colors: ['Black', 'Blue', 'Green', 'Yellow', 'Pink'] },
+  { id: 'iphone-15-pro', name: 'iPhone 15 Pro', primaryImage: P + 'apple-iphone-15.png', storage: APPLE_STORAGE_NEW, colors: ['Natural Titanium', 'Blue Titanium', 'White Titanium', 'Black Titanium'] },
+  { id: 'iphone-15-pro-max', name: 'iPhone 15 Pro Max', primaryImage: P + 'apple-iphone-15.png', storage: APPLE_STORAGE_NEW, colors: ['Natural Titanium', 'Blue Titanium', 'White Titanium', 'Black Titanium'] },
 ]);
 const iphone16 = iphoneFamily('iPhone 16', [
   { id: 'iphone-16', name: 'iPhone 16', storage: APPLE_STORAGE_MID, colors: ['Black', 'White', 'Pink', 'Teal', 'Ultramarine'] },
@@ -217,7 +218,7 @@ const CATALOG_TABLETS = {
   audiences: ['consumer', 'education', 'business'],
   brands: [
     { name: 'Apple', families: [{ name: 'iPad', models: [
-      { id: 'ipad-10th-gen', name: 'iPad (10th Gen)', image: null, specLine: '64GB · 256GB · Wi-Fi / Cellular',
+      { id: 'ipad-10th-gen', name: 'iPad (10th Gen)', image: null, primaryImage: P + 'apple-ipad-10.png', specLine: '64GB · 256GB · Wi-Fi / Cellular',
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(['64GB', '256GB'], ['Silver', 'Blue', 'Pink', 'Yellow']) },
       { id: 'ipad-air', name: 'iPad Air', image: null, specLine: '64GB · 256GB · Wi-Fi / Cellular',
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(['64GB', '256GB'], ['Space Grey', 'Starlight', 'Blue', 'Purple']) },
@@ -304,7 +305,7 @@ const CATALOG_COMPUTERS = {
     ]},
     { name: 'Apple', families: [
       { name: 'MacBook Air', models: [ { id: 'macbook-air', name: 'MacBook Air', image: null, specLine: '13" / 15" · M2 / M3', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['8GB', '16GB', '24GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Apple M2', 'Apple M3']) } ]},
-      { name: 'MacBook Pro', models: [ { id: 'macbook-pro', name: 'MacBook Pro', image: null, specLine: '14" / 16" · M3 Pro / Max', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['16GB', '32GB', '64GB'], ['512GB SSD', '1TB SSD', '2TB SSD'], ['Apple M3 Pro', 'Apple M3 Max']) } ]},
+      { name: 'MacBook Pro', models: [ { id: 'macbook-pro', name: 'MacBook Pro', image: null, primaryImage: P + 'apple-macbook-pro.png', specLine: '14" / 16" · M3 Pro / Max', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['16GB', '32GB', '64GB'], ['512GB SSD', '1TB SSD', '2TB SSD'], ['Apple M3 Pro', 'Apple M3 Max']) } ]},
       { name: 'iMac', models: [ { id: 'imac', name: 'iMac 24"', image: null, specLine: '24" 4.5K · M3', desc: 'All-in-one desktop.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) } ]},
       { name: 'Mac mini', models: [ { id: 'mac-mini', name: 'Mac mini', image: null, specLine: 'M2 / M2 Pro', desc: 'Compact desktop Mac.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Apple M2', 'Apple M2 Pro']) } ]},
     ]},
@@ -350,13 +351,74 @@ const CATALOG_MONITORS = {
   id: 'monitors', name: 'Monitors', icon: 'monitor',
   audiences: ['business', 'education'],
   brands: [
-    { name: 'Dell', families: [{ name: 'UltraSharp', models: [
-      { id: 'dell-ultrasharp-27', name: 'Dell UltraSharp 27"', image: null,
-        primaryImage: C + 'monitors/dell/129621622/01.webp',
-        images: catalogImages('monitors', 'dell', '129621622', 'Dell UltraSharp 27"'),
-        specLine: '27" · 4K · IPS',
-        desc: 'Professional colour-accurate monitor.', fields: [{ key: 'size', label: 'Screen Size', type: 'select', options: ['24"', '27"', '32"'] }, { key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K'] }, qtyField(1)] },
-    ]}]},
+    { name: 'Dell', families: [
+      { name: 'UltraSharp', models: [
+        { id: 'dell-ultrasharp-27', name: 'Dell UltraSharp 27"', image: null,
+          primaryImage: C + 'monitors/dell/129621622/01.webp',
+          images: catalogImages('monitors', 'dell', '129621622', 'Dell UltraSharp 27"'),
+          specLine: '27" · 4K · IPS', desc: 'Professional colour-accurate monitor.',
+          fields: [{ key: 'size', label: 'Screen Size', type: 'select', options: ['24"', '27"', '32"'] }, { key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K'] }, qtyField(1)] },
+        { id: 'dell-ultrasharp-32', name: 'Dell UltraSharp 32"', image: null,
+          primaryImage: C + 'monitors/dell/141908412/01.webp',
+          images: catalogImages('monitors', 'dell', '141908412', 'Dell UltraSharp 32"'),
+          specLine: '32" · 4K · IPS', desc: 'Large-format professional display.',
+          fields: [{ key: 'resolution', label: 'Resolution', type: 'select', options: ['1440p', '4K'] }, qtyField(1)] },
+      ]},
+      { name: 'P-Series', models: [
+        { id: 'dell-p-series-24', name: 'Dell P-Series 24"', image: null,
+          primaryImage: C + 'monitors/dell/143869544/01.webp',
+          images: catalogImages('monitors', 'dell', '143869544', 'Dell P-Series 24"'),
+          specLine: '24" · 1080p / 1440p · Business', desc: 'Reliable productivity monitor for offices.',
+          fields: [{ key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p'] }, qtyField(1)] },
+        { id: 'dell-p-series-27', name: 'Dell P-Series 27"', image: null,
+          primaryImage: C + 'monitors/dell/143869546/01.webp',
+          images: catalogImages('monitors', 'dell', '143869546', 'Dell P-Series 27"'),
+          specLine: '27" · 1440p · Business', desc: 'Wide-screen business monitor.',
+          fields: [{ key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K'] }, qtyField(1)] },
+      ]},
+      { name: 'E-Series', models: [
+        { id: 'dell-e-series', name: 'Dell E-Series Monitor', image: null,
+          primaryImage: C + 'monitors/dell/149804904/01.webp',
+          images: catalogImages('monitors', 'dell', '149804904', 'Dell E-Series Monitor'),
+          specLine: '24" · 1080p · Entry business', desc: 'Cost-effective business monitor.',
+          fields: [{ key: 'size', label: 'Screen Size', type: 'select', options: ['22"', '24"', '27"'] }, qtyField(1)] },
+      ]},
+    ]},
+    { name: 'HP', families: [
+      { name: 'EliteDisplay', models: [
+        { id: 'hp-elitedisplay-24', name: 'HP EliteDisplay 24"', image: null,
+          primaryImage: C + 'monitors/hp/125298849/01.webp',
+          images: catalogImages('monitors', 'hp', '125298849', 'HP EliteDisplay 24"'),
+          specLine: '24" · IPS · Business', desc: 'HP business monitor with ergonomic stand.',
+          fields: [{ key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p'] }, qtyField(1)] },
+        { id: 'hp-elitedisplay-27', name: 'HP EliteDisplay 27"', image: null,
+          primaryImage: C + 'monitors/hp/128735604/01.webp',
+          images: catalogImages('monitors', 'hp', '128735604', 'HP EliteDisplay 27"'),
+          specLine: '27" · 4K · IPS', desc: 'Wide 4K business display.',
+          fields: [{ key: 'resolution', label: 'Resolution', type: 'select', options: ['1440p', '4K'] }, qtyField(1)] },
+      ]},
+      { name: 'Z-Display', models: [
+        { id: 'hp-z-display', name: 'HP Z Display', image: null,
+          primaryImage: C + 'monitors/hp/131284986/01.webp',
+          images: catalogImages('monitors', 'hp', '131284986', 'HP Z Display'),
+          specLine: '24" · IPS · Workstation', desc: 'Calibrated workstation display.',
+          fields: [{ key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K'] }, qtyField(1)] },
+      ]},
+    ]},
+    { name: 'Lenovo', families: [
+      { name: 'ThinkVision', models: [
+        { id: 'lenovo-thinkvision-t24', name: 'Lenovo ThinkVision T24"', image: null,
+          primaryImage: C + 'monitors/lenovo/130803576/01.webp',
+          images: catalogImages('monitors', 'lenovo', '130803576', 'Lenovo ThinkVision T24'),
+          specLine: '24" · IPS · Business', desc: 'ThinkVision business monitor.',
+          fields: [{ key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p'] }, qtyField(1)] },
+        { id: 'lenovo-thinkvision-t27', name: 'Lenovo ThinkVision T27"', image: null,
+          primaryImage: C + 'monitors/lenovo/130808294/01.webp',
+          images: catalogImages('monitors', 'lenovo', '130808294', 'Lenovo ThinkVision T27'),
+          specLine: '27" · IPS · 4K', desc: 'Large-screen ThinkVision for professionals.',
+          fields: [{ key: 'resolution', label: 'Resolution', type: 'select', options: ['1440p', '4K'] }, qtyField(1)] },
+      ]},
+    ]},
     { name: 'LG', families: [{ name: 'UltraGear', models: [
       { id: 'lg-ultragear', name: 'LG UltraGear Gaming Monitor', image: null, specLine: '27" · 144Hz+ · Gaming',
         desc: 'High refresh-rate gaming monitor.', fields: [{ key: 'size', label: 'Screen Size', type: 'select', options: ['24"', '27"', '34"'] }, { key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K'] }, qtyField(1)] },
@@ -405,12 +467,12 @@ const CATALOG_SERVERS = {
   audiences: ['business'],
   brands: [
     { name: 'Dell', families: [{ name: 'PowerEdge', models: [
-      { id: 'dell-poweredge', name: 'Dell PowerEdge Server', image: P + 'category-server-range-original.png', specLine: '1U / 2U / Tower',
+      { id: 'dell-poweredge', name: 'Dell PowerEdge Server', image: 'images/catalog/servers/dell/72495150/01.webp', specLine: '1U / 2U / Tower',
         desc: 'High-performance rack and tower servers for enterprise workloads. Available in 1U, 2U, and tower. Custom configurations on request.',
         fields: serverFields(['16GB', '32GB', '64GB', '128GB+'], ['1TB HDD', '2TB HDD', '4x 1TB SSD RAID'], ['1U Rack', '2U Rack', 'Tower']) },
     ]}]},
     { name: 'HP', families: [{ name: 'ProLiant', models: [
-      { id: 'hp-proliant', name: 'HP ProLiant Server', image: P + 'category-server-range-original.png', specLine: 'Rack / Tower · iLO',
+      { id: 'hp-proliant', name: 'HP ProLiant Server', image: 'images/catalog/servers/hp/36970688/01.webp', specLine: 'Rack / Tower · iLO',
         desc: 'Reliable ProLiant rack and tower servers for virtualization, databases, and business applications. HPE iLO remote management included.',
         fields: serverFields(['16GB', '32GB', '64GB', '128GB+'], ['1TB HDD', '2TB HDD', '4x 1TB SSD RAID'], ['1U Rack', '2U Rack', 'Tower']) },
     ]}]},
@@ -421,20 +483,28 @@ const CATALOG_SERVERS = {
   ],
 };
 
+// ⚠️ PRINTERS: No product-specific photos yet — using category image as
+// temporary fallback. Replace primaryImage with real product shots when available.
 const CATALOG_PRINTERS = {
   id: 'printers', name: 'Printers', icon: 'printer',
   audiences: ['business', 'education'],
   brands: [
     { name: 'HP', families: [{ name: 'LaserJet', models: [
-      { id: 'hp-laserjet', name: 'HP LaserJet Printer', image: null, specLine: 'Mono / Color · Network-ready',
+      { id: 'hp-laserjet', name: 'HP LaserJet Printer', image: null,
+        primaryImage: P + 'category-printers.webp', imagePending: true,
+        specLine: 'Mono / Color · Network-ready',
         desc: 'Business laser printer.', fields: [{ key: 'type', label: 'Type', type: 'select', options: ['Mono', 'Color', 'All-in-One'] }, simpleFields(CONDITION_NEW_ONLY)[0], qtyField(1)] },
     ]}]},
     { name: 'Canon', families: [{ name: 'imageCLASS', models: [
-      { id: 'canon-imageclass', name: 'Canon imageCLASS Printer', image: null, specLine: 'Mono / Color',
+      { id: 'canon-imageclass', name: 'Canon imageCLASS Printer', image: null,
+        primaryImage: P + 'category-printers.webp', imagePending: true,
+        specLine: 'Mono / Color',
         desc: 'Office printer.', fields: [{ key: 'type', label: 'Type', type: 'select', options: ['Mono', 'Color', 'All-in-One'] }, qtyField(1)] },
     ]}]},
     { name: 'Epson', families: [{ name: 'EcoTank', models: [
-      { id: 'epson-ecotank', name: 'Epson EcoTank Printer', image: null, specLine: 'Refillable ink tank',
+      { id: 'epson-ecotank', name: 'Epson EcoTank Printer', image: null,
+        primaryImage: P + 'category-printers.webp', imagePending: true,
+        specLine: 'Refillable ink tank',
         desc: 'Low-cost-per-page ink tank printer.', fields: [qtyField(1)] },
     ]}]},
   ],

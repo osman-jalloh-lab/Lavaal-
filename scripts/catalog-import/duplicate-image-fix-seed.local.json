@@ -1,0 +1,59 @@
+{
+  "limits": {
+    "maxProducts": 100,
+    "maxImagesPerProduct": 4,
+    "requestDelayMs": 500
+  },
+  "targets": [
+    {
+      "lavaallCategory": "servers",
+      "brand": "DELL",
+      "identifiers": [
+        {
+          "type": "gtin",
+          "value": "5397184300817"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "servers",
+      "brand": "HP",
+      "identifiers": [
+        {
+          "type": "gtin",
+          "value": "0190017123370"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "printers",
+      "brand": "HP",
+      "identifiers": [
+        {
+          "type": "gtin",
+          "value": "0886112999711"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "printers",
+      "brand": "Canon",
+      "identifiers": [
+        {
+          "type": "gtin",
+          "value": "4549292114409"
+        }
+      ]
+    },
+    {
+      "lavaallCategory": "printers",
+      "brand": "Epson",
+      "identifiers": [
+        {
+          "type": "gtin",
+          "value": "8715946601359"
+        }
+      ]
+    }
+  ]
+}

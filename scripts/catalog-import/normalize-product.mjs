@@ -38,7 +38,8 @@ export function normalizeIcecatProduct(xml, { categoryMap }) {
     unit: attribute(node, 'Measure') ?? text(descendants(node, 'Sign')[0]) ?? attribute(first(node, 'Measure'), 'Signs') ?? null
   })).filter(item => item.name && item.value);
   const gallery = descendants(product, 'ProductPicture').map(node => ({
-    sourceUrl: attribute(node, 'Original', 'Pic'), isMain: attribute(node, 'IsMain') === 'Y', isRich: attribute(node, 'IsRich') === 'Y',
+    sourceUrl: attribute(node, 'Original', 'Pic'), originalUrl: attribute(node, 'Original'), picUrl: attribute(node, 'Pic'),
+    isMain: attribute(node, 'IsMain') === 'Y', isRich: attribute(node, 'IsRich') === 'Y',
     expirationDate: attribute(node, 'ExpirationDate'), width: Number(attribute(node, 'PicWidth', 'OriginalWidth') ?? 0), height: Number(attribute(node, 'PicHeight', 'OriginalHeight') ?? 0)
   }));
   const generatedId = sourceProductId ? `icecat-${sourceProductId}` : `icecat-${brand}-${mpn}`;
