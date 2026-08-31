@@ -459,73 +459,8 @@
 </div>
 </div>
 
-<div class="sw ct-form-wrap">
-<div class="ftitle" data-i18n="ct.form.h3">Send Us a Message</div>
-<div class="sbox" id="ct-sbox">
-<div class="si2">&#9993;&#65039;</div>
-<h3 data-i18n="ct.form.ok.h3">Message Sent!</h3>
-<p data-i18n="ct.form.ok.p">Thanks for reaching out — the right team will get back to you shortly.</p>
-</div>
-<form id="ctform" novalidate>
-<input type="text" name="website" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true"/>
-<input type="hidden" name="csrf-token" id="ct-csrf-token" value=""/>
-<div class="fgrow">
-<div class="fg"><label data-i18n="ct.lbl.name">Full Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="name" required autocomplete="name" placeholder="Jean Kamara" maxlength="100" aria-required="true"/></div>
-<div class="fg"><label data-i18n="ct.lbl.email">Email Address<span class="req" aria-hidden="true">*</span></label><input type="email" name="email" required autocomplete="email" placeholder="you@company.com" maxlength="100" aria-required="true"/></div>
-</div>
-<div class="fgrow">
-<div class="fg"><label data-i18n="ct.lbl.phone">Phone (optional)</label><input type="tel" name="phone" autocomplete="tel" placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20"/></div>
-<div class="fg">
-<label data-i18n="ct.lbl.country">Country<span class="req" aria-hidden="true">*</span></label>
-<select name="country" required id="ct-country">
-<option value="">Select country</option>
-<option>Sierra Leone</option>
-<option>Guinea</option>
-<option>Guinea-Bissau</option>
-<option>Liberia</option>
-<option>Other West Africa</option>
-<option>Other</option>
-</select>
-</div>
-</div>
-<div class="fg"><label data-i18n="ct.lbl.company">Company Name (optional)</label><input type="text" name="company" autocomplete="organization" placeholder="Your Company Ltd" maxlength="100"/></div>
-<div class="fgrow">
-<div class="fg">
-<label data-i18n="ct.lbl.inquiry">Inquiry Type<span class="req" aria-hidden="true">*</span></label>
-<select name="inquiryType" required id="ct-inquiry-type">
-<option value="">Select an option</option>
-<option value="support" data-i18n="ct.opt.support">Customer Support</option>
-<option value="sales" data-i18n="ct.opt.sales">Sales or Quote</option>
-<option value="callback" data-i18n="ct.opt.callback">Request a Call</option>
-<option value="order" data-i18n="ct.opt.order">Order Inquiry</option>
-<option value="partnership" data-i18n="ct.opt.partnership">Partnership</option>
-<option value="general" data-i18n="ct.opt.general">General Information</option>
-</select>
-</div>
-<div class="fg">
-<label data-i18n="ct.lbl.preferred">Preferred Contact Method<span class="req" aria-hidden="true">*</span></label>
-<select name="preferredContact" required id="ct-preferred-contact">
-<option value="email" data-i18n="ct.opt.pcEmail">Email</option>
-<option value="phone" data-i18n="ct.opt.pcPhone">Phone</option>
-<option value="whatsapp" data-i18n="ct.opt.pcWhatsapp">WhatsApp</option>
-</select>
-</div>
-</div>
-<div class="fg" id="ct-callback-wrap" hidden>
-<label data-i18n="ct.lbl.callback">Preferred Callback Date/Time<span class="req" aria-hidden="true">*</span></label>
-<input type="text" name="preferredCallback" id="ct-callback-input" placeholder="e.g. Tue Sept 2, 2pm GMT" maxlength="100"/>
-</div>
-<div class="fg"><label data-i18n="ct.lbl.subject">Subject<span class="req" aria-hidden="true">*</span></label><input type="text" name="subject" required placeholder="What is this about?" maxlength="150" aria-required="true"/></div>
-<div class="fg"><label data-i18n="ct.lbl.message">Message<span class="req" aria-hidden="true">*</span></label><textarea name="message" required maxlength="2000" aria-required="true" rows="5" data-i18n-ph="ct.ph.message" placeholder="Tell us what you need..."></textarea></div>
-<div class="fg">
-<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
-<input type="checkbox" name="consent" required style="width:auto;"/>
-<span data-i18n="ct.lbl.consent">I consent to my data being processed according to the <a href="/privacy.html">Privacy Policy</a>, so LAVAALL can respond to my inquiry.</span>
-</label>
-</div>
-<button type="submit" class="fsub" id="ct-fsub" data-i18n="ct.form.submit">Send Message &#8594;</button>
-<p class="fnote" data-i18n="ct.form.note">We typically respond within 24 hours. No spam.</p>
-</form>
+<div class="sw ct-jump">
+<a href="#signup" class="ct-jump-link" data-i18n="ct.jumplink">Or send one inquiry using the form below &#8595;</a>
 </div>
 </section>
 
@@ -550,61 +485,106 @@
 <h3 data-i18n="form.ok.h3">Quote Request Received!</h3>
 <p data-i18n="form.ok.p">We will contact you within 24 hours with pricing and availability.</p>
 </div>
-<form name="signup" method="POST" data-netlify="true" id="sform">
-<input type="hidden" name="form-name" value="signup"/>
-<!-- SECURITY FIX: Add CSRF token -->
+<form id="iq-form" novalidate>
 <input type="hidden" name="csrf-token" id="csrf-token" value=""/>
-<!-- SECURITY FIX: Add honeypot field (hidden from users, visible to bots) -->
 <input type="text" name="website" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true"/>
-<div class="fgrow">
-<div class="fg"><label data-i18n="lbl.name">Full Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="name" required autocomplete="name" data-i18n-ph="ph.name" placeholder="Jean Kamara" maxlength="100" aria-required="true"/></div>
-<div class="fg"><label data-i18n="lbl.phone">Phone / WhatsApp<span class="req" aria-hidden="true">*</span></label><input type="tel" name="phone" required autocomplete="tel" placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20" aria-required="true"/></div>
-</div>
-<div class="fg"><label data-i18n="lbl.email">Email Address<span class="req" aria-hidden="true">*</span></label><input type="email" name="email" required autocomplete="email" data-i18n-ph="ph.email" placeholder="you@company.com" maxlength="100" aria-required="true"/></div>
-<div class="fg"><label data-i18n="lbl.company">Company Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="company" required autocomplete="organization" data-i18n-ph="ph.company" placeholder="Your Company Ltd" maxlength="100" aria-required="true"/></div>
-<div class="fgrow">
 <div class="fg">
-<label data-i18n="lbl.country">Country</label>
-<select name="country" required id="sel-country">
+<label data-i18n="iq.lbl.inquiryType">Inquiry Type<span class="req" aria-hidden="true">*</span></label>
+<select name="inquiryType" required id="iq-type" aria-required="true">
+<option value="" data-i18n="iq.opt.selectType">Select an inquiry type</option>
+<option value="sales-quotation" data-i18n="iq.opt.salesQuotation">Sales and quotations</option>
+<option value="product-availability" data-i18n="iq.opt.productAvailability">Product availability</option>
+<option value="equipment-procurement" data-i18n="iq.opt.equipmentProcurement">Equipment procurement</option>
+<option value="routers-networking" data-i18n="iq.opt.routersNetworking">Routers and networking</option>
+<option value="servers-infrastructure" data-i18n="iq.opt.serversInfrastructure">Servers and infrastructure</option>
+<option value="computers-workstations" data-i18n="iq.opt.computersWorkstations">Computers and workstations</option>
+<option value="fiber-optic" data-i18n="iq.opt.fiberOptic">Fiber-optic products</option>
+<option value="structured-cabling" data-i18n="iq.opt.structuredCabling">Structured cabling</option>
+<option value="installation-services" data-i18n="iq.opt.installationServices">Installation services</option>
+<option value="customer-support" data-i18n="iq.opt.customerSupport">Customer support</option>
+<option value="technical-support" data-i18n="iq.opt.technicalSupport">Technical support</option>
+<option value="existing-order" data-i18n="iq.opt.existingOrder">Existing order or order status</option>
+<option value="partnership" data-i18n="iq.opt.partnership">Partnership</option>
+<option value="general-inquiry" data-i18n="iq.opt.generalInquiry">General inquiry</option>
+<option value="other" data-i18n="iq.opt.other">Other</option>
+</select>
+</div>
+<div class="fgrow">
+<div class="fg"><label data-i18n="ct.lbl.name">Full Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="name" required autocomplete="name" data-i18n-ph="ph.name" placeholder="Jean Kamara" maxlength="100" aria-required="true"/></div>
+<div class="fg"><label data-i18n="ct.lbl.email">Email Address<span class="req" aria-hidden="true">*</span></label><input type="email" name="email" required autocomplete="email" data-i18n-ph="ph.email" placeholder="you@company.com" maxlength="100" aria-required="true"/></div>
+</div>
+<div class="fgrow">
+<div class="fg"><label data-i18n="ct.lbl.phone">Phone (optional)</label><input type="tel" name="phone" autocomplete="tel" placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20"/></div>
+<div class="fg">
+<label data-i18n="ct.lbl.country">Country<span class="req" aria-hidden="true">*</span></label>
+<select name="country" required id="iq-country" aria-required="true">
 <option value="">Select country</option>
 <option>Sierra Leone</option>
 <option>Guinea</option>
+<option>Guinea-Bissau</option>
 <option>Liberia</option>
 <option>Other West Africa</option>
+<option>Other</option>
 </select>
 </div>
+</div>
+<div class="fg"><label data-i18n="ct.lbl.company">Company Name (optional)</label><input type="text" name="company" autocomplete="organization" data-i18n-ph="ph.company" placeholder="Your Company Ltd" maxlength="100"/></div>
+
+<!-- Conditional field groups: exactly one shown, matching the inquiryType
+     selection above (see toggleInquiryGroups() in InquiryFormHandler).
+     Server-side (api/contact.js) treats all of these as optional except
+     iq-order-number, which is required only when inquiryType=existing-order. -->
+<div class="fg-group" id="iq-group-sales" hidden>
+<div class="fgrow">
+<div class="fg"><label data-i18n="iq.lbl.product">Product or Service</label><input type="text" id="iq-sales-product" data-i18n-ph="iq.ph.product" placeholder="e.g. Dell PowerEdge R750, Cat6A cable, MikroTik router" maxlength="150"/></div>
+<div class="fg"><label data-i18n="iq.lbl.model">Model (optional)</label><input type="text" id="iq-sales-model" data-i18n-ph="iq.ph.model" placeholder="Model or part number, if known" maxlength="100"/></div>
+</div>
+<div class="fgrow">
+<div class="fg"><label data-i18n="iq.lbl.quantity">Quantity</label><input type="text" id="iq-sales-qty" data-i18n-ph="iq.ph.quantity" placeholder="e.g. 10 units" maxlength="50"/></div>
+<div class="fg"><label data-i18n="iq.lbl.budget">Approximate Budget (optional)</label><input type="text" id="iq-sales-budget" data-i18n-ph="iq.ph.budget" placeholder="e.g. $5,000" maxlength="50"/></div>
+</div>
+<div class="fgrow">
+<div class="fg"><label data-i18n="iq.lbl.deliveryLocation">Delivery Location</label><input type="text" id="iq-sales-delivery" data-i18n-ph="iq.ph.deliveryLocation" placeholder="City or site address" maxlength="150"/></div>
+<div class="fg"><label data-i18n="iq.lbl.timeline">Required Timeline</label><input type="text" id="iq-sales-timeline" data-i18n-ph="iq.ph.timeline" placeholder="e.g. Within 2 weeks" maxlength="100"/></div>
+</div>
+</div>
+<div class="fg-group" id="iq-group-support" hidden>
+<div class="fgrow">
+<div class="fg"><label data-i18n="iq.lbl.product">Product or Service</label><input type="text" id="iq-support-product" data-i18n-ph="iq.ph.product" placeholder="e.g. Dell PowerEdge R750, Cat6A cable, MikroTik router" maxlength="150"/></div>
+<div class="fg"><label data-i18n="iq.lbl.orderNumber">Order / Reference Number</label><input type="text" id="iq-support-order" data-i18n-ph="iq.ph.orderNumber" placeholder="e.g. ORD-10234" maxlength="60"/></div>
+</div>
+<div class="fg"><label data-i18n="iq.lbl.issueDescription">Issue Description</label><textarea id="iq-support-issue" rows="4" data-i18n-ph="iq.ph.issueDescription" placeholder="Describe the problem you're experiencing..." maxlength="1500"></textarea></div>
+</div>
+<div class="fg-group" id="iq-group-order" hidden>
+<div class="fg"><label data-i18n="iq.lbl.orderNumber">Order / Reference Number<span class="req" aria-hidden="true">*</span></label><input type="text" id="iq-order-number" data-i18n-ph="iq.ph.orderNumber" placeholder="e.g. ORD-10234" maxlength="60"/></div>
+<div class="fg"><label data-i18n="iq.lbl.natureOfRequest">Nature of Request</label><textarea id="iq-order-nature" rows="4" data-i18n-ph="iq.ph.natureOfRequest" placeholder="What would you like us to do with this order?" maxlength="1500"></textarea></div>
+</div>
+<div class="fg-group" id="iq-group-install" hidden>
+<div class="fgrow">
+<div class="fg"><label data-i18n="iq.lbl.installationType">Installation Type</label><input type="text" id="iq-install-type" data-i18n-ph="iq.ph.installationType" placeholder="e.g. Fiber installation, network setup, server deployment" maxlength="150"/></div>
+<div class="fg"><label data-i18n="iq.lbl.projectLocation">Project Location</label><input type="text" id="iq-install-location" data-i18n-ph="iq.ph.projectLocation" placeholder="Site address or city" maxlength="150"/></div>
+</div>
+<div class="fg"><label data-i18n="iq.lbl.timeline">Required Timeline</label><input type="text" id="iq-install-timeline" data-i18n-ph="iq.ph.timeline" placeholder="e.g. Within 2 weeks" maxlength="100"/></div>
+<div class="fg"><label data-i18n="iq.lbl.projectDescription">Project Description</label><textarea id="iq-install-desc" rows="4" data-i18n-ph="iq.ph.projectDescription" placeholder="Describe the scope of the installation..." maxlength="1500"></textarea></div>
+</div>
+
+<div class="fg"><label data-i18n="ct.lbl.subject">Subject<span class="req" aria-hidden="true">*</span></label><input type="text" name="subject" required data-i18n-ph="ct.ph.subject" placeholder="What is this about?" maxlength="150" aria-required="true"/></div>
+<div class="fg"><label data-i18n="ct.lbl.message">Message<span class="req" aria-hidden="true">*</span></label><textarea name="message" required maxlength="2000" aria-required="true" rows="5" data-i18n-ph="ct.ph.message" placeholder="Tell us what you need..."></textarea></div>
 <div class="fg">
-<label data-i18n="lbl.reqtype">Request Type</label>
-<select name="request_type" required id="sel-reqtype">
-<option value="">Select type</option>
-<optgroup label="Hardware Supply">
-<option>Routers &amp; Network Switches</option>
-<option>Servers (Dell / HP / Other)</option>
-<option>Computers &amp; Workstations</option>
-<option>Fiber Optic Cables</option>
-<option>Structured Cabling (Cat6/Cat6A)</option>
-<option>Network Accessories</option>
-</optgroup>
-<optgroup label="Services">
-<option>Fiber Optic Installation</option>
-<option>Network Infrastructure Setup</option>
-<option>Server Deployment</option>
-<option>IT Installation &amp; Deployment</option>
-<option>Equipment Procurement</option>
-</optgroup>
+<label data-i18n="iq.lbl.preferredResponse">Preferred Response Method<span class="req" aria-hidden="true">*</span></label>
+<select name="preferredResponse" required id="iq-preferred-response" aria-required="true">
+<option value="email" data-i18n="iq.opt.prEmail">Email</option>
+<option value="phone" data-i18n="iq.opt.prPhone">Telephone</option>
 </select>
 </div>
-</div>
-<div class="fg"><label data-i18n="lbl.details">Project Details</label><textarea name="message" data-i18n-ph="ph.details" placeholder="Describe your requirements, quantities, site location, and any other details..." maxlength="2000"></textarea></div>
-<!-- SECURITY FIX: Add GDPR consent -->
 <div class="fg" style="margin-bottom:8px;">
 <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
-<input type="checkbox" name="gdpr-consent" required style="width:auto;"/>
-<span>I consent to my data being processed according to the <a href="/privacy.html">Privacy Policy</a></span>
+<input type="checkbox" name="consent" required style="width:auto;"/>
+<span data-i18n="ct.lbl.consent">I consent to my data being processed according to the <a href="/privacy.html">Privacy Policy</a>, so LAVAALL can respond to my inquiry.</span>
 </label>
 </div>
-<button type="submit" class="fsub" id="fsub" data-i18n="form.submit">Send Quote Request &#8594;</button>
-<p class="fnote" data-i18n="form.note">We will only contact you regarding your quote request. No spam.</p>
+<button type="submit" class="fsub" id="iq-fsub" data-i18n="form.submit">Send Inquiry &#8594;</button>
+<p class="fnote" data-i18n="form.note">We will only contact you regarding this inquiry. No spam.</p>
 </form>
 </div>
 </div>
@@ -734,194 +714,16 @@ const SecurityUtils = {
 };
 
 // ============================================================================
-// SECURITY FIX: Rate Limiting
+// SEND AN INQUIRY -- unified contact form (PART 2 of the contact/scheduling
+// spec). Replaces the old duplicated "Send Us a Message" (#ctform) and
+// "Request a Quote" (#sform) forms. Routes to support@ / sales@ / orders@ /
+// contact@ / info@lavaall.com via /api/contact, based on the inquiryType the
+// customer selects -- see ROUTES in api/contact.js for the single source of
+// truth on where each of the 15 types is delivered.
 // ============================================================================
-const RateLimiter = {
-  COOLDOWN_PERIOD: 60000, // 1 minute
-  STORAGE_KEY: 'lastSubmission',
-  
-  checkLimit: function() {
-    const lastSubmit = parseInt(localStorage.getItem(this.STORAGE_KEY) || 0);
-    const now = Date.now();
-    
-    if (now - lastSubmit < this.COOLDOWN_PERIOD) {
-      const remainingTime = Math.ceil((this.COOLDOWN_PERIOD - (now - lastSubmit)) / 1000);
-      return {
-        allowed: false,
-        message: `Please wait ${remainingTime} seconds before submitting again`
-      };
-    }
-    
-    return { allowed: true };
-  },
-  
-  recordSubmission: function() {
-    localStorage.setItem(this.STORAGE_KEY, Date.now().toString());
-  }
-};
-
-// ============================================================================
-// SECURITY FIX: Secure Form Handler
-// ============================================================================
-class SecureFormHandler {
-  constructor(formId) {
-    this.form = document.getElementById(formId);
-    this.submitBtn = document.getElementById('fsub');
-    this.successBox = document.getElementById('sbox');
-    this.init();
-  }
-  
-  init() {
-    // Generate CSRF token
-    document.getElementById('csrf-token').value = SecurityUtils.generateCSRFToken();
-    
-    // Attach submit handler
-    this.form.addEventListener('submit', this.handleSubmit.bind(this));
-  }
-  
-  checkHoneypot() {
-    const honeypot = this.form.querySelector('[name="website"]');
-    return honeypot && honeypot.value === '';
-  }
-  
-  validateForm() {
-    // Browser native validation first
-    if (!this.form.checkValidity()) {
-      this.form.reportValidity();
-      return false;
-    }
-    
-    // Check honeypot (bot detection)
-    if (!this.checkHoneypot()) {
-      console.log('Bot detected via honeypot');
-      return false;
-    }
-    
-    // Check rate limit
-    const rateCheck = RateLimiter.checkLimit();
-    if (!rateCheck.allowed) {
-      this.showError(rateCheck.message);
-      return false;
-    }
-    
-    return true;
-  }
-  
-  sanitizeFormData() {
-    const formData = {};
-    
-    try {
-      formData['form-name'] = 'signup';
-      formData.name = SecurityUtils.sanitizeText(
-        this.form.querySelector('[name="name"]').value, 100
-      );
-      formData.email = SecurityUtils.sanitizeEmail(
-        this.form.querySelector('[name="email"]').value
-      );
-      formData.phone = SecurityUtils.sanitizePhone(
-        this.form.querySelector('[name="phone"]').value
-      );
-      formData.company = SecurityUtils.sanitizeText(
-        this.form.querySelector('[name="company"]').value, 100
-      );
-      formData.country = this.form.querySelector('[name="country"]').value;
-      formData.request_type = this.form.querySelector('[name="request_type"]').value;
-      formData.message = SecurityUtils.sanitizeMessage(
-        this.form.querySelector('[name="message"]').value
-      );
-      const quoteLines = Object.fromEntries(formData.message.split('\n').map(line => {
-        const separator = line.indexOf(':');
-        return separator === -1 ? ['', ''] : [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
-      }));
-      const verified = Boolean(quoteLines['Source Product ID'] && quoteLines.MPN);
-      formData.requestType = verified ? 'verified-product' : 'sourcing';
-      formData.quantity = Number(quoteLines.Quantity || 1);
-      formData.context = verified
-        ? { verified: true, productName: quoteLines.Product || '', sourceProductId: quoteLines['Source Product ID'], mpn: quoteLines.MPN, gtin: quoteLines.GTIN || null }
-        : { category: quoteLines.Category || formData.request_type || 'General sourcing', brand: quoteLines.Brand || '', requestedModel: quoteLines['Requested family/model'] || formData.request_type || 'General sourcing' };
-      formData['csrf-token'] = this.form.querySelector('[name="csrf-token"]').value;
-      formData['gdpr-consent'] = this.form.querySelector('[name="gdpr-consent"]').checked ? 'yes' : 'no';
-      
-      return formData;
-    } catch (error) {
-      this.showError(error.message);
-      return null;
-    }
-  }
-  
-  async handleSubmit(e) {
-    e.preventDefault();
-    
-    // Validate form
-    if (!this.validateForm()) {
-      return false;
-    }
-    
-    // Sanitize input
-    const formData = this.sanitizeFormData();
-    if (!formData) {
-      return false;
-    }
-    
-    // Update UI
-    this.submitBtn.textContent = 'Sending...';
-    this.submitBtn.disabled = true;
-    
-    try {
-      const response = await fetch('/api/quote', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
-      
-      if (response.ok) {
-        // Record submission for rate limiting
-        RateLimiter.recordSubmission();
-        
-        // Show success message
-        this.form.style.display = 'none';
-        this.successBox.style.display = 'block';
-      } else {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.message || 'Submission failed');
-      }
-    } catch (error) {
-      console.error('Form submission error:', error);
-      this.showError('An error occurred. Please try again or contact us directly.');
-      this.submitBtn.disabled = false;
-      this.submitBtn.textContent = 'Send Quote Request →';
-    }
-  }
-  
-  showError(message) {
-    // Remove any existing error messages
-    const existingError = this.form.querySelector('.error-message');
-    if (existingError) {
-      existingError.remove();
-    }
-    
-    // Create new error message
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-    
-    // Insert at top of form
-    this.form.insertBefore(errorDiv, this.form.firstChild);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => errorDiv.remove(), 5000);
-  }
-}
-
-// ============================================================================
-// CONTACT US FORM (separate from the product Quote form above — routes to
-// support@ / sales@ / orders@ / contact@ / info@lavaall.com via /api/contact)
-// ============================================================================
-const ContactRateLimiter = {
+const InquiryRateLimiter = {
   COOLDOWN_PERIOD: 20000,
-  STORAGE_KEY: 'lastContactSubmission',
+  STORAGE_KEY: 'lastInquirySubmission',
   checkLimit: function() {
     const lastSubmit = parseInt(localStorage.getItem(this.STORAGE_KEY) || 0);
     const now = Date.now();
@@ -936,36 +738,63 @@ const ContactRateLimiter = {
   }
 };
 
-class ContactFormHandler {
+// Which conditional field-group applies to each inquiryType (see the
+// #iq-group-* <div>s in the form markup). Types not listed here (partnership,
+// general-inquiry, other) show no extra group -- matches buildExtraDetails()
+// in api/contact.js exactly.
+const INQUIRY_GROUPS = {
+  'sales-quotation': 'sales', 'product-availability': 'sales', 'equipment-procurement': 'sales',
+  'routers-networking': 'sales', 'servers-infrastructure': 'sales', 'computers-workstations': 'sales',
+  'fiber-optic': 'sales', 'structured-cabling': 'sales',
+  'customer-support': 'support', 'technical-support': 'support',
+  'existing-order': 'order',
+  'installation-services': 'install',
+};
+
+class InquiryFormHandler {
   constructor(formId) {
     this.form = document.getElementById(formId);
     if (!this.form) return;
-    this.submitBtn = document.getElementById('ct-fsub');
-    this.successBox = document.getElementById('ct-sbox');
-    this.inquirySelect = document.getElementById('ct-inquiry-type');
-    this.callbackWrap = document.getElementById('ct-callback-wrap');
-    this.callbackInput = document.getElementById('ct-callback-input');
+    this.submitBtn = document.getElementById('iq-fsub');
+    this.successBox = document.getElementById('sbox');
+    this.typeSelect = document.getElementById('iq-type');
+    this.groups = {
+      sales: document.getElementById('iq-group-sales'),
+      support: document.getElementById('iq-group-support'),
+      order: document.getElementById('iq-group-order'),
+      install: document.getElementById('iq-group-install'),
+    };
+    this.orderNumberInput = document.getElementById('iq-order-number');
     this.init();
   }
 
   init() {
-    const csrfField = document.getElementById('ct-csrf-token');
+    const csrfField = document.getElementById('csrf-token');
     if (csrfField) csrfField.value = SecurityUtils.generateCSRFToken();
     this.form.addEventListener('submit', this.handleSubmit.bind(this));
-    if (this.inquirySelect) {
-      this.inquirySelect.addEventListener('change', this.toggleCallbackField.bind(this));
-      this.toggleCallbackField();
+    if (this.typeSelect) {
+      this.typeSelect.addEventListener('change', this.toggleGroups.bind(this));
+      this.toggleGroups();
     }
   }
 
-  toggleCallbackField() {
-    const isCallback = this.inquirySelect.value === 'callback';
-    this.callbackWrap.hidden = !isCallback;
-    if (isCallback) {
-      this.callbackInput.setAttribute('required', 'required');
-    } else {
-      this.callbackInput.removeAttribute('required');
-      this.callbackInput.value = '';
+  // Shows only the field-group that matches the selected inquiryType, and
+  // makes the order/reference number required only for existing-order (the
+  // only conditional field api/contact.js actually requires server-side).
+  toggleGroups() {
+    const active = INQUIRY_GROUPS[this.typeSelect.value] || null;
+    Object.entries(this.groups).forEach(([key, el]) => {
+      if (!el) return;
+      el.hidden = key !== active;
+    });
+    if (this.orderNumberInput) {
+      if (active === 'order') {
+        this.orderNumberInput.setAttribute('required', 'required');
+        this.orderNumberInput.setAttribute('aria-required', 'true');
+      } else {
+        this.orderNumberInput.removeAttribute('required');
+        this.orderNumberInput.removeAttribute('aria-required');
+      }
     }
   }
 
@@ -983,7 +812,7 @@ class ContactFormHandler {
       console.log('Bot detected via honeypot');
       return false;
     }
-    const rateCheck = ContactRateLimiter.checkLimit();
+    const rateCheck = InquiryRateLimiter.checkLimit();
     if (!rateCheck.allowed) {
       this.showError(rateCheck.message);
       return false;
@@ -991,9 +820,58 @@ class ContactFormHandler {
     return true;
   }
 
+  // Reads text from an input/textarea by id, sanitized; '' if the element
+  // doesn't exist (it belongs to a group that isn't currently active).
+  readField(id, max) {
+    const el = document.getElementById(id);
+    if (!el || !el.value) return '';
+    return SecurityUtils.sanitizeText(el.value, max || 300);
+  }
+
+  // Pulls the conditional-group fields for whichever group is currently
+  // active, using the exact field names api/contact.js's buildExtraDetails()
+  // expects for that inquiryType.
+  collectGroupFields(active) {
+    if (active === 'sales') {
+      return {
+        productOrService: this.readField('iq-sales-product', 150),
+        model: this.readField('iq-sales-model', 100),
+        quantity: this.readField('iq-sales-qty', 50),
+        budget: this.readField('iq-sales-budget', 50),
+        deliveryLocation: this.readField('iq-sales-delivery', 150),
+        timeline: this.readField('iq-sales-timeline', 100),
+      };
+    }
+    if (active === 'support') {
+      return {
+        productOrService: this.readField('iq-support-product', 150),
+        orderNumber: this.readField('iq-support-order', 60),
+        issueDescription: this.readField('iq-support-issue', 1500),
+      };
+    }
+    if (active === 'order') {
+      return {
+        orderNumber: this.readField('iq-order-number', 60),
+        issueDescription: this.readField('iq-order-nature', 1500),
+      };
+    }
+    if (active === 'install') {
+      return {
+        installationType: this.readField('iq-install-type', 150),
+        deliveryLocation: this.readField('iq-install-location', 150),
+        timeline: this.readField('iq-install-timeline', 100),
+        projectDescription: this.readField('iq-install-desc', 1500),
+      };
+    }
+    return {};
+  }
+
   sanitizeFormData() {
     try {
+      const inquiryType = this.form.querySelector('[name="inquiryType"]').value;
+      const active = INQUIRY_GROUPS[inquiryType] || null;
       return {
+        inquiryType,
         name: SecurityUtils.sanitizeText(this.form.querySelector('[name="name"]').value, 100),
         email: SecurityUtils.sanitizeEmail(this.form.querySelector('[name="email"]').value),
         phone: this.form.querySelector('[name="phone"]').value
@@ -1001,13 +879,12 @@ class ContactFormHandler {
           : '',
         country: this.form.querySelector('[name="country"]').value,
         company: SecurityUtils.sanitizeText(this.form.querySelector('[name="company"]').value, 100),
-        inquiryType: this.form.querySelector('[name="inquiryType"]').value,
         subject: SecurityUtils.sanitizeText(this.form.querySelector('[name="subject"]').value, 150),
         message: SecurityUtils.sanitizeMessage(this.form.querySelector('[name="message"]').value),
-        preferredContact: this.form.querySelector('[name="preferredContact"]').value,
-        preferredCallback: SecurityUtils.sanitizeText(this.form.querySelector('[name="preferredCallback"]').value, 100),
+        preferredResponse: this.form.querySelector('[name="preferredResponse"]').value,
         consent: this.form.querySelector('[name="consent"]').checked,
         website: this.form.querySelector('[name="website"]').value,
+        ...this.collectGroupFields(active),
       };
     } catch (error) {
       this.showError(error.message);
@@ -1032,7 +909,7 @@ class ContactFormHandler {
       });
 
       if (response.ok) {
-        ContactRateLimiter.recordSubmission();
+        InquiryRateLimiter.recordSubmission();
         this.form.style.display = 'none';
         this.successBox.style.display = 'block';
       } else {
@@ -1041,10 +918,10 @@ class ContactFormHandler {
         throw new Error(message);
       }
     } catch (error) {
-      console.error('Contact form submission error:', error);
+      console.error('Inquiry form submission error:', error);
       this.showError(error.message || 'An error occurred. Please try again or email us directly.');
       this.submitBtn.disabled = false;
-      this.submitBtn.textContent = 'Send Message →';
+      this.submitBtn.textContent = 'Send Inquiry →';
     }
   }
 
@@ -1299,7 +1176,7 @@ const translations={
     'nav.contact':'Contact',
     'ct.tag':'Get In Touch',
     'ct.h2':'Contact the Right Team',
-    'ct.sub':'Pick the option below that matches your need so your message reaches the right inbox the first time.',
+    'ct.sub':'Email the right team directly below, or send one inquiry using the form further down the page.',
     'ct.support.h3':'Customer Support',
     'ct.support.p':'Product or service issues, post-purchase help, technical problems, or a complaint about an order you already have.',
     'ct.sales.h3':'Sales &amp; Quotes',
@@ -1339,13 +1216,13 @@ const translations={
     'ct.form.note':'We typically respond within 24 hours. No spam.',
     'ft.cta2':'Contact Us →',
         /* QUOTE FORM */
-    'form.h2':'Get a <span>Free Quote</span> Today',
-    'form.p':'Tell us what your business needs and our team will get back to you within 24 hours with pricing and availability.',
-    'form.title':'Request a Quote',
-    'form.note':'We will only contact you regarding your quote request. No spam.',
-    'form.submit':'Send Quote Request →',
-    'form.ok.h3':'Quote Request Received!',
-    'form.ok.p':'We will contact you within 24 hours with pricing and availability.',
+    'form.h2':'Send an <span>Inquiry</span>',
+    'form.p':'Tell us what your business needs and the right LAVAALL team will get back to you within 24 hours.',
+    'form.title':'Send an Inquiry',
+    'form.note':'We will only contact you regarding this inquiry. No spam.',
+    'form.submit':'Send Inquiry →',
+    'form.ok.h3':'Inquiry Received!',
+    'form.ok.p':'The right LAVAALL team will contact you within 24 hours.',
     /* PERKS */
     'perk1':'Global equipment procurement &amp; sourcing',
     'perk2':'Professional on-site installation',
@@ -1382,6 +1259,52 @@ const translations={
     'cs.aria.telegram':'Telegram — Coming soon',
     'cs.aria.messenger':'Facebook Messenger — Coming soon',
     'cs.aria.facebook':'Facebook — Coming soon',
+    'ct.jumplink':'Or send one inquiry using the form below &#8595;',
+    'ct.ph.subject':'What is this about?',
+    'iq.lbl.inquiryType':'Inquiry Type',
+    'iq.opt.selectType':'Select an inquiry type',
+    'iq.opt.salesQuotation':'Sales and quotations',
+    'iq.opt.productAvailability':'Product availability',
+    'iq.opt.equipmentProcurement':'Equipment procurement',
+    'iq.opt.routersNetworking':'Routers and networking',
+    'iq.opt.serversInfrastructure':'Servers and infrastructure',
+    'iq.opt.computersWorkstations':'Computers and workstations',
+    'iq.opt.fiberOptic':'Fiber-optic products',
+    'iq.opt.structuredCabling':'Structured cabling',
+    'iq.opt.installationServices':'Installation services',
+    'iq.opt.customerSupport':'Customer support',
+    'iq.opt.technicalSupport':'Technical support',
+    'iq.opt.existingOrder':'Existing order or order status',
+    'iq.opt.partnership':'Partnership',
+    'iq.opt.generalInquiry':'General inquiry',
+    'iq.opt.other':'Other',
+    'iq.lbl.preferredResponse':'Preferred Response Method',
+    'iq.opt.prEmail':'Email',
+    'iq.opt.prPhone':'Telephone',
+    'iq.lbl.product':'Product or Service',
+    'iq.ph.product':'e.g. Dell PowerEdge R750, Cat6A cable, MikroTik router',
+    'iq.lbl.model':'Model (optional)',
+    'iq.ph.model':'Model or part number, if known',
+    'iq.lbl.quantity':'Quantity',
+    'iq.ph.quantity':'e.g. 10 units',
+    'iq.lbl.budget':'Approximate Budget (optional)',
+    'iq.ph.budget':'e.g. $5,000',
+    'iq.lbl.deliveryLocation':'Delivery Location',
+    'iq.ph.deliveryLocation':'City or site address',
+    'iq.lbl.timeline':'Required Timeline',
+    'iq.ph.timeline':'e.g. Within 2 weeks',
+    'iq.lbl.orderNumber':'Order / Reference Number',
+    'iq.ph.orderNumber':'e.g. ORD-10234',
+    'iq.lbl.issueDescription':'Issue Description',
+    'iq.ph.issueDescription':'Describe the problem you\'re experiencing...',
+    'iq.lbl.natureOfRequest':'Nature of Request',
+    'iq.ph.natureOfRequest':'What would you like us to do with this order?',
+    'iq.lbl.installationType':'Installation Type',
+    'iq.ph.installationType':'e.g. Fiber installation, network setup, server deployment',
+    'iq.lbl.projectLocation':'Project Location',
+    'iq.ph.projectLocation':'Site address or city',
+    'iq.lbl.projectDescription':'Project Description',
+    'iq.ph.projectDescription':'Describe the scope of the installation...',
     'ft.copy':'© 2026 LAVAALL. All rights reserved.'
   },
   fr:{
@@ -1389,7 +1312,7 @@ const translations={
     'nav.contact':'Contact',
     'ct.tag':'Contactez-Nous',
     'ct.h2':'Contactez la Bonne Équipe',
-    'ct.sub':'Choisissez l\'option ci-dessous qui correspond à votre besoin afin que votre message arrive directement à la bonne équipe.',
+    'ct.sub':'Écrivez directement à la bonne équipe ci-dessous, ou envoyez une demande unique via le formulaire plus bas.',
     'ct.support.h3':'Support Client',
     'ct.support.p':'Problèmes de produit ou de service, aide après achat, problèmes techniques, ou une réclamation concernant une commande déjà passée.',
     'ct.sales.h3':'Ventes et Devis',
@@ -1509,13 +1432,13 @@ const translations={
     'faq.q6':'Comment vous contacter directement ?',
     'faq.a6':'Contactez-nous via WhatsApp ou utilisez le formulaire de devis ci-dessous — notre équipe répond dans les 24 heures.',
     /* QUOTE FORM */
-    'form.h2':'Obtenez un <span>Devis Gratuit</span> Aujourd\'hui',
-    'form.p':'Dites-nous ce dont votre entreprise a besoin et notre équipe vous répondra sous 24 heures avec les tarifs et disponibilités.',
-    'form.title':'Demander un Devis',
-    'form.note':'Nous vous contacterons uniquement concernant votre demande de devis. Pas de spam.',
-    'form.submit':'Envoyer la Demande de Devis →',
-    'form.ok.h3':'Demande de Devis Reçue !',
-    'form.ok.p':'Nous vous contacterons sous 24 heures avec les tarifs et disponibilités.',
+    'form.h2':'Envoyer une <span>Demande</span>',
+    'form.p':'Dites-nous ce dont votre entreprise a besoin et l\'équipe LAVAALL compétente vous répondra sous 24 heures.',
+    'form.title':'Envoyer une Demande',
+    'form.note':'Nous vous contacterons uniquement au sujet de cette demande. Pas de spam.',
+    'form.submit':'Envoyer la Demande →',
+    'form.ok.h3':'Demande Reçue !',
+    'form.ok.p':'L\'équipe LAVAALL compétente vous contactera sous 24 heures.',
     /* PERKS */
     'perk1':'Approvisionnement &amp; sourcing d\'équipements mondial',
     'perk2':'Installation professionnelle sur site',
@@ -1552,6 +1475,52 @@ const translations={
     'cs.aria.telegram':'Telegram — Bientôt disponible',
     'cs.aria.messenger':'Facebook Messenger — Bientôt disponible',
     'cs.aria.facebook':'Facebook — Bientôt disponible',
+    'ct.jumplink':'Ou envoyez une demande unique via le formulaire ci-dessous &#8595;',
+    'ct.ph.subject':'De quoi s\'agit-il ?',
+    'iq.lbl.inquiryType':'Type de Demande',
+    'iq.opt.selectType':'Sélectionnez un type de demande',
+    'iq.opt.salesQuotation':'Ventes et devis',
+    'iq.opt.productAvailability':'Disponibilité des produits',
+    'iq.opt.equipmentProcurement':'Approvisionnement en équipements',
+    'iq.opt.routersNetworking':'Routeurs et réseaux',
+    'iq.opt.serversInfrastructure':'Serveurs et infrastructure',
+    'iq.opt.computersWorkstations':'Ordinateurs et postes de travail',
+    'iq.opt.fiberOptic':'Produits fibre optique',
+    'iq.opt.structuredCabling':'Câblage structuré',
+    'iq.opt.installationServices':'Services d\'installation',
+    'iq.opt.customerSupport':'Support client',
+    'iq.opt.technicalSupport':'Support technique',
+    'iq.opt.existingOrder':'Commande existante ou statut de commande',
+    'iq.opt.partnership':'Partenariat',
+    'iq.opt.generalInquiry':'Demande générale',
+    'iq.opt.other':'Autre',
+    'iq.lbl.preferredResponse':'Méthode de Réponse Préférée',
+    'iq.opt.prEmail':'E-mail',
+    'iq.opt.prPhone':'Téléphone',
+    'iq.lbl.product':'Produit ou Service',
+    'iq.ph.product':'ex. Dell PowerEdge R750, câble Cat6A, routeur MikroTik',
+    'iq.lbl.model':'Modèle (facultatif)',
+    'iq.ph.model':'Modèle ou numéro de pièce, si connu',
+    'iq.lbl.quantity':'Quantité',
+    'iq.ph.quantity':'ex. 10 unités',
+    'iq.lbl.budget':'Budget Approximatif (facultatif)',
+    'iq.ph.budget':'ex. 5 000 $',
+    'iq.lbl.deliveryLocation':'Lieu de Livraison',
+    'iq.ph.deliveryLocation':'Ville ou adresse du site',
+    'iq.lbl.timeline':'Délai Requis',
+    'iq.ph.timeline':'ex. Sous 2 semaines',
+    'iq.lbl.orderNumber':'Numéro de Commande / Référence',
+    'iq.ph.orderNumber':'ex. ORD-10234',
+    'iq.lbl.issueDescription':'Description du Problème',
+    'iq.ph.issueDescription':'Décrivez le problème que vous rencontrez...',
+    'iq.lbl.natureOfRequest':'Nature de la Demande',
+    'iq.ph.natureOfRequest':'Que souhaitez-vous que nous fassions concernant cette commande ?',
+    'iq.lbl.installationType':'Type d\'Installation',
+    'iq.ph.installationType':'ex. Installation fibre, configuration réseau, déploiement serveur',
+    'iq.lbl.projectLocation':'Lieu du Projet',
+    'iq.ph.projectLocation':'Adresse du site ou ville',
+    'iq.lbl.projectDescription':'Description du Projet',
+    'iq.ph.projectDescription':'Décrivez l\'étendue de l\'installation...',
     'ft.copy':'© 2026 LAVAALL. Tous droits réservés.'
   },
   kr:{
@@ -1559,7 +1528,7 @@ const translations={
     'nav.contact':'Kɔntakt',
     'ct.tag':'Kɔntakt Wi',
     'ct.h2':'Kɔntakt di Rait Tim',
-    'ct.sub':'Pik di opshon dɔng below we fit yu nid so yu mesej go rich di rait tim wan tem.',
+    'ct.sub':'Rayt imel go di rait tim dɔng below, ɔ sen wan sɛnol inkwayri wit di fɔm we de dɔng na di pej.',
     'ct.support.h3':'Kɔstɔma Sɔpɔt',
     'ct.support.p':'Prɔblɛm wit prɔdɔkt ɔ savis, ɛp afta yu bay, tɛknikal prɔblɛm, ɔ kɔmplen bɔt wan ɔda we yu dɔn gɛt.',
     'ct.sales.h3':'Sɛls ɛn Kwot',
@@ -1679,13 +1648,13 @@ const translations={
     'faq.q6':'Aw mi go rich unu dɛrɛkt?',
     'faq.a6':'Rich wi bay WhatsApp ɔ yus di kwot fɔm dɔng belo — wi tɛm de rɛspɔnd wɛtin 24 awa.',
     /* QUOTE FORM */
-    'form.h2':'Gɛt <span>Fri Kwot</span> Tide',
-    'form.p':'Tɔl wi wetin unu bisnis nid en wi tim go kɔntakt unu insay 24 awa wit prajs en avɛlabiliti.',
-    'form.title':'Aks Kwot',
-    'form.note':'Wi go ɔnli kɔntakt unu abɔt unu kwot rikwɛst. No spɛm.',
-    'form.submit':'Sen Kwot Rikwɛst →',
-    'form.ok.h3':'Kwot Rikwɛst Risiivd!',
-    'form.ok.p':'Wi go kɔntakt unu insay 24 awa wit prajs en avɛlabiliti.',
+    'form.h2':'Sɛn Wan <span>Inkwayri</span>',
+    'form.p':'Tɔl wi wetin unu bisnis nid en di rait LAVAALL tim go kɔntakt unu insay 24 awa.',
+    'form.title':'Sɛn Wan Inkwayri',
+    'form.note':'Wi go ɔnli kɔntakt unu abɔt dis inkwayri. No spɛm.',
+    'form.submit':'Sen Inkwayri →',
+    'form.ok.h3':'Inkwayri Risiivd!',
+    'form.ok.p':'Di rait LAVAALL tim go kɔntakt unu insay 24 awa.',
     /* PERKS */
     'perk1':'Global ikwipmen prokɔmɛnt &amp; sɔsin',
     'perk2':'Prɔfeshnol on-sayt instaleshon',
@@ -1722,6 +1691,52 @@ const translations={
     'cs.aria.telegram':'Telegram — De kɔmin sun',
     'cs.aria.messenger':'Facebook Messenger — De kɔmin sun',
     'cs.aria.facebook':'Facebook — De kɔmin sun',
+    'ct.jumplink':'Ɔ sen wan sɛnol inkwayri wit di fɔm we de dɔng below &#8595;',
+    'ct.ph.subject':'Wetin dis na bɔt?',
+    'iq.lbl.inquiryType':'Taep Inkwayri',
+    'iq.opt.selectType':'Pik wan taep inkwayri',
+    'iq.opt.salesQuotation':'Sels ɛn kwot',
+    'iq.opt.productAvailability':'Prɔdɔkt avɛlabiliti',
+    'iq.opt.equipmentProcurement':'Ikwipmen prokɔmɛnt',
+    'iq.opt.routersNetworking':'Rawta ɛn nɛtwɔk',
+    'iq.opt.serversInfrastructure':'Sɛva ɛn infrastrɔktɔ',
+    'iq.opt.computersWorkstations':'Kɔmpyuta ɛn wɔksteshon',
+    'iq.opt.fiberOptic':'Fayba-ɔptik prɔdɔkt',
+    'iq.opt.structuredCabling':'Strɔktɔd kebul',
+    'iq.opt.installationServices':'Instaleshon sɛvis',
+    'iq.opt.customerSupport':'Kɔstoma sɔpɔt',
+    'iq.opt.technicalSupport':'Teknikal sɔpɔt',
+    'iq.opt.existingOrder':'Ɔda we dɔn de ɔ ɔda stetɔs',
+    'iq.opt.partnership':'Patnaship',
+    'iq.opt.generalInquiry':'Jɛnɛral inkwayri',
+    'iq.opt.other':'Ɔda tin',
+    'iq.lbl.preferredResponse':'Di Wan Yu Layk Fɔ Ansa',
+    'iq.opt.prEmail':'Imel',
+    'iq.opt.prPhone':'Fon',
+    'iq.lbl.product':'Prɔdɔkt ɔ Sɛvis',
+    'iq.ph.product':'e.g. Dell PowerEdge R750, Cat6A kebul, MikroTik rawta',
+    'iq.lbl.model':'Mɔdɛl (nɔ nid)',
+    'iq.ph.model':'Mɔdɛl ɔ pat nɔmba, if yu no am',
+    'iq.lbl.quantity':'Aw Mɔch',
+    'iq.ph.quantity':'e.g. 10 yunit',
+    'iq.lbl.budget':'Baget We Yu Tink (nɔ nid)',
+    'iq.ph.budget':'e.g. $5,000',
+    'iq.lbl.deliveryLocation':'Wia Fɔ Dɛlivri Am',
+    'iq.ph.deliveryLocation':'Tong ɔ sayt adres',
+    'iq.lbl.timeline':'Taem We Yu Nid Am',
+    'iq.ph.timeline':'e.g. Insay 2 wik',
+    'iq.lbl.orderNumber':'Ɔda / Rɛfrɛns Nɔmba',
+    'iq.ph.orderNumber':'e.g. ORD-10234',
+    'iq.lbl.issueDescription':'Diyscrayb Di Prɔblɛm',
+    'iq.ph.issueDescription':'Diyscrayb di prɔblɛm we yu de gɛt...',
+    'iq.lbl.natureOfRequest':'Wetin Yu Want',
+    'iq.ph.natureOfRequest':'Wetin yu want mek wi du wit dis ɔda?',
+    'iq.lbl.installationType':'Taep Instaleshon',
+    'iq.ph.installationType':'e.g. Fayba instaleshon, nɛtwɔk setɔp, sɛva dɛplɔymɛnt',
+    'iq.lbl.projectLocation':'Wia Di Projɛkt De',
+    'iq.ph.projectLocation':'Sayt adres ɔ tong',
+    'iq.lbl.projectDescription':'Diyscrayb Di Projɛkt',
+    'iq.ph.projectDescription':'Diyscrayb aw big di instaleshon de...',
     'ft.copy':'© 2026 LAVAALL. Ɔl Rayt Risɔvd.'
   }
 };
@@ -1850,8 +1865,7 @@ document.addEventListener('DOMContentLoaded', function() {
   buildTicker();
 
   // Initialize secure form handler
-  new SecureFormHandler('sform');
-  new ContactFormHandler('ctform');
+  new InquiryFormHandler('iq-form');
 
   // Set default language
   setLang('en');
