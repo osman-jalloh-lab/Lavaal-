@@ -1213,27 +1213,42 @@
     const emailSubj = encodeURIComponent('Quote Request: ' + currentQuoteTitle());
     const emailBody = encodeURIComponent(safeText);
 
+    // WhatsApp / Telegram / Facebook Messenger are not live yet -- render
+    // them as accessible "Coming Soon" buttons (same pattern as the footer
+    // social icons), never as working wa.me/t.me/m.me links, never as
+    // href="#", and never redirected into the quote form.
     const links = [
       { href: '#signup-continue', bg: 'var(--ink)', label: '✓', text: 'Continue in Quote Form Below', close: true },
-      { href: 'https://wa.me/23276658960?text=' + waMsg, bg: '#25D366', label: 'WA', text: 'WhatsApp' },
-      { href: 'https://t.me/lavaall', bg: '#0088cc', label: 'TG', text: 'Telegram' },
-      { href: 'https://m.me/lavaall', bg: '#006AFF', label: 'FB', text: 'Facebook Messenger' },
+      { comingSoon: true, bg: '#25D366', label: 'WA', text: 'WhatsApp' },
+      { comingSoon: true, bg: '#0088cc', label: 'TG', text: 'Telegram' },
+      { comingSoon: true, bg: '#006AFF', label: 'FB', text: 'Facebook Messenger' },
       { href: 'mailto:sales@lavaall.com?subject=' + emailSubj + '&body=' + emailBody, bg: '#EA4335', label: '@', text: 'Email Us' },
     ];
     links.forEach(linkData => {
-      const a = document.createElement('a');
-      a.className = 'dd-link';
-      a.href = linkData.href === '#signup-continue' ? '#signup' : linkData.href;
-      if (linkData.href.indexOf('http') === 0) a.target = '_blank';
+      const el = document.createElement(linkData.comingSoon ? 'button' : 'a');
+      el.className = linkData.comingSoon ? 'dd-link dd-link--coming-soon' : 'dd-link';
+      if (linkData.comingSoon) {
+        el.type = 'button';
+        el.setAttribute('aria-label', linkData.text + ' — Coming soon');
+      } else {
+        el.href = linkData.href === '#signup-continue' ? '#signup' : linkData.href;
+        if (linkData.href.indexOf('http') === 0) el.target = '_blank';
+      }
       const span = document.createElement('span');
       span.style.background = linkData.bg;
       span.textContent = linkData.label;
-      a.appendChild(span);
-      a.appendChild(document.createTextNode(linkData.text));
+      el.appendChild(span);
+      el.appendChild(document.createTextNode(linkData.comingSoon ? linkData.text + ' — Coming Soon' : linkData.text));
       if (linkData.close) {
-        a.addEventListener('click', () => { closeGalleryModal(); });
+        el.addEventListener('click', () => { closeGalleryModal(); });
       }
-      dd.appendChild(a);
+      if (linkData.comingSoon) {
+        el.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          if (typeof showComingSoon === 'function') showComingSoon(linkData.text);
+        });
+      }
+      dd.appendChild(el);
     });
     document.body.appendChild(dd);
 
