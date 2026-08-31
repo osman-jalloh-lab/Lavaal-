@@ -82,34 +82,6 @@
 </head>
 <body>
 <a href="#main-content" class="skip-link">Skip to main content</a>
-<!-- SPLASH: logo boot animation, plays once per session (see initSplash in the main script) -->
-<div class="splash" id="splash" aria-hidden="true">
-  <div class="splash-grid"><i></i></div>
-  <div class="splash-halo"></div>
-  <div class="splash-ring1"></div>
-  <div class="splash-ring2"></div>
-  <div class="splash-stage">
-    <div class="splash-orbit a">
-      <span class="splash-dot" style="left:270px;top:0;width:7px;height:7px;animation-duration:2.2s"></span>
-      <span class="splash-dot" style="left:-262px;top:24px;width:5px;height:5px;background:#9fe8ff;animation-duration:1.8s"></span>
-    </div>
-    <div class="splash-orbit b">
-      <span class="splash-dot" style="left:225px;top:-40px;width:5px;height:5px;background:#c9f3ff;animation-duration:2.6s"></span>
-      <span class="splash-dot" style="left:-240px;top:60px;width:6px;height:6px;background:#8fe0ff;animation-duration:2s"></span>
-    </div>
-    <div class="splash-mark">
-      <img src="images/logo.png" alt="LAVAALL" draggable="false"/>
-      <img class="splash-circuit" src="images/logo.png" alt="" aria-hidden="true" draggable="false"/>
-      <img class="splash-glitch" src="images/logo.png" alt="" aria-hidden="true" draggable="false"/>
-      <img class="splash-glitch b" src="images/logo.png" alt="" aria-hidden="true" draggable="false"/>
-      <div class="splash-sweepwrap"><div class="splash-sweep"></div></div>
-      <div class="splash-scanwrap"><div class="splash-scan"></div></div>
-    </div>
-    <img class="splash-refl" src="images/logo.png" alt="" aria-hidden="true" draggable="false"/>
-  </div>
-  <span class="splash-skip">Tap to skip</span>
-</div>
-
 <div class="cursor-glow" id="glow"></div>
 
 <!-- NAVIGATION -->
@@ -1874,9 +1846,6 @@ function showComingSoon(channel){
 // INITIALIZATION
 // ============================================================================
 document.addEventListener('DOMContentLoaded', function() {
-  // Play the logo boot splash (once per session; CSS hides it under reduced-motion)
-  initSplash();
-
   // Build ticker
   buildTicker();
 
@@ -1888,30 +1857,6 @@ document.addEventListener('DOMContentLoaded', function() {
   setLang('en');
 });
 
-// ============================================================================
-// SPLASH: logo boot animation — once per browser session, skippable.
-// ============================================================================
-function initSplash() {
-  const splash = document.getElementById('splash');
-  if (!splash) return;
-  let seen = false;
-  try { seen = sessionStorage.getItem('lv_splash_seen') === '1'; } catch (e) { /* storage unavailable */ }
-  if (seen) { splash.remove(); return; }
-  try { sessionStorage.setItem('lv_splash_seen', '1'); } catch (e) { /* storage unavailable */ }
-
-  document.body.style.overflow = 'hidden';
-  let dismissed = false;
-  const dismiss = () => {
-    if (dismissed) return;
-    dismissed = true;
-    splash.classList.add('out');
-    document.body.style.overflow = '';
-    setTimeout(() => splash.remove(), 650);
-  };
-  const timer = setTimeout(dismiss, 4200);
-  splash.addEventListener('click', () => { clearTimeout(timer); dismiss(); });
-  window.addEventListener('keydown', function skip() { clearTimeout(timer); dismiss(); window.removeEventListener('keydown', skip); }, { once: true });
-}
 
 // ── NAV SCROLLSPY — highlight active section in desktop nav ────────────────
 (function(){
