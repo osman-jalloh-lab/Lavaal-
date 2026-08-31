@@ -142,35 +142,20 @@
 <a href="#signup" class="bp" data-i18n="hero.btn1">Request a Quote</a>
 <a href="#products" class="bs" data-i18n="hero.btn2">Browse Equipment</a>
 </div>
-<a href="#" class="hero-schedule-link" id="hero-schedule-link"><svg class="svg-cal" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span data-i18n="hero.schedule">Or schedule a quick call &#8594;</span></a>
+<button type="button" class="hero-schedule-link" id="hero-schedule-link"><svg class="svg-cal" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span data-i18n="hero.schedule">Or schedule a quick call &#8594;</span></button>
 </div>
 <div class="scrollhint"><div class="scrollbar"></div><span data-i18n="hero.scroll">SCROLL</span></div>
-<!-- SCHEDULE-A-MEETING: Calendly popup widget, lazy-loaded on click, zero cost to
-     normal pageloads. Swap CALENDLY_URL for the real link once the LAVAALL Calendly
-     account exists (https://calendly.com/help/how-to-create-a-custom-button-to-open-calendly). -->
+<!-- SCHEDULE A CALL: opens the two-step Google Calendar booking modal
+     (#sched-overlay, ScheduleModal class further down) instead of the old
+     Calendly popup -- Calendly was never actually reachable anyway (its
+     script domain isn't in the page's Content-Security-Policy). -->
 <script>
 (function(){
-  var CALENDLY_URL = 'https://calendly.com/lavaall-placeholder/30min'; // TODO: replace with real LAVAALL Calendly link
-  var calendlyReady = false;
-  function loadCalendly(cb){
-    if(calendlyReady){ cb(); return; }
-    var css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = 'https://calendly.com/assets/external/widget.css';
-    document.head.appendChild(css);
-    var script = document.createElement('script');
-    script.src = 'https://calendly.com/assets/external/widget.js';
-    script.onload = function(){ calendlyReady = true; cb(); };
-    script.onerror = function(){ window.location.href = 'mailto:sales@lavaall.com?subject=' + encodeURIComponent('[Lavaall Website – Callback Request] Schedule a Meeting'); };
-    document.body.appendChild(script);
-  }
   var btn = document.getElementById('hero-schedule-link');
   if(btn){
     btn.addEventListener('click', function(e){
       e.preventDefault();
-      loadCalendly(function(){
-        if(window.Calendly){ window.Calendly.initPopupWidget({url: CALENDLY_URL}); }
-      });
+      if (window.openScheduleModal) window.openScheduleModal();
     });
   }
 })();
@@ -936,6 +921,289 @@ class InquiryFormHandler {
   }
 }
 
+// ============================================================================
+// SCHEDULE A CALL -- two-step Google Calendar booking widget (PART 1 of the
+// contact/scheduling spec). Step 1 registers the lead (api/schedule.js
+// action=register) and gets back a leadId+token immediately -- Step 2 does
+// NOT wait on the backup email. Step 2 shows real availability
+// (action=availability) and books a slot (action=book), re-checked
+// server-side against the live Calendar. Africa/Freetown is UTC+0 with no
+// DST, so the ISO 'start' timestamps the backend returns can be sliced
+// directly into local YYYY-MM-DD / HH:MM -- no timezone math needed, same
+// simplification booking-router.gs itself relies on.
+// ============================================================================
+const ScheduleRateLimiter = {
+  COOLDOWN_PERIOD: 20000,
+  STORAGE_KEY: 'lastScheduleRegistration',
+  checkLimit: function() {
+    const lastSubmit = parseInt(localStorage.getItem(this.STORAGE_KEY) || 0);
+    const now = Date.now();
+    if (now - lastSubmit < this.COOLDOWN_PERIOD) {
+      const remainingTime = Math.ceil((this.COOLDOWN_PERIOD - (now - lastSubmit)) / 1000);
+      return { allowed: false, message: `Please wait ${remainingTime} seconds before submitting again` };
+    }
+    return { allowed: true };
+  },
+  recordSubmission: function() {
+    localStorage.setItem(this.STORAGE_KEY, Date.now().toString());
+  }
+};
+
+const SCHED_BOOKING_WINDOW_DAYS = 21;
+
+class ScheduleModal {
+  constructor() {
+    this.overlay = document.getElementById('sched-overlay');
+    if (!this.overlay) return;
+    this.step1 = document.getElementById('sched-step1');
+    this.step2 = document.getElementById('sched-step2');
+    this.confirmStep = document.getElementById('sched-confirm');
+    this.regForm = document.getElementById('sched-reg-form');
+    this.regSubmitBtn = document.getElementById('sched-reg-submit');
+    this.dateInput = document.getElementById('sched-date-input');
+    this.slotsEl = document.getElementById('sched-slots');
+    this.loadingEl = document.getElementById('sched-loading');
+    this.emptyEl = document.getElementById('sched-slots-empty');
+    this.step2Sub = document.getElementById('sched-step2-sub');
+    this.confirmDetail = document.getElementById('sched-confirm-detail');
+    this.trigger = null;
+    this.lead = null; // { leadId, token, firstName, wantsMeet }
+    this.init();
+  }
+
+  init() {
+    this.regForm.addEventListener('submit', this.handleRegister.bind(this));
+    this.dateInput.addEventListener('change', this.loadAvailability.bind(this));
+    document.getElementById('sched-close-btn').addEventListener('click', () => this.close());
+    document.getElementById('sched-backdrop').addEventListener('click', () => this.close());
+    document.getElementById('sched-back-btn').addEventListener('click', () => this.showStep(1));
+    document.getElementById('sched-done-btn').addEventListener('click', () => this.close());
+    this.overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { this.close(); return; }
+      if (e.key === 'Tab') this.trapFocus(e);
+    });
+  }
+
+  open() {
+    this.trigger = document.activeElement;
+    this.lead = null;
+    this.showStep(1);
+    this.overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    const candidates = Array.from(this.step1.querySelectorAll('input,select,textarea,button'))
+      .filter(el => el.offsetParent !== null && !el.disabled);
+    if (candidates.length) candidates[0].focus();
+  }
+
+  close() {
+    this.overlay.classList.remove('show');
+    document.body.style.overflow = '';
+    if (this.trigger && this.trigger.focus) this.trigger.focus();
+  }
+
+  trapFocus(e) {
+    const focusables = Array.from(this.overlay.querySelectorAll('input,select,textarea,button,a[href]'))
+      .filter(el => el.offsetParent !== null && !el.disabled);
+    if (!focusables.length) return;
+    const first = focusables[0], last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
+  showStep(n) {
+    this.step1.hidden = n !== 1;
+    this.step2.hidden = n !== 2;
+    this.confirmStep.hidden = n !== 3;
+  }
+
+  checkHoneypot() {
+    const honeypot = this.regForm.querySelector('[name="website"]');
+    return honeypot && honeypot.value === '';
+  }
+
+  showStep1Error(message) {
+    const el = document.getElementById('sched-step1-error');
+    el.textContent = message;
+    el.hidden = false;
+    setTimeout(() => { el.hidden = true; }, 6000);
+  }
+
+  showStep2Error(message) {
+    const el = document.getElementById('sched-step2-error');
+    el.textContent = message;
+    el.hidden = false;
+    setTimeout(() => { el.hidden = true; }, 6000);
+  }
+
+  async handleRegister(e) {
+    e.preventDefault();
+    if (!this.regForm.checkValidity()) { this.regForm.reportValidity(); return; }
+    if (!this.checkHoneypot()) { console.log('Bot detected via honeypot'); return; }
+    const rateCheck = ScheduleRateLimiter.checkLimit();
+    if (!rateCheck.allowed) { this.showStep1Error(rateCheck.message); return; }
+
+    const f = this.regForm;
+    const payload = {
+      firstName: SecurityUtils.sanitizeText(f.querySelector('[name="firstName"]').value, 60),
+      lastName: SecurityUtils.sanitizeText(f.querySelector('[name="lastName"]').value, 60),
+      email: SecurityUtils.sanitizeEmail(f.querySelector('[name="email"]').value),
+      phone: SecurityUtils.sanitizePhone(f.querySelector('[name="phone"]').value),
+      country: f.querySelector('[name="country"]').value,
+      reason: f.querySelector('[name="reason"]').value,
+      preferredCallMethod: f.querySelector('[name="preferredCallMethod"]').value,
+      note: SecurityUtils.sanitizeText(f.querySelector('[name="note"]').value, 500),
+      consent: f.querySelector('[name="consent"]').checked,
+      language: currentLang,
+      customerTimezone: (Intl.DateTimeFormat().resolvedOptions().timeZone) || '',
+      sourcePage: location.pathname,
+    };
+
+    this.regSubmitBtn.disabled = true;
+    this.regSubmitBtn.textContent = 'Sending...';
+
+    try {
+      const response = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'register', ...payload }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok && body.ok) {
+        ScheduleRateLimiter.recordSubmission();
+        this.lead = {
+          leadId: body.leadId, token: body.token,
+          firstName: payload.firstName,
+          wantsMeet: payload.preferredCallMethod === 'meet',
+        };
+        this.enterStep2();
+      } else {
+        const message = (body.errors && body.errors.join(' ')) || body.message || 'Registration failed. Please try again.';
+        this.showStep1Error(message);
+      }
+    } catch (error) {
+      console.error('Schedule registration error:', error);
+      this.showStep1Error('An error occurred. Please try again or email us directly.');
+    } finally {
+      this.regSubmitBtn.disabled = false;
+      const tr = translations[currentLang] || translations.en;
+      const label = tr['sch.step1.submit'] || 'Continue to Select a Time &#8594;';
+      if (typeof DOMPurify !== 'undefined') {
+        this.regSubmitBtn.innerHTML = DOMPurify.sanitize(label);
+      } else {
+        this.regSubmitBtn.textContent = label;
+      }
+    }
+  }
+
+  enterStep2() {
+    this.showStep(2);
+    const sub = SCHED_STRINGS[currentLang] || SCHED_STRINGS.en;
+    this.step2Sub.textContent = sub.step2sub(this.lead.firstName);
+    const today = new Date();
+    const min = new Date(today.getTime() + 24 * 3600000);
+    const max = new Date(today.getTime() + SCHED_BOOKING_WINDOW_DAYS * 24 * 3600000);
+    const toISODate = (d) => d.toISOString().slice(0, 10);
+    this.dateInput.min = toISODate(min);
+    this.dateInput.max = toISODate(max);
+    this.dateInput.value = toISODate(min);
+    this.loadAvailability();
+  }
+
+  async loadAvailability() {
+    const date = this.dateInput.value;
+    if (!date) return;
+    this.slotsEl.innerHTML = '';
+    this.emptyEl.hidden = true;
+    this.loadingEl.hidden = false;
+    try {
+      const response = await fetch('/api/schedule?action=availability&date=' + encodeURIComponent(date));
+      const body = await response.json().catch(() => ({}));
+      this.loadingEl.hidden = true;
+      if (!response.ok || !body.ok) {
+        this.showStep2Error(body.message || 'Could not load availability. Please try another date.');
+        return;
+      }
+      const slots = body.slots || [];
+      if (!slots.length) { this.emptyEl.hidden = false; return; }
+      slots.forEach((slot) => {
+        const startIso = typeof slot === 'string' ? slot : slot.start;
+        const time = startIso.slice(11, 16); // HH:MM, safe: Africa/Freetown is UTC+0
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'sched-slot';
+        btn.textContent = formatSlotLabel(time);
+        btn.addEventListener('click', () => this.bookSlot(date, time, btn));
+        this.slotsEl.appendChild(btn);
+      });
+    } catch (error) {
+      console.error('Availability load error:', error);
+      this.loadingEl.hidden = true;
+      this.showStep2Error('Could not load availability. Please try another date.');
+    }
+  }
+
+  async bookSlot(date, time, btnEl) {
+    if (!this.lead) return;
+    Array.from(this.slotsEl.querySelectorAll('.sched-slot')).forEach(b => b.disabled = true);
+    try {
+      const response = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'book', leadId: this.lead.leadId, token: this.lead.token, date, time }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok && body.ok) {
+        this.showConfirmation(date, time, body);
+      } else {
+        const message = body.message || (body.error === 'slot_taken' ? 'That time was just taken -- please pick another.' : 'Could not book that time. Please try another.');
+        this.showStep2Error(message);
+        this.loadAvailability(); // refresh in case the slot list is now stale
+      }
+    } catch (error) {
+      console.error('Booking error:', error);
+      this.showStep2Error('Could not reach the scheduler. Please try again.');
+    } finally {
+      Array.from(this.slotsEl.querySelectorAll('.sched-slot')).forEach(b => b.disabled = false);
+    }
+  }
+
+  showConfirmation(date, time, body) {
+    this.showStep(3);
+    const sub = SCHED_STRINGS[currentLang] || SCHED_STRINGS.en;
+    const dt = new Date(date + 'T' + time + ':00Z');
+    const whenStr = dt.toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
+    this.confirmDetail.textContent = sub.confirmDetail(whenStr, this.lead.wantsMeet && body.meetLink);
+  }
+}
+
+const SCHED_STRINGS = {
+  en: {
+    step2sub: (name) => `Hi ${name}, choose a date and time (Mon-Fri, 9am-5pm, Africa/Freetown time).`,
+    confirmDetail: (when, meet) => `${when} (Africa/Freetown time)` + (meet ? ' -- a Google Meet link is in your confirmation email.' : ' -- LAVAALL will call you at the number you provided.'),
+  },
+  fr: {
+    step2sub: (name) => `Bonjour ${name}, choisissez une date et une heure (Lun-Ven, 9h-17h, heure d'Afrique/Freetown).`,
+    confirmDetail: (when, meet) => `${when} (heure d'Afrique/Freetown)` + (meet ? ' -- un lien Google Meet se trouve dans votre e-mail de confirmation.' : ' -- LAVAALL vous appellera au numéro fourni.'),
+  },
+  kr: {
+    step2sub: (name) => `Adu ${name}, pik wan det ɛn taem (Mɔnde to Fraede, 9am-5pm, Africa/Freetown taem).`,
+    confirmDetail: (when, meet) => `${when} (Africa/Freetown taem)` + (meet ? ' -- Google Meet link de na yu kɔnfɔmeshon imel.' : ' -- LAVAALL go kɔl yu na di nɔmba we yu gi wi.'),
+  },
+};
+
+function formatSlotLabel(time) {
+  const [h, m] = time.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+let scheduleModalInstance = null;
+window.openScheduleModal = function() {
+  if (!scheduleModalInstance) scheduleModalInstance = new ScheduleModal();
+  scheduleModalInstance.open();
+};
+
 
 // ============================================================================
 // TICKER
@@ -1305,6 +1573,40 @@ const translations={
     'iq.ph.projectLocation':'Site address or city',
     'iq.lbl.projectDescription':'Project Description',
     'iq.ph.projectDescription':'Describe the scope of the installation...',
+    'sch.step1.h2':'Schedule a Call',
+    'sch.step1.p':'Tell us a little about what you need, and we\'ll show you real available times on the next step.',
+    'sch.lbl.firstName':'First Name',
+    'sch.lbl.lastName':'Last Name',
+    'sch.lbl.phone':'Phone Number',
+    'sch.lbl.reason':'Reason for the Call',
+    'sch.reason.sales':'Sales question',
+    'sch.reason.quotation':'Quotation or pricing',
+    'sch.reason.availability':'Product availability',
+    'sch.reason.procurement':'Equipment procurement',
+    'sch.reason.routers':'Routers and networking',
+    'sch.reason.servers':'Servers and infrastructure',
+    'sch.reason.computers':'Computers and workstations',
+    'sch.reason.fiber':'Fiber-optic products',
+    'sch.reason.cabling':'Structured cabling',
+    'sch.reason.support':'Customer support',
+    'sch.reason.technical':'Technical support',
+    'sch.reason.order':'Existing order',
+    'sch.reason.partnership':'Partnership',
+    'sch.reason.general':'General information',
+    'sch.lbl.callMethod':'Preferred Call Method',
+    'sch.opt.phone':'Telephone callback',
+    'sch.opt.meet':'Google Meet video call',
+    'sch.lbl.note':'Anything else? (optional)',
+    'sch.ph.note':'A short note to help us prepare for the call...',
+    'sch.step1.submit':'Continue to Select a Time &#8594;',
+    'sch.step2.h2':'Pick a Time',
+    'sch.lbl.date':'Date',
+    'sch.loading':'Loading available times...',
+    'sch.noSlots':'No available times on this date. Please try another date.',
+    'sch.step2.back':'&#8592; Back',
+    'sch.confirm.h2':'Call Scheduled!',
+    'sch.confirm.note':'A confirmation email is on its way to you. To reschedule or cancel, just reply to that email or contact us directly.',
+    'sch.confirm.done':'Done',
     'ft.copy':'© 2026 LAVAALL. All rights reserved.'
   },
   fr:{
@@ -1521,6 +1823,40 @@ const translations={
     'iq.ph.projectLocation':'Adresse du site ou ville',
     'iq.lbl.projectDescription':'Description du Projet',
     'iq.ph.projectDescription':'Décrivez l\'étendue de l\'installation...',
+    'sch.step1.h2':'Planifier un Appel',
+    'sch.step1.p':'Dites-nous un peu ce dont vous avez besoin, et nous vous montrerons les créneaux réellement disponibles à l\'étape suivante.',
+    'sch.lbl.firstName':'Prénom',
+    'sch.lbl.lastName':'Nom de famille',
+    'sch.lbl.phone':'Numéro de Téléphone',
+    'sch.lbl.reason':'Raison de l\'Appel',
+    'sch.reason.sales':'Question commerciale',
+    'sch.reason.quotation':'Devis ou tarification',
+    'sch.reason.availability':'Disponibilité des produits',
+    'sch.reason.procurement':'Approvisionnement en équipement',
+    'sch.reason.routers':'Routeurs et réseaux',
+    'sch.reason.servers':'Serveurs et infrastructure',
+    'sch.reason.computers':'Ordinateurs et postes de travail',
+    'sch.reason.fiber':'Produits fibre optique',
+    'sch.reason.cabling':'Câblage structuré',
+    'sch.reason.support':'Support client',
+    'sch.reason.technical':'Support technique',
+    'sch.reason.order':'Commande existante',
+    'sch.reason.partnership':'Partenariat',
+    'sch.reason.general':'Informations générales',
+    'sch.lbl.callMethod':'Méthode d\'Appel Préférée',
+    'sch.opt.phone':'Rappel téléphonique',
+    'sch.opt.meet':'Appel vidéo Google Meet',
+    'sch.lbl.note':'Autre chose ? (facultatif)',
+    'sch.ph.note':'Une brève note pour nous aider à préparer l\'appel...',
+    'sch.step1.submit':'Continuer pour Choisir un Horaire &#8594;',
+    'sch.step2.h2':'Choisir un Horaire',
+    'sch.lbl.date':'Date',
+    'sch.loading':'Chargement des horaires disponibles...',
+    'sch.noSlots':'Aucun horaire disponible à cette date. Veuillez essayer une autre date.',
+    'sch.step2.back':'&#8592; Retour',
+    'sch.confirm.h2':'Appel Planifié !',
+    'sch.confirm.note':'Un e-mail de confirmation est en route. Pour reprogrammer ou annuler, répondez simplement à cet e-mail ou contactez-nous directement.',
+    'sch.confirm.done':'Terminé',
     'ft.copy':'© 2026 LAVAALL. Tous droits réservés.'
   },
   kr:{
@@ -1737,6 +2073,40 @@ const translations={
     'iq.ph.projectLocation':'Sayt adres ɔ tong',
     'iq.lbl.projectDescription':'Diyscrayb Di Projɛkt',
     'iq.ph.projectDescription':'Diyscrayb aw big di instaleshon de...',
+    'sch.step1.h2':'Skedul Wan Kɔl',
+    'sch.step1.p':'Tɛl wi lelebit bɔt wetin yu nid, ɛn wi go sho yu di ril taem dɛn we de op na di neks step.',
+    'sch.lbl.firstName':'Fɔs Nem',
+    'sch.lbl.lastName':'Las Nem',
+    'sch.lbl.phone':'Fon Nɔmba',
+    'sch.lbl.reason':'Rizin Fɔ Di Kɔl',
+    'sch.reason.sales':'Sels kwɛstyɔn',
+    'sch.reason.quotation':'Kwot ɔ prays',
+    'sch.reason.availability':'Prɔdɔkt avɛlabiliti',
+    'sch.reason.procurement':'Ikwipmen prɔkyɔmɛnt',
+    'sch.reason.routers':'Rawta ɛn nɛtwɔk',
+    'sch.reason.servers':'Sɛva ɛn infrastrɔktɔ',
+    'sch.reason.computers':'Kɔmpyuta ɛn wɔksteshon',
+    'sch.reason.fiber':'Fayba-ɔptik prɔdɔkt',
+    'sch.reason.cabling':'Strɔktɔd kebul',
+    'sch.reason.support':'Kɔstoma sɔpɔt',
+    'sch.reason.technical':'Teknikal sɔpɔt',
+    'sch.reason.order':'Ɔda we dɔn de',
+    'sch.reason.partnership':'Patnashipn',
+    'sch.reason.general':'Jɛnɛral infɔmeshon',
+    'sch.lbl.callMethod':'Di Wan Yu Layk Fɔ Kɔl',
+    'sch.opt.phone':'Fon kɔlbak',
+    'sch.opt.meet':'Google Meet vidio kɔl',
+    'sch.lbl.note':'Ɛnitin ɛls? (nɔ nid)',
+    'sch.ph.note':'Wan shɔt not fɔ ɛp wi rɛdi fɔ di kɔl...',
+    'sch.step1.submit':'Kɔntinyu Fɔ Pik Wan Taem &#8594;',
+    'sch.step2.h2':'Pik Wan Taem',
+    'sch.lbl.date':'Det',
+    'sch.loading':'De lod di taem dɛn we de op...',
+    'sch.noSlots':'No taem de op na dis det. Duya tray ɔda det.',
+    'sch.step2.back':'&#8592; Bak',
+    'sch.confirm.h2':'Kɔl Dɔn Skedul!',
+    'sch.confirm.note':'Wan kɔnfɔmeshon imel de kam to yu. Fɔ chenj ɔ kansɔl, jɔs ansa dat imel ɔ kɔntakt wi direkt.',
+    'sch.confirm.done':'Dɔn',
     'ft.copy':'© 2026 LAVAALL. Ɔl Rayt Risɔvd.'
   }
 };
@@ -1957,5 +2327,109 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="assets/js/catalog-data.js"></script>
 <script src="assets/js/catalog.js"></script>
 <div id="cs-toast" class="cs-toast" role="status" aria-live="polite"></div>
+
+<!-- SCHEDULE A CALL -- two-step Google Calendar booking widget (PART 1 of the
+     contact/scheduling spec). Step 1 registers the lead (api/schedule.js
+     action=register); step 2 shows real Calendar availability and books the
+     slot (action=availability / action=book). Reuses the same modal chrome
+     as the product quote panel (.pgal-overlay/.pgal-backdrop/.pgal-panel/
+     .pgal-close) with a single-column override so it matches the existing
+     visual language instead of looking like a bolted-on external form. -->
+<div class="pgal-overlay sched-overlay" id="sched-overlay" role="dialog" aria-modal="true" aria-labelledby="sched-title">
+<div class="pgal-backdrop" id="sched-backdrop"></div>
+<div class="pgal-panel sched-panel">
+<button class="pgal-close" id="sched-close-btn" aria-label="Close scheduling" type="button">&times;</button>
+<div class="sched-body">
+
+<div id="sched-step1">
+<h2 id="sched-title" data-i18n="sch.step1.h2">Schedule a Call</h2>
+<p class="ssub" data-i18n="sch.step1.p">Tell us a little about what you need, and we'll show you real available times on the next step.</p>
+<form id="sched-reg-form" novalidate>
+<input type="text" name="website" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true"/>
+<div class="fgrow">
+<div class="fg"><label data-i18n="sch.lbl.firstName">First Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="firstName" required autocomplete="given-name" data-i18n-ph="ph.name" placeholder="Jean" maxlength="60" aria-required="true"/></div>
+<div class="fg"><label data-i18n="sch.lbl.lastName">Last Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="lastName" required autocomplete="family-name" placeholder="Kamara" maxlength="60" aria-required="true"/></div>
+</div>
+<div class="fgrow">
+<div class="fg"><label data-i18n="ct.lbl.email">Email Address<span class="req" aria-hidden="true">*</span></label><input type="email" name="email" required autocomplete="email" data-i18n-ph="ph.email" placeholder="you@company.com" maxlength="100" aria-required="true"/></div>
+<div class="fg"><label data-i18n="sch.lbl.phone">Phone Number<span class="req" aria-hidden="true">*</span></label><input type="tel" name="phone" required autocomplete="tel" placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20" aria-required="true"/></div>
+</div>
+<div class="fg">
+<label data-i18n="ct.lbl.country">Country<span class="req" aria-hidden="true">*</span></label>
+<select name="country" required id="sched-country" aria-required="true">
+<option value="">Select country</option>
+<option>Sierra Leone</option>
+<option>Guinea</option>
+<option>Guinea-Bissau</option>
+<option>Liberia</option>
+<option>Other West Africa</option>
+<option>Other</option>
+</select>
+</div>
+<div class="fg">
+<label data-i18n="sch.lbl.reason">Reason for the Call<span class="req" aria-hidden="true">*</span></label>
+<select name="reason" required id="sched-reason" aria-required="true">
+<option value="" data-i18n="iq.opt.selectType">Select an inquiry type</option>
+<option value="sales" data-i18n="sch.reason.sales">Sales question</option>
+<option value="quotation" data-i18n="sch.reason.quotation">Quotation or pricing</option>
+<option value="availability" data-i18n="sch.reason.availability">Product availability</option>
+<option value="procurement" data-i18n="sch.reason.procurement">Equipment procurement</option>
+<option value="routers" data-i18n="sch.reason.routers">Routers and networking</option>
+<option value="servers" data-i18n="sch.reason.servers">Servers and infrastructure</option>
+<option value="computers" data-i18n="sch.reason.computers">Computers and workstations</option>
+<option value="fiber" data-i18n="sch.reason.fiber">Fiber-optic products</option>
+<option value="cabling" data-i18n="sch.reason.cabling">Structured cabling</option>
+<option value="support" data-i18n="sch.reason.support">Customer support</option>
+<option value="technical" data-i18n="sch.reason.technical">Technical support</option>
+<option value="order" data-i18n="sch.reason.order">Existing order</option>
+<option value="partnership" data-i18n="sch.reason.partnership">Partnership</option>
+<option value="general" data-i18n="sch.reason.general">General information</option>
+<option value="other" data-i18n="iq.opt.other">Other</option>
+</select>
+</div>
+<div class="fg">
+<label data-i18n="sch.lbl.callMethod">Preferred Call Method<span class="req" aria-hidden="true">*</span></label>
+<select name="preferredCallMethod" required id="sched-call-method" aria-required="true">
+<option value="phone" data-i18n="sch.opt.phone">Telephone callback</option>
+<option value="meet" data-i18n="sch.opt.meet">Google Meet video call</option>
+</select>
+</div>
+<div class="fg"><label data-i18n="sch.lbl.note">Anything else? (optional)</label><textarea name="note" rows="3" maxlength="500" data-i18n-ph="sch.ph.note" placeholder="A short note to help us prepare for the call..."></textarea></div>
+<div class="fg" style="margin-bottom:8px;">
+<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
+<input type="checkbox" name="consent" required style="width:auto;"/>
+<span data-i18n="ct.lbl.consent">I consent to my data being processed according to the <a href="/privacy.html">Privacy Policy</a>, so LAVAALL can respond to my inquiry.</span>
+</label>
+</div>
+<button type="submit" class="fsub" id="sched-reg-submit" data-i18n="sch.step1.submit">Continue to Select a Time &#8594;</button>
+<div class="error-message" id="sched-step1-error" hidden></div>
+</form>
+</div>
+
+<div id="sched-step2" hidden>
+<h2 data-i18n="sch.step2.h2">Pick a Time</h2>
+<p class="ssub" id="sched-step2-sub"></p>
+<div class="fg">
+<label data-i18n="sch.lbl.date">Date</label>
+<input type="date" id="sched-date-input"/>
+</div>
+<div id="sched-loading" data-i18n="sch.loading" hidden>Loading available times...</div>
+<div id="sched-slots" class="sched-slots" role="group" aria-label="Available times"></div>
+<div id="sched-slots-empty" class="fnote" data-i18n="sch.noSlots" hidden>No available times on this date. Please try another date.</div>
+<div class="error-message" id="sched-step2-error" hidden></div>
+<button type="button" class="sched-back" id="sched-back-btn" data-i18n="sch.step2.back">&#8592; Back</button>
+</div>
+
+<div id="sched-confirm" hidden>
+<div class="si2">&#128197;</div>
+<h2 data-i18n="sch.confirm.h2">Call Scheduled!</h2>
+<p id="sched-confirm-detail"></p>
+<p class="fnote" data-i18n="sch.confirm.note">A confirmation email is on its way to you. To reschedule or cancel, just reply to that email or contact us directly.</p>
+<button type="button" class="fsub" id="sched-done-btn" data-i18n="sch.confirm.done">Done</button>
+</div>
+
+</div>
+</div>
+</div>
 </body>
 </html>

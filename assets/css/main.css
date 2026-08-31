@@ -296,6 +296,27 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 /* Error message styling */
 .error-message{background:#ff5c5c;color:white;padding:12px 20px;border-radius:8px;margin:12px 0;font-size:14px;font-weight:500;animation:slideIn .3s ease;}
 @keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+/* SCHEDULE A CALL modal -- reuses .pgal-overlay/.pgal-backdrop/.pgal-panel/
+   .pgal-close chrome (single-column override below) so it matches the
+   product-quote modal instead of introducing a new visual pattern. */
+.sched-panel{grid-template-columns:1fr;max-width:560px;}
+.sched-body{padding:36px 32px;}
+.sched-body h2{font-size:22px;font-weight:800;margin-bottom:8px;}
+.sched-body .ssub{color:var(--muted);font-size:14px;margin-bottom:20px;}
+.sched-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin:14px 0;}
+.sched-slot{padding:10px 6px;border:2px solid var(--ink);border-radius:10px;background:var(--white);color:var(--ink);font-weight:700;font-size:13px;cursor:pointer;transition:background .15s,color .15s,transform .15s;}
+.sched-slot:hover,.sched-slot:focus-visible{background:var(--ink);color:var(--white);transform:translateY(-1px);}
+.sched-slot:focus-visible{outline:3px solid var(--sky);outline-offset:2px;}
+.sched-slot[disabled]{opacity:.4;cursor:not-allowed;}
+.sched-back{margin-top:10px;background:none;border:none;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;padding:6px 0;}
+.sched-back:hover,.sched-back:focus-visible{color:var(--ink);}
+#sched-loading{color:var(--muted);font-size:14px;padding:10px 0;}
+#sched-confirm{text-align:center;}
+#sched-confirm .si2{font-size:40px;margin-bottom:6px;}
+#sched-confirm-detail{font-weight:700;font-size:16px;margin:10px 0;}
+@media(max-width:640px){
+  .sched-body{padding:26px 20px;}
+}
 /* FOOTER */
 footer{background:var(--ink);border-top:2px solid rgba(255,255,255,.08);padding:60px 6% 40px;}
 .ft{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:32px;margin-bottom:48px;}
