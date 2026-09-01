@@ -75,8 +75,8 @@ var DEPARTMENT_INBOX = {
 
 // "Reason for call" -> department, used to route Step 1 registrations.
 var REASON_DEPARTMENT = {
-  sales: 'sales', quotation: 'sales', availability: 'sales', procurement: 'sales',
-  routers: 'sales', servers: 'sales', computers: 'sales', fiber: 'sales', cabling: 'sales',
+  'sales-quotation': 'sales', availability: 'sales', procurement: 'sales', networking: 'sales',
+  servers: 'sales', computers: 'sales', 'fiber-cabling': 'sales', installation: 'support',
   support: 'support', technical: 'support', order: 'orders',
   partnership: 'partnership', general: 'general', other: 'general',
 };
@@ -116,6 +116,15 @@ var EMAIL_STRINGS = {
     },
   },
 };
+var CONTACT_METHOD_LABEL = {
+  en: { email: 'Email (Google Meet video call)', phone: 'Telephone callback', whatsapp: 'WhatsApp', messenger: 'Facebook Messenger' },
+  fr: { email: 'E-mail (appel vidéo Google Meet)', phone: 'Rappel téléphonique', whatsapp: 'WhatsApp', messenger: 'Facebook Messenger' },
+  kr: { email: 'Imel (Google Meet vidio kɔl)', phone: 'Fon kɔlbak', whatsapp: 'WhatsApp', messenger: 'Facebook Messenger' },
+};
+function methodLabel(langCode, method) {
+  var map = CONTACT_METHOD_LABEL[lang(langCode)];
+  return (map && map[method]) || method || '';
+}
 function lang(code) { return EMAIL_STRINGS[code] ? code : 'en'; }
 
 function doGet(e) {
@@ -160,13 +169,37 @@ function doPost(e) {
 // STEP 1 — REGISTER
 // ============================================================================
 function handleRegister(payload) {
-  var required = ['firstName', 'lastName', 'email', 'phone', 'country', 'reason', 'preferredCallMethod'];
-  for (var i = 0; i < required.length; i++) {
-    if (!payload[required[i]]) return jsonOut({ error: 'missing_field', field: required[i] }, 400);
-  }
-  if (!payload.consent) return jsonOut({ error: 'consent_required' }, 400);
+  var errors = [];
+  if (!payload.firstName) errors.push('missing_field:firstName');
+  if (!payload.reason) errors.push('missing_field:reason');
+  if (!payload.consent) errors.push('consent_required');
 
-  if (isRateLimited('reg_' + String(payload.email).toLowerCase())) {
+  var email = String(payload.email || '').trim();
+  var phone = String(payload.phone || '').trim();
+  if (!email && !phone) errors.push('contact_required');
+
+  var method = String(payload.preferredContactMethod || '').trim();
+  var VALID_METHODS = ['email', 'phone', 'whatsapp', 'messenger'];
+  if (VALID_METHODS.indexOf(method) === -1) {
+    errors.push('missing_field:preferredContactMethod');
+  } else {
+    if (method === 'email' && !email) errors.push('email_required_for_meet');
+    if (method === 'phone' && !phone) errors.push('phone_required_for_callback');
+    if (method === 'whatsapp') {
+      if (!phone) errors.push('phone_required_for_whatsapp');
+      var connected = String(payload.whatsappConnected || '');
+      if (connected !== 'yes' && connected !== 'no') errors.push('whatsapp_connected_required');
+      if (connected === 'no' && !payload.whatsappNumber) errors.push('whatsapp_number_required');
+      if (!payload.whatsappConsent) errors.push('whatsapp_consent_required');
+    }
+    if (method === 'messenger') {
+      if (!payload.messengerProfile) errors.push('messenger_profile_required');
+      if (!payload.messengerConsent) errors.push('messenger_consent_required');
+    }
+  }
+  if (errors.length) return jsonOut({ error: 'invalid_registration', errors: errors }, 400);
+
+  if (isRateLimited('reg_' + String(email || phone).toLowerCase())) {
     return jsonOut({ error: 'rate_limited', message: 'Please wait a moment before trying again.' }, 429);
   }
 
@@ -179,20 +212,29 @@ function handleRegister(payload) {
   var now = new Date();
   var expiry = new Date(now.getTime() + TOKEN_EXPIRY_DAYS * 86400000);
 
-  var fullName = payload.firstName + ' ' + payload.lastName;
+  var lastName = payload.lastName || '';
+  var fullName = (payload.firstName + ' ' + lastName).trim();
+  var hasEmail = !!email;
+
   var row = {
     'Scheduling Lead ID': leadId,
+    'Reference Number': leadId,
     'Registration Date': Utilities.formatDate(now, TIMEZONE, 'yyyy-MM-dd'),
     'Registration Time': Utilities.formatDate(now, TIMEZONE, 'HH:mm'),
     'Customer Timezone': payload.customerTimezone || TIMEZONE,
     'Website Language': langCode,
     'First Name': payload.firstName,
-    'Last Name': payload.lastName,
-    'Email': payload.email,
-    'Phone': payload.phone,
-    'Country': payload.country,
+    'Last Name': lastName,
+    'Email': email,
+    'Phone': phone,
+    'Country': payload.country || '',
+    'Company': payload.company || '',
     'Reason for Call': payload.reason,
-    'Preferred Call Method': payload.preferredCallMethod,
+    'Preferred Contact Method': method,
+    'WhatsApp Number': method === 'whatsapp' ? (payload.whatsappNumber || phone) : '',
+    'WhatsApp Permission': method === 'whatsapp' ? (payload.whatsappConsent ? 'Yes' : 'No') : '',
+    'Messenger Profile': method === 'messenger' ? (payload.messengerProfile || '') : '',
+    'Messenger Permission': method === 'messenger' ? (payload.messengerConsent ? 'Yes' : 'No') : '',
     'Customer Note': payload.note || '',
     'Verification Status': 'Not Verified',
     'Booking Status': 'Registration Received',
@@ -200,7 +242,9 @@ function handleRegister(payload) {
     'Calendar Event ID': '', 'Google Meet Link': '',
     'Assigned Team': inbox,
     'Booking Token Expiration': expiry.toISOString(),
-    'Customer Notification Status': 'Pending', 'Internal Notification Status': 'Pending',
+    'Customer Notification Status': hasEmail ? 'Pending' : 'Not Applicable (no email provided)',
+    'Scheduling Link Status': hasEmail ? 'Pending' : 'Not Applicable (no email provided)',
+    'Internal Notification Status': 'Pending',
     'Cancellation Status': '', 'Rescheduling Status': '',
     'Internal Notes': '', 'Booking Token': token,
   };
@@ -209,10 +253,10 @@ function handleRegister(payload) {
   appendRow('All Requests', ALL_REQUESTS_HEADERS(), {
     'Request ID': leadId, 'Submitted Date': row['Registration Date'], 'Submitted Time': row['Registration Time'],
     'Customer Timezone': row['Customer Timezone'], 'Website Language': langCode, 'Request Type': 'Schedule a Call',
-    'First Name': payload.firstName, 'Last Name': payload.lastName, 'Full Name': fullName,
-    'Email': payload.email, 'Phone': payload.phone, 'Company': '', 'Country': payload.country,
+    'First Name': payload.firstName, 'Last Name': lastName, 'Full Name': fullName,
+    'Email': email, 'Phone': phone, 'Company': payload.company || '', 'Country': payload.country || '',
     'Inquiry Category': payload.reason, 'Product or Service': '', 'Subject': 'Call request: ' + payload.reason,
-    'Message': payload.note || '', 'Preferred Response Method': payload.preferredCallMethod,
+    'Message': payload.note || '', 'Preferred Response Method': method,
     'Assigned Team': inbox, 'Status': 'Registration Received', 'Source Page': payload.sourcePage || 'lavaall.com',
     'Consent Recorded': 'Yes', 'Notification Status': 'Pending', 'Internal Notes': '',
   });
@@ -221,19 +265,42 @@ function handleRegister(payload) {
     '?leadId=' + encodeURIComponent(leadId) + '&token=' + encodeURIComponent(token) + '&lang=' + langCode;
   var strings = EMAIL_STRINGS[langCode];
 
-  var custNotifyOk = safeSendEmail(payload.email, strings.regSubject,
-    strings.regBody({ firstName: payload.firstName, reason: payload.reason, link: backupLink, expiry: Utilities.formatDate(expiry, TIMEZONE, 'MMMM d, yyyy') }));
+  var custNotifyOk = false;
+  if (hasEmail) {
+    custNotifyOk = safeSendEmail(email, strings.regSubject,
+      strings.regBody({ firstName: payload.firstName, reason: payload.reason, link: backupLink, expiry: Utilities.formatDate(expiry, TIMEZONE, 'MMMM d, yyyy') }));
+  }
+
+  var teamBodyLines = [
+    'A new call registration was received.', '',
+    'Name: ' + fullName, 'Email: ' + (email || '(not provided)'), 'Phone: ' + (phone || '(not provided)'),
+    'Reason: ' + payload.reason, 'Preferred contact method: ' + methodLabel(langCode, method),
+  ];
+  if (method === 'whatsapp') {
+    teamBodyLines.push('WhatsApp number: ' + (row['WhatsApp Number'] || '(not provided)'));
+    teamBodyLines.push('WhatsApp permission: ' + row['WhatsApp Permission']);
+    teamBodyLines.push('>> WhatsApp follow-up requested -- no automated WhatsApp message has been sent (integration not yet configured). Please follow up manually.');
+  }
+  if (method === 'messenger') {
+    teamBodyLines.push('Messenger/Facebook profile: ' + (row['Messenger Profile'] || '(not provided)'));
+    teamBodyLines.push('Messenger permission: ' + row['Messenger Permission']);
+    teamBodyLines.push('>> Messenger follow-up requested -- no automated Messenger outreach has been sent (channel not yet configured). Please follow up manually.');
+  }
+  teamBodyLines.push('Note: ' + (payload.note || '(none)'));
+  teamBodyLines.push('');
+  teamBodyLines.push(hasEmail ? 'They have NOT booked a time yet.' : 'They have NOT booked a time yet, and no email was provided -- they were shown the slot picker directly and given their booking reference on-screen.');
+  teamBodyLines.push('Lead ID: ' + leadId);
+
   var teamNotifyOk = safeSendEmail(inbox, 'New scheduling registration: ' + fullName,
-    'A new call registration was received.\n\nName: ' + fullName + '\nEmail: ' + payload.email + '\nPhone: ' + payload.phone +
-    '\nReason: ' + payload.reason + '\nPreferred method: ' + payload.preferredCallMethod + '\nNote: ' + (payload.note || '(none)') +
-    '\n\nThey have NOT booked a time yet. Lead ID: ' + leadId, { replyTo: payload.email });
+    teamBodyLines.join('\n'), email ? { replyTo: email } : undefined);
 
   updateRowStatusFields(sheetRowIndex, {
-    'Customer Notification Status': custNotifyOk ? 'Sent' : 'Failed',
+    'Customer Notification Status': hasEmail ? (custNotifyOk ? 'Sent' : 'Failed') : 'Not Applicable (no email provided)',
+    'Scheduling Link Status': hasEmail ? (custNotifyOk ? 'Sent' : 'Failed') : 'Not Applicable (no email provided)',
     'Internal Notification Status': teamNotifyOk ? 'Sent' : 'Failed',
   });
 
-  return jsonOut({ ok: true, leadId: leadId, token: token, tokenExpiration: expiry.toISOString(), timezone: TIMEZONE });
+  return jsonOut({ ok: true, leadId: leadId, token: token, tokenExpiration: expiry.toISOString(), timezone: TIMEZONE, hasEmail: hasEmail });
 }
 
 // ============================================================================
@@ -267,16 +334,20 @@ function handleBook(payload) {
     var langCode = lang(lead.values['Website Language']);
     var dept = REASON_DEPARTMENT[String(lead.values['Reason for Call']).toLowerCase()] || 'general';
     var inbox = DEPARTMENT_INBOX[dept];
-    var fullName = lead.values['First Name'] + ' ' + lead.values['Last Name'];
-    var wantsMeet = String(lead.values['Preferred Call Method']).toLowerCase().indexOf('meet') !== -1;
+    var fullName = (lead.values['First Name'] + ' ' + (lead.values['Last Name'] || '')).trim();
+    var method = String(lead.values['Preferred Contact Method'] || '');
+    var wantsMeet = method === 'email';
+    var hasEmail = !!lead.values['Email'];
 
     var descLines = [
       'Booked via lavaall.com scheduling widget. Lead ID: ' + lead.values['Scheduling Lead ID'],
-      'Name: ' + fullName, 'Email: ' + lead.values['Email'], 'Phone: ' + lead.values['Phone'],
-      'Reason: ' + lead.values['Reason for Call'], 'Call method: ' + lead.values['Preferred Call Method'],
+      'Name: ' + fullName, 'Email: ' + (lead.values['Email'] || '(not provided)'), 'Phone: ' + (lead.values['Phone'] || '(not provided)'),
+      'Reason: ' + lead.values['Reason for Call'], 'Preferred contact method: ' + methodLabel(langCode, method),
       'Note: ' + (lead.values['Customer Note'] || '(none)'),
     ];
-    if (!wantsMeet) descLines.push('', 'TELEPHONE CALLBACK -- call ' + lead.values['Phone'] + ' at the scheduled time.');
+    if (method === 'phone') descLines.push('', 'TELEPHONE CALLBACK -- call ' + lead.values['Phone'] + ' at the scheduled time.');
+    if (method === 'whatsapp') descLines.push('', 'WHATSAPP CALLBACK -- reach out on WhatsApp at ' + (lead.values['WhatsApp Number'] || lead.values['Phone']) + ' at the scheduled time. (No automated WhatsApp message has been sent -- integration not yet configured.)');
+    if (method === 'messenger') descLines.push('', 'FACEBOOK MESSENGER -- reach out via ' + (lead.values['Messenger Profile'] || '(no profile on file)') + ' at the scheduled time. (No automated Messenger outreach has been sent -- channel not yet configured.)');
 
     var title = 'LAVAALL call: ' + fullName + ' (' + lead.values['Reason for Call'] + ')';
     var created = wantsMeet
@@ -286,16 +357,19 @@ function handleBook(payload) {
     var whenStr = Utilities.formatDate(start, TIMEZONE, "EEEE, MMMM d, yyyy 'at' h:mm a") + ' (' + TIMEZONE + ')';
     var strings = EMAIL_STRINGS[langCode];
 
-    var custOk = safeSendEmail(lead.values['Email'], strings.bookSubject({ when: whenStr }),
-      strings.bookBody({ firstName: lead.values['First Name'], when: whenStr, tz: TIMEZONE, reason: lead.values['Reason for Call'], method: lead.values['Preferred Call Method'], meet: created.meetLink, inbox: inbox }));
+    var custOk = false;
+    if (hasEmail) {
+      custOk = safeSendEmail(lead.values['Email'], strings.bookSubject({ when: whenStr }),
+        strings.bookBody({ firstName: lead.values['First Name'], when: whenStr, tz: TIMEZONE, reason: lead.values['Reason for Call'], method: methodLabel(langCode, method), meet: created.meetLink, inbox: inbox }));
+    }
     var teamOk = safeSendEmail(inbox, 'New call booked: ' + fullName + ' — ' + whenStr,
-      'A call was booked.\n\nWhen: ' + whenStr + '\n' + descLines.join('\n'), { replyTo: lead.values['Email'] });
+      'A call was booked.\n\nWhen: ' + whenStr + '\n' + descLines.join('\n'), hasEmail ? { replyTo: lead.values['Email'] } : undefined);
 
     updateRowStatusFields(lead.rowIndex, {
       'Booking Status': 'Scheduled',
       'Appointment Date': payload.date, 'Appointment Time': payload.time, 'Appointment Timezone': TIMEZONE,
       'Calendar Event ID': created.eventId, 'Google Meet Link': created.meetLink || '',
-      'Customer Notification Status': custOk ? 'Sent' : 'Failed',
+      'Customer Notification Status': hasEmail ? (custOk ? 'Sent' : 'Failed') : 'Not Applicable (no email provided)',
       'Internal Notification Status': teamOk ? 'Sent' : 'Failed',
     });
     updateAllRequestsStatus(lead.values['Scheduling Lead ID'], 'Scheduled');
@@ -313,7 +387,7 @@ function lookupLead(leadId, token) {
   return jsonOut({
     ok: true,
     firstName: lead.values['First Name'], lastName: lead.values['Last Name'],
-    reason: lead.values['Reason for Call'], preferredCallMethod: lead.values['Preferred Call Method'],
+    reason: lead.values['Reason for Call'], preferredContactMethod: lead.values['Preferred Contact Method'],
     language: lead.values['Website Language'], bookingStatus: lead.values['Booking Status'],
   });
   // Deliberately omits: email/phone (rendered again by the customer's own
@@ -327,14 +401,15 @@ function lookupLead(leadId, token) {
 function createMeetEvent(title, start, end, description, guestEmail) {
   try {
     var calendarId = calendarIdForAdvancedApi();
-    var event = Calendar.Events.insert({
+    var eventResource = {
       summary: title, description: description,
       start: { dateTime: start.toISOString(), timeZone: TIMEZONE },
       end: { dateTime: end.toISOString(), timeZone: TIMEZONE },
-      attendees: [{ email: guestEmail }],
       conferenceData: { createRequest: { requestId: Utilities.getUuid(), conferenceSolutionKey: { type: 'hangoutsMeet' } } },
       guestsCanModify: true,
-    }, calendarId, { conferenceDataVersion: 1, sendUpdates: 'all' });
+    };
+    if (guestEmail) eventResource.attendees = [{ email: guestEmail }];
+    var event = Calendar.Events.insert(eventResource, calendarId, { conferenceDataVersion: 1, sendUpdates: guestEmail ? 'all' : 'none' });
     var meetLink = '';
     if (event.conferenceData && event.conferenceData.entryPoints) {
       for (var i = 0; i < event.conferenceData.entryPoints.length; i++) {
@@ -354,7 +429,9 @@ function createMeetEvent(title, start, end, description, guestEmail) {
 
 function createPlainEvent(title, start, end, description, guestEmail) {
   var calendar = getCalendar();
-  var event = calendar.createEvent(title, start, end, { description: description, guests: guestEmail, sendInvite: true });
+  var options = { description: description, sendInvite: !!guestEmail };
+  if (guestEmail) options.guests = guestEmail;
+  var event = calendar.createEvent(title, start, end, options);
   event.setGuestsCanModify(true);
   return { eventId: event.getId(), meetLink: '' };
 }
@@ -427,11 +504,12 @@ function ALL_REQUESTS_HEADERS() {
     'Source Page', 'Consent Recorded', 'Notification Status', 'Internal Notes'];
 }
 function SCHEDULING_HEADERS() {
-  return ['Scheduling Lead ID', 'Registration Date', 'Registration Time', 'Customer Timezone', 'Website Language',
-    'First Name', 'Last Name', 'Email', 'Phone', 'Country', 'Reason for Call', 'Preferred Call Method',
+  return ['Scheduling Lead ID', 'Reference Number', 'Registration Date', 'Registration Time', 'Customer Timezone', 'Website Language',
+    'First Name', 'Last Name', 'Email', 'Phone', 'Country', 'Company', 'Reason for Call', 'Preferred Contact Method',
+    'WhatsApp Number', 'WhatsApp Permission', 'Messenger Profile', 'Messenger Permission',
     'Customer Note', 'Verification Status', 'Booking Status', 'Appointment Date', 'Appointment Time',
     'Appointment Timezone', 'Calendar Event ID', 'Google Meet Link', 'Assigned Team', 'Booking Token Expiration',
-    'Customer Notification Status', 'Internal Notification Status', 'Cancellation Status', 'Rescheduling Status',
+    'Customer Notification Status', 'Scheduling Link Status', 'Internal Notification Status', 'Cancellation Status', 'Rescheduling Status',
     'Internal Notes', 'Booking Token']; // Booking Token: internal-only, never returned except to its own owner via lookup
 }
 function ERROR_HEADERS() { return ['Timestamp', 'Function', 'Message', 'Context']; }

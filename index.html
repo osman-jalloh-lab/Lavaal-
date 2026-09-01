@@ -960,6 +960,18 @@ class ScheduleModal {
     this.confirmStep = document.getElementById('sched-confirm');
     this.regForm = document.getElementById('sched-reg-form');
     this.regSubmitBtn = document.getElementById('sched-reg-submit');
+    this.emailInput = document.getElementById('sched-email');
+    this.phoneInput = document.getElementById('sched-phone');
+    this.contactMethodGroup = document.getElementById('sched-contact-method-group');
+    this.contactMethodOptions = document.getElementById('sched-contact-method-options');
+    this.meetNote = document.getElementById('sched-meet-note');
+    this.whatsappGroup = document.getElementById('sched-whatsapp-group');
+    this.whatsappNumberField = document.getElementById('sched-whatsapp-number-field');
+    this.whatsappNumberInput = document.getElementById('sched-whatsapp-number');
+    this.whatsappConsentInput = document.getElementById('sched-whatsapp-consent');
+    this.messengerGroup = document.getElementById('sched-messenger-group');
+    this.messengerProfileInput = document.getElementById('sched-messenger-profile');
+    this.messengerConsentInput = document.getElementById('sched-messenger-consent');
     this.dateInput = document.getElementById('sched-date-input');
     this.slotsEl = document.getElementById('sched-slots');
     this.loadingEl = document.getElementById('sched-loading');
@@ -967,7 +979,8 @@ class ScheduleModal {
     this.step2Sub = document.getElementById('sched-step2-sub');
     this.confirmDetail = document.getElementById('sched-confirm-detail');
     this.trigger = null;
-    this.lead = null; // { leadId, token, firstName, wantsMeet }
+    this.lead = null; // { leadId, token, firstName, wantsMeet, hasEmail, method }
+    this.selectedMethod = '';
     this.init();
   }
 
@@ -978,6 +991,14 @@ class ScheduleModal {
     document.getElementById('sched-backdrop').addEventListener('click', () => this.close());
     document.getElementById('sched-back-btn').addEventListener('click', () => this.showStep(1));
     document.getElementById('sched-done-btn').addEventListener('click', () => this.close());
+    this.emailInput.addEventListener('input', () => this.refreshContactMethods());
+    this.phoneInput.addEventListener('input', () => this.refreshContactMethods());
+    this.contactMethodOptions.addEventListener('change', (e) => {
+      if (e.target && e.target.name === 'preferredContactMethod') this.onMethodChange(e.target.value);
+    });
+    document.querySelectorAll('#sched-whatsapp-group input[name="whatsappConnected"]').forEach((el) => {
+      el.addEventListener('change', () => this.onWhatsappConnectedChange());
+    });
     this.overlay.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { this.close(); return; }
       if (e.key === 'Tab') this.trapFocus(e);
@@ -987,6 +1008,13 @@ class ScheduleModal {
   open() {
     this.trigger = document.activeElement;
     this.lead = null;
+    this.regForm.reset();
+    this.selectedMethod = '';
+    this.refreshContactMethods();
+    this.whatsappGroup.hidden = true;
+    this.whatsappNumberField.hidden = true;
+    this.messengerGroup.hidden = true;
+    this.meetNote.hidden = true;
     this.showStep(1);
     this.overlay.classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -1035,28 +1063,142 @@ class ScheduleModal {
     setTimeout(() => { el.hidden = true; }, 6000);
   }
 
+  tr(key, fallback) {
+    const t = (translations[currentLang] || translations.en)[key];
+    return t !== undefined ? t : fallback;
+  }
+
+  // Rebuild the "how would you like us to reach you?" options to match what
+  // has actually been entered. Email only shows once an email is present;
+  // Phone call / WhatsApp only show once a phone number is present;
+  // Messenger doesn't depend on either (it's its own channel) so it's
+  // always offered once there is at least one way to reach the customer.
+  refreshContactMethods() {
+    const hasEmail = this.emailInput.value.trim() !== '';
+    const hasPhone = this.phoneInput.value.trim() !== '';
+    if (!hasEmail && !hasPhone) {
+      this.contactMethodGroup.hidden = true;
+      this.contactMethodOptions.innerHTML = '';
+      this.selectedMethod = '';
+      this.whatsappGroup.hidden = true;
+      this.whatsappNumberField.hidden = true;
+      this.messengerGroup.hidden = true;
+      this.meetNote.hidden = true;
+      return;
+    }
+    this.contactMethodGroup.hidden = false;
+    const options = [];
+    if (hasEmail) options.push({ value: 'email', key: 'sch.opt.contactEmail', fallback: 'Email' });
+    if (hasPhone) options.push({ value: 'phone', key: 'sch.opt.contactPhone', fallback: 'Phone call' });
+    if (hasPhone) options.push({ value: 'whatsapp', key: 'sch.opt.contactWhatsapp', fallback: 'WhatsApp' });
+    options.push({ value: 'messenger', key: 'sch.opt.contactMessenger', fallback: 'Messenger' });
+
+    const stillValid = options.some(o => o.value === this.selectedMethod);
+    if (!stillValid) this.selectedMethod = '';
+
+    this.contactMethodOptions.innerHTML = options.map((o) => {
+      const checked = o.value === this.selectedMethod ? ' checked' : '';
+      const label = this.tr(o.key, o.fallback);
+      return `<label class="sched-radio-opt"><input type="radio" name="preferredContactMethod" value="${o.value}"${checked}/><span>${SecurityUtils.encodeHTML(label)}</span></label>`;
+    }).join('');
+
+    if (!stillValid) this.onMethodChange('');
+  }
+
+  onMethodChange(method) {
+    this.selectedMethod = method;
+    this.meetNote.hidden = method !== 'email';
+    this.whatsappGroup.hidden = method !== 'whatsapp';
+    this.messengerGroup.hidden = method !== 'messenger';
+    if (method !== 'whatsapp') this.whatsappNumberField.hidden = true;
+  }
+
+  onWhatsappConnectedChange() {
+    const connected = this.regForm.querySelector('[name="whatsappConnected"]:checked');
+    this.whatsappNumberField.hidden = !connected || connected.value !== 'no';
+  }
+
+  // Custom validation beyond native required/type/pattern checks: at least
+  // one of email/phone, a contact method actually picked, and whatever that
+  // method itself needs (email for Google Meet, phone for a callback, a
+  // WhatsApp-connected number + consent for WhatsApp, a profile link +
+  // consent for Messenger). Returns an error string, or '' if valid.
+  validateContactRules() {
+    const email = this.emailInput.value.trim();
+    const phone = this.phoneInput.value.trim();
+    if (!email && !phone) {
+      return this.tr('sch.err.contactRequired', 'Please enter an email address or phone number so we can contact you.');
+    }
+    if (!this.selectedMethod) {
+      return this.tr('sch.lbl.contactMethod', 'How would you like us to reach you?');
+    }
+    if (this.selectedMethod === 'email' && !email) {
+      return this.tr('sch.note.meetEmail', 'An email address is required so we can send your Google Meet invitation.');
+    }
+    if (this.selectedMethod === 'phone' && !phone) {
+      return this.tr('sch.lbl.phone', 'Phone Number');
+    }
+    if (this.selectedMethod === 'whatsapp') {
+      const connected = this.regForm.querySelector('[name="whatsappConnected"]:checked');
+      if (!connected) return this.tr('sch.lbl.whatsappConnected', 'Is this phone number also connected to WhatsApp?');
+      if (connected.value === 'no' && !this.whatsappNumberInput.value.trim()) {
+        return this.tr('sch.lbl.whatsappNumber', 'WhatsApp Number');
+      }
+      if (!this.whatsappConsentInput.checked) {
+        return this.tr('sch.lbl.whatsappConsent', 'Yes, LAVAALL may contact me on WhatsApp regarding this request.');
+      }
+    }
+    if (this.selectedMethod === 'messenger') {
+      if (!this.messengerProfileInput.value.trim()) {
+        return this.tr('sch.lbl.messengerProfile', 'Please provide your Facebook or Messenger profile link so our team can find the correct account.');
+      }
+      if (!this.messengerConsentInput.checked) {
+        return this.tr('sch.lbl.messengerConsent', 'Yes, LAVAALL may contact me through Facebook Messenger regarding this request.');
+      }
+    }
+    return '';
+  }
+
   async handleRegister(e) {
     e.preventDefault();
     if (!this.regForm.checkValidity()) { this.regForm.reportValidity(); return; }
     if (!this.checkHoneypot()) { console.log('Bot detected via honeypot'); return; }
+    const contactError = this.validateContactRules();
+    if (contactError) { this.showStep1Error(contactError); return; }
     const rateCheck = ScheduleRateLimiter.checkLimit();
     if (!rateCheck.allowed) { this.showStep1Error(rateCheck.message); return; }
 
     const f = this.regForm;
-    const payload = {
-      firstName: SecurityUtils.sanitizeText(f.querySelector('[name="firstName"]').value, 60),
-      lastName: SecurityUtils.sanitizeText(f.querySelector('[name="lastName"]').value, 60),
-      email: SecurityUtils.sanitizeEmail(f.querySelector('[name="email"]').value),
-      phone: SecurityUtils.sanitizePhone(f.querySelector('[name="phone"]').value),
-      country: f.querySelector('[name="country"]').value,
-      reason: f.querySelector('[name="reason"]').value,
-      preferredCallMethod: f.querySelector('[name="preferredCallMethod"]').value,
-      note: SecurityUtils.sanitizeText(f.querySelector('[name="note"]').value, 500),
-      consent: f.querySelector('[name="consent"]').checked,
-      language: currentLang,
-      customerTimezone: (Intl.DateTimeFormat().resolvedOptions().timeZone) || '',
-      sourcePage: location.pathname,
-    };
+    let payload;
+    try {
+      const email = f.querySelector('[name="email"]').value.trim();
+      const phone = f.querySelector('[name="phone"]').value.trim();
+      const connectedEl = f.querySelector('[name="whatsappConnected"]:checked');
+      payload = {
+        firstName: SecurityUtils.sanitizeText(f.querySelector('[name="firstName"]').value, 60),
+        lastName: SecurityUtils.sanitizeText(f.querySelector('[name="lastName"]').value, 60),
+        email: email ? SecurityUtils.sanitizeEmail(email) : '',
+        phone: phone ? SecurityUtils.sanitizePhone(phone) : '',
+        country: f.querySelector('[name="country"]').value,
+        company: SecurityUtils.sanitizeText(f.querySelector('[name="company"]').value, 100),
+        reason: f.querySelector('[name="reason"]').value,
+        preferredContactMethod: this.selectedMethod,
+        whatsappConnected: this.selectedMethod === 'whatsapp' ? (connectedEl ? connectedEl.value : '') : '',
+        whatsappNumber: (this.selectedMethod === 'whatsapp' && connectedEl && connectedEl.value === 'no')
+          ? SecurityUtils.sanitizePhone(this.whatsappNumberInput.value.trim()) : '',
+        whatsappConsent: this.selectedMethod === 'whatsapp' ? !!this.whatsappConsentInput.checked : false,
+        messengerProfile: this.selectedMethod === 'messenger' ? SecurityUtils.sanitizeText(this.messengerProfileInput.value, 200) : '',
+        messengerConsent: this.selectedMethod === 'messenger' ? !!this.messengerConsentInput.checked : false,
+        note: SecurityUtils.sanitizeText(f.querySelector('[name="note"]').value, 500),
+        consent: f.querySelector('[name="consent"]').checked,
+        language: currentLang,
+        customerTimezone: (Intl.DateTimeFormat().resolvedOptions().timeZone) || '',
+        sourcePage: location.pathname,
+      };
+    } catch (err) {
+      this.showStep1Error('Please check your email and phone number are entered correctly.');
+      return;
+    }
 
     this.regSubmitBtn.disabled = true;
     this.regSubmitBtn.textContent = 'Sending...';
@@ -1073,7 +1215,9 @@ class ScheduleModal {
         this.lead = {
           leadId: body.leadId, token: body.token,
           firstName: payload.firstName,
-          wantsMeet: payload.preferredCallMethod === 'meet',
+          method: payload.preferredContactMethod,
+          wantsMeet: payload.preferredContactMethod === 'email',
+          hasEmail: !!payload.email,
         };
         this.enterStep2();
       } else {
@@ -1085,8 +1229,7 @@ class ScheduleModal {
       this.showStep1Error('An error occurred. Please try again or email us directly.');
     } finally {
       this.regSubmitBtn.disabled = false;
-      const tr = translations[currentLang] || translations.en;
-      const label = tr['sch.step1.submit'] || 'Continue to Select a Time &#8594;';
+      const label = this.tr('sch.step1.submit', 'Continue to Select a Time &#8594;');
       if (typeof DOMPurify !== 'undefined') {
         this.regSubmitBtn.innerHTML = DOMPurify.sanitize(label);
       } else {
@@ -1172,22 +1315,48 @@ class ScheduleModal {
     const sub = SCHED_STRINGS[currentLang] || SCHED_STRINGS.en;
     const dt = new Date(date + 'T' + time + ':00Z');
     const whenStr = dt.toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
-    this.confirmDetail.textContent = sub.confirmDetail(whenStr, this.lead.wantsMeet && body.meetLink);
+    this.confirmDetail.textContent = sub.confirmDetail(whenStr, this.lead.method, this.lead.wantsMeet && body.meetLink);
+
+    const refEl = document.getElementById('sched-confirm-reference');
+    if (refEl) refEl.textContent = this.tr('sch.confirm.reference', 'Booking reference') + ': ' + this.lead.leadId;
+
+    const emailNoteEl = document.getElementById('sched-confirm-email-note');
+    const saveNoteEl = document.getElementById('sched-confirm-save-note');
+    if (emailNoteEl) emailNoteEl.hidden = !this.lead.hasEmail;
+    if (saveNoteEl) saveNoteEl.hidden = !!this.lead.hasEmail;
   }
 }
 
 const SCHED_STRINGS = {
   en: {
     step2sub: (name) => `Hi ${name}, choose a date and time (Mon-Fri, 9am-5pm, Africa/Freetown time).`,
-    confirmDetail: (when, meet) => `${when} (Africa/Freetown time)` + (meet ? ' -- a Google Meet link is in your confirmation email.' : ' -- LAVAALL will call you at the number you provided.'),
+    confirmDetail: (when, method, meetLink) => {
+      let tail = ' -- LAVAALL will call you at the number you provided.';
+      if (method === 'email') tail = meetLink ? ' -- a Google Meet link is in your confirmation email.' : ' -- a Google Meet invitation will be sent to your email.';
+      else if (method === 'whatsapp') tail = ' -- LAVAALL will reach you on WhatsApp at the number you provided.';
+      else if (method === 'messenger') tail = ' -- LAVAALL will reach you on Facebook Messenger.';
+      return `${when} (Africa/Freetown time)` + tail;
+    },
   },
   fr: {
     step2sub: (name) => `Bonjour ${name}, choisissez une date et une heure (Lun-Ven, 9h-17h, heure d'Afrique/Freetown).`,
-    confirmDetail: (when, meet) => `${when} (heure d'Afrique/Freetown)` + (meet ? ' -- un lien Google Meet se trouve dans votre e-mail de confirmation.' : ' -- LAVAALL vous appellera au numéro fourni.'),
+    confirmDetail: (when, method, meetLink) => {
+      let tail = ' -- LAVAALL vous appellera au numéro fourni.';
+      if (method === 'email') tail = meetLink ? ' -- un lien Google Meet se trouve dans votre e-mail de confirmation.' : ' -- une invitation Google Meet sera envoyée à votre e-mail.';
+      else if (method === 'whatsapp') tail = ' -- LAVAALL vous contactera sur WhatsApp au numéro fourni.';
+      else if (method === 'messenger') tail = ' -- LAVAALL vous contactera via Facebook Messenger.';
+      return `${when} (heure d'Afrique/Freetown)` + tail;
+    },
   },
   kr: {
     step2sub: (name) => `Adu ${name}, pik wan det ɛn taem (Mɔnde to Fraede, 9am-5pm, Africa/Freetown taem).`,
-    confirmDetail: (when, meet) => `${when} (Africa/Freetown taem)` + (meet ? ' -- Google Meet link de na yu kɔnfɔmeshon imel.' : ' -- LAVAALL go kɔl yu na di nɔmba we yu gi wi.'),
+    confirmDetail: (when, method, meetLink) => {
+      let tail = ' -- LAVAALL go kɔl yu na di nɔmba we yu gi wi.';
+      if (method === 'email') tail = meetLink ? ' -- Google Meet link de na yu kɔnfɔmeshon imel.' : ' -- wi go sɛn wan Google Meet invitehon go na yu imel.';
+      else if (method === 'whatsapp') tail = ' -- LAVAALL go rich yu na WhatsApp na di nɔmba we yu gi wi.';
+      else if (method === 'messenger') tail = ' -- LAVAALL go rich yu na Facebook Messenger.';
+      return `${when} (Africa/Freetown taem)` + tail;
+    },
   },
 };
 
@@ -1579,23 +1748,35 @@ const translations={
     'sch.lbl.lastName':'Last Name',
     'sch.lbl.phone':'Phone Number',
     'sch.lbl.reason':'Reason for the Call',
-    'sch.reason.sales':'Sales question',
-    'sch.reason.quotation':'Quotation or pricing',
+    'sch.reason.salesQuotation':'Sales or quotation',
     'sch.reason.availability':'Product availability',
     'sch.reason.procurement':'Equipment procurement',
-    'sch.reason.routers':'Routers and networking',
+    'sch.reason.networking':'Networking',
     'sch.reason.servers':'Servers and infrastructure',
     'sch.reason.computers':'Computers and workstations',
-    'sch.reason.fiber':'Fiber-optic products',
-    'sch.reason.cabling':'Structured cabling',
+    'sch.reason.fiberCabling':'Fiber optic or cabling',
+    'sch.reason.installation':'Installation',
     'sch.reason.support':'Customer support',
     'sch.reason.technical':'Technical support',
     'sch.reason.order':'Existing order',
     'sch.reason.partnership':'Partnership',
-    'sch.reason.general':'General information',
-    'sch.lbl.callMethod':'Preferred Call Method',
-    'sch.opt.phone':'Telephone callback',
-    'sch.opt.meet':'Google Meet video call',
+    'sch.reason.general':'General inquiry',
+    'sch.lbl.contactMethod':'How would you like us to reach you?',
+    'sch.opt.contactEmail':'Email',
+    'sch.opt.contactPhone':'Phone call',
+    'sch.opt.contactWhatsapp':'WhatsApp',
+    'sch.opt.contactMessenger':'Messenger',
+    'sch.note.meetEmail':'An email address is required so we can send your Google Meet invitation.',
+    'sch.err.contactRequired':'Please enter an email address or phone number so we can contact you.',
+    'sch.lbl.whatsappConnected':'Is this phone number also connected to WhatsApp?',
+    'sch.opt.yes':'Yes',
+    'sch.opt.no':'No',
+    'sch.lbl.whatsappNumber':'WhatsApp Number',
+    'sch.ph.whatsappNumber':'+232 76 000 000',
+    'sch.lbl.whatsappConsent':'Yes, LAVAALL may contact me on WhatsApp regarding this request.',
+    'sch.lbl.messengerProfile':'Please provide your Facebook or Messenger profile link so our team can find the correct account.',
+    'sch.ph.messengerProfile':'facebook.com/yourprofile',
+    'sch.lbl.messengerConsent':'Yes, LAVAALL may contact me through Facebook Messenger regarding this request.',
     'sch.lbl.note':'Anything else? (optional)',
     'sch.ph.note':'A short note to help us prepare for the call...',
     'sch.step1.submit':'Continue to Select a Time &#8594;',
@@ -1606,6 +1787,8 @@ const translations={
     'sch.step2.back':'&#8592; Back',
     'sch.confirm.h2':'Call Scheduled!',
     'sch.confirm.note':'A confirmation email is on its way to you. To reschedule or cancel, just reply to that email or contact us directly.',
+    'sch.confirm.reference':'Booking reference',
+    'sch.confirm.saveNote':'Please save or take a screenshot of this confirmation for your records -- we were not able to email it to you.',
     'sch.confirm.done':'Done',
     'ft.copy':'© 2026 LAVAALL. All rights reserved.'
   },
@@ -1829,23 +2012,35 @@ const translations={
     'sch.lbl.lastName':'Nom de famille',
     'sch.lbl.phone':'Numéro de Téléphone',
     'sch.lbl.reason':'Raison de l\'Appel',
-    'sch.reason.sales':'Question commerciale',
-    'sch.reason.quotation':'Devis ou tarification',
+    'sch.reason.salesQuotation':'Ventes ou devis',
     'sch.reason.availability':'Disponibilité des produits',
     'sch.reason.procurement':'Approvisionnement en équipement',
-    'sch.reason.routers':'Routeurs et réseaux',
+    'sch.reason.networking':'Réseaux',
     'sch.reason.servers':'Serveurs et infrastructure',
     'sch.reason.computers':'Ordinateurs et postes de travail',
-    'sch.reason.fiber':'Produits fibre optique',
-    'sch.reason.cabling':'Câblage structuré',
+    'sch.reason.fiberCabling':'Fibre optique ou câblage',
+    'sch.reason.installation':'Installation',
     'sch.reason.support':'Support client',
     'sch.reason.technical':'Support technique',
     'sch.reason.order':'Commande existante',
     'sch.reason.partnership':'Partenariat',
-    'sch.reason.general':'Informations générales',
-    'sch.lbl.callMethod':'Méthode d\'Appel Préférée',
-    'sch.opt.phone':'Rappel téléphonique',
-    'sch.opt.meet':'Appel vidéo Google Meet',
+    'sch.reason.general':'Demande générale',
+    'sch.lbl.contactMethod':'Comment souhaitez-vous que nous vous contactions ?',
+    'sch.opt.contactEmail':'E-mail',
+    'sch.opt.contactPhone':'Appel téléphonique',
+    'sch.opt.contactWhatsapp':'WhatsApp',
+    'sch.opt.contactMessenger':'Messenger',
+    'sch.note.meetEmail':'Une adresse e-mail est requise pour vous envoyer votre invitation Google Meet.',
+    'sch.err.contactRequired':'Veuillez indiquer une adresse e-mail ou un numéro de téléphone afin que nous puissions vous contacter.',
+    'sch.lbl.whatsappConnected':'Ce numéro de téléphone est-il également connecté à WhatsApp ?',
+    'sch.opt.yes':'Oui',
+    'sch.opt.no':'Non',
+    'sch.lbl.whatsappNumber':'Numéro WhatsApp',
+    'sch.ph.whatsappNumber':'+232 76 000 000',
+    'sch.lbl.whatsappConsent':'Oui, LAVAALL peut me contacter sur WhatsApp concernant cette demande.',
+    'sch.lbl.messengerProfile':'Veuillez indiquer votre lien de profil Facebook ou Messenger afin que notre équipe puisse trouver le bon compte.',
+    'sch.ph.messengerProfile':'facebook.com/yourprofile',
+    'sch.lbl.messengerConsent':'Oui, LAVAALL peut me contacter via Facebook Messenger concernant cette demande.',
     'sch.lbl.note':'Autre chose ? (facultatif)',
     'sch.ph.note':'Une brève note pour nous aider à préparer l\'appel...',
     'sch.step1.submit':'Continuer pour Choisir un Horaire &#8594;',
@@ -1856,6 +2051,8 @@ const translations={
     'sch.step2.back':'&#8592; Retour',
     'sch.confirm.h2':'Appel Planifié !',
     'sch.confirm.note':'Un e-mail de confirmation est en route. Pour reprogrammer ou annuler, répondez simplement à cet e-mail ou contactez-nous directement.',
+    'sch.confirm.reference':'Référence de réservation',
+    'sch.confirm.saveNote':'Veuillez enregistrer ou faire une capture d\'écran de cette confirmation pour vos dossiers -- nous n\'avons pas pu vous l\'envoyer par e-mail.',
     'sch.confirm.done':'Terminé',
     'ft.copy':'© 2026 LAVAALL. Tous droits réservés.'
   },
@@ -2079,23 +2276,35 @@ const translations={
     'sch.lbl.lastName':'Las Nem',
     'sch.lbl.phone':'Fon Nɔmba',
     'sch.lbl.reason':'Rizin Fɔ Di Kɔl',
-    'sch.reason.sales':'Sels kwɛstyɔn',
-    'sch.reason.quotation':'Kwot ɔ prays',
+    'sch.reason.salesQuotation':'Sels ɔ kwot',
     'sch.reason.availability':'Prɔdɔkt avɛlabiliti',
     'sch.reason.procurement':'Ikwipmen prɔkyɔmɛnt',
-    'sch.reason.routers':'Rawta ɛn nɛtwɔk',
+    'sch.reason.networking':'Nɛtwɔk',
     'sch.reason.servers':'Sɛva ɛn infrastrɔktɔ',
     'sch.reason.computers':'Kɔmpyuta ɛn wɔksteshon',
-    'sch.reason.fiber':'Fayba-ɔptik prɔdɔkt',
-    'sch.reason.cabling':'Strɔktɔd kebul',
+    'sch.reason.fiberCabling':'Fayba-ɔptik ɔ kebul',
+    'sch.reason.installation':'Instɔleshon',
     'sch.reason.support':'Kɔstoma sɔpɔt',
     'sch.reason.technical':'Teknikal sɔpɔt',
     'sch.reason.order':'Ɔda we dɔn de',
     'sch.reason.partnership':'Patnashipn',
-    'sch.reason.general':'Jɛnɛral infɔmeshon',
-    'sch.lbl.callMethod':'Di Wan Yu Layk Fɔ Kɔl',
-    'sch.opt.phone':'Fon kɔlbak',
-    'sch.opt.meet':'Google Meet vidio kɔl',
+    'sch.reason.general':'Jɛnɛral inkwayri',
+    'sch.lbl.contactMethod':'Aw yu want mek wi rich yu?',
+    'sch.opt.contactEmail':'Imel',
+    'sch.opt.contactPhone':'Fon kɔl',
+    'sch.opt.contactWhatsapp':'WhatsApp',
+    'sch.opt.contactMessenger':'Mɛsenja',
+    'sch.note.meetEmail':'Wi nid wan imel adres fɔ sɛn yu Google Meet invitayshɔn.',
+    'sch.err.contactRequired':'Duya put wan imel adres ɔ fon nɔmba mek wi go ebul kɔntakt yu.',
+    'sch.lbl.whatsappConnected':'Dis fon nɔmba kɔnɛkt to WhatsApp tu?',
+    'sch.opt.yes':'Yes',
+    'sch.opt.no':'No',
+    'sch.lbl.whatsappNumber':'WhatsApp Nɔmba',
+    'sch.ph.whatsappNumber':'+232 76 000 000',
+    'sch.lbl.whatsappConsent':'Yes, LAVAALL fit kɔntakt mi na WhatsApp bɔt dis rikwɛst.',
+    'sch.lbl.messengerProfile':'Duya gi wi yu Facebook ɔ Messenger profayl link mek wi tim fɛn di rait akaunt.',
+    'sch.ph.messengerProfile':'facebook.com/yourprofile',
+    'sch.lbl.messengerConsent':'Yes, LAVAALL fit kɔntakt mi tru Facebook Messenger bɔt dis rikwɛst.',
     'sch.lbl.note':'Ɛnitin ɛls? (nɔ nid)',
     'sch.ph.note':'Wan shɔt not fɔ ɛp wi rɛdi fɔ di kɔl...',
     'sch.step1.submit':'Kɔntinyu Fɔ Pik Wan Taem &#8594;',
@@ -2106,6 +2315,8 @@ const translations={
     'sch.step2.back':'&#8592; Bak',
     'sch.confirm.h2':'Kɔl Dɔn Skedul!',
     'sch.confirm.note':'Wan kɔnfɔmeshon imel de kam to yu. Fɔ chenj ɔ kansɔl, jɔs ansa dat imel ɔ kɔntakt wi direkt.',
+    'sch.confirm.reference':'Bukin rɛfrɛns',
+    'sch.confirm.saveNote':'Duya sev ɔ tek skrinshɔt fɔ dis kɔnfɔmeshon fɔ yu rɛkɔd -- wi nɔ ebul sɛn am to yu bay imel.',
     'sch.confirm.done':'Dɔn',
     'ft.copy':'© 2026 LAVAALL. Ɔl Rayt Risɔvd.'
   }
@@ -2348,15 +2559,15 @@ document.addEventListener('DOMContentLoaded', function() {
 <input type="text" name="website" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true"/>
 <div class="fgrow">
 <div class="fg"><label data-i18n="sch.lbl.firstName">First Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="firstName" required autocomplete="given-name" data-i18n-ph="ph.name" placeholder="Jean" maxlength="60" aria-required="true"/></div>
-<div class="fg"><label data-i18n="sch.lbl.lastName">Last Name<span class="req" aria-hidden="true">*</span></label><input type="text" name="lastName" required autocomplete="family-name" placeholder="Kamara" maxlength="60" aria-required="true"/></div>
+<div class="fg"><label data-i18n="sch.lbl.lastName">Last Name</label><input type="text" name="lastName" autocomplete="family-name" placeholder="Kamara" maxlength="60"/></div>
 </div>
 <div class="fgrow">
-<div class="fg"><label data-i18n="ct.lbl.email">Email Address<span class="req" aria-hidden="true">*</span></label><input type="email" name="email" required autocomplete="email" data-i18n-ph="ph.email" placeholder="you@company.com" maxlength="100" aria-required="true"/></div>
-<div class="fg"><label data-i18n="sch.lbl.phone">Phone Number<span class="req" aria-hidden="true">*</span></label><input type="tel" name="phone" required autocomplete="tel" placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20" aria-required="true"/></div>
+<div class="fg"><label data-i18n="ct.lbl.email">Email Address</label><input type="email" name="email" id="sched-email" autocomplete="email" data-i18n-ph="ph.email" placeholder="you@company.com" maxlength="100"/></div>
+<div class="fg"><label data-i18n="sch.lbl.phone">Phone Number</label><input type="tel" name="phone" id="sched-phone" autocomplete="tel" placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20"/></div>
 </div>
 <div class="fg">
-<label data-i18n="ct.lbl.country">Country<span class="req" aria-hidden="true">*</span></label>
-<select name="country" required id="sched-country" aria-required="true">
+<label data-i18n="ct.lbl.country">Country</label>
+<select name="country" id="sched-country">
 <option value="">Select country</option>
 <option>Sierra Leone</option>
 <option>Guinea</option>
@@ -2366,34 +2577,67 @@ document.addEventListener('DOMContentLoaded', function() {
 <option>Other</option>
 </select>
 </div>
+<div class="fg"><label data-i18n="ct.lbl.company">Company Name (optional)</label><input type="text" name="company" autocomplete="organization" data-i18n-ph="ph.company" placeholder="Your Company Ltd" maxlength="100"/></div>
 <div class="fg">
 <label data-i18n="sch.lbl.reason">Reason for the Call<span class="req" aria-hidden="true">*</span></label>
 <select name="reason" required id="sched-reason" aria-required="true">
 <option value="" data-i18n="iq.opt.selectType">Select an inquiry type</option>
-<option value="sales" data-i18n="sch.reason.sales">Sales question</option>
-<option value="quotation" data-i18n="sch.reason.quotation">Quotation or pricing</option>
+<option value="sales-quotation" data-i18n="sch.reason.salesQuotation">Sales or quotation</option>
 <option value="availability" data-i18n="sch.reason.availability">Product availability</option>
 <option value="procurement" data-i18n="sch.reason.procurement">Equipment procurement</option>
-<option value="routers" data-i18n="sch.reason.routers">Routers and networking</option>
+<option value="networking" data-i18n="sch.reason.networking">Networking</option>
 <option value="servers" data-i18n="sch.reason.servers">Servers and infrastructure</option>
 <option value="computers" data-i18n="sch.reason.computers">Computers and workstations</option>
-<option value="fiber" data-i18n="sch.reason.fiber">Fiber-optic products</option>
-<option value="cabling" data-i18n="sch.reason.cabling">Structured cabling</option>
+<option value="fiber-cabling" data-i18n="sch.reason.fiberCabling">Fiber optic or cabling</option>
+<option value="installation" data-i18n="sch.reason.installation">Installation</option>
 <option value="support" data-i18n="sch.reason.support">Customer support</option>
 <option value="technical" data-i18n="sch.reason.technical">Technical support</option>
 <option value="order" data-i18n="sch.reason.order">Existing order</option>
 <option value="partnership" data-i18n="sch.reason.partnership">Partnership</option>
-<option value="general" data-i18n="sch.reason.general">General information</option>
+<option value="general" data-i18n="sch.reason.general">General inquiry</option>
 <option value="other" data-i18n="iq.opt.other">Other</option>
 </select>
 </div>
-<div class="fg">
-<label data-i18n="sch.lbl.callMethod">Preferred Call Method<span class="req" aria-hidden="true">*</span></label>
-<select name="preferredCallMethod" required id="sched-call-method" aria-required="true">
-<option value="phone" data-i18n="sch.opt.phone">Telephone callback</option>
-<option value="meet" data-i18n="sch.opt.meet">Google Meet video call</option>
-</select>
+
+<div class="fg" id="sched-contact-method-group" hidden>
+<label data-i18n="sch.lbl.contactMethod">How would you like us to reach you?<span class="req" aria-hidden="true">*</span></label>
+<div id="sched-contact-method-options" class="sched-radio-group" role="radiogroup" aria-label="Preferred contact method"></div>
+<p class="fnote" id="sched-meet-note" data-i18n="sch.note.meetEmail" hidden>An email address is required so we can send your Google Meet invitation.</p>
 </div>
+
+<div id="sched-whatsapp-group" hidden>
+<div class="fg">
+<label data-i18n="sch.lbl.whatsappConnected">Is this phone number also connected to WhatsApp?<span class="req" aria-hidden="true">*</span></label>
+<div class="sched-radio-group" role="radiogroup" aria-label="WhatsApp connected">
+<label class="sched-radio-opt"><input type="radio" name="whatsappConnected" value="yes" id="sched-wa-yes"/><span data-i18n="sch.opt.yes">Yes</span></label>
+<label class="sched-radio-opt"><input type="radio" name="whatsappConnected" value="no" id="sched-wa-no"/><span data-i18n="sch.opt.no">No</span></label>
+</div>
+</div>
+<div class="fg" id="sched-whatsapp-number-field" hidden>
+<label data-i18n="sch.lbl.whatsappNumber">WhatsApp Number</label>
+<input type="tel" name="whatsappNumber" id="sched-whatsapp-number" autocomplete="tel" data-i18n-ph="sch.ph.whatsappNumber" placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20"/>
+</div>
+<div class="fg" style="margin-bottom:8px;">
+<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
+<input type="checkbox" name="whatsappConsent" id="sched-whatsapp-consent" style="width:auto;"/>
+<span data-i18n="sch.lbl.whatsappConsent">Yes, LAVAALL may contact me on WhatsApp regarding this request.</span>
+</label>
+</div>
+</div>
+
+<div id="sched-messenger-group" hidden>
+<div class="fg">
+<label data-i18n="sch.lbl.messengerProfile">Please provide your Facebook or Messenger profile link so our team can find the correct account.</label>
+<input type="text" name="messengerProfile" id="sched-messenger-profile" data-i18n-ph="sch.ph.messengerProfile" placeholder="facebook.com/yourprofile" maxlength="200"/>
+</div>
+<div class="fg" style="margin-bottom:8px;">
+<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
+<input type="checkbox" name="messengerConsent" id="sched-messenger-consent" style="width:auto;"/>
+<span data-i18n="sch.lbl.messengerConsent">Yes, LAVAALL may contact me through Facebook Messenger regarding this request.</span>
+</label>
+</div>
+</div>
+
 <div class="fg"><label data-i18n="sch.lbl.note">Anything else? (optional)</label><textarea name="note" rows="3" maxlength="500" data-i18n-ph="sch.ph.note" placeholder="A short note to help us prepare for the call..."></textarea></div>
 <div class="fg" style="margin-bottom:8px;">
 <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
@@ -2424,7 +2668,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="si2">&#128197;</div>
 <h2 data-i18n="sch.confirm.h2">Call Scheduled!</h2>
 <p id="sched-confirm-detail"></p>
-<p class="fnote" data-i18n="sch.confirm.note">A confirmation email is on its way to you. To reschedule or cancel, just reply to that email or contact us directly.</p>
+<p id="sched-confirm-reference"></p>
+<p class="fnote" id="sched-confirm-email-note" data-i18n="sch.confirm.note">A confirmation email is on its way to you. To reschedule or cancel, just reply to that email or contact us directly.</p>
+<p id="sched-confirm-save-note" data-i18n="sch.confirm.saveNote" hidden>Please save or take a screenshot of this confirmation for your records -- we were not able to email it to you.</p>
 <button type="button" class="fsub" id="sched-done-btn" data-i18n="sch.confirm.done">Done</button>
 </div>
 

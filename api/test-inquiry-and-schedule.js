@@ -86,7 +86,7 @@ async function run() {
 
   // register: rejects invalid reason
   {
-    const req = { method: 'POST', body: { action: 'register', firstName: 'Jean', lastName: 'Kamara', email: 'jean@example.com', phone: '+232 76 000 000', country: 'Sierra Leone', reason: 'not-a-real-reason', preferredCallMethod: 'phone', consent: true } };
+    const req = { method: 'POST', body: { action: 'register', firstName: 'Jean', lastName: 'Kamara', email: 'jean@example.com', phone: '+232 76 000 000', country: 'Sierra Leone', reason: 'not-a-real-reason', preferredContactMethod: 'phone', consent: true } };
     const res = mockRes();
     await scheduleMod(req, res);
     check('register rejects an invalid reason code (400)', res.statusCode === 400);
@@ -98,7 +98,7 @@ async function run() {
     global.fetch = async (url, opts) => { sentBody = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({ ok: true, leadId: 'SCH-1', token: 'tok' }) }; };
     const req = { method: 'POST', headers: { host: 'www.lavaall.com' }, body: {
       action: 'register', firstName: 'Jean', lastName: 'Kamara', email: 'reg-test@example.com', phone: '+232 76 000 000',
-      country: 'Sierra Leone', reason: 'sales', preferredCallMethod: 'meet', consent: true, language: 'fr',
+      country: 'Sierra Leone', reason: 'sales-quotation', preferredContactMethod: 'email', consent: true, language: 'fr',
     }};
     const res = mockRes();
     await scheduleMod(req, res);
@@ -112,6 +112,97 @@ async function run() {
     const res = mockRes();
     await scheduleMod(req, res);
     check('book rejects malformed date/time (400)', res.statusCode === 400);
+  }
+
+  // =========================================================================
+  // FINAL SIMPLIFIED CONTACT RULES -- the 16 user-specified scenarios,
+  // exercised directly against api/schedule.js's register validation.
+  // =========================================================================
+  function registerReq(overrides) {
+    return { method: 'POST', headers: { host: 'www.lavaall.com' }, body: Object.assign({
+      action: 'register', firstName: 'Aminata', reason: 'general', consent: true,
+    }, overrides) };
+  }
+  async function registerAndCheck(name, overrides, expectStatus) {
+    global.fetch = async (url, opts) => ({ ok: true, status: 200, json: async () => ({ ok: true, leadId: 'SCH-T', token: 'tok-t' }) });
+    const req = registerReq(overrides);
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check(name, res.statusCode === expectStatus, `(got ${res.statusCode}, wanted ${expectStatus})`);
+    return res;
+  }
+
+  // 1. First name + email -- accepted
+  await registerAndCheck('1. First name + email -- accepted', { email: 'a1@example.com', preferredContactMethod: 'email' }, 200);
+  // 2. First name + phone -- accepted
+  await registerAndCheck('2. First name + phone -- accepted', { phone: '+232 76 000 001', preferredContactMethod: 'phone' }, 200);
+  // 3. First name without email or phone -- rejected
+  await registerAndCheck('3. First name without email or phone -- rejected', {}, 400);
+  // 4. Missing inquiry type -- rejected
+  await registerAndCheck('4. Missing inquiry type -- rejected', { email: 'a4@example.com', preferredContactMethod: 'email', reason: '' }, 400);
+  // 5. Missing country -- accepted
+  await registerAndCheck('5. Missing country -- accepted', { email: 'a5@example.com', preferredContactMethod: 'email', country: '' }, 200);
+  // 6. Missing last name -- accepted
+  await registerAndCheck('6. Missing last name -- accepted', { email: 'a6@example.com', preferredContactMethod: 'email', lastName: '' }, 200);
+  // 7. Phone entry allows Phone or WhatsApp as method
+  await registerAndCheck('7a. Phone-only + method=phone -- accepted', { phone: '+232 76 000 007', preferredContactMethod: 'phone' }, 200);
+  await registerAndCheck('7b. Phone-only + method=whatsapp + connected=yes + consent -- accepted',
+    { phone: '+232 76 000 070', preferredContactMethod: 'whatsapp', whatsappConnected: 'yes', whatsappConsent: true }, 200);
+  // 8. Email entry allows Email as method
+  await registerAndCheck('8. Email-only + method=email -- accepted', { email: 'a8@example.com', preferredContactMethod: 'email' }, 200);
+  // 9. WhatsApp selection requires permission (consent)
+  await registerAndCheck('9. WhatsApp selected without consent -- rejected',
+    { phone: '+232 76 000 009', preferredContactMethod: 'whatsapp', whatsappConnected: 'yes', whatsappConsent: false }, 400);
+  // 10. Separate WhatsApp number works
+  await registerAndCheck('10a. WhatsApp connected=no without separate number -- rejected',
+    { phone: '+232 76 000 010', preferredContactMethod: 'whatsapp', whatsappConnected: 'no', whatsappConsent: true }, 400);
+  {
+    let sentBody = null;
+    global.fetch = async (url, opts) => { sentBody = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({ ok: true, leadId: 'SCH-T', token: 'tok-t' }) }; };
+    const req = registerReq({ phone: '+232 76 000 010', preferredContactMethod: 'whatsapp', whatsappConnected: 'no', whatsappNumber: '+232 77 000 010', whatsappConsent: true });
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check('10b. WhatsApp connected=no + separate number -- accepted', res.statusCode === 200);
+    check('10c. separate whatsappNumber forwarded to backend', sentBody && sentBody.whatsappNumber === '+232 77 000 010');
+  }
+  // 11. Messenger requires a profile identifier
+  await registerAndCheck('11a. Messenger without profile -- rejected',
+    { email: 'a11@example.com', preferredContactMethod: 'messenger', messengerConsent: true }, 400);
+  await registerAndCheck('11b. Messenger with profile but no consent -- rejected',
+    { email: 'a11@example.com', preferredContactMethod: 'messenger', messengerProfile: 'facebook.com/a11', messengerConsent: false }, 400);
+  await registerAndCheck('11c. Messenger with profile + consent -- accepted',
+    { email: 'a11@example.com', preferredContactMethod: 'messenger', messengerProfile: 'facebook.com/a11', messengerConsent: true }, 200);
+  // 12. Phone callback requires phone
+  await registerAndCheck('12. method=phone without a phone number -- rejected',
+    { email: 'a12@example.com', preferredContactMethod: 'phone' }, 400);
+  // 13. Google Meet (method=email) requires email
+  await registerAndCheck('13. method=email without an email address -- rejected',
+    { phone: '+232 76 000 013', preferredContactMethod: 'email' }, 400);
+  // 14/15. Email forwarded only when provided; phone-only never sends an email field
+  {
+    let sentBody = null;
+    global.fetch = async (url, opts) => { sentBody = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({ ok: true, leadId: 'SCH-T', token: 'tok-t' }) }; };
+    const req = registerReq({ phone: '+232 76 000 014', preferredContactMethod: 'phone' });
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check('14/15. Phone-only registration forwards an empty email field (no email attempted)', sentBody && sentBody.email === '');
+  }
+  {
+    let sentBody = null;
+    global.fetch = async (url, opts) => { sentBody = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({ ok: true, leadId: 'SCH-T', token: 'tok-t' }) }; };
+    const req = registerReq({ email: 'a14b@example.com', preferredContactMethod: 'email' });
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check('14b. Email-provided registration forwards the email field', sentBody && sentBody.email === 'a14b@example.com');
+  }
+  // 16. Language code forwards correctly for en/fr/kr (full UI behavior covered by Playwright)
+  for (const langCode of ['en', 'fr', 'kr']) {
+    let sentBody = null;
+    global.fetch = async (url, opts) => { sentBody = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({ ok: true, leadId: 'SCH-T', token: 'tok-t' }) }; };
+    const req = registerReq({ email: `a16-${langCode}@example.com`, preferredContactMethod: 'email', language: langCode });
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check(`16. [${langCode}] language forwarded and registration accepted`, res.statusCode === 200 && sentBody && sentBody.language === langCode);
   }
 
   let failed = 0;

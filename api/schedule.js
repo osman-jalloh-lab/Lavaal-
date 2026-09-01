@@ -5,16 +5,24 @@
 // (scripts/booking-scheduler/booking-router.gs) instead of the email
 // router. One file, three actions, dispatched by ?action= (GET) or
 // body.action (POST) so the front end only has one endpoint to know about.
+//
+// CONTACT RULES (see FINAL SIMPLIFIED CONTACT RULES spec): only firstName,
+// reason, and consent are always required. The customer must supply at
+// least one of email/phone. A preferredContactMethod is required and its
+// value drives additional conditional requirements (email for 'email',
+// phone for 'phone', a WhatsApp-connected number + consent for 'whatsapp',
+// a profile link + consent for 'messenger'). lastName, country, and
+// company are always optional.
 
 const MAX_BODY = 8_000;
-const recentByEmail = new Map(); // mirrors contact.js's per-IP map, keyed by email here
+const recentByEmail = new Map(); // mirrors contact.js's per-IP map, keyed by email/phone here
 
 const REASONS = [
-  'sales', 'quotation', 'availability', 'procurement', 'routers', 'servers',
-  'computers', 'fiber', 'cabling', 'support', 'technical', 'order',
-  'partnership', 'general', 'other',
+  'sales-quotation', 'availability', 'procurement', 'networking', 'servers',
+  'computers', 'fiber-cabling', 'installation', 'support', 'technical',
+  'order', 'partnership', 'general', 'other',
 ];
-const CALL_METHODS = ['phone', 'meet'];
+const CONTACT_METHODS = ['email', 'phone', 'whatsapp', 'messenger'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE = /^[+]?[0-9\s\-()]{7,20}$/;
 
@@ -78,30 +86,73 @@ async function schedule(req, res) {
     const email = clean(body.email, 100);
     const phone = clean(body.phone, 20);
     const country = clean(body.country, 50);
+    const company = clean(body.company, 100);
     const reason = clean(body.reason, 30);
-    const preferredCallMethod = clean(body.preferredCallMethod, 20);
+    const preferredContactMethod = clean(body.preferredContactMethod, 20);
+    const whatsappConnected = clean(body.whatsappConnected, 5);
+    const whatsappNumber = clean(body.whatsappNumber, 20);
+    const whatsappConsent = body.whatsappConsent === true || body.whatsappConsent === 'yes';
+    const messengerProfile = clean(body.messengerProfile, 200);
+    const messengerConsent = body.messengerConsent === true || body.messengerConsent === 'yes';
     const note = clean(body.note, 500);
     const language = clean(body.language, 5) || 'en';
     const consent = body.consent === true || body.consent === 'yes';
 
     const errors = [];
     if (firstName.length < 1) errors.push('First name is required.');
-    if (lastName.length < 1) errors.push('Last name is required.');
-    if (!EMAIL.test(email)) errors.push('A valid email address is required.');
-    if (!PHONE.test(phone)) errors.push('A valid phone number is required.');
-    if (!country) errors.push('Country is required.');
     if (!REASONS.includes(reason)) errors.push('A valid reason for the call is required.');
-    if (!CALL_METHODS.includes(preferredCallMethod)) errors.push('A valid preferred call method is required.');
     if (!consent) errors.push('Consent is required.');
+
+    const hasEmail = email.length > 0;
+    const hasPhone = phone.length > 0;
+    if (!hasEmail && !hasPhone) {
+      errors.push('Please enter an email address or phone number so we can contact you.');
+    }
+    if (hasEmail && !EMAIL.test(email)) errors.push('A valid email address is required.');
+    if (hasPhone && !PHONE.test(phone)) errors.push('A valid phone number is required.');
+
+    if (!CONTACT_METHODS.includes(preferredContactMethod)) {
+      errors.push('A valid preferred contact method is required.');
+    } else {
+      if (preferredContactMethod === 'email' && !hasEmail) {
+        errors.push('An email address is required so we can send your Google Meet invitation.');
+      }
+      if (preferredContactMethod === 'phone' && !hasPhone) {
+        errors.push('A phone number is required for a telephone callback.');
+      }
+      if (preferredContactMethod === 'whatsapp') {
+        if (!hasPhone) errors.push('A phone number is required for WhatsApp.');
+        if (whatsappConnected !== 'yes' && whatsappConnected !== 'no') {
+          errors.push('Please tell us whether this number is connected to WhatsApp.');
+        } else if (whatsappConnected === 'no' && !(whatsappNumber && PHONE.test(whatsappNumber))) {
+          errors.push('A valid WhatsApp number is required.');
+        }
+        if (!whatsappConsent) errors.push('WhatsApp consent is required.');
+      }
+      if (preferredContactMethod === 'messenger') {
+        if (!messengerProfile) errors.push('A Facebook or Messenger profile link is required.');
+        if (!messengerConsent) errors.push('Messenger consent is required.');
+      }
+    }
     if (errors.length) return json(res, 400, { error: 'invalid_registration', errors });
 
-    if (rateLimited('reg_' + email.toLowerCase())) {
+    const rateKey = 'reg_' + (email || phone).toLowerCase();
+    if (rateLimited(rateKey)) {
       return json(res, 429, { error: 'rate_limited', message: 'Please wait a moment before trying again.' });
     }
 
+    const finalWhatsappNumber = preferredContactMethod === 'whatsapp' && whatsappConnected === 'no' ? whatsappNumber : '';
+
     const result = await callBackend('register', {
-      firstName, lastName, email, phone, country, reason, preferredCallMethod, note,
-      language, consent: true, customerTimezone: clean(body.customerTimezone, 60),
+      firstName, lastName, email, phone, country, company, reason,
+      preferredContactMethod,
+      whatsappConnected: preferredContactMethod === 'whatsapp' ? whatsappConnected : '',
+      whatsappNumber: finalWhatsappNumber,
+      whatsappConsent: preferredContactMethod === 'whatsapp' ? whatsappConsent : false,
+      messengerProfile: preferredContactMethod === 'messenger' ? messengerProfile : '',
+      messengerConsent: preferredContactMethod === 'messenger' ? messengerConsent : false,
+      note, language, consent: true,
+      customerTimezone: clean(body.customerTimezone, 60),
       sourcePage: clean(body.sourcePage, 200) || 'lavaall.com',
       bookingBaseUrl: `https://${req.headers.host || 'www.lavaall.com'}/schedule`,
     }, true);
