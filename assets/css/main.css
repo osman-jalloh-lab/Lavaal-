@@ -282,6 +282,7 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .fg{margin-bottom:14px;}
 .fg label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
 .fg input,.fg select,.fg textarea{width:100%;padding:11px 14px;background:var(--offwhite);border:2px solid rgba(10,10,20,.1);border-radius:10px;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;}
+.fg input[type="checkbox"],.fg input[type="radio"]{width:auto;padding:0;background:none;border:none;border-radius:0;appearance:auto;accent-color:var(--sky);cursor:pointer;}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(0,194,255,.1);}
 .fg textarea{resize:vertical;min-height:80px;}
 .fgrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
