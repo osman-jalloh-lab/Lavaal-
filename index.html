@@ -978,8 +978,10 @@ class ScheduleModal {
     this.emptyEl = document.getElementById('sched-slots-empty');
     this.step2Sub = document.getElementById('sched-step2-sub');
     this.confirmDetail = document.getElementById('sched-confirm-detail');
+    this.resumeLoading = document.getElementById('sched-resume-loading');
+    this.errorState = document.getElementById('sched-error-state');
     this.trigger = null;
-    this.lead = null; // { leadId, token, firstName, wantsMeet, hasEmail, method }
+    this.lead = null; // { leadId, token, firstName, wantsMeet, hasEmail, method, phone }
     this.selectedMethod = '';
     this.init();
   }
@@ -991,6 +993,12 @@ class ScheduleModal {
     document.getElementById('sched-backdrop').addEventListener('click', () => this.close());
     document.getElementById('sched-back-btn').addEventListener('click', () => this.showStep(1));
     document.getElementById('sched-done-btn').addEventListener('click', () => this.close());
+    const retryBtn = document.getElementById('sched-retry-meet-btn');
+    if (retryBtn) retryBtn.addEventListener('click', () => this.retryMeetLink());
+    const restartBtn = document.getElementById('sched-error-restart-btn');
+    if (restartBtn) restartBtn.addEventListener('click', () => this.restartFresh());
+    const contactLink = document.getElementById('sched-error-contact-link');
+    if (contactLink) contactLink.addEventListener('click', () => this.close());
     this.emailInput.addEventListener('input', () => this.refreshContactMethods());
     this.phoneInput.addEventListener('input', () => this.refreshContactMethods());
     this.contactMethodOptions.addEventListener('change', (e) => {
@@ -1007,6 +1015,17 @@ class ScheduleModal {
 
   open() {
     this.trigger = document.activeElement;
+    this.restartFresh();
+    this.overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    const candidates = Array.from(this.step1.querySelectorAll('input,select,textarea,button'))
+      .filter(el => el.offsetParent !== null && !el.disabled);
+    if (candidates.length) candidates[0].focus();
+  }
+
+  // Resets back to a blank Step 1 -- used both by open() and by "Start a
+  // New Request" on the invalid/expired-link error state.
+  restartFresh() {
     this.lead = null;
     this.regForm.reset();
     this.selectedMethod = '';
@@ -1016,11 +1035,6 @@ class ScheduleModal {
     this.messengerGroup.hidden = true;
     this.meetNote.hidden = true;
     this.showStep(1);
-    this.overlay.classList.add('show');
-    document.body.style.overflow = 'hidden';
-    const candidates = Array.from(this.step1.querySelectorAll('input,select,textarea,button'))
-      .filter(el => el.offsetParent !== null && !el.disabled);
-    if (candidates.length) candidates[0].focus();
   }
 
   close() {
@@ -1042,6 +1056,76 @@ class ScheduleModal {
     this.step1.hidden = n !== 1;
     this.step2.hidden = n !== 2;
     this.confirmStep.hidden = n !== 3;
+    if (this.resumeLoading) this.resumeLoading.hidden = true;
+    if (this.errorState) this.errorState.hidden = true;
+  }
+
+  showResumeLoading() {
+    this.step1.hidden = true; this.step2.hidden = true; this.confirmStep.hidden = true;
+    if (this.errorState) this.errorState.hidden = true;
+    if (this.resumeLoading) this.resumeLoading.hidden = false;
+  }
+
+  // A friendly, translated dead end for a recovery link that can't be used
+  // as-is (expired, already consumed, invalid) -- never a raw error dump,
+  // and always offers a way forward (BUG 1 requirement).
+  showErrorState(titleKey, titleFallback, bodyKey, bodyFallback) {
+    this.step1.hidden = true; this.step2.hidden = true; this.confirmStep.hidden = true;
+    if (this.resumeLoading) this.resumeLoading.hidden = true;
+    if (!this.errorState) return;
+    this.errorState.hidden = false;
+    const titleEl = document.getElementById('sched-error-title');
+    const bodyEl = document.getElementById('sched-error-body');
+    if (titleEl) titleEl.textContent = this.tr(titleKey, titleFallback);
+    if (bodyEl) bodyEl.textContent = this.tr(bodyKey, bodyFallback);
+  }
+
+  // Entry point for the "Complete Your LAVAALL Call Booking" recovery link
+  // (/schedule?leadId=&token=&lang=): restores the customer's Step 1
+  // details via the token and opens straight to Step 2, never re-asking
+  // anything already on file. Works from a fresh browser with no cookies
+  // or localStorage -- everything needed lives in the URL and the backend.
+  async resumeFromToken(leadId, token, langCode) {
+    this.trigger = document.activeElement;
+    if (langCode && ['en', 'fr', 'kr'].indexOf(langCode) !== -1) setLang(langCode);
+    this.overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    this.showResumeLoading();
+    try {
+      const response = await fetch('/api/schedule?action=lookup&leadId=' + encodeURIComponent(leadId) + '&token=' + encodeURIComponent(token));
+      const body = await response.json().catch(() => ({}));
+      if (!body.ok) {
+        if (body.error === 'token_expired') {
+          this.showErrorState('sch.resume.expiredTitle', 'This link has expired',
+            'sch.resume.expiredBody', 'For your security, scheduling links expire after 7 days. Please start a new request below, or contact us directly.');
+        } else {
+          this.showErrorState('sch.resume.invalidTitle', 'This link is no longer valid',
+            'sch.resume.invalidBody', 'This scheduling link has expired, already been used, or is no longer valid. Please start a new request below, or contact us directly.');
+        }
+        return;
+      }
+      if (body.bookingStatus === 'Scheduled') {
+        this.showErrorState('sch.resume.scheduledTitle', 'This call is already scheduled',
+          'sch.resume.scheduledBody', 'This request has already been booked. If you need to reschedule or cancel, please contact us directly.');
+        return;
+      }
+      this.lead = {
+        leadId: leadId, token: token,
+        firstName: body.firstName || '',
+        method: body.preferredContactMethod || '',
+        wantsMeet: body.preferredContactMethod === 'email',
+        hasEmail: !!body.hasEmail,
+        phone: '', // never re-served by lookup -- only used for on-screen copy when we already have it locally
+      };
+      this.enterStep2();
+      const candidates = Array.from(this.step2.querySelectorAll('input,select,textarea,button'))
+        .filter(el => el.offsetParent !== null && !el.disabled);
+      if (candidates.length) candidates[0].focus();
+    } catch (error) {
+      console.error('Resume lookup error:', error);
+      this.showErrorState('sch.resume.invalidTitle', 'This link is no longer valid',
+        'sch.resume.invalidBody', 'This scheduling link has expired, already been used, or is no longer valid. Please start a new request below, or contact us directly.');
+    }
   }
 
   checkHoneypot() {
@@ -1218,6 +1302,7 @@ class ScheduleModal {
           method: payload.preferredContactMethod,
           wantsMeet: payload.preferredContactMethod === 'email',
           hasEmail: !!payload.email,
+          phone: payload.phone || (payload.preferredContactMethod === 'whatsapp' ? payload.whatsappNumber : '') || '',
         };
         this.enterStep2();
       } else {
@@ -1315,7 +1400,13 @@ class ScheduleModal {
     const sub = SCHED_STRINGS[currentLang] || SCHED_STRINGS.en;
     const dt = new Date(date + 'T' + time + ':00Z');
     const whenStr = dt.toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
-    this.confirmDetail.textContent = sub.confirmDetail(whenStr, this.lead.method, this.lead.wantsMeet && body.meetLink);
+    // Only ever treat the Meet link as real once the backend itself says
+    // the conference was confirmed -- never infer success just because a
+    // string happens to be present (BUG 2 requirement).
+    const meetConfirmed = this.lead.wantsMeet && body.meetStatus === 'confirmed' && !!body.meetLink;
+    this.confirmDetail.textContent = sub.confirmDetail(whenStr, this.lead.method, meetConfirmed ? body.meetLink : '', this.lead.phone);
+    this.lead.bookedDate = date;
+    this.lead.bookedTime = time;
 
     const refEl = document.getElementById('sched-confirm-reference');
     if (refEl) refEl.textContent = this.tr('sch.confirm.reference', 'Booking reference') + ': ' + this.lead.leadId;
@@ -1324,36 +1415,142 @@ class ScheduleModal {
     const saveNoteEl = document.getElementById('sched-confirm-save-note');
     if (emailNoteEl) emailNoteEl.hidden = !this.lead.hasEmail;
     if (saveNoteEl) saveNoteEl.hidden = !!this.lead.hasEmail;
+
+    const joinBtn = document.getElementById('sched-join-meet');
+    if (joinBtn) {
+      if (meetConfirmed) { joinBtn.href = body.meetLink; joinBtn.hidden = false; }
+      else joinBtn.hidden = true;
+    }
+
+    // A Meet booking (method === email) that did NOT come back with a
+    // verified link: say so honestly, and offer the safe retry path --
+    // never a silent gap where the customer just doesn't see a button.
+    const meetPending = this.lead.wantsMeet && !meetConfirmed;
+    const pendingNote = document.getElementById('sched-meet-pending-note');
+    const retryBtn = document.getElementById('sched-retry-meet-btn');
+    if (pendingNote) pendingNote.hidden = !meetPending;
+    if (retryBtn) {
+      retryBtn.hidden = !meetPending;
+      retryBtn.disabled = false;
+      if (typeof DOMPurify !== 'undefined') retryBtn.innerHTML = DOMPurify.sanitize(this.tr('sch.confirm.retryMeet', 'Try Generating the Video Link Again'));
+      else retryBtn.textContent = this.tr('sch.confirm.retryMeet', 'Try Generating the Video Link Again');
+    }
+
+    this.renderCalendarLinks(date, time, meetConfirmed ? body.meetLink : '');
+  }
+
+  // Add-to-Google-Calendar + downloadable .ics for the appointment itself
+  // (works for every contact method, not just Meet bookings) -- built
+  // entirely from what's already shown on this screen: title, date/time,
+  // reference, and the verified Meet link when there is one. Never
+  // includes internal notes, secrets, or spreadsheet/calendar IDs.
+  renderCalendarLinks(date, time, meetLink) {
+    const gcalLink = document.getElementById('sched-add-gcal');
+    const icsLink = document.getElementById('sched-download-ics');
+    if (!gcalLink && !icsLink) return;
+    const start = new Date(date + 'T' + time + ':00Z');
+    const end = new Date(start.getTime() + 30 * 60000);
+    const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const summary = this.lead.method === 'phone' ? 'LAVAALL Phone Callback'
+      : this.lead.method === 'whatsapp' ? 'LAVAALL WhatsApp Callback'
+      : this.lead.method === 'messenger' ? 'LAVAALL Messenger Callback'
+      : 'LAVAALL Video Call';
+    const descLines = ['LAVAALL call -- reference ' + this.lead.leadId];
+    if (meetLink) descLines.push('Google Meet: ' + meetLink);
+    const description = descLines.join('\n');
+
+    if (gcalLink) {
+      const qs = new URLSearchParams({ action: 'TEMPLATE', text: summary, dates: fmt(start) + '/' + fmt(end), details: description, ctz: 'Africa/Freetown' });
+      gcalLink.href = 'https://calendar.google.com/calendar/render?' + qs.toString();
+      gcalLink.hidden = false;
+    }
+    if (icsLink) {
+      const icsEscape = (s) => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+      const ics = [
+        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//LAVAALL//Schedule a Call//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+        'BEGIN:VEVENT',
+        'UID:' + this.lead.leadId + '@lavaall.com',
+        'DTSTAMP:' + fmt(new Date()),
+        'DTSTART:' + fmt(start),
+        'DTEND:' + fmt(end),
+        'SUMMARY:' + icsEscape(summary),
+        'DESCRIPTION:' + icsEscape(description),
+        'ORGANIZER;CN=LAVAALL:mailto:info@lavaall.com',
+        'END:VEVENT', 'END:VCALENDAR',
+      ].join('\r\n');
+      icsLink.onclick = (e) => {
+        e.preventDefault();
+        const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'lavaall-call-' + this.lead.leadId + '.ics';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      };
+      icsLink.hidden = false;
+    }
+  }
+
+  // Safe retry path when Meet creation failed at booking time (BUG 2):
+  // re-attempts on the same calendar hold rather than losing the booking,
+  // and only ever shows a Join button once the backend confirms a real link.
+  async retryMeetLink() {
+    const btn = document.getElementById('sched-retry-meet-btn');
+    if (!btn || !this.lead) return;
+    btn.disabled = true;
+    btn.textContent = this.tr('sch.confirm.retrying', 'Checking...');
+    try {
+      const response = await fetch('/api/schedule', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'retryMeet', leadId: this.lead.leadId, token: this.lead.token }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok && body.ok && body.meetStatus === 'confirmed' && body.meetLink) {
+        const joinBtn = document.getElementById('sched-join-meet');
+        if (joinBtn) { joinBtn.href = body.meetLink; joinBtn.hidden = false; }
+        const pendingNote = document.getElementById('sched-meet-pending-note');
+        if (pendingNote) pendingNote.hidden = true;
+        this.renderCalendarLinks(this.lead.bookedDate, this.lead.bookedTime, body.meetLink);
+        btn.hidden = true;
+      } else {
+        btn.disabled = false;
+        btn.textContent = this.tr('sch.confirm.retryStillPending', 'Still not ready -- our team has been notified and will email you a link.');
+      }
+    } catch (error) {
+      console.error('Meet retry error:', error);
+      btn.disabled = false;
+      btn.textContent = this.tr('sch.confirm.retryMeet', 'Try Generating the Video Link Again');
+    }
   }
 }
 
 const SCHED_STRINGS = {
   en: {
     step2sub: (name) => `Hi ${name}, choose a date and time (Mon-Fri, 9am-5pm, Africa/Freetown time).`,
-    confirmDetail: (when, method, meetLink) => {
-      let tail = ' -- LAVAALL will call you at the number you provided.';
-      if (method === 'email') tail = meetLink ? ' -- a Google Meet link is in your confirmation email.' : ' -- a Google Meet invitation will be sent to your email.';
-      else if (method === 'whatsapp') tail = ' -- LAVAALL will reach you on WhatsApp at the number you provided.';
+    confirmDetail: (when, method, meetLink, phone) => {
+      let tail = ' -- LAVAALL will call you' + (phone ? ` at ${phone}` : ' at the number you provided') + '.';
+      if (method === 'email') tail = meetLink ? ' -- your Google Meet link is ready above.' : ' -- we are finishing your Google Meet link; see below.';
+      else if (method === 'whatsapp') tail = ' -- LAVAALL will reach you on WhatsApp' + (phone ? ` at ${phone}` : ' at the number you provided') + '.';
       else if (method === 'messenger') tail = ' -- LAVAALL will reach you on Facebook Messenger.';
       return `${when} (Africa/Freetown time)` + tail;
     },
   },
   fr: {
     step2sub: (name) => `Bonjour ${name}, choisissez une date et une heure (Lun-Ven, 9h-17h, heure d'Afrique/Freetown).`,
-    confirmDetail: (when, method, meetLink) => {
-      let tail = ' -- LAVAALL vous appellera au numéro fourni.';
-      if (method === 'email') tail = meetLink ? ' -- un lien Google Meet se trouve dans votre e-mail de confirmation.' : ' -- une invitation Google Meet sera envoyée à votre e-mail.';
-      else if (method === 'whatsapp') tail = ' -- LAVAALL vous contactera sur WhatsApp au numéro fourni.';
+    confirmDetail: (when, method, meetLink, phone) => {
+      let tail = ' -- LAVAALL vous appellera' + (phone ? ` au ${phone}` : ' au numéro fourni') + '.';
+      if (method === 'email') tail = meetLink ? ' -- votre lien Google Meet est prêt ci-dessus.' : ' -- nous finalisons votre lien Google Meet ; voir ci-dessous.';
+      else if (method === 'whatsapp') tail = ' -- LAVAALL vous contactera sur WhatsApp' + (phone ? ` au ${phone}` : ' au numéro fourni') + '.';
       else if (method === 'messenger') tail = ' -- LAVAALL vous contactera via Facebook Messenger.';
       return `${when} (heure d'Afrique/Freetown)` + tail;
     },
   },
   kr: {
     step2sub: (name) => `Adu ${name}, pik wan det ɛn taem (Mɔnde to Fraede, 9am-5pm, Africa/Freetown taem).`,
-    confirmDetail: (when, method, meetLink) => {
-      let tail = ' -- LAVAALL go kɔl yu na di nɔmba we yu gi wi.';
-      if (method === 'email') tail = meetLink ? ' -- Google Meet link de na yu kɔnfɔmeshon imel.' : ' -- wi go sɛn wan Google Meet invitehon go na yu imel.';
-      else if (method === 'whatsapp') tail = ' -- LAVAALL go rich yu na WhatsApp na di nɔmba we yu gi wi.';
+    confirmDetail: (when, method, meetLink, phone) => {
+      let tail = ' -- LAVAALL go kɔl yu' + (phone ? ` na ${phone}` : ' na di nɔmba we yu gi wi') + '.';
+      if (method === 'email') tail = meetLink ? ' -- yu Google Meet link dɔn rɛdi na ɔp.' : ' -- wi de finish yu Google Meet link; luk dɔng.';
+      else if (method === 'whatsapp') tail = ' -- LAVAALL go rich yu na WhatsApp' + (phone ? ` na ${phone}` : ' na di nɔmba we yu gi wi') + '.';
       else if (method === 'messenger') tail = ' -- LAVAALL go rich yu na Facebook Messenger.';
       return `${when} (Africa/Freetown taem)` + tail;
     },
@@ -1790,6 +1987,22 @@ const translations={
     'sch.confirm.reference':'Booking reference',
     'sch.confirm.saveNote':'Please save or take a screenshot of this confirmation for your records -- we were not able to email it to you.',
     'sch.confirm.done':'Done',
+    'sch.confirm.joinMeet':'Join Google Meet',
+    'sch.confirm.addGcal':'Add to Google Calendar',
+    'sch.confirm.downloadIcs':'Download Calendar File (.ics)',
+    'sch.confirm.meetPending':'Your booking is confirmed, but we were not able to generate a working video link yet. Our team has been notified and will follow up by email with a working Google Meet link shortly.',
+    'sch.confirm.retryMeet':'Try Generating the Video Link Again',
+    'sch.confirm.retrying':'Checking...',
+    'sch.confirm.retryStillPending':'Still not ready -- our team has been notified and will email you a link.',
+    'sch.resume.loading':'Restoring your booking...',
+    'sch.resume.invalidTitle':'This Link Is No Longer Valid',
+    'sch.resume.invalidBody':'This scheduling link has expired, already been used, or is no longer valid. Please start a new request below, or contact us directly.',
+    'sch.resume.expiredTitle':'This Link Has Expired',
+    'sch.resume.expiredBody':'For your security, scheduling links expire after 7 days. Please start a new request below, or contact us directly.',
+    'sch.resume.scheduledTitle':'This Call Is Already Scheduled',
+    'sch.resume.scheduledBody':'This request has already been booked. If you need to reschedule or cancel, please contact us directly.',
+    'sch.resume.restart':'Start a New Request',
+    'sch.resume.contact':'Contact Us',
     'ft.copy':'© 2026 LAVAALL. All rights reserved.'
   },
   fr:{
@@ -2054,6 +2267,22 @@ const translations={
     'sch.confirm.reference':'Référence de réservation',
     'sch.confirm.saveNote':'Veuillez enregistrer ou faire une capture d\'écran de cette confirmation pour vos dossiers -- nous n\'avons pas pu vous l\'envoyer par e-mail.',
     'sch.confirm.done':'Terminé',
+    'sch.confirm.joinMeet':'Rejoindre Google Meet',
+    'sch.confirm.addGcal':'Ajouter à Google Agenda',
+    'sch.confirm.downloadIcs':'Télécharger le Fichier Calendrier (.ics)',
+    'sch.confirm.meetPending':'Votre réservation est confirmée, mais nous n’avons pas encore pu générer un lien vidéo fonctionnel. Notre équipe a été prévenue et vous enverra un lien Google Meet fonctionnel par e-mail sous peu.',
+    'sch.confirm.retryMeet':'Réessayer de Générer le Lien Vidéo',
+    'sch.confirm.retrying':'Vérification...',
+    'sch.confirm.retryStillPending':'Toujours pas prêt -- notre équipe a été prévenue et vous enverra un lien par e-mail.',
+    'sch.resume.loading':'Restauration de votre réservation...',
+    'sch.resume.invalidTitle':'Ce Lien N’est Plus Valide',
+    'sch.resume.invalidBody':'Ce lien de planification a expiré, a déjà été utilisé, ou n’est plus valide. Veuillez démarrer une nouvelle demande ci-dessous, ou nous contacter directement.',
+    'sch.resume.expiredTitle':'Ce Lien a Expiré',
+    'sch.resume.expiredBody':'Pour votre sécurité, les liens de planification expirent après 7 jours. Veuillez démarrer une nouvelle demande ci-dessous, ou nous contacter directement.',
+    'sch.resume.scheduledTitle':'Cet Appel Est Déjà Planifié',
+    'sch.resume.scheduledBody':'Cette demande a déjà été réservée. Si vous devez reporter ou annuler, veuillez nous contacter directement.',
+    'sch.resume.restart':'Démarrer une Nouvelle Demande',
+    'sch.resume.contact':'Nous Contacter',
     'ft.copy':'© 2026 LAVAALL. Tous droits réservés.'
   },
   kr:{
@@ -2318,6 +2547,22 @@ const translations={
     'sch.confirm.reference':'Bukin rɛfrɛns',
     'sch.confirm.saveNote':'Duya sev ɔ tek skrinshɔt fɔ dis kɔnfɔmeshon fɔ yu rɛkɔd -- wi nɔ ebul sɛn am to yu bay imel.',
     'sch.confirm.done':'Dɔn',
+    'sch.confirm.joinMeet':'Jɔyn Google Meet',
+    'sch.confirm.addGcal':'Ad to Google Kalɛnda',
+    'sch.confirm.downloadIcs':'Dawnlod Kalɛnda Fayl (.ics)',
+    'sch.confirm.meetPending':'Yu bukin dɔn kɔnfɔm, bɔt wi nɔ ebul mek wan vidio link we de wok yet. Wi tim dɔn no bɔt am ɛn go sɛn yu wan Google Meet link we de wok bay imel sun sun.',
+    'sch.confirm.retryMeet':'Tray Mek Vidio Link Agen',
+    'sch.confirm.retrying':'De chek...',
+    'sch.confirm.retryStillPending':'I nɔ rɛdi yet -- wi tim dɔn no bɔt am ɛn go sɛn yu wan link bay imel.',
+    'sch.resume.loading':'De restɔ yu bukin...',
+    'sch.resume.invalidTitle':'Dis Link Nɔ Valid Egen',
+    'sch.resume.invalidBody':'Dis skedulin link dɔn ɛkspaya, dɔn yuz already, ɔ i nɔ valid egen. Duya stat wan nyu rikwɛst dɔng below, ɔ kɔntakt wi direkt.',
+    'sch.resume.expiredTitle':'Dis Link Dɔn Ɛkspaya',
+    'sch.resume.expiredBody':'Fɔ yu sekyuriti, skedulin link dɛn ɛkspaya afta 7 dez. Duya stat wan nyu rikwɛst dɔng below, ɔ kɔntakt wi direkt.',
+    'sch.resume.scheduledTitle':'Dis Kɔl Dɔn Skedul Already',
+    'sch.resume.scheduledBody':'Dis rikwɛst dɔn buk already. If yu nid chenj ɔ kansul, duya kɔntakt wi direkt.',
+    'sch.resume.restart':'Stat Wan Nyu Rikwɛst',
+    'sch.resume.contact':'Kɔntakt Wi',
     'ft.copy':'© 2026 LAVAALL. Ɔl Rayt Risɔvd.'
   }
 };
@@ -2450,6 +2695,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Set default language
   setLang('en');
+
+  // Resume a "Schedule a Call" registration from its recovery-link email
+  // (?leadId=&token=&lang=), reached either via / or the /schedule route --
+  // both rewrite to this same page. Works with no cookies/localStorage:
+  // everything needed is in the URL and looked up fresh from the backend.
+  var resumeParams = new URLSearchParams(location.search);
+  var resumeLeadId = resumeParams.get('leadId');
+  var resumeToken = resumeParams.get('token');
+  if (resumeLeadId && resumeToken) {
+    var resumeLang = resumeParams.get('lang');
+    history.replaceState(null, '', location.pathname); // don't leave the token sitting in the address bar
+    if (!scheduleModalInstance) scheduleModalInstance = new ScheduleModal();
+    scheduleModalInstance.resumeFromToken(resumeLeadId, resumeToken, resumeLang);
+  }
 });
 
 
@@ -2668,10 +2927,29 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="si2">&#128197;</div>
 <h2 data-i18n="sch.confirm.h2">Call Scheduled!</h2>
 <p id="sched-confirm-detail"></p>
+<a href="#" id="sched-join-meet" class="fsub sched-join-meet" target="_blank" rel="noopener" data-i18n="sch.confirm.joinMeet" hidden>Join Google Meet</a>
+<p class="fnote" id="sched-meet-pending-note" data-i18n="sch.confirm.meetPending" hidden>Your booking is confirmed, but we were not able to generate a working video link yet. Our team has been notified and will follow up by email with a working Google Meet link shortly.</p>
+<button type="button" class="sched-back sched-retry-meet" id="sched-retry-meet-btn" data-i18n="sch.confirm.retryMeet" hidden>Try Generating the Video Link Again</button>
+<div class="sched-cal-links">
+<a href="#" id="sched-add-gcal" target="_blank" rel="noopener" data-i18n="sch.confirm.addGcal" hidden>Add to Google Calendar</a>
+<a href="#" id="sched-download-ics" data-i18n="sch.confirm.downloadIcs" hidden>Download Calendar File (.ics)</a>
+</div>
 <p id="sched-confirm-reference"></p>
 <p class="fnote" id="sched-confirm-email-note" data-i18n="sch.confirm.note">A confirmation email is on its way to you. To reschedule or cancel, just reply to that email or contact us directly.</p>
 <p id="sched-confirm-save-note" data-i18n="sch.confirm.saveNote" hidden>Please save or take a screenshot of this confirmation for your records -- we were not able to email it to you.</p>
 <button type="button" class="fsub" id="sched-done-btn" data-i18n="sch.confirm.done">Done</button>
+</div>
+
+<div id="sched-resume-loading" hidden>
+<p class="ssub" data-i18n="sch.resume.loading">Restoring your booking...</p>
+</div>
+
+<div id="sched-error-state" hidden>
+<div class="si2">&#9888;&#65039;</div>
+<h2 id="sched-error-title"></h2>
+<p class="ssub" id="sched-error-body"></p>
+<button type="button" class="fsub" id="sched-error-restart-btn" data-i18n="sch.resume.restart">Start a New Request</button>
+<a class="sched-back" id="sched-error-contact-link" href="#contact" data-i18n="sch.resume.contact">Contact Us</a>
 </div>
 
 </div>

@@ -94,6 +94,9 @@ var EMAIL_STRINGS = {
     bookBody: function (d) {
       return 'Hi ' + d.firstName + ',\n\nYour call with LAVAALL is confirmed.\n\nDate/time: ' + d.when + ' (' + d.tz + ')\nReason: ' + d.reason + '\nCall method: ' + d.method + (d.meet ? '\nGoogle Meet: ' + d.meet : '') + '\n\nA calendar invite has also been sent to this email — use it to reschedule or cancel if your plans change.\n\nQuestions? ' + d.inbox + '\n\nLAVAALL\nEnterprise IT Hardware & Solutions';
     },
+    bookBodyMeetPending: function (d) {
+      return 'Hi ' + d.firstName + ',\n\nYour call with LAVAALL is confirmed for ' + d.when + ' (' + d.tz + ').\n\nWe were not able to generate your Google Meet video link yet. Our team has been notified and will follow up by email with a working video link before your call -- no action is needed from you.\n\nReason: ' + d.reason + '\nCall method: ' + d.method + '\n\nA calendar invite has also been sent to this email.\n\nQuestions? ' + d.inbox + '\n\nLAVAALL\nEnterprise IT Hardware & Solutions';
+    },
   },
   fr: {
     regSubject: 'Terminez la Réservation de Votre Appel LAVAALL',
@@ -104,6 +107,9 @@ var EMAIL_STRINGS = {
     bookBody: function (d) {
       return 'Bonjour ' + d.firstName + ',\n\nVotre appel avec LAVAALL est confirmé.\n\nDate/heure : ' + d.when + ' (' + d.tz + ')\nMotif : ' + d.reason + '\nMéthode d’appel : ' + d.method + (d.meet ? '\nGoogle Meet : ' + d.meet : '') + '\n\nUne invitation calendrier a également été envoyée à cette adresse — utilisez-la pour reporter ou annuler si vos plans changent.\n\nQuestions ? ' + d.inbox + '\n\nLAVAALL\nMatériel Informatique Entreprise & Solutions';
     },
+    bookBodyMeetPending: function (d) {
+      return 'Bonjour ' + d.firstName + ',\n\nVotre appel avec LAVAALL est confirmé pour le ' + d.when + ' (' + d.tz + ').\n\nNous n’avons pas encore pu générer votre lien vidéo Google Meet. Notre équipe a été prévenue et vous enverra un lien fonctionnel par e-mail avant votre appel -- aucune action n’est requise de votre part.\n\nMotif : ' + d.reason + '\nMéthode d’appel : ' + d.method + '\n\nUne invitation calendrier a également été envoyée à cette adresse.\n\nQuestions ? ' + d.inbox + '\n\nLAVAALL\nMatériel Informatique Entreprise & Solutions';
+    },
   },
   kr: {
     regSubject: 'Kɔmplit Yu LAVAALL Kɔl Buking',
@@ -113,6 +119,9 @@ var EMAIL_STRINGS = {
     bookSubject: function (d) { return 'Yu LAVAALL kɔl dɔn buk — ' + d.when; },
     bookBody: function (d) {
       return 'Ɛlo ' + d.firstName + ',\n\nYu kɔl wit LAVAALL dɔn kɔnfɔm.\n\nDet/tem: ' + d.when + ' (' + d.tz + ')\nRisin: ' + d.reason + '\nKɔl mɛtɔd: ' + d.method + (d.meet ? '\nGoogle Meet: ' + d.meet : '') + '\n\nWi dɔn sɛn wan kalɛnda invayt to dis imel tu — yuz am fɔ chenj ɔ kansul if yu plan chenj.\n\nKwɛstyɔn? ' + d.inbox + '\n\nLAVAALL\nEnterprise IT Hardwɛ & Solushan';
+    },
+    bookBodyMeetPending: function (d) {
+      return 'Ɛlo ' + d.firstName + ',\n\nYu kɔl wit LAVAALL dɔn kɔnfɔm fɔ ' + d.when + ' (' + d.tz + ').\n\nWi nɔ ebul mek yu Google Meet vidio link yet. Wi tim dɔn no bɔt am ɛn go sɛn yu wan link we de wok bifo yu kɔl -- yu nɔ nid du ɛnitin.\n\nRisin: ' + d.reason + '\nKɔl mɛtɔd: ' + d.method + '\n\nWi dɔn sɛn wan kalɛnda invayt to dis imel tu.\n\nKwɛstyɔn? ' + d.inbox + '\n\nLAVAALL\nEnterprise IT Hardwɛ & Solushan';
     },
   },
 };
@@ -158,6 +167,7 @@ function doPost(e) {
 
     if (payload.action === 'register') return handleRegister(payload);
     if (payload.action === 'book') return handleBook(payload);
+    if (payload.action === 'retryMeet') return handleRetryMeet(payload);
     return jsonOut({ error: 'unknown_action' }, 400);
   } catch (err) {
     logError('doPost:' + payload.action, err);
@@ -349,32 +359,130 @@ function handleBook(payload) {
     if (method === 'whatsapp') descLines.push('', 'WHATSAPP CALLBACK -- reach out on WhatsApp at ' + (lead.values['WhatsApp Number'] || lead.values['Phone']) + ' at the scheduled time. (No automated WhatsApp message has been sent -- integration not yet configured.)');
     if (method === 'messenger') descLines.push('', 'FACEBOOK MESSENGER -- reach out via ' + (lead.values['Messenger Profile'] || '(no profile on file)') + ' at the scheduled time. (No automated Messenger outreach has been sent -- channel not yet configured.)');
 
-    var title = 'LAVAALL call: ' + fullName + ' (' + lead.values['Reason for Call'] + ')';
+    // Distinct titles per channel -- this is also what the 10-minute popup
+    // reminder actually displays, so it doubles as that reminder's wording.
+    var title;
+    if (method === 'phone') title = 'LAVAALL Phone Callback — ' + fullName;
+    else if (method === 'whatsapp') title = 'LAVAALL WhatsApp Callback — ' + fullName;
+    else if (method === 'messenger') title = 'LAVAALL Messenger Callback — ' + fullName;
+    else title = 'LAVAALL Video Call — ' + fullName;
+
     var created = wantsMeet
       ? createMeetEvent(title, start, end, descLines.join('\n'), lead.values['Email'])
       : createPlainEvent(title, start, end, descLines.join('\n'), lead.values['Email']);
+    var meetFailed = wantsMeet && created.meetStatus !== 'confirmed';
 
     var whenStr = Utilities.formatDate(start, TIMEZONE, "EEEE, MMMM d, yyyy 'at' h:mm a") + ' (' + TIMEZONE + ')';
     var strings = EMAIL_STRINGS[langCode];
 
     var custOk = false;
     if (hasEmail) {
-      custOk = safeSendEmail(lead.values['Email'], strings.bookSubject({ when: whenStr }),
-        strings.bookBody({ firstName: lead.values['First Name'], when: whenStr, tz: TIMEZONE, reason: lead.values['Reason for Call'], method: methodLabel(langCode, method), meet: created.meetLink, inbox: inbox }));
+      if (meetFailed) {
+        // Never claim the Meet link was sent -- it wasn't. The booking
+        // itself is still real and confirmed.
+        custOk = safeSendEmail(lead.values['Email'], strings.bookSubject({ when: whenStr }),
+          strings.bookBodyMeetPending({ firstName: lead.values['First Name'], when: whenStr, tz: TIMEZONE, reason: lead.values['Reason for Call'], method: methodLabel(langCode, method), inbox: inbox }));
+      } else {
+        custOk = safeSendEmail(lead.values['Email'], strings.bookSubject({ when: whenStr }),
+          strings.bookBody({ firstName: lead.values['First Name'], when: whenStr, tz: TIMEZONE, reason: lead.values['Reason for Call'], method: methodLabel(langCode, method), meet: created.meetLink, inbox: inbox }));
+      }
     }
+    var teamBody = 'A call was booked.\n\nWhen: ' + whenStr + '\n' + descLines.join('\n') +
+      (meetFailed ? '\n\n>> GOOGLE MEET COULD NOT BE CREATED (' + (created.reason || 'unknown') + ') -- customer was told a working link will follow by email. Please investigate (Apps Script Advanced Calendar Service) or send a Meet link manually.' : '');
     var teamOk = safeSendEmail(inbox, 'New call booked: ' + fullName + ' — ' + whenStr,
-      'A call was booked.\n\nWhen: ' + whenStr + '\n' + descLines.join('\n'), hasEmail ? { replyTo: lead.values['Email'] } : undefined);
+      teamBody, hasEmail ? { replyTo: lead.values['Email'] } : undefined);
 
     updateRowStatusFields(lead.rowIndex, {
       'Booking Status': 'Scheduled',
       'Appointment Date': payload.date, 'Appointment Time': payload.time, 'Appointment Timezone': TIMEZONE,
       'Calendar Event ID': created.eventId, 'Google Meet Link': created.meetLink || '',
+      'Calendar Event URL': created.eventUrl || '',
+      'Meet Status': wantsMeet ? created.meetStatus : 'not_applicable',
+      'Reminder Status': 'Configured (30-min email, 10-min popup)',
       'Customer Notification Status': hasEmail ? (custOk ? 'Sent' : 'Failed') : 'Not Applicable (no email provided)',
       'Internal Notification Status': teamOk ? 'Sent' : 'Failed',
+      'Last Error': meetFailed ? ('Meet: ' + (created.reason || 'unknown')) : '',
+      'Last Updated': new Date().toISOString(),
     });
     updateAllRequestsStatus(lead.values['Scheduling Lead ID'], 'Scheduled');
 
-    return jsonOut({ ok: true, start: start.toISOString(), end: end.toISOString(), timezone: TIMEZONE, meetLink: created.meetLink || null });
+    return jsonOut({
+      ok: true, start: start.toISOString(), end: end.toISOString(), timezone: TIMEZONE,
+      meetLink: created.meetLink || null, meetStatus: wantsMeet ? created.meetStatus : 'not_applicable',
+      eventUrl: created.eventUrl || null,
+    });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ============================================================================
+// SAFE RETRY -- if Meet creation failed at booking time, the customer was
+// told a working link would follow (never a false success). This lets that
+// follow-up actually happen: re-attempt Meet creation for the same slot,
+// replace the no-Meet hold with the new event, and only email the customer
+// once a real, verified Meet URL exists.
+// ============================================================================
+function handleRetryMeet(payload) {
+  var leadId = String(payload.leadId || '').trim();
+  var token = String(payload.token || '').trim();
+  if (!leadId || !token) return jsonOut({ error: 'missing_lead_or_token' }, 400);
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var lead = findLeadRow(leadId, token);
+    if (!lead) return jsonOut({ error: 'invalid_lead_or_token' }, 404);
+    var method = String(lead.values['Preferred Contact Method'] || '');
+    if (method !== 'email') return jsonOut({ error: 'not_a_meet_booking' }, 400);
+    if (lead.values['Booking Status'] !== 'Scheduled') return jsonOut({ error: 'not_yet_booked' }, 409);
+    if (lead.values['Meet Status'] === 'confirmed' && lead.values['Google Meet Link']) {
+      return jsonOut({ ok: true, meetLink: lead.values['Google Meet Link'], meetStatus: 'confirmed', alreadyConfirmed: true });
+    }
+    if (!lead.values['Appointment Date'] || !lead.values['Appointment Time']) return jsonOut({ error: 'no_appointment_on_file' }, 409);
+
+    var start = parseSlot(lead.values['Appointment Date'], lead.values['Appointment Time']);
+    var end = new Date(start.getTime() + SLOT_DURATION_MINUTES * 60000);
+    var fullName = (lead.values['First Name'] + ' ' + (lead.values['Last Name'] || '')).trim();
+    var title = 'LAVAALL Video Call — ' + fullName;
+    var descLines = [
+      'Booked via lavaall.com scheduling widget. Lead ID: ' + lead.values['Scheduling Lead ID'],
+      'Name: ' + fullName, 'Email: ' + (lead.values['Email'] || '(not provided)'),
+      'Reason: ' + lead.values['Reason for Call'], 'Retry of a previously failed Google Meet link.',
+    ];
+    var created = createMeetEvent(title, start, end, descLines.join('\n'), lead.values['Email']);
+
+    // Replace the earlier no-Meet hold so the customer only ever ends up
+    // with one calendar entry for this booking.
+    var oldEventId = lead.values['Calendar Event ID'];
+    if (oldEventId && created.eventId && oldEventId !== created.eventId) {
+      try { getCalendar().getEventById(oldEventId).deleteEvent(); } catch (e) { logError('handleRetryMeet:cleanup', e); }
+    }
+
+    var langCode = lang(lead.values['Website Language']);
+    var dept = REASON_DEPARTMENT[String(lead.values['Reason for Call']).toLowerCase()] || 'general';
+    var inbox = DEPARTMENT_INBOX[dept];
+    var whenStr = Utilities.formatDate(start, TIMEZONE, "EEEE, MMMM d, yyyy 'at' h:mm a") + ' (' + TIMEZONE + ')';
+    var strings = EMAIL_STRINGS[langCode];
+    var hasEmail = !!lead.values['Email'];
+
+    var custOk = false;
+    if (hasEmail && created.meetStatus === 'confirmed') {
+      custOk = safeSendEmail(lead.values['Email'], strings.bookSubject({ when: whenStr }),
+        strings.bookBody({ firstName: lead.values['First Name'], when: whenStr, tz: TIMEZONE, reason: lead.values['Reason for Call'], method: methodLabel(langCode, 'email'), meet: created.meetLink, inbox: inbox }));
+    }
+
+    updateRowStatusFields(lead.rowIndex, {
+      'Calendar Event ID': created.eventId, 'Google Meet Link': created.meetLink || '',
+      'Calendar Event URL': created.eventUrl || '', 'Meet Status': created.meetStatus,
+      'Customer Notification Status': hasEmail
+        ? (created.meetStatus === 'confirmed' ? (custOk ? 'Sent' : 'Failed') : 'Not Applicable (retry still pending)')
+        : 'Not Applicable (no email provided)',
+      'Last Error': created.meetStatus === 'confirmed' ? '' : ('Meet retry: ' + (created.reason || 'unknown')),
+      'Last Updated': new Date().toISOString(),
+    });
+
+    return jsonOut({ ok: true, meetLink: created.meetLink || null, meetStatus: created.meetStatus });
   } finally {
     lock.releaseLock();
   }
@@ -389,6 +497,7 @@ function lookupLead(leadId, token) {
     firstName: lead.values['First Name'], lastName: lead.values['Last Name'],
     reason: lead.values['Reason for Call'], preferredContactMethod: lead.values['Preferred Contact Method'],
     language: lead.values['Website Language'], bookingStatus: lead.values['Booking Status'],
+    hasEmail: !!lead.values['Email'], // a boolean flag only -- never the address itself
   });
   // Deliberately omits: email/phone (rendered again by the customer's own
   // browser session, not re-served), spreadsheet ID, calendar ID, everything
@@ -397,35 +506,98 @@ function lookupLead(leadId, token) {
 
 // ============================================================================
 // GOOGLE MEET (Advanced Calendar Service)
+//
+// Returns { eventId, meetLink, eventUrl, meetStatus, reason } where
+// meetStatus is one of:
+//   'confirmed'      -- a real, Google-verified Meet URL is in meetLink.
+//   'failed'         -- a calendar hold was still created (the booking is
+//                       never lost) but no Meet link could be verified.
+//                       Callers MUST NOT tell the customer a Meet link was
+//                       sent when this comes back.
+// Conference creation can be asynchronous (Google returns the event with
+// conferenceData.createRequest.status.statusCode:'pending' before the Meet
+// room actually exists yet), so this polls Events.get briefly rather than
+// trusting the first response the way the previous version did.
 // ============================================================================
 function createMeetEvent(title, start, end, description, guestEmail) {
+  var calendarId = calendarIdForAdvancedApi();
+  var eventResource = {
+    summary: title, description: description,
+    start: { dateTime: start.toISOString(), timeZone: TIMEZONE },
+    end: { dateTime: end.toISOString(), timeZone: TIMEZONE },
+    conferenceData: { createRequest: { requestId: Utilities.getUuid(), conferenceSolutionKey: { type: 'hangoutsMeet' } } },
+    guestsCanModify: true,
+    reminders: REMINDER_CONFIG,
+  };
+  if (guestEmail) eventResource.attendees = [{ email: guestEmail }];
+
+  var event;
   try {
-    var calendarId = calendarIdForAdvancedApi();
-    var eventResource = {
-      summary: title, description: description,
-      start: { dateTime: start.toISOString(), timeZone: TIMEZONE },
-      end: { dateTime: end.toISOString(), timeZone: TIMEZONE },
-      conferenceData: { createRequest: { requestId: Utilities.getUuid(), conferenceSolutionKey: { type: 'hangoutsMeet' } } },
-      guestsCanModify: true,
-    };
-    if (guestEmail) eventResource.attendees = [{ email: guestEmail }];
-    var event = Calendar.Events.insert(eventResource, calendarId, { conferenceDataVersion: 1, sendUpdates: guestEmail ? 'all' : 'none' });
-    var meetLink = '';
-    if (event.conferenceData && event.conferenceData.entryPoints) {
-      for (var i = 0; i < event.conferenceData.entryPoints.length; i++) {
-        if (event.conferenceData.entryPoints[i].entryPointType === 'video') meetLink = event.conferenceData.entryPoints[i].uri;
-      }
-    }
-    return { eventId: event.id, meetLink: meetLink };
+    event = Calendar.Events.insert(eventResource, calendarId, { conferenceDataVersion: 1, sendUpdates: guestEmail ? 'all' : 'none' });
   } catch (err) {
-    // The Advanced Calendar Service isn't enabled yet for this project, or
-    // Meet creation failed for some other reason. Fail *open* to a plain
-    // event rather than losing the booking entirely -- logged so it's
-    // visible, not silent.
-    logError('createMeetEvent (falling back to plain event)', err);
-    return createPlainEvent(title, start, end, description + '\n\n(Google Meet link could not be created -- see System Errors sheet.)', guestEmail);
+    // The Advanced Calendar Service most likely isn't enabled for this
+    // project (see ONE-TIME SETUP step 3 above), or the insert itself
+    // failed for some other reason. The booking slot itself must not be
+    // lost -- create a real (non-Meet) calendar hold instead, but flag
+    // meetStatus:'failed' so handleBook() never claims Meet was sent.
+    logError('createMeetEvent:insert', err);
+    var fallback = createPlainEvent(title, start, end,
+      description + '\n\n(Google Meet could not be created -- see System Errors sheet.)', guestEmail);
+    fallback.meetStatus = 'failed';
+    fallback.reason = 'advanced_api_error: ' + (err && err.message ? err.message : String(err));
+    return fallback;
   }
+
+  var meetLink = extractMeetLink(event);
+  var statusCode = conferenceStatusCode(event, meetLink);
+  var attempts = 0;
+  // hangoutsMeet almost always resolves synchronously; this is a bounded
+  // safety net (max ~6s added latency) for the cases where it doesn't.
+  while (!meetLink && statusCode === 'pending' && attempts < 6) {
+    Utilities.sleep(1000);
+    try {
+      event = Calendar.Events.get(calendarId, event.id);
+    } catch (err) {
+      logError('createMeetEvent:poll', err);
+      break;
+    }
+    meetLink = extractMeetLink(event);
+    statusCode = conferenceStatusCode(event, meetLink);
+    attempts++;
+  }
+
+  if (!meetLink) {
+    // Conference creation genuinely failed or never resolved in time. The
+    // calendar event itself is real and is kept -- the booking is not
+    // lost -- but we do NOT invent a link and do NOT report success.
+    logError('createMeetEvent:unresolved', new Error('Meet link never resolved after ' + attempts + ' poll(s), status=' + statusCode));
+    return { eventId: event.id, meetLink: '', eventUrl: event.htmlLink || '', meetStatus: 'failed', reason: 'meet_status_' + statusCode };
+  }
+  return { eventId: event.id, meetLink: meetLink, eventUrl: event.htmlLink || '', meetStatus: 'confirmed' };
 }
+
+function extractMeetLink(event) {
+  if (!event.conferenceData || !event.conferenceData.entryPoints) return '';
+  for (var i = 0; i < event.conferenceData.entryPoints.length; i++) {
+    if (event.conferenceData.entryPoints[i].entryPointType === 'video') return event.conferenceData.entryPoints[i].uri;
+  }
+  return '';
+}
+
+function conferenceStatusCode(event, meetLink) {
+  if (meetLink) return 'success';
+  if (event.conferenceData && event.conferenceData.createRequest && event.conferenceData.createRequest.status) {
+    return event.conferenceData.createRequest.status.statusCode;
+  }
+  return 'unknown';
+}
+
+// 30-minute email reminder + 10-minute popup, per booking spec. The popup
+// itself can't carry custom per-channel text (Calendar reminders only ever
+// show the event's own title), which is why handleBook() builds a distinct,
+// channel-specific event title instead ("LAVAALL Phone Callback -- Jean
+// Kamara", etc.) -- that title is what actually shows in the 10-minute popup.
+var REMINDER_CONFIG = { useDefault: false, overrides: [{ method: 'email', minutes: 30 }, { method: 'popup', minutes: 10 }] };
 
 function createPlainEvent(title, start, end, description, guestEmail) {
   var calendar = getCalendar();
@@ -433,7 +605,24 @@ function createPlainEvent(title, start, end, description, guestEmail) {
   if (guestEmail) options.guests = guestEmail;
   var event = calendar.createEvent(title, start, end, options);
   event.setGuestsCanModify(true);
-  return { eventId: event.getId(), meetLink: '' };
+  event.removeAllReminders();
+  event.addEmailReminder(30);
+  event.addPopupReminder(10);
+  var eventId = event.getId();
+  return { eventId: eventId, meetLink: '', eventUrl: calendarEventUrl(eventId), meetStatus: 'not_applicable' };
+}
+
+// Builds the standard "https://calendar.google.com/calendar/event?eid=..."
+// deep link from an event ID -- CalendarApp's CalendarEvent has no built-in
+// URL getter, unlike the Advanced API's event.htmlLink. Best-effort: if
+// anything here throws, callers get '' and simply omit the link rather than
+// failing the booking over it.
+function calendarEventUrl(eventId, calendarId) {
+  try {
+    var cid = calendarId || calendarIdForAdvancedApi();
+    var eid = Utilities.base64Encode(eventId + ' ' + cid).replace(/=+$/, '');
+    return 'https://calendar.google.com/calendar/event?eid=' + eid;
+  } catch (e) { return ''; }
 }
 
 function calendarIdForAdvancedApi() {
@@ -508,9 +697,10 @@ function SCHEDULING_HEADERS() {
     'First Name', 'Last Name', 'Email', 'Phone', 'Country', 'Company', 'Reason for Call', 'Preferred Contact Method',
     'WhatsApp Number', 'WhatsApp Permission', 'Messenger Profile', 'Messenger Permission',
     'Customer Note', 'Verification Status', 'Booking Status', 'Appointment Date', 'Appointment Time',
-    'Appointment Timezone', 'Calendar Event ID', 'Google Meet Link', 'Assigned Team', 'Booking Token Expiration',
+    'Appointment Timezone', 'Calendar Event ID', 'Calendar Event URL', 'Google Meet Link', 'Meet Status',
+    'Reminder Status', 'Assigned Team', 'Booking Token Expiration',
     'Customer Notification Status', 'Scheduling Link Status', 'Internal Notification Status', 'Cancellation Status', 'Rescheduling Status',
-    'Internal Notes', 'Booking Token']; // Booking Token: internal-only, never returned except to its own owner via lookup
+    'Last Error', 'Last Updated', 'Internal Notes', 'Booking Token']; // Booking Token: internal-only, never returned except to its own owner via lookup
 }
 function ERROR_HEADERS() { return ['Timestamp', 'Function', 'Message', 'Context']; }
 
@@ -562,13 +752,27 @@ function sanitizeForSheet(value) {
   return s;
 }
 
+// Appends any header names in expectedHeaders that the sheet doesn't already
+// have, at the end of the header row. Lets an already-live production sheet
+// (created by an earlier version of this file) pick up new columns without
+// losing or reordering the data it already has.
+function ensureSheetHeaders(sheet, expectedHeaders) {
+  var lastCol = sheet.getLastColumn();
+  var current = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  var missing = expectedHeaders.filter(function (h) { return current.indexOf(h) === -1; });
+  if (!missing.length) return;
+  sheet.getRange(1, current.length + 1, 1, missing.length).setValues([missing]).setFontWeight('bold');
+}
+
 function appendRow(sheetName, headers, rowObject) {
   var ss = getOrCreateSpreadsheet();
   var sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    var row = headers.map(function (h) { return sanitizeForSheet(rowObject[h]); });
+    ensureSheetHeaders(sheet, headers);
+    var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var row = currentHeaders.map(function (h) { return sanitizeForSheet(rowObject[h]); });
     sheet.appendRow(row);
     return sheet.getLastRow();
   } finally {
@@ -579,6 +783,7 @@ function appendRow(sheetName, headers, rowObject) {
 function updateRowStatusFields(rowIndex, fields) {
   var ss = getOrCreateSpreadsheet();
   var sheet = ss.getSheetByName('Scheduling Leads');
+  ensureSheetHeaders(sheet, SCHEDULING_HEADERS());
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   Object.keys(fields).forEach(function (key) {
     var col = headers.indexOf(key) + 1;

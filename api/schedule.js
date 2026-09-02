@@ -74,6 +74,23 @@ async function schedule(req, res) {
     return json(res, result.status, result.body);
   }
 
+  if (action === 'lookup') {
+    // Backs the "Complete Your LAVAALL Call Booking" recovery link: a
+    // customer who abandoned Step 1 (or is resuming from the confirmation
+    // email) lands on /schedule?leadId=...&token=... and this restores
+    // their registration without re-asking anything. leadId/token are
+    // opaque, high-entropy identifiers already handed to the customer in
+    // their own email -- not secrets we're newly exposing here.
+    const leadId = clean(req.query.leadId, 60);
+    const token = clean(req.query.token, 80);
+    if (!leadId || !token) return json(res, 400, { error: 'missing_lead_or_token' });
+    if (rateLimited('lookup_' + leadId, 3_000)) {
+      return json(res, 429, { error: 'rate_limited', message: 'Please wait a moment before trying again.' });
+    }
+    const result = await callBackend('lookup', { leadId, token }, false);
+    return json(res, result.status, result.body);
+  }
+
   if (req.method !== 'POST') return json(res, 405, { error: 'method_not_allowed' });
   const raw = JSON.stringify(req.body || '');
   if (raw.length > MAX_BODY) return json(res, 413, { error: 'payload_too_large' });
@@ -172,6 +189,20 @@ async function schedule(req, res) {
     }
 
     const result = await callBackend('book', { leadId, token, date, time }, true);
+    return json(res, result.status, result.body);
+  }
+
+  if (action === 'retryMeet') {
+    // Safe retry path for BUG-2 (Meet link never generated): the confirm
+    // screen offers this when meetStatus !== 'confirmed' rather than the
+    // customer being stuck with a broken/missing video link.
+    const leadId = clean(body.leadId, 60);
+    const token = clean(body.token, 80);
+    if (!leadId || !token) return json(res, 400, { error: 'missing_lead_or_token' });
+    if (rateLimited('retryMeet_' + leadId, 5_000)) {
+      return json(res, 429, { error: 'rate_limited', message: 'Please wait a moment before trying again.' });
+    }
+    const result = await callBackend('retryMeet', { leadId, token }, true);
     return json(res, result.status, result.body);
   }
 

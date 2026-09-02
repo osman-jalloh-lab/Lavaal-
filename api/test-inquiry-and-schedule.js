@@ -106,12 +106,68 @@ async function run() {
       res.statusCode === 200 && sentBody.action === 'register' && sentBody.secret === 'test-secret' && sentBody.language === 'fr');
   }
 
+  // register: the recovery-link base URL sent to the backend points at the
+  // real production host's /schedule path -- this is the exact string
+  // booking-router.gs appends ?leadId=&token=&lang= to for the "Complete
+  // Your LAVAALL Call Booking" email. BUG 1 was this path 404ing because no
+  // Vercel rewrite existed for it; vercel.json now has one (see
+  // scripts/booking-scheduler tests / vercel.json for the routing side).
+  {
+    let sentBody = null;
+    global.fetch = async (url, opts) => { sentBody = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({ ok: true, leadId: 'SCH-2', token: 'tok2' }) }; };
+    const req = { method: 'POST', headers: { host: 'www.lavaall.com' }, body: {
+      action: 'register', firstName: 'Aminata', email: 'aminata@example.com',
+      reason: 'sales-quotation', preferredContactMethod: 'email', consent: true, language: 'en',
+    }};
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check('register forwards bookingBaseUrl pointing at the real host + /schedule',
+      sentBody.bookingBaseUrl === 'https://www.lavaall.com/schedule');
+  }
+
   // book: rejects malformed date/time
   {
     const req = { method: 'POST', body: { action: 'book', leadId: 'SCH-1', token: 'tok', date: 'not-a-date', time: '9am' } };
     const res = mockRes();
     await scheduleMod(req, res);
     check('book rejects malformed date/time (400)', res.statusCode === 400);
+  }
+
+  // lookup (GET): backs the recovery-link resume flow (BUG 1). Requires
+  // both leadId and token, and proxies to the backend's ?action=lookup.
+  {
+    const req = { method: 'GET', query: { action: 'lookup' } };
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check('lookup without leadId/token is rejected (400)', res.statusCode === 400);
+  }
+  {
+    let sentUrl = '';
+    global.fetch = async (url) => { sentUrl = String(url); return { ok: true, status: 200, json: async () => ({ ok: true, firstName: 'Jean', preferredContactMethod: 'email', hasEmail: true }) }; };
+    const req = { method: 'GET', query: { action: 'lookup', leadId: 'SCH-1', token: 'tok' } };
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check('lookup proxies action=lookup with leadId+token', sentUrl.includes('action=lookup') && sentUrl.includes('leadId=SCH-1') && sentUrl.includes('token=tok'));
+    check('lookup returns 200 with the restored registration', res.statusCode === 200 && res.body.firstName === 'Jean');
+  }
+
+  // retryMeet (POST): the safe retry path for BUG 2 (Meet link never
+  // generated). Requires leadId+token, proxies to the backend.
+  {
+    const req = { method: 'POST', body: { action: 'retryMeet', leadId: 'SCH-1' } };
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check('retryMeet without a token is rejected (400)', res.statusCode === 400);
+  }
+  {
+    let sentBody = null;
+    global.fetch = async (url, opts) => { sentBody = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({ ok: true, meetLink: 'https://meet.google.com/xyz', meetStatus: 'confirmed' }) }; };
+    const req = { method: 'POST', body: { action: 'retryMeet', leadId: 'SCH-1', token: 'tok' } };
+    const res = mockRes();
+    await scheduleMod(req, res);
+    check('retryMeet proxies action=retryMeet with the secret attached',
+      sentBody.action === 'retryMeet' && sentBody.secret === 'test-secret' && sentBody.leadId === 'SCH-1');
+    check('retryMeet returns the confirmed Meet link on success', res.statusCode === 200 && res.body.meetStatus === 'confirmed');
   }
 
   // =========================================================================

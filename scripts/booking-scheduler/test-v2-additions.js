@@ -49,8 +49,9 @@ check('Every REASON_DEPARTMENT value has a configured inbox',
 
 // --- Sheet header sets are non-empty and internally consistent ---
 check('ALL_REQUESTS_HEADERS has 24 columns per spec', ALL_REQUESTS_HEADERS().length === 24);
-check('SCHEDULING_HEADERS has the 34 spec columns + internal Booking Token', SCHEDULING_HEADERS().length === 35);
+check('SCHEDULING_HEADERS has the 34 spec columns + 5 recovery/Meet-status columns + internal Booking Token', SCHEDULING_HEADERS().length === 40);
 check('SCHEDULING_HEADERS includes Booking Token for token lookup', SCHEDULING_HEADERS().indexOf('Booking Token') !== -1);
+check('SCHEDULING_HEADERS includes the new Meet/recovery tracking columns', ['Calendar Event URL', 'Meet Status', 'Reminder Status', 'Last Error', 'Last Updated'].every(h => SCHEDULING_HEADERS().indexOf(h) !== -1));
 check('SHEET_DEFS covers all 9 required worksheets', SHEET_DEFS.length === 9 &&
   ['All Requests', 'Scheduling Leads', 'Call Bookings', 'Sales & Quotes', 'Customer Support', 'Orders', 'Partnerships', 'General Inquiries', 'System Errors']
     .every(name => SHEET_DEFS.some(d => d.name === name)));
