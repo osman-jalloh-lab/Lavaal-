@@ -122,15 +122,15 @@ function iphoneFamily(name, models) {
 }
 
 const iphone11 = iphoneFamily('iPhone 11', [
-  { id: 'iphone-11', name: 'iPhone 11', primaryImage: P + 'apple-iphone-11.png', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Green', 'Purple', 'Yellow', 'Red'] },
-  { id: 'iphone-11-pro', name: 'iPhone 11 Pro', primaryImage: P + 'apple-iphone-11.png', storage: APPLE_STORAGE_OLD, colors: ['Midnight Green', 'Space Grey', 'Silver', 'Gold'] },
-  { id: 'iphone-11-pro-max', name: 'iPhone 11 Pro Max', primaryImage: P + 'apple-iphone-11.png', storage: APPLE_STORAGE_OLD, colors: ['Midnight Green', 'Space Grey', 'Silver', 'Gold'] },
+  { id: 'iphone-11', name: 'iPhone 11', primaryImage: P + 'apple-iphone-11.webp', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Green', 'Purple', 'Yellow', 'Red'] },
+  { id: 'iphone-11-pro', name: 'iPhone 11 Pro', primaryImage: P + 'apple-iphone-11.webp', storage: APPLE_STORAGE_OLD, colors: ['Midnight Green', 'Space Grey', 'Silver', 'Gold'] },
+  { id: 'iphone-11-pro-max', name: 'iPhone 11 Pro Max', primaryImage: P + 'apple-iphone-11.webp', storage: APPLE_STORAGE_OLD, colors: ['Midnight Green', 'Space Grey', 'Silver', 'Gold'] },
 ]);
 const iphone12 = iphoneFamily('iPhone 12', [
-  { id: 'iphone-12-mini', name: 'iPhone 12 mini', primaryImage: P + 'apple-iphone-12.png', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Red', 'Green', 'Blue', 'Purple'] },
-  { id: 'iphone-12', name: 'iPhone 12', primaryImage: P + 'apple-iphone-12.png', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Red', 'Green', 'Blue', 'Purple'] },
-  { id: 'iphone-12-pro', name: 'iPhone 12 Pro', primaryImage: P + 'apple-iphone-12.png', storage: APPLE_STORAGE_MID, colors: ['Graphite', 'Silver', 'Gold', 'Pacific Blue'] },
-  { id: 'iphone-12-pro-max', name: 'iPhone 12 Pro Max', primaryImage: P + 'apple-iphone-12.png', storage: APPLE_STORAGE_MID, colors: ['Graphite', 'Silver', 'Gold', 'Pacific Blue'] },
+  { id: 'iphone-12-mini', name: 'iPhone 12 mini', primaryImage: P + 'apple-iphone-12.webp', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Red', 'Green', 'Blue', 'Purple'] },
+  { id: 'iphone-12', name: 'iPhone 12', primaryImage: P + 'apple-iphone-12.webp', storage: APPLE_STORAGE_OLD, colors: ['Black', 'White', 'Red', 'Green', 'Blue', 'Purple'] },
+  { id: 'iphone-12-pro', name: 'iPhone 12 Pro', primaryImage: P + 'apple-iphone-12.webp', storage: APPLE_STORAGE_MID, colors: ['Graphite', 'Silver', 'Gold', 'Pacific Blue'] },
+  { id: 'iphone-12-pro-max', name: 'iPhone 12 Pro Max', primaryImage: P + 'apple-iphone-12.webp', storage: APPLE_STORAGE_MID, colors: ['Graphite', 'Silver', 'Gold', 'Pacific Blue'] },
 ]);
 const iphone13 = iphoneFamily('iPhone 13', [
   { id: 'iphone-13-mini', name: 'iPhone 13 mini', storage: APPLE_STORAGE_OLD, colors: ['Midnight', 'Starlight', 'Red', 'Pink', 'Blue'] },
@@ -145,10 +145,10 @@ const iphone14 = iphoneFamily('iPhone 14', [
   { id: 'iphone-14-pro-max', name: 'iPhone 14 Pro Max', storage: APPLE_STORAGE_NEW, colors: ['Space Black', 'Silver', 'Gold', 'Deep Purple'] },
 ]);
 const iphone15 = iphoneFamily('iPhone 15', [
-  { id: 'iphone-15', name: 'iPhone 15', primaryImage: P + 'apple-iphone-15.png', storage: APPLE_STORAGE_MID, colors: ['Black', 'Blue', 'Green', 'Yellow', 'Pink'] },
-  { id: 'iphone-15-plus', name: 'iPhone 15 Plus', primaryImage: P + 'apple-iphone-15.png', storage: APPLE_STORAGE_MID, colors: ['Black', 'Blue', 'Green', 'Yellow', 'Pink'] },
-  { id: 'iphone-15-pro', name: 'iPhone 15 Pro', primaryImage: P + 'apple-iphone-15.png', storage: APPLE_STORAGE_NEW, colors: ['Natural Titanium', 'Blue Titanium', 'White Titanium', 'Black Titanium'] },
-  { id: 'iphone-15-pro-max', name: 'iPhone 15 Pro Max', primaryImage: P + 'apple-iphone-15.png', storage: APPLE_STORAGE_NEW, colors: ['Natural Titanium', 'Blue Titanium', 'White Titanium', 'Black Titanium'] },
+  { id: 'iphone-15', name: 'iPhone 15', primaryImage: P + 'apple-iphone-15.webp', storage: APPLE_STORAGE_MID, colors: ['Black', 'Blue', 'Green', 'Yellow', 'Pink'] },
+  { id: 'iphone-15-plus', name: 'iPhone 15 Plus', primaryImage: P + 'apple-iphone-15.webp', storage: APPLE_STORAGE_MID, colors: ['Black', 'Blue', 'Green', 'Yellow', 'Pink'] },
+  { id: 'iphone-15-pro', name: 'iPhone 15 Pro', primaryImage: P + 'apple-iphone-15.webp', storage: APPLE_STORAGE_NEW, colors: ['Natural Titanium', 'Blue Titanium', 'White Titanium', 'Black Titanium'] },
+  { id: 'iphone-15-pro-max', name: 'iPhone 15 Pro Max', primaryImage: P + 'apple-iphone-15.webp', storage: APPLE_STORAGE_NEW, colors: ['Natural Titanium', 'Blue Titanium', 'White Titanium', 'Black Titanium'] },
 ]);
 const iphone16 = iphoneFamily('iPhone 16', [
   { id: 'iphone-16', name: 'iPhone 16', storage: APPLE_STORAGE_MID, colors: ['Black', 'White', 'Pink', 'Teal', 'Ultramarine'] },
@@ -218,7 +218,7 @@ const CATALOG_TABLETS = {
   audiences: ['consumer', 'education', 'business'],
   brands: [
     { name: 'Apple', families: [{ name: 'iPad', models: [
-      { id: 'ipad-10th-gen', name: 'iPad (10th Gen)', image: null, primaryImage: P + 'apple-ipad-10.png', specLine: '64GB · 256GB · Wi-Fi / Cellular',
+      { id: 'ipad-10th-gen', name: 'iPad (10th Gen)', image: null, primaryImage: P + 'apple-ipad-10.webp', specLine: '64GB · 256GB · Wi-Fi / Cellular',
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(['64GB', '256GB'], ['Silver', 'Blue', 'Pink', 'Yellow']) },
       { id: 'ipad-air', name: 'iPad Air', image: null, specLine: '64GB · 256GB · Wi-Fi / Cellular',
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(['64GB', '256GB'], ['Space Grey', 'Starlight', 'Blue', 'Purple']) },
@@ -250,7 +250,7 @@ const CATALOG_COMPUTERS = {
           desc: 'Business-grade laptop for corporate teams.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
       { name: 'OptiPlex', models: [
-        { id: 'dell-optiplex-workstation', name: 'Dell OptiPlex Workstation', image: P + 'category-business-desktop-original.png', specLine: 'Slim form factor · Intel Core',
+        { id: 'dell-optiplex-workstation', name: 'Dell OptiPlex Workstation', image: P + 'category-business-desktop-original.webp', specLine: 'Slim form factor · Intel Core',
           desc: 'Enterprise desktop computers for corporate teams. Slim form factor with powerful Intel Core processors. Bulk orders with pre-configuration available.',
           fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
@@ -278,7 +278,7 @@ const CATALOG_COMPUTERS = {
           desc: 'Premium business laptop with enterprise security.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
       { name: 'ProBook', models: [
-        { id: 'hp-probook-laptop', name: 'HP ProBook Business Laptop', image: P + 'category-business-laptop-original.png', specLine: 'MIL-STD durability · All-day battery',
+        { id: 'hp-probook-laptop', name: 'HP ProBook Business Laptop', image: P + 'category-business-laptop-original.webp', specLine: 'MIL-STD durability · All-day battery',
           desc: 'Professional-grade laptops built for corporate use. MIL-STD durability, all-day battery, and enterprise security features for your team.',
           fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD'], ['Intel Core i5', 'Intel Core i7']) },
       ]},
@@ -305,7 +305,7 @@ const CATALOG_COMPUTERS = {
     ]},
     { name: 'Apple', families: [
       { name: 'MacBook Air', models: [ { id: 'macbook-air', name: 'MacBook Air', image: null, specLine: '13" / 15" · M2 / M3', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['8GB', '16GB', '24GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Apple M2', 'Apple M3']) } ]},
-      { name: 'MacBook Pro', models: [ { id: 'macbook-pro', name: 'MacBook Pro', image: null, primaryImage: P + 'apple-macbook-pro.png', specLine: '14" / 16" · M3 Pro / Max', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['16GB', '32GB', '64GB'], ['512GB SSD', '1TB SSD', '2TB SSD'], ['Apple M3 Pro', 'Apple M3 Max']) } ]},
+      { name: 'MacBook Pro', models: [ { id: 'macbook-pro', name: 'MacBook Pro', image: null, primaryImage: P + 'apple-macbook-pro.webp', specLine: '14" / 16" · M3 Pro / Max', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['16GB', '32GB', '64GB'], ['512GB SSD', '1TB SSD', '2TB SSD'], ['Apple M3 Pro', 'Apple M3 Max']) } ]},
       { name: 'iMac', models: [ { id: 'imac', name: 'iMac 24"', image: null, specLine: '24" 4.5K · M3', desc: 'All-in-one desktop.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) } ]},
       { name: 'Mac mini', models: [ { id: 'mac-mini', name: 'Mac mini', image: null, specLine: 'M2 / M2 Pro', desc: 'Compact desktop Mac.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Apple M2', 'Apple M2 Pro']) } ]},
     ]},
@@ -400,7 +400,7 @@ const CATALOG_MONITORS = {
       { name: 'Z-Display', models: [
         { id: 'hp-z-display', name: 'HP Z Display', image: null,
           primaryImage: C + 'monitors/hp/131284986/01.webp',
-          images: catalogImages('monitors', 'hp', '131284986', 'HP Z Display'),
+          images: catalogImages('monitors', 'hp', '131284986', 'HP Z Display', 3), // only 01-03 exist locally
           specLine: '24" · IPS · Workstation', desc: 'Calibrated workstation display.',
           fields: [{ key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K'] }, qtyField(1)] },
       ]},

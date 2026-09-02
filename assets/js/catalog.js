@@ -349,6 +349,10 @@
       audBusiness:         ['Business / B2B',         'Entreprises / B2B',                             'Bisnis / B2B'],
       audConsumer:         ['Retail & End Users',     'Grand public',                                  'Risel & Yuzɛ'],
       audEducation:        ['Students & Schools',     'Éducation',                                     'Stiyudɛnt & Skul'],
+      specification:       ['Specification',          'Caractéristique',                               'Spɛsifikeshon'],
+      quoteNote:           ['Request a quote and the right LAVAALL team will get back to you within 24 hours with pricing and availability.',
+                            'Demandez un devis et l\'équipe LAVAALL compétente vous répondra sous 24 heures avec prix et disponibilité.',
+                            'Aks fɔ kwot ɛn di rait LAVAALL tim go kɔntakt yu insay 24 awa wit prays ɛn avɛlabiliti.'],
     };
     return (strings[key] || [key, key, key])[li];
   }
@@ -374,6 +378,30 @@
     if (!text || !suffix) return text;
     const unitPattern = new RegExp('(^|[^a-z0-9])' + escapeRegExp(suffix) + '(?=$|[^a-z0-9])', 'i');
     return unitPattern.test(text) ? text : text + ' ' + suffix;
+  }
+  // Customer-facing "key specifications" for the quote panel: a ranked list of
+  // source spec names, filtered to what THIS product actually carries. Values
+  // are shown verbatim from the source record — nothing is inferred.
+  const KEY_SPEC_ORDER = [
+    ['Display diagonal'], ['Display resolution'], ['HD type'], ['Display technology'], ['Panel type'],
+    ['Processor family', 'Processor model'], ['Processor cores'], ['Internal memory'],
+    ['Internal storage capacity', 'Total storage capacity', 'SSD capacity'],
+    ['Discrete graphics card model', 'On-board graphics card model'],
+    ['Operating system installed'], ['Smart TV'], ['HDMI ports quantity'], ['Wi-Fi standards'], ['Bluetooth'],
+    ['Print technology'], ['Maximum print resolution'], ['Total net capacity'], ['Energy efficiency class'],
+    ['Battery capacity'], ['Weight'], ['Product colour']
+  ];
+  function generatedKeySpecs(product, max) {
+    const out = [];
+    for (let i = 0; i < KEY_SPEC_ORDER.length && out.length < (max || 8); i += 1) {
+      const names = KEY_SPEC_ORDER[i];
+      const entry = (product.specifications || []).find(function (item) { return names.indexOf(item.name) !== -1 && item.value; });
+      if (!entry) continue;
+      const value = formatSourceSpecification(entry.value, entry.unit);
+      if (!value) continue;
+      out.push({ label: names[0] === 'Processor family' ? 'Processor' : names[0] === 'Internal storage capacity' ? 'Storage' : names[0] === 'Internal memory' ? 'Memory' : names[0] === 'Operating system installed' ? 'Operating system' : names[0] === 'HDMI ports quantity' ? 'HDMI ports' : names[0] === 'Wi-Fi standards' ? 'Wi-Fi' : names[0] === 'Display diagonal' ? 'Screen size' : names[0] === 'Display resolution' ? 'Resolution' : names[0] === 'Product colour' ? 'Colour' : names[0] === 'Discrete graphics card model' ? 'Graphics' : names[0], value: value });
+    }
+    return out;
   }
   function generatedSpec(product, names) {
     const entry = (product.specifications || []).find(function (item) { return names.indexOf(item.name) !== -1 && item.value; });
@@ -421,6 +449,7 @@
         return { src: src, alt: label + ' — image ' + (index + 1), isMain: index === 0 };
       }),
       specLine: specs.join(' · '),
+      keySpecs: generatedKeySpecs(product, 8),
       desc: product.shortDescription ? String(product.shortDescription).trim() : '',
       listingType: 'verified',
       fields: [{ key: 'quantity', label: 'Quantity', type: 'number', min: 1, value: 1 }]
@@ -475,8 +504,8 @@
     if (overviewGrid && !document.getElementById('catalog-generated-loading')) {
       const loadingEl = document.createElement('div');
       loadingEl.id = 'catalog-generated-loading';
-      loadingEl.style.cssText = 'grid-column:1/-1;padding:12px 0;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;';
-      loadingEl.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Loading extended catalogue…</span>';
+      loadingEl.setAttribute('role', 'status');
+      loadingEl.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;flex-shrink:0" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Loading extended catalogue…</span>';
       overviewGrid.appendChild(loadingEl);
     }
     // Inject the script; on load, merge and re-render.
@@ -681,10 +710,13 @@
     const showroom = brandShowroom(brand);
     if (!showroom) return '';
     const feature = verifiedBrandFeature(brand, brand.name + ' ' + cat.name);
-    const familyLabel = family ? family.name : cat.name;
+    // "Models" is the neutral grouping used when the source offers no family
+    // name (see mergeApprovedGeneratedCatalog); as a headline it reads better
+    // as the brand + category it actually contains.
+    const familyLabel = family && family.name !== 'Models' ? family.name : brand.name + ' ' + cat.name;
     const familyList = brand.families.slice(0, 4).map(function (item) { return esc(item.name); }).join('<span aria-hidden="true">/</span>');
     const media = feature
-      ? '<div class="brand-showroom-feature-media"><img src="' + esc(feature.image.src) + '" alt="' + esc(feature.image.alt || displayName(brand, feature.model)) + '" loading="eager"></div>'
+      ? '<div class="brand-showroom-feature-media"><img src="' + esc(feature.image.src) + '" alt="' + esc(feature.image.alt || displayName(brand, feature.model)) + '" loading="eager" onerror="this.closest(\'.brand-showroom-header\').classList.add(\'brand-showroom-header--no-media\');this.remove()"></div>'
       : '';
     return '<section class="brand-showroom-header brand-showroom-header--' + showroom + '" data-brand-showroom="' + showroom + '">' +
       '<div class="brand-showroom-rail" aria-hidden="true"></div>' +
@@ -742,8 +774,8 @@
     // Template B: compact spec rows in the card body (TVs, networking, etc.)
     const specRows = (tpl === 'b' && verified) ? templateBSpecRows(model) : '';
     const actions = verified
-      ? '<div style="display:flex;gap:8px;"><button type="button" class="pbtn model-details-btn" style="flex:1">' + esc(catalogText('viewDetails')) + '</button><button type="button" class="pbtn model-quote-btn" style="flex:1">' + esc(catalogText('requestQuote')) + ' &#9662;</button></div>'
-      : '<div class="model-card-actions--single"><button type="button" class="pbtn model-details-btn" style="width:100%">' + esc(catalogText('requestSourcing')) + ' &#9662;</button></div>';
+      ? '<div class="model-card-actions"><button type="button" class="pbtn model-details-btn">' + esc(catalogText('viewDetails')) + '</button><button type="button" class="pbtn pbtn--primary model-quote-btn">' + esc(catalogText('requestQuote')) + '</button></div>'
+      : '<div class="model-card-actions--single"><button type="button" class="pbtn model-details-btn">' + esc(catalogText('requestSourcing')) + '</button></div>';
     return '<div class="model-card model-card--' + listing + ' model-card--tpl-' + tpl + '" data-model-id="' + esc(model.id) + '" data-listing-type="' + listing + '" data-catalog-theme="' + theme + '" data-catalog-geometry="' + catalogGeometry(cat) + '" data-catalog-template="' + tpl + '"' + (showroom ? ' data-catalog-brand="' + showroom + '"' : '') + '>' +
       media +
       swatches +
@@ -869,9 +901,9 @@
         '<div class="prod-info">' +
         '<h3>' + esc(cat.name) + '</h3>' +
         '<p>Browse ' + esc(brandList) + ' and more.</p>' +
-        '<div style="display:flex;gap:10px;">' +
-        '<button type="button" class="pbtn overview-quote-btn" style="flex:1;">Request Quote</button>' +
-        '<a href="' + resolved.browseHash + '" class="pbtn" style="flex:1;text-align:center;">Browse Category</a>' +
+        '<div class="prod-actions">' +
+        '<button type="button" class="pbtn pbtn--primary overview-quote-btn">Request Quote</button>' +
+        '<a href="' + resolved.browseHash + '" class="pbtn">Browse Category</a>' +
         '</div></div></div>';
     }
     const model = resolved.model, brand = resolved.brand;
@@ -884,9 +916,9 @@
       '<div class="prod-info">' +
       '<h3>' + esc(model.name) + '</h3>' +
       '<p>' + esc(model.desc || model.specLine || '') + '</p>' +
-      '<div style="display:flex;gap:10px;">' +
-      '<button type="button" class="pbtn overview-quote-btn" style="flex:1;">Request Quote</button>' +
-      '<a href="' + resolved.browseHash + '" class="pbtn" style="flex:1;text-align:center;">Browse Category</a>' +
+      '<div class="prod-actions">' +
+      '<button type="button" class="pbtn pbtn--primary overview-quote-btn">Request Quote</button>' +
+      '<a href="' + resolved.browseHash + '" class="pbtn">Browse Category</a>' +
       '</div></div></div>';
   }
 
@@ -945,13 +977,23 @@
     const showroom = brandShowroom(brand, model);
     if (showroom) modal.setAttribute('data-catalog-brand', showroom); else modal.removeAttribute('data-catalog-brand');
 
-    document.getElementById('pgal-kicker').textContent = sourcing
-      ? catalogText('sourcing') + ' · ' + brand.name
-      : catalogText('verified') + ' · ' + brand.name;
+    renderQuoteKicker(sourcing ? 'sourcing' : 'verified', brand.name, cat.name);
     document.getElementById('pgal-title').textContent = displayName(brand, model);
     document.getElementById('pgal-desc').textContent = sourcing
       ? [catalogText('sourcingDescription'), catalogText('sourcingNote')].join(' ')
-      : [model.desc, model.mpn && ('MPN: ' + model.mpn), model.specLine].filter(Boolean).join(' · ');
+      : (model.desc || '');
+    renderQuoteMeta(sourcing ? [] : [
+      model.mpn || model.modelNumber ? { label: 'MPN', value: model.mpn || model.modelNumber } : null,
+      model.gtin ? { label: 'GTIN', value: model.gtin } : null
+    ].filter(Boolean));
+    // Key specs: source-backed pairs when the record has them, otherwise the
+    // card's short spec line split into its parts (handwritten catalogue).
+    let specs = Array.isArray(model.keySpecs) ? model.keySpecs : [];
+    if (!sourcing && !specs.length && model.specLine) {
+      specs = String(model.specLine).split(' · ').filter(Boolean).map(function (value) { return { label: '', value: value }; });
+    }
+    renderQuoteSpecs(sourcing ? [] : specs);
+    renderQuoteNote(!sourcing);
 
     renderProductGallery(sourcing ? { primaryImage: null, images: [], image: null } : model, displayName(brand, model), cat.icon);
 
@@ -970,6 +1012,76 @@
     document.body.style.overflow = 'hidden';
     updateMediaDebugPanel();
     requestAnimationFrame(openModalFocus);
+  }
+
+  /* ── Quote panel building blocks (all text goes through textContent/esc) ── */
+  function quoteSlot(id, className, beforeId) {
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement(className === 'pgal-specs' ? 'dl' : 'div');
+      el.id = id;
+      el.className = className;
+      const anchor = document.getElementById(beforeId);
+      anchor.parentNode.insertBefore(el, anchor);
+    }
+    return el;
+  }
+  function renderQuoteKicker(listing, brandName, categoryName) {
+    const kicker = document.getElementById('pgal-kicker');
+    kicker.innerHTML = '';
+    const badge = document.createElement('span');
+    badge.className = 'listing-badge listing-badge--' + listing;
+    badge.textContent = catalogText(listing);
+    kicker.appendChild(badge);
+    const crumb = document.createElement('span');
+    crumb.textContent = [brandName, categoryName].filter(Boolean).join(' · ');
+    kicker.appendChild(crumb);
+  }
+  function renderQuoteMeta(items) {
+    const meta = quoteSlot('pgal-meta', 'pgal-meta', 'pgal-desc');
+    meta.innerHTML = '';
+    items.forEach(function (item) {
+      const chip = document.createElement('span');
+      chip.appendChild(document.createTextNode(item.label + ' '));
+      const b = document.createElement('b');
+      b.textContent = item.value;
+      chip.appendChild(b);
+      meta.appendChild(chip);
+    });
+    meta.style.display = items.length ? '' : 'none';
+  }
+  function renderQuoteSpecs(specs) {
+    const list = quoteSlot('pgal-specs', 'pgal-specs', 'pgal-desc');
+    // the spec list reads better AFTER the description, so move it there
+    const desc = document.getElementById('pgal-desc');
+    desc.parentNode.insertBefore(list, desc.nextSibling);
+    // ...and the quantity/config fields (if already created) sit after the specs
+    const fields = document.getElementById('pgal-fields');
+    if (fields) list.parentNode.insertBefore(fields, list.nextSibling);
+    list.innerHTML = '';
+    specs.forEach(function (spec) {
+      const row = document.createElement('div');
+      const dt = document.createElement('dt');
+      dt.textContent = spec.label || catalogText('specification');
+      const dd = document.createElement('dd');
+      dd.textContent = spec.value;
+      row.appendChild(dt); row.appendChild(dd);
+      list.appendChild(row);
+    });
+    list.style.display = specs.length ? '' : 'none';
+  }
+  function renderQuoteNote(show) {
+    const btn = document.getElementById('pgal-request-btn');
+    let note = document.getElementById('pgal-note');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'pgal-note';
+      note.className = 'pgal-note';
+      note.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span></span>';
+      btn.parentNode.insertBefore(note, btn);
+    }
+    note.querySelector('span').textContent = catalogText('quoteNote');
+    note.style.display = show ? '' : 'none';
   }
 
   function renderProductGallery(model, fallbackAlt, iconKey) {
@@ -1045,8 +1157,14 @@
    * model/brand/family attached. */
   function openCategoryQuote(cat, image) {
     currentModelCtx = { isCategoryQuote: true, cat, values: {} };
-    document.getElementById('pgal-overlay').setAttribute('data-catalog-theme', catalogPresentation(cat, null));
-    document.getElementById('pgal-kicker').textContent = catalogText('sourcing') + ' · ' + cat.name;
+    const catModal = document.getElementById('pgal-overlay');
+    catModal.setAttribute('data-catalog-theme', catalogPresentation(cat, null));
+    catModal.setAttribute('data-catalog-geometry', catalogGeometry(cat));
+    catModal.removeAttribute('data-catalog-brand');
+    renderQuoteKicker('sourcing', cat.name, '');
+    renderQuoteMeta([]);
+    renderQuoteSpecs([]);
+    renderQuoteNote(true);
 
     document.getElementById('pgal-title').textContent = cat.name;
     document.getElementById('pgal-desc').textContent =
@@ -1117,8 +1235,9 @@
       wrap = document.createElement('div');
       wrap.id = 'pgal-fields';
       wrap.className = 'pgal-fields';
-      const desc = document.getElementById('pgal-desc');
-      desc.parentNode.insertBefore(wrap, desc.nextSibling);
+      // order: description -> key specs -> quantity/config fields -> note -> CTA
+      const anchor = document.getElementById('pgal-specs') || document.getElementById('pgal-desc');
+      anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
     }
     wrap.innerHTML = '';
     if (!fields.length) { wrap.style.display = 'none'; return; }

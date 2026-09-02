@@ -20,15 +20,23 @@
 <meta name="twitter:image" content="https://lavaall.com/images/og-image.jpg">
 
 <!-- SECURITY: CSP via meta tag (frame-ancestors and X-Frame-Options are handled by netlify.toml HTTP headers) -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://images.unsplash.com data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; img-src 'self' https://images.unsplash.com data: blob:; font-src 'self' https://fonts.gstatic.com https://cdn.fontshare.com; connect-src 'self'; base-uri 'self'; form-action 'self';">
 
 <!-- SECURITY: Additional meta headers -->
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 
+<!-- TYPOGRAPHY: Clash Display is NOT a Google Font. Requesting it from the Google Fonts
+     API made the whole combined request return HTTP 400, so neither brand typeface ever
+     loaded and the site rendered in the browser's fallback sans-serif. Bricolage Grotesque
+     comes from Google Fonts; Clash Display comes from Fontshare (Indian Type Foundry's own
+     free CDN). Both hosts are allow-listed in the CSP above. -->
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@500;600;700&family=Bricolage+Grotesque:wght@300;400;500;600&display=swap" rel="stylesheet" crossorigin="anonymous"/>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin/>
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@300;400;500;600;700&display=swap" rel="stylesheet" crossorigin="anonymous"/>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" rel="stylesheet"/>
 
 <!-- SECURITY: DOMPurify for HTML sanitization (corrected SRI hash) -->
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"
@@ -547,17 +555,17 @@
 <h2 data-i18n="form.h2">Get a <span>Free Quote</span> Today</h2>
 <p data-i18n="form.p">Tell us what your business needs and our team will get back to you within 24 hours with pricing and availability.</p>
 <div class="perks">
-<div class="perk"><div class="perkd">&#128230;</div><span data-i18n="perk1">Global equipment procurement &amp; sourcing</span></div>
-<div class="perk"><div class="perkd">&#128736;</div><span data-i18n="perk2">Professional on-site installation</span></div>
-<div class="perk"><div class="perkd">&#128222;</div><span data-i18n="perk3">Response within 24 hours</span></div>
-<div class="perk"><div class="perkd">&#128179;</div><span data-i18n="perk4">Flexible payment &amp; financing options</span></div>
+<div class="perk"><div class="perkd" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div><span data-i18n="perk1">Global equipment procurement &amp; sourcing</span></div>
+<div class="perk"><div class="perkd" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><span data-i18n="perk2">Professional on-site installation</span></div>
+<div class="perk"><div class="perkd" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><span data-i18n="perk3">Response within 24 hours</span></div>
+<div class="perk"><div class="perkd" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg></div><span data-i18n="perk4">Flexible payment &amp; financing options</span></div>
 </div>
 </div>
 <div class="reveal-r">
 <div class="fcard">
 <div class="ftitle" data-i18n="form.title">Request a Quote</div>
 <div class="sbox" id="sbox">
-<div class="si2">&#128640;</div>
+<div class="si2" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
 <h3 data-i18n="form.ok.h3">Quote Request Received!</h3>
 <p data-i18n="form.ok.p">We will contact you within 24 hours with pricing and availability.</p>
 </div>
@@ -654,8 +662,8 @@
 </select>
 </div>
 <div class="fg" style="margin-bottom:8px;">
-<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
-<input type="checkbox" name="consent" required style="width:auto;"/>
+<label class="fg-consent">
+<input type="checkbox" name="consent" required/>
 <span data-i18n="ct.lbl.consent">I consent to my data being processed according to the <a href="/privacy.html">Privacy Policy</a>, so LAVAALL can respond to my inquiry.</span>
 </label>
 </div>
@@ -724,7 +732,7 @@
 <h3 id="pgal-title"></h3>
 <p id="pgal-desc"></p>
 <div class="pgal-options" id="pgal-options"></div>
-<button class="pbtn" style="width:100%" id="pgal-request-btn">Request Quote &#9662;</button>
+<button class="pbtn pbtn--primary" id="pgal-request-btn">Request Quote &#9662;</button>
 </div>
 </div>
 </div>
@@ -2850,8 +2858,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <input type="tel" name="whatsappNumber" id="sched-whatsapp-number" autocomplete="tel" data-i18n-ph="sch.ph.whatsappNumber" placeholder="+232 76 000 000" pattern="[\+]?[0-9\s\-\(\)]{7,20}" maxlength="20"/>
 </div>
 <div class="fg" style="margin-bottom:8px;">
-<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
-<input type="checkbox" name="whatsappConsent" id="sched-whatsapp-consent" style="width:auto;"/>
+<label class="fg-consent">
+<input type="checkbox" name="whatsappConsent" id="sched-whatsapp-consent"/>
 <span data-i18n="sch.lbl.whatsappConsent">Yes, LAVAALL may contact me on WhatsApp regarding this request.</span>
 </label>
 </div>
@@ -2863,8 +2871,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <input type="text" name="messengerProfile" id="sched-messenger-profile" data-i18n-ph="sch.ph.messengerProfile" placeholder="facebook.com/yourprofile" maxlength="200"/>
 </div>
 <div class="fg" style="margin-bottom:8px;">
-<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
-<input type="checkbox" name="messengerConsent" id="sched-messenger-consent" style="width:auto;"/>
+<label class="fg-consent">
+<input type="checkbox" name="messengerConsent" id="sched-messenger-consent"/>
 <span data-i18n="sch.lbl.messengerConsent">Yes, LAVAALL may contact me through Facebook Messenger regarding this request.</span>
 </label>
 </div>
@@ -2872,8 +2880,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <div class="fg"><label data-i18n="sch.lbl.note">Anything else? (optional)</label><textarea name="note" rows="3" maxlength="500" data-i18n-ph="sch.ph.note" placeholder="A short note to help us prepare for the call..."></textarea></div>
 <div class="fg" style="margin-bottom:8px;">
-<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:12px;cursor:pointer;">
-<input type="checkbox" name="consent" required style="width:auto;"/>
+<label class="fg-consent">
+<input type="checkbox" name="consent" required/>
 <span data-i18n="ct.lbl.consent">I consent to my data being processed according to the <a href="/privacy.html">Privacy Policy</a>, so LAVAALL can respond to my inquiry.</span>
 </label>
 </div>
@@ -2897,7 +2905,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <div id="sched-confirm" hidden>
-<div class="si2">&#128197;</div>
+<div class="si2" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 15 11 17 15 13"/></svg></div>
 <h2 data-i18n="sch.confirm.h2">Call Scheduled!</h2>
 <p id="sched-confirm-detail"></p>
 <p id="sched-confirm-reference"></p>

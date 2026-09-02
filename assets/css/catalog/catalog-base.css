@@ -1,242 +1,169 @@
-/* Scoped marketplace shell. Layer 1 remains governed by LAVAALL's existing UI. */
-.catalog-shell{--catalog-primary:#0067b8;--catalog-primary-hover:#004a7f;--catalog-page:#f4f9ff;--catalog-surface:#fff;--catalog-surface-muted:#f2f2f2;--catalog-ink:#0a0a14;--catalog-text:#262626;--catalog-muted:#616161;--catalog-border:#d7dce1;--catalog-verified:#00f5a0;--catalog-radius-card:10px;--catalog-radius-control:6px;--catalog-shadow:0 3px 7px rgba(0,0,0,.09),0 1px 2px rgba(0,0,0,.07);font-family:"Segoe UI",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;}
-.catalog-shell #catalog-browser{color:var(--catalog-text);padding:28px 0 8px;}
-.catalog-shell #catalog-browser[data-catalog-theme]{background:var(--catalog-page);border:1px solid var(--catalog-border);padding:28px;}
-.catalog-shell .catalog-back-btn{font-family:inherit;color:var(--catalog-muted);}
-.catalog-shell .catalog-back-btn:hover,.catalog-shell .crumb-link,.catalog-shell .catalog-empty a{color:var(--catalog-primary);}
-.catalog-shell .catalog-toolbar{max-width:none;margin:0 0 20px;}
-.catalog-shell .catalog-search-wrap{max-width:680px;}
-.catalog-shell .catalog-search{font-family:inherit;border:1px solid var(--catalog-border);border-radius:var(--catalog-radius-control);font-size:16px;padding:15px 18px 15px 46px;background:var(--catalog-surface);}
-.catalog-shell .catalog-search:focus{border-color:var(--catalog-primary);box-shadow:0 0 0 3px rgba(0,103,184,.18);outline:none;}
-.catalog-shell .catalog-breadcrumbs{font-family:inherit;color:var(--catalog-muted);margin-bottom:20px;}
-.catalog-shell .cat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
-.catalog-shell .cat-card{font-family:inherit;border:1px solid var(--catalog-border);border-radius:0;background:var(--catalog-surface);padding:20px;box-shadow:none;min-height:142px;}
-.catalog-shell .cat-card:hover{transform:translateY(-2px);border-color:var(--catalog-primary);box-shadow:var(--catalog-shadow);}
-.catalog-shell .cat-card:focus-visible,.catalog-shell .model-card button:focus-visible,.catalog-shell .catalog-search:focus-visible{outline:3px solid rgba(0,103,184,.45);outline-offset:3px;}
-.catalog-shell .cat-card-icon{width:34px;height:34px;border:0;border-radius:0;background:transparent;color:var(--catalog-primary);}
-.catalog-shell .cat-card-name{font-family:inherit;font-size:18px;font-weight:600;letter-spacing:0;}
-.catalog-shell .cat-card-count{font-family:inherit;color:var(--catalog-muted);}
-.catalog-shell .model-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:18px;}
-.catalog-shell .model-card{font-family:inherit;border:1px solid var(--catalog-border);border-radius:var(--catalog-radius-card);box-shadow:var(--catalog-shadow);background:var(--catalog-surface);overflow:hidden;}
-.catalog-shell .model-card:hover{transform:translateY(-2px);border-color:var(--catalog-primary);box-shadow:0 8px 18px rgba(0,0,0,.12);}
-.catalog-shell .model-card-body{padding:18px 18px 20px;}
-.catalog-shell .model-card-brand,.catalog-shell .model-card-path{font-family:inherit;color:var(--catalog-muted);}
-.catalog-shell .model-card-name{font-family:inherit;font-size:18px;font-weight:600;letter-spacing:0;line-height:1.25;}
-.catalog-shell .model-card-spec{font-family:inherit;font-size:14px;min-height:0;color:var(--catalog-muted);}
-.catalog-shell .listing-badge{display:inline-flex;align-items:center;width:max-content;margin:0 0 9px;padding:3px 7px;border:1px solid var(--catalog-border);border-radius:2px;font-family:inherit;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--catalog-text);}
-.catalog-shell .listing-badge--verified{border-color:#008f5e;background:#e6fff5;}
-.catalog-shell .listing-badge--sourcing{background:#f2f2f2;color:#404040;}
-.catalog-shell .model-card .pbtn{font-family:inherit;border:1px solid var(--catalog-primary);border-radius:var(--catalog-radius-control);background:var(--catalog-primary);color:#fff;min-height:40px;padding:9px 11px;}
-.catalog-shell .model-card .pbtn:hover{background:var(--catalog-primary-hover);color:#fff;}
-.catalog-product-media{position:relative;width:100%;min-height:240px;background:#fff;display:grid;place-items:center;overflow:hidden;border-bottom:1px solid var(--catalog-border);}
-.catalog-product-media .product-image{width:100%;height:100%;display:grid;place-items:center;background:#fff;}
-.catalog-product-media .product-image img{width:100%;height:100%;max-width:92%;max-height:92%;object-fit:contain;object-position:center;display:block;visibility:visible;opacity:1;}
-.catalog-image-unavailable{width:100%;height:100%;display:grid;place-content:center;gap:6px;padding:24px;text-align:center;background:#fff7f7;color:#5e1616;font-size:13px;}
-.catalog-image-unavailable span{color:#6d5151;}
-.catalog-procurement-mark{width:34px;height:34px;margin:20px 18px 0;display:grid;place-items:center;color:var(--catalog-primary);}
-.catalog-procurement-mark svg{width:28px;height:28px;}
-.catalog-shell .model-card--sourcing{box-shadow:none;border-color:var(--catalog-border);background:#fff;}
-.catalog-shell .model-card--sourcing:hover{transform:none;border-color:var(--catalog-primary);box-shadow:0 4px 12px rgba(0,0,0,.06);}
-#pgal-overlay[data-catalog-theme] .pgal-panel{font-family:"Segoe UI",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;border:1px solid #d7dce1;border-radius:10px;}
-#pgal-overlay[data-catalog-theme] .pgal-media{border-right:1px solid #d7dce1;background:#fff;}
-#pgal-overlay[data-catalog-theme] .pgal-main{background:#fff;}
-#pgal-overlay[data-catalog-theme] .pgal-main img{object-fit:contain;object-position:center;opacity:1;visibility:visible;}
-#pgal-overlay[data-catalog-theme] .pgal-body h3{font-family:inherit;font-size:28px;letter-spacing:0;}
-#pgal-overlay[data-catalog-theme] .pgal-kicker{margin:0 0 8px;color:#616161;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;}
-#pgal-overlay[data-catalog-theme] .pgal-thumb.on{border-color:#0067b8;box-shadow:0 0 0 2px rgba(0,103,184,.18);}
-#pgal-overlay[data-catalog-theme] .pgal-thumb:focus-visible{outline:3px solid rgba(0,103,184,.45);outline-offset:2px;}
-/* Keep the quantity field's visual treatment consistent across engines while
-   retaining its native number semantics, keyboard input and constraints. */
-#pgal-overlay[data-catalog-theme] input[type="number"]{appearance:textfield;-moz-appearance:textfield;}
-#pgal-overlay[data-catalog-theme] input[type="number"]::-webkit-inner-spin-button,#pgal-overlay[data-catalog-theme] input[type="number"]::-webkit-outer-spin-button{appearance:none;margin:0;}
-@media(max-width:768px){.catalog-shell #catalog-browser[data-catalog-theme]{padding:18px 14px;}.catalog-shell .model-grid{grid-template-columns:1fr;}.catalog-shell .cat-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.catalog-product-media{min-height:260px;}}
+/* ============================================================================
+   LAVAALL — catalog-base.css  (Layer 2 catalogue browser + product quote panel)
+   ----------------------------------------------------------------------------
+   Layer 2 uses the SAME design system as the rest of the site (MAGNUM.md §3):
+   Clash Display / Bricolage Grotesque, 2px ink borders, 18px radii, pill
+   buttons, sky/lime accents. This file only adds what Layer 2 needs on top of
+   main.css: per-category media geometry, the brand showroom header, the
+   template A/B card variants and the audience filter chips.
 
-/* ─── catalog-enterprise (merged) ─── */
-.catalog-shell[data-catalog-theme="enterprise"] .catalog-product-media,.catalog-shell #catalog-browser[data-catalog-theme="enterprise"] .catalog-product-media{aspect-ratio:4/3;min-height:0;}
-#pgal-overlay[data-catalog-theme="enterprise"] .pgal-main{aspect-ratio:4/3;}
+   Hooks set by assets/js/catalog.js (unchanged):
+     [data-catalog-theme]    enterprise | cinema | mobile | appliance | procurement
+     [data-catalog-geometry] landscape | wide | portrait | tall
+     [data-catalog-template] a | b
+     [data-catalog-brand]    dell | samsung | lg | lenovo   (accent colour only)
+   ============================================================================ */
 
-/* ─── catalog-cinema (merged) ─── */
-.catalog-shell[data-catalog-theme="cinema"] .catalog-product-media,.catalog-shell #catalog-browser[data-catalog-theme="cinema"] .catalog-product-media{aspect-ratio:16/10;min-height:0;background:#fff;}
-.catalog-shell #catalog-browser[data-catalog-theme="cinema"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:24px;}
-#pgal-overlay[data-catalog-theme="cinema"] .pgal-main{aspect-ratio:16/10;background:#fff;}
-#pgal-overlay[data-catalog-theme="cinema"] .pgal-body{padding:42px 34px;}
+.catalog-shell{
+  --catalog-accent:var(--sky);
+  --catalog-accent-ink:var(--sky-deep);
+  --catalog-media-bg:var(--white);
+  font-family:var(--font-body);
+}
 
-/* ─── catalog-mobile (merged) ─── */
-.catalog-shell[data-catalog-theme="mobile"] .catalog-product-media,.catalog-shell #catalog-browser[data-catalog-theme="mobile"] .catalog-product-media{aspect-ratio:4/5;min-height:0;background:#f5f5f7;}
-.catalog-shell #catalog-browser[data-catalog-theme="mobile"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));}
-#pgal-overlay[data-catalog-theme="mobile"] .pgal-main{aspect-ratio:4/5;background:#f5f5f7;}
-#pgal-overlay[data-catalog-theme="mobile"] .pgal-body{padding:40px 32px;}
+/* ── Browser frame ───────────────────────────────────────────────────────── */
+.catalog-shell #catalog-browser{padding:0;}
+.catalog-shell #catalog-browser[data-catalog-theme]{background:transparent;border:0;padding:0;}
+.catalog-shell .catalog-toolbar{max-width:none;margin:0 0 18px;}
+.catalog-shell .catalog-search-wrap{max-width:560px;}
 
-/* ─── catalog-appliance (merged) ─── */
-.catalog-shell[data-catalog-theme="appliance"] .catalog-product-media,.catalog-shell #catalog-browser[data-catalog-theme="appliance"] .catalog-product-media{aspect-ratio:3/4;min-height:0;background:#f7fbff;}
-.catalog-shell #catalog-browser[data-catalog-theme="appliance"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(245px,1fr));}
-#pgal-overlay[data-catalog-theme="appliance"] .pgal-main{aspect-ratio:3/4;background:#f7fbff;}
-#pgal-overlay[data-catalog-theme="appliance"] .pgal-panel{max-width:1040px;}
+/* ── Level cards (category / brand / family) ─────────────────────────────── */
+.catalog-shell .cat-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
+.catalog-shell .cat-card{min-height:150px;}
 
-/* ─── catalog-procurement (merged) ─── */
-.catalog-shell[data-catalog-theme="procurement"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px;}
-.catalog-shell .model-card--sourcing .model-card-body{padding:16px 18px 18px;}
+/* ── Model cards ─────────────────────────────────────────────────────────── */
+.catalog-shell .model-grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px;}
+.catalog-product-media{aspect-ratio:4/3;background:var(--catalog-media-bg);padding:14px;}
+.catalog-product-media .product-image{width:100%;height:100%;background:transparent;}
+.catalog-product-media .product-image img{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center;display:block;}
+.catalog-shell .model-card--sourcing .model-card-body{padding:12px 20px 20px;}
 .catalog-shell .model-card--sourcing .model-card-spec{margin-bottom:14px;}
+
+/* Per-category media geometry — the container shape follows the product shape
+   so wide TVs, tall fridges and portrait phones all sit naturally. */
+.catalog-shell #catalog-browser[data-catalog-theme="cinema"] .catalog-product-media{aspect-ratio:16/10;}
+.catalog-shell #catalog-browser[data-catalog-theme="cinema"] .model-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px;}
+.catalog-shell #catalog-browser[data-catalog-theme="mobile"] .catalog-product-media{aspect-ratio:4/5;}
+.catalog-shell #catalog-browser[data-catalog-theme="mobile"] .model-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));}
+.catalog-shell #catalog-browser[data-catalog-theme="appliance"] .catalog-product-media{aspect-ratio:3/4;}
+.catalog-shell #catalog-browser[data-catalog-theme="appliance"] .model-grid{grid-template-columns:repeat(auto-fill,minmax(245px,1fr));}
+.catalog-shell #catalog-browser[data-catalog-theme="procurement"] .model-grid{grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:14px;}
+
+/* ── Quote / gallery panel geometry ──────────────────────────────────────── */
+/* Sourcing (no verified media): single column, no empty gallery */
 #pgal-overlay[data-catalog-theme="procurement"] .pgal-panel{grid-template-columns:minmax(0,1fr);max-width:620px;}
 #pgal-overlay[data-catalog-theme="procurement"] .pgal-media{display:none;}
-#pgal-overlay[data-catalog-theme="procurement"] .pgal-body{padding:38px 34px;min-height:340px;}
+#pgal-overlay[data-catalog-theme="procurement"] .pgal-body{padding:36px 34px 30px;min-height:320px;}
+#pgal-overlay[data-catalog-theme] input[type="number"]{appearance:textfield;-moz-appearance:textfield;}
+#pgal-overlay[data-catalog-theme] input[type="number"]::-webkit-inner-spin-button,#pgal-overlay[data-catalog-theme] input[type="number"]::-webkit-outer-spin-button{appearance:none;margin:0;}
 
-/* ─── catalog-brand-showrooms (merged) ─── */
-#catalog-browser[data-catalog-brand]{position:relative;isolation:isolate;}
-#catalog-browser[data-catalog-brand] .catalog-toolbar{position:relative;z-index:2;}
-.brand-showroom-header{position:relative;display:grid;grid-template-columns:10px minmax(0,1fr) minmax(280px,42%);min-height:260px;margin:0 0 24px;overflow:hidden;background:#fff;border:1px solid var(--catalog-border);}
-.brand-showroom-rail{background:var(--catalog-primary);}
-.brand-showroom-copy{position:relative;z-index:1;align-self:center;padding:42px 36px;}
-.brand-showroom-copy p,.brand-showroom-copy>span{margin:0;color:#66717d;font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;}
-.brand-showroom-copy h2{margin:10px 0 18px;color:#0a0a14;font-size:clamp(30px,4vw,52px);line-height:.94;letter-spacing:-.04em;}
-.brand-showroom-index{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px;color:#5d6872;font-size:12px;}
-.brand-showroom-index span{color:#a8b0b8;}
-.brand-showroom-feature-media{display:grid;place-items:center;min-width:0;padding:26px;background:#f8fafc;overflow:hidden;}
-.brand-showroom-feature-media img{display:block;width:100%;height:100%;max-width:94%;max-height:94%;object-fit:contain;object-position:center;opacity:1;visibility:visible;}
-#catalog-browser[data-catalog-brand="dell"]{font-family:"Segoe UI",ui-sans-serif,system-ui,sans-serif;background:#f5f8fb;border-color:#cbd8e4;}
-#catalog-browser[data-catalog-brand="dell"] .brand-showroom-header{grid-template-columns:210px minmax(0,1fr) minmax(300px,40%);border-color:#cbd8e4;}
-#catalog-browser[data-catalog-brand="dell"] .brand-showroom-rail{display:flex;align-items:flex-end;background:linear-gradient(90deg,#f3f7fb 0 100%);border-right:1px solid #cbd8e4;}
-#catalog-browser[data-catalog-brand="dell"] .brand-showroom-rail:after{content:"DELL / VERIFIED";padding:24px 14px;color:#0672cb;font-size:10px;font-weight:800;letter-spacing:.12em;writing-mode:vertical-rl;transform:rotate(180deg);}
-#catalog-browser[data-catalog-brand="dell"] .brand-showroom-copy h2{font-family:inherit;font-size:clamp(28px,3.2vw,42px);font-weight:650;letter-spacing:-.035em;}
-#catalog-browser[data-catalog-brand="dell"] .brand-showroom-feature-media{background:#f9fbfd;border-left:1px solid #cbd8e4;}
-#catalog-browser[data-catalog-brand="dell"] .cat-grid,#catalog-browser[data-catalog-brand="dell"] .model-grid{gap:1px;background:#cbd8e4;border:1px solid #cbd8e4;}
-#catalog-browser[data-catalog-brand="dell"] .cat-card,#catalog-browser[data-catalog-brand="dell"] .model-card{border:0;border-radius:0;box-shadow:none;}
-#catalog-browser[data-catalog-brand="dell"] .model-card{border-top:3px solid transparent;}
-#catalog-browser[data-catalog-brand="dell"] .model-card:hover{border-top-color:#0672cb;box-shadow:none;transform:none;}
-#catalog-browser[data-catalog-brand="dell"] .model-card-body{padding:15px 16px 17px;}
-#catalog-browser[data-catalog-brand="dell"] .listing-badge{border-radius:0;}
-#catalog-browser[data-catalog-brand="dell"] .model-card .pbtn{border-radius:0;}
-#pgal-overlay[data-catalog-brand="dell"] .pgal-panel{border-radius:0;border-top:4px solid #0672cb;}
-#pgal-overlay[data-catalog-brand="dell"] .pgal-body{background:#fff;}
-#catalog-browser[data-catalog-brand="samsung"]{background:#f5f5f7;border-color:#e4e4e7;}
-#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-header{min-height:430px;grid-template-columns:1fr minmax(340px,54%);border:0;background:#f5f5f7;}
-#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-rail{display:none;}
-#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-copy{padding:58px clamp(28px,5vw,76px);align-self:start;}
-#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-copy h2{font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-weight:500;font-size:clamp(42px,6vw,78px);letter-spacing:-.065em;}
-#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-feature-media{background:transparent;padding:24px 10% 14px;}
-#catalog-browser[data-catalog-brand="samsung"] .model-grid{gap:24px;}
-#catalog-browser[data-catalog-brand="samsung"] .model-card{border:0;border-radius:0;box-shadow:none;background:transparent;}
-#catalog-browser[data-catalog-brand="samsung"] .model-card:hover{transform:none;box-shadow:none;border-color:transparent;}
-#catalog-browser[data-catalog-brand="samsung"] .catalog-product-media{border:0;background:#f5f5f7;}
-#catalog-browser[data-catalog-brand="samsung"] .model-card-body{padding:16px 4px 18px;}
-#catalog-browser[data-catalog-brand="samsung"] .model-card .pbtn{border-radius:999px;}
-#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-summary{margin:0 0 8px;color:#6a717c;font-size:12px;letter-spacing:.04em;}
-#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-nav{display:grid;gap:0;border-top:1px solid #d9dade;background:#fff;}
-#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 2px;border-bottom:1px solid #d9dade;color:#0a0a14;text-decoration:none;}
-#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link:hover{color:#0067b8;background:#fafafa;}
-#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link strong{display:block;font-size:19px;font-weight:500;letter-spacing:-.025em;}
-#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link small{display:block;margin-top:5px;color:#6a717c;font-size:13px;}
-#catalog-browser[data-catalog-brand="samsung"] .samsung-collection-link b{font-size:22px;font-weight:400;color:#0067b8;}
-#pgal-overlay[data-catalog-brand="samsung"] .pgal-panel{border:0;border-radius:0;background:#f5f5f7;}
-#pgal-overlay[data-catalog-brand="samsung"] .pgal-media,#pgal-overlay[data-catalog-brand="samsung"] .pgal-main{border:0;background:#f5f5f7;}
-#pgal-overlay[data-catalog-brand="samsung"] .pgal-body{background:#f5f5f7;}
-#pgal-overlay[data-catalog-brand="samsung"] .pgal-body h3{font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-weight:500;letter-spacing:-.045em;}
-#pgal-overlay[data-catalog-brand="samsung"] .pgal-request-btn{border-radius:999px;}
-#catalog-browser[data-catalog-brand="lg"]{background:#f0ece4;border-color:#ddd6cb;}
-#catalog-browser[data-catalog-brand="lg"] .brand-showroom-header{min-height:390px;grid-template-columns:minmax(0,42%) minmax(340px,58%);border-color:#333;background:#27282b;}
-#catalog-browser[data-catalog-brand="lg"] .brand-showroom-rail{display:none;}
-#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy{padding:58px 9%;color:#fff;}
-#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy p,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy>span{color:#f4b8c8;}
-#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy h2{color:#fff;font-family:"Clash Display",Impact,"Arial Narrow",sans-serif;font-size:clamp(46px,6vw,82px);}
-#catalog-browser[data-catalog-brand="lg"] .brand-showroom-index{color:#d1d1d4;}
-#catalog-browser[data-catalog-brand="lg"] .brand-showroom-feature-media{background:#27282b;padding:34px 8%;}
-#catalog-browser[data-catalog-brand="lg"] .model-grid{gap:22px;}
-#catalog-browser[data-catalog-brand="lg"] .model-card{border-color:#d4cbc0;border-radius:0;box-shadow:none;background:#fbfaf8;}
-#catalog-browser[data-catalog-brand="lg"] .model-card:hover{border-color:#a50034;box-shadow:none;transform:none;}
-#catalog-browser[data-catalog-brand="lg"] .model-card .pbtn{background:#a50034;border-color:#a50034;border-radius:2px;}
-#catalog-browser[data-catalog-brand="lg"] .model-card .pbtn:hover{background:#7e0027;}
-#pgal-overlay[data-catalog-brand="lg"] .pgal-panel{border:0;border-radius:0;background:#f0ece4;}
-#pgal-overlay[data-catalog-brand="lg"] .pgal-media,#pgal-overlay[data-catalog-brand="lg"] .pgal-main{border:0;background:#27282b;}
-#pgal-overlay[data-catalog-brand="lg"] .pgal-body{background:#f0ece4;}
-#pgal-overlay[data-catalog-brand="lg"] .pgal-request-btn{background:#a50034;border-color:#a50034;}
-#catalog-browser[data-catalog-brand="lenovo"]{background:#f7f7f5;border-color:#111;}
-#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-header{grid-template-columns:76px minmax(0,.8fr) minmax(340px,1.2fr);min-height:410px;border-color:#111;}
-#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-rail{background:#111;}
-#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-rail:after{content:"LENOVO";display:block;height:100%;padding:25px 28px;color:#fff;font-size:10px;font-weight:800;letter-spacing:.18em;writing-mode:vertical-rl;}
-#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-rail:before{content:"";position:absolute;left:37px;top:86px;bottom:80px;width:2px;background:#e2231a;}
-#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy{align-self:stretch;padding:64px 34px 28px;background:#f7f7f5;}
-#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy p,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy>span{color:#e2231a;}
-#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy h2{font-family:Impact,"Arial Narrow",sans-serif;font-size:clamp(48px,6vw,78px);letter-spacing:-.03em;}
-#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-feature-media{border-left:1px solid #111;background:#fff;}
-#catalog-browser[data-catalog-brand="lenovo"] .model-grid{gap:14px;}
-#catalog-browser[data-catalog-brand="lenovo"] .model-card{border:0;border-top:3px solid #111;border-radius:0;box-shadow:none;}
-#catalog-browser[data-catalog-brand="lenovo"] .model-card:first-child{border-top-color:#e2231a;}
-#catalog-browser[data-catalog-brand="lenovo"] .model-card:hover{box-shadow:none;transform:none;border-top-color:#e2231a;}
-#catalog-browser[data-catalog-brand="lenovo"] .model-card .pbtn{background:#111;border-color:#111;border-radius:0;}
-#catalog-browser[data-catalog-brand="lenovo"] .model-card .pbtn:hover{background:#e2231a;border-color:#e2231a;}
-#pgal-overlay[data-catalog-brand="lenovo"] .pgal-panel{border:0;border-radius:0;background:#111;color:#fff;}
-#pgal-overlay[data-catalog-brand="lenovo"] .pgal-media,#pgal-overlay[data-catalog-brand="lenovo"] .pgal-main{border:0;background:#fff;}
-#pgal-overlay[data-catalog-brand="lenovo"] .pgal-body{background:#111;color:#fff;}
-#pgal-overlay[data-catalog-brand="lenovo"] .pgal-body h3{font-size:24px;line-height:1.08;}
-#pgal-overlay[data-catalog-brand="lenovo"] .pgal-kicker{color:#ff8d87;}
-#pgal-overlay[data-catalog-brand="lenovo"] .pgal-desc,#pgal-overlay[data-catalog-brand="lenovo"] .pgal-body p{color:#ededf0;line-height:1.58;}
-#pgal-overlay[data-catalog-brand="lenovo"] .pgal-fields label{color:#f4f4f5;}
-#pgal-overlay[data-catalog-brand="lenovo"] .pgal-fields input{border-color:#b7b7be;background:#fff;color:#111;}
-#pgal-overlay[data-catalog-brand="lenovo"] #pgal-request-btn{position:sticky;bottom:0;z-index:2;margin-top:20px!important;background:#e2231a!important;border-color:#e2231a!important;color:#fff!important;box-shadow:0 0 0 2px #111,0 0 0 4px #e2231a;font-weight:800;}
-#catalog-browser[data-catalog-brand="samsung"][data-catalog-geometry="wide"] .brand-showroom-header{min-height:360px;}
-#catalog-browser[data-catalog-brand="samsung"][data-catalog-geometry="tall"] .brand-showroom-header{min-height:490px;}
-#catalog-browser[data-catalog-brand="lg"][data-catalog-geometry="tall"] .brand-showroom-header{min-height:490px;grid-template-columns:minmax(0,46%) minmax(300px,54%);}
-#catalog-browser[data-catalog-brand="lg"][data-catalog-geometry="tall"] .brand-showroom-feature-media img{max-height:96%;}
-@media(max-width:768px){
-  .brand-showroom-header,#catalog-browser[data-catalog-brand="dell"] .brand-showroom-header,#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-header,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-header,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-header{grid-template-columns:1fr;min-height:0;}
-  .brand-showroom-rail,#catalog-browser[data-catalog-brand="dell"] .brand-showroom-rail,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-rail{display:none;}
-  .brand-showroom-copy,#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-copy,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy{padding:34px 22px 20px;}
-  .brand-showroom-copy h2,#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-copy h2,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-copy h2,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-copy h2{font-size:clamp(38px,13vw,58px);}
-  .brand-showroom-feature-media,#catalog-browser[data-catalog-brand="dell"] .brand-showroom-feature-media,#catalog-browser[data-catalog-brand="samsung"] .brand-showroom-feature-media,#catalog-browser[data-catalog-brand="lg"] .brand-showroom-feature-media,#catalog-browser[data-catalog-brand="lenovo"] .brand-showroom-feature-media{min-height:240px;padding:20px 10%;border-left:0;border-top:1px solid currentColor;}
-  #catalog-browser[data-catalog-brand="lg"] .brand-showroom-feature-media{border-color:#555;}
-  #catalog-browser[data-catalog-brand="dell"] .cat-grid,#catalog-browser[data-catalog-brand="dell"] .model-grid{gap:1px;}
-  #pgal-overlay[data-catalog-brand="lenovo"] .pgal-panel{max-height:92vh;}
-  #pgal-overlay[data-catalog-brand="lenovo"] .pgal-body{padding:24px 20px 22px;}
-  #pgal-overlay[data-catalog-brand="lenovo"] .pgal-body h3{font-size:22px;}
-  #pgal-overlay[data-catalog-brand="lenovo"] .pgal-body p{margin-bottom:14px;}
-  #pgal-overlay[data-catalog-brand="samsung"][data-catalog-geometry="portrait"] .pgal-main{aspect-ratio:1/1;}
-  #pgal-overlay[data-catalog-brand="samsung"] .pgal-body{padding:24px 22px 20px;}
-  #pgal-overlay[data-catalog-brand="samsung"] .pgal-body p{margin-bottom:14px;}
-}
+/* ── Brand showroom header ───────────────────────────────────────────────
+   One header component for every verified brand. The brand contributes only
+   an accent colour (kicker + rail); typography, layout and cards stay LAVAALL. */
+#catalog-browser[data-catalog-brand="dell"]{--catalog-accent:#0672CB;--catalog-accent-ink:#0672CB;}
+#catalog-browser[data-catalog-brand="samsung"]{--catalog-accent:#1428A0;--catalog-accent-ink:#1428A0;}
+#catalog-browser[data-catalog-brand="lg"]{--catalog-accent:#A50034;--catalog-accent-ink:#A50034;}
+#catalog-browser[data-catalog-brand="lenovo"]{--catalog-accent:#E2231A;--catalog-accent-ink:#E2231A;}
+.brand-showroom-header{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,44%);align-items:stretch;min-height:280px;margin:0 0 24px;overflow:hidden;background:var(--white);border:2px solid var(--ink);border-radius:var(--r);}
+.brand-showroom-rail{position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--catalog-accent);}
+.brand-showroom-copy{position:relative;z-index:1;align-self:center;padding:40px 40px 40px 44px;min-width:0;}
+.brand-showroom-copy p,.brand-showroom-copy>span{display:block;margin:0;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+.brand-showroom-copy p{color:var(--catalog-accent-ink);}
+.brand-showroom-copy h2{margin:10px 0 14px;color:var(--ink);font-family:var(--font-display);font-size:clamp(30px,3.6vw,50px);font-weight:700;line-height:1;letter-spacing:-.025em;text-wrap:balance;}
+.brand-showroom-index{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:22px;color:var(--ink-soft);font-size:13px;font-weight:600;}
+.brand-showroom-index span{color:rgba(10,10,20,.3);}
+.brand-showroom-feature-media{display:grid;place-items:center;min-width:0;padding:28px;background:var(--white);border-left:2px solid var(--ink);overflow:hidden;}
+.brand-showroom-feature-media img{display:block;width:100%;height:100%;max-height:300px;object-fit:contain;object-position:center;}
+#catalog-browser[data-catalog-geometry="tall"] .brand-showroom-feature-media img{max-height:360px;}
+/* If the feature image fails to load, collapse to a single-column header instead of a broken image */
+.brand-showroom-header--no-media{grid-template-columns:1fr;min-height:0;}
+.brand-showroom-header--no-media .brand-showroom-feature-media{display:none;}
 
-/* ─── catalog-template-a (merged) ─── */
-.catalog-shell[data-catalog-template="a"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
-.catalog-shell .model-card--tpl-a{border-radius:14px;overflow:hidden;}
-.catalog-shell .model-card--tpl-a .catalog-product-media{min-height:0;}
-.catalog-shell[data-catalog-geometry="portrait"] .model-card--tpl-a .catalog-product-media,.catalog-shell #catalog-browser[data-catalog-geometry="portrait"] .model-card--tpl-a .catalog-product-media{aspect-ratio:3/4;background:#f5f5f7;}
-.catalog-shell[data-catalog-geometry="landscape"] .model-card--tpl-a .catalog-product-media,.catalog-shell #catalog-browser[data-catalog-geometry="landscape"] .model-card--tpl-a .catalog-product-media{aspect-ratio:4/3;background:#f8f8fa;}
-.tpl-a-colors{display:flex;align-items:center;gap:6px;padding:10px 16px 2px;flex-wrap:wrap;min-height:34px;}
-.tpl-a-swatch{display:inline-block;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 3px rgba(0,0,0,.18);flex-shrink:0;cursor:default;transition:transform .15s ease;}
+/* Samsung phone/tablet collections keep their list layout, restyled to the system */
+#catalog-browser .samsung-collection-summary{margin:0 0 10px;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+#catalog-browser .samsung-collection-nav{display:grid;gap:0;background:var(--white);border:2px solid var(--ink);border-radius:var(--r);overflow:hidden;}
+#catalog-browser .samsung-collection-link{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:72px;padding:18px 22px;border-bottom:2px solid var(--line);color:var(--ink);text-decoration:none;transition:background var(--t-fast);}
+#catalog-browser .samsung-collection-link:last-child{border-bottom:0;}
+#catalog-browser .samsung-collection-link:hover{background:var(--surface-2);}
+#catalog-browser .samsung-collection-link:focus-visible{outline:3px solid var(--sky);outline-offset:-3px;}
+#catalog-browser .samsung-collection-link strong{display:block;font-family:var(--font-display);font-size:19px;font-weight:600;letter-spacing:-.01em;}
+#catalog-browser .samsung-collection-link small{display:block;margin-top:4px;color:var(--muted);font-size:13px;}
+#catalog-browser .samsung-collection-link b{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;border:2px solid var(--ink);font-size:18px;font-weight:400;color:var(--ink);transition:background var(--t-fast),color var(--t-fast);}
+#catalog-browser .samsung-collection-link:hover b{background:var(--ink);color:var(--white);}
+
+/* ── Template A — premium/editorial (phones, tablets, computers, wearables) ── */
+.catalog-shell[data-catalog-template="a"] .model-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;}
+.catalog-shell .model-card--tpl-a .catalog-product-media{padding:18px;}
+.catalog-shell #catalog-browser[data-catalog-geometry="portrait"] .model-card--tpl-a .catalog-product-media{aspect-ratio:3/4;}
+.catalog-shell #catalog-browser[data-catalog-geometry="landscape"] .model-card--tpl-a .catalog-product-media{aspect-ratio:4/3;}
+.tpl-a-colors{display:flex;align-items:center;gap:6px;padding:12px 20px 0;flex-wrap:wrap;min-height:30px;}
+.tpl-a-swatch{display:inline-block;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px var(--white),0 0 0 3px rgba(10,10,20,.25);flex-shrink:0;cursor:default;transition:transform .15s var(--ease);}
 .tpl-a-swatch:hover{transform:scale(1.25);}
-.tpl-a-swatch-more{font-size:11px;font-weight:700;color:var(--catalog-muted,#616161);letter-spacing:.03em;margin-left:2px;}
-.catalog-shell .model-card--tpl-a .model-card-body{padding:14px 16px 18px;}
-.catalog-shell .model-card--tpl-a .model-card-name{font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.2;}
-.catalog-shell .model-card--tpl-a .model-card-spec{font-size:12.5px;margin-top:3px;margin-bottom:14px;}
+.tpl-a-swatch-more{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.03em;margin-left:2px;}
+.catalog-shell .model-card--tpl-a .model-card-body{padding:14px 20px 20px;}
+.catalog-shell .model-card--tpl-a .model-card-spec{font-size:13px;margin-top:2px;margin-bottom:14px;}
+
+/* ── Template B — spec grid (TVs, monitors, servers, networking, appliances) ── */
+.catalog-shell[data-catalog-template="b"] .model-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
+.catalog-shell .model-card--tpl-b .model-card-spec{margin-bottom:10px;}
+.tpl-b-specs{display:grid;gap:0;margin:0 0 16px;border-top:1.5px solid var(--line);}
+.tpl-b-spec-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px;line-height:1.4;}
+.tpl-b-spec-key{color:var(--muted);font-weight:600;white-space:nowrap;flex-shrink:0;}
+.tpl-b-spec-val{font-weight:700;text-align:right;overflow-wrap:anywhere;color:var(--ink);font-variant-numeric:tabular-nums;}
+
+/* ── Audience filter chips + card pills ──────────────────────────────────── */
+.cat-aud-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;padding:0;list-style:none;}
+.cat-aud-chip{display:inline-flex;align-items:center;min-height:40px;font-family:var(--font-body);font-size:13px;font-weight:600;line-height:1;padding:8px 16px;border:2px solid var(--ink);border-radius:var(--r-pill);background:var(--white);color:var(--ink);cursor:pointer;transition:background var(--t-fast),color var(--t-fast),transform var(--t-fast);white-space:nowrap;}
+.cat-aud-chip:hover{background:var(--offwhite);transform:translateY(-1px);}
+.cat-aud-chip:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
+.cat-aud-chip.cat-aud--active{background:var(--ink);border-color:var(--ink);color:var(--white);}
+.cat-aud-chip.cat-aud--active:hover{background:var(--ink);color:var(--white);transform:none;}
+.cat-card-aud-wrap{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 4px;}
+.cat-card-aud{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:4px;line-height:1.5;}
+.cat-card-aud--business{background:#E6F3FF;color:#0B4F8A;}
+.cat-card-aud--consumer{background:#E4FBF2;color:#0A6E45;}
+.cat-card-aud--education{background:#FFF6DB;color:#7A5500;}
+
+/* ── Loading indicator for the lazy-loaded extended catalogue ────────────── */
+#catalog-generated-loading{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:14px 18px;border:2px dashed var(--line);border-radius:var(--r);background:var(--white);font-size:13px;font-weight:600;color:var(--muted);}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media(max-width:900px){
+  .brand-showroom-header{grid-template-columns:minmax(0,1fr) minmax(240px,40%);min-height:0;}
+  .brand-showroom-copy{padding:30px 26px 30px 32px;}
+}
+@media(max-width:768px){
+  .catalog-shell #catalog-browser[data-catalog-theme]{padding:0;}
+  .catalog-shell .cat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  .brand-showroom-header{grid-template-columns:1fr;}
+  .brand-showroom-rail{top:0;left:0;right:0;bottom:auto;width:auto;height:6px;}
+  .brand-showroom-copy{padding:28px 22px 22px;}
+  .brand-showroom-copy h2{font-size:clamp(30px,9vw,44px);}
+  .brand-showroom-feature-media{min-height:200px;padding:18px 10%;border-left:0;border-top:2px solid var(--ink);}
+  .brand-showroom-feature-media img{max-height:220px;}
+  #catalog-browser .samsung-collection-link{padding:16px 18px;}
+}
 @media(max-width:600px){
-  .catalog-shell[data-catalog-template="a"] .model-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-  .catalog-shell .model-card--tpl-a .model-card-name{font-size:14px;}
-  .tpl-a-colors{padding:8px 12px 2px;gap:5px;}
+  .catalog-shell .model-grid,.catalog-shell #catalog-browser[data-catalog-theme] .model-grid,.catalog-shell[data-catalog-template="a"] .model-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  .catalog-shell #catalog-browser[data-catalog-theme="cinema"] .model-grid,.catalog-shell[data-catalog-template="b"] .model-grid{grid-template-columns:1fr;gap:14px;}
+  .catalog-product-media{padding:10px;}
+  .catalog-shell .model-card--tpl-a .model-card-body{padding:12px 14px 16px;}
+  .catalog-shell .model-card--tpl-a .model-card-name{font-size:15px;}
+  .tpl-a-colors{padding:10px 14px 0;gap:5px;}
   .tpl-a-swatch{width:12px;height:12px;}
+  .cat-aud-bar{gap:6px;margin-bottom:16px;}
+  .cat-aud-chip{font-size:12px;padding:7px 13px;}
+  .cat-card-aud{font-size:9px;padding:2px 5px;}
+  .brand-showroom-copy h2{font-size:clamp(28px,9vw,40px);}
+}
+@media(max-width:360px){
+  .catalog-shell .cat-grid{gap:10px;}
+  .catalog-shell .cat-card{padding:14px;min-height:0;}
+  .catalog-shell .cat-card-name{font-size:16px;}
 }
 
-/* ─── catalog-template-b (merged) ─── */
-.catalog-shell[data-catalog-template="b"] .model-grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;}
-.catalog-shell .model-card--tpl-b{border-radius:8px;}
-.catalog-shell .model-card--tpl-b .catalog-product-media{border-bottom:1px solid var(--catalog-border,#d7dce1);}
-.catalog-shell .model-card--tpl-b .model-card-body{padding:13px 15px 16px;}
-.catalog-shell .model-card--tpl-b .model-card-name{font-size:15.5px;font-weight:700;line-height:1.25;}
-.catalog-shell .model-card--tpl-b .model-card-spec{font-size:12.5px;margin-top:2px;margin-bottom:8px;}
-.tpl-b-specs{display:grid;gap:4px;margin:0 0 12px;padding:8px 0 4px;border-top:1px solid var(--catalog-border,#d7dce1);}
-.tpl-b-spec-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;line-height:1.4;color:var(--catalog-text,#262626);}
-.tpl-b-spec-key{color:var(--catalog-muted,#616161);font-weight:500;white-space:nowrap;flex-shrink:0;}
-.tpl-b-spec-val{font-weight:600;text-align:right;word-break:break-word;font-size:11.5px;color:var(--catalog-ink,#0a0a14);}
-@media(max-width:600px){.catalog-shell[data-catalog-template="b"] .model-grid{grid-template-columns:1fr;gap:12px;}}
-
-/* ─── catalog-audience (merged) ─── */
-.cat-aud-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;padding:0;list-style:none;}
-.cat-aud-chip{font-family:inherit;font-size:13px;font-weight:600;line-height:1;padding:7px 15px;border:1.5px solid var(--catalog-border,#d7dce1);border-radius:99px;background:var(--catalog-surface,#fff);color:var(--catalog-muted,#616161);cursor:pointer;transition:border-color .15s,background .15s,color .15s,box-shadow .15s;white-space:nowrap;}
-.cat-aud-chip:hover{border-color:var(--catalog-primary,#0067b8);color:var(--catalog-primary,#0067b8);background:#f0f6ff;}
-.cat-aud-chip:focus-visible{outline:3px solid rgba(0,103,184,.4);outline-offset:2px;}
-.cat-aud-chip.cat-aud--active{background:var(--catalog-primary,#0067b8);border-color:var(--catalog-primary,#0067b8);color:#fff;box-shadow:0 2px 6px rgba(0,103,184,.28);}
-.cat-aud-chip.cat-aud--active:hover{background:var(--catalog-primary-hover,#004a7f);border-color:var(--catalog-primary-hover,#004a7f);color:#fff;}
-.cat-card-aud-wrap{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px;}
-.cat-card-aud{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:3px;line-height:1.5;}
-.cat-card-aud--business{background:#e8f0fb;color:#1a4faa;}
-.cat-card-aud--consumer{background:#e8fbf4;color:#0a6e45;}
-.cat-card-aud--education{background:#fef8e8;color:#7a5500;}
-@media(max-width:600px){.cat-aud-bar{gap:6px;margin-bottom:14px;}.cat-aud-chip{font-size:12px;padding:6px 12px;}.cat-card-aud{font-size:9px;padding:2px 5px;}}
+/* ── Level transitions (category -> brand -> family -> models) ───────────── */
+@media (prefers-reduced-motion:no-preference){
+  .cat-grid,.model-grid,.brand-showroom-header,.samsung-collection-nav,.catalog-empty{animation:catalogLevelIn .32s var(--ease) both;}
+  @keyframes catalogLevelIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
