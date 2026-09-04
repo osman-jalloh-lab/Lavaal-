@@ -473,6 +473,7 @@
 <form id="iq-form" novalidate>
 <input type="hidden" name="csrf-token" id="csrf-token" value=""/>
 <input type="text" name="website" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true"/>
+<div id="iq-error-summary" class="form-error-summary" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
 <div class="fg">
 <label data-i18n="iq.lbl.inquiryType">Inquiry Type<span class="req" aria-hidden="true">*</span></label>
 <select name="inquiryType" required id="iq-type" aria-required="true">
@@ -736,6 +737,22 @@ const INQUIRY_GROUPS = {
   'installation-services': 'install',
 };
 
+// Display-only mirror of ROUTES in api/contact.js, used solely to show the
+// right direct-email fallback address when the inquiry form submission
+// fails. Not a secret -- these same addresses are already shown publicly
+// elsewhere on the page (see the #contact section).
+const IQ_FALLBACK_EMAIL = {
+  'sales-quotation': 'sales@lavaall.com', 'product-availability': 'sales@lavaall.com',
+  'equipment-procurement': 'sales@lavaall.com', 'routers-networking': 'sales@lavaall.com',
+  'servers-infrastructure': 'sales@lavaall.com', 'computers-workstations': 'sales@lavaall.com',
+  'fiber-optic': 'sales@lavaall.com', 'structured-cabling': 'sales@lavaall.com',
+  'installation-services': 'sales@lavaall.com',
+  'customer-support': 'support@lavaall.com', 'technical-support': 'support@lavaall.com',
+  'existing-order': 'orders@lavaall.com',
+  'partnership': 'contact@lavaall.com',
+  'general-inquiry': 'info@lavaall.com', 'other': 'info@lavaall.com',
+};
+
 class InquiryFormHandler {
   constructor(formId) {
     this.form = document.getElementById(formId);
@@ -743,6 +760,7 @@ class InquiryFormHandler {
     this.submitBtn = document.getElementById('iq-fsub');
     this.successBox = document.getElementById('sbox');
     this.typeSelect = document.getElementById('iq-type');
+    this.errorSummary = document.getElementById('iq-error-summary');
     this.groups = {
       sales: document.getElementById('iq-group-sales'),
       support: document.getElementById('iq-group-support'),
@@ -788,6 +806,14 @@ class InquiryFormHandler {
     return honeypot && honeypot.value === '';
   }
 
+  // Looks up a translated string for the current language, falling back to
+  // English and then the raw key so a missing translation is never blank.
+  t(key) {
+    const tr = (typeof translations !== 'undefined' && translations[currentLang]) || {};
+    const en = (typeof translations !== 'undefined' && translations.en) || {};
+    return tr[key] !== undefined ? tr[key] : (en[key] !== undefined ? en[key] : key);
+  }
+
   validateForm() {
     if (!this.form.checkValidity()) {
       this.form.reportValidity();
@@ -799,7 +825,7 @@ class InquiryFormHandler {
     }
     const rateCheck = InquiryRateLimiter.checkLimit();
     if (!rateCheck.allowed) {
-      this.showError(rateCheck.message);
+      this.showError(this.t('iq.err.rateLimited'));
       return false;
     }
     return true;
@@ -872,52 +898,106 @@ class InquiryFormHandler {
         ...this.collectGroupFields(active),
       };
     } catch (error) {
-      this.showError(error.message);
+      // Internal exception (e.g. a null field lookup) -- never surface
+      // error.message to the customer, it can leak implementation detail.
+      console.error('Inquiry form data error:', error);
+      this.showError(this.t('iq.err.notSubmitted'));
       return null;
     }
   }
 
   async handleSubmit(e) {
     e.preventDefault();
+    this.clearError();
     if (!this.validateForm()) return false;
     const formData = this.sanitizeFormData();
     if (!formData) return false;
 
-    this.submitBtn.textContent = 'Sending...';
+    // Client-side correlation id, logged locally so a support agent can ask
+    // "what did your console show" and match it to what we see, without any
+    // customer-facing surface ever showing exception detail.
+    const requestId = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `iq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const originalLabel = this.submitBtn.textContent;
+    this.submitBtn.textContent = this.t('form.sending');
     this.submitBtn.disabled = true;
 
     try {
       const response = await fetch('/api/contact', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Request-Id': requestId },
         body: JSON.stringify(formData),
       });
+      const payload = await response.json().catch(() => ({}));
 
       if (response.ok) {
         InquiryRateLimiter.recordSubmission();
+        // api/contact.js is currently all-or-nothing (202 only on a
+        // confirmed webhook delivery), so there is no "saved but the
+        // confirmation email failed" state today. This branch is wired up
+        // so the UI is correct the moment the backend can report that,
+        // without assuming it can today.
+        if (payload && payload.emailFailed) {
+          console.info(`[iq:${requestId}] accepted, confirmation email failed`);
+        } else {
+          console.info(`[iq:${requestId}] accepted`);
+        }
         this.form.style.display = 'none';
         this.successBox.style.display = 'block';
-      } else {
-        const payload = await response.json().catch(() => ({}));
-        const message = (payload.errors && payload.errors.join(' ')) || payload.message || 'Submission failed';
-        throw new Error(message);
+        return;
       }
+
+      // Not submitted. Map known backend error codes to translated,
+      // customer-safe copy -- never render payload.message or a caught
+      // exception's message verbatim, only the validation reasons the
+      // backend already intends to be user-facing (payload.errors).
+      console.error(`[iq:${requestId}] submission failed`, response.status, payload && payload.error);
+      let messageKey = 'iq.err.notSubmitted';
+      if (payload && payload.error === 'rate_limited') messageKey = 'iq.err.rateLimited';
+      const details = (payload && Array.isArray(payload.errors)) ? payload.errors : [];
+      this.showError(this.t(messageKey), { details });
     } catch (error) {
-      console.error('Inquiry form submission error:', error);
-      this.showError(error.message || 'An error occurred. Please try again or email us directly.');
+      console.error(`[iq:${requestId}] network error`, error);
+      this.showError(this.t('iq.err.network'));
+    } finally {
       this.submitBtn.disabled = false;
-      this.submitBtn.textContent = 'Send Inquiry →';
+      this.submitBtn.textContent = originalLabel;
     }
   }
 
-  showError(message) {
-    const existingError = this.form.querySelector('.error-message');
-    if (existingError) existingError.remove();
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-    this.form.insertBefore(errorDiv, this.form.firstChild);
-    setTimeout(() => errorDiv.remove(), 5000);
+  // Accessible, persistent error summary: translated headline, any
+  // server-supplied validation reasons (safe, intentionally user-facing
+  // text -- never an exception or secret), and a direct-email fallback for
+  // whichever inquiry type is currently selected. Moves focus to it so both
+  // screen-reader and sighted users notice the failure; unlike the old
+  // auto-dismissing .error-message this stays until cleared.
+  showError(headline, opts) {
+    opts = opts || {};
+    if (!this.errorSummary) return;
+    const inquiryType = this.typeSelect ? this.typeSelect.value : '';
+    const fallbackEmail = IQ_FALLBACK_EMAIL[inquiryType] || 'info@lavaall.com';
+    let html = `<strong>${this.escapeHtml(this.t('iq.err.title'))}</strong>`;
+    html += `<p style="margin:4px 0 0;">${this.escapeHtml(headline)}</p>`;
+    if (opts.details && opts.details.length) {
+      html += '<ul>' + opts.details.map(d => `<li>${this.escapeHtml(String(d))}</li>`).join('') + '</ul>';
+    }
+    html += `<p style="margin:8px 0 0;">${this.escapeHtml(this.t('iq.err.emailFallback'))} <a href="mailto:${fallbackEmail}">${fallbackEmail}</a></p>`;
+    this.errorSummary.innerHTML = html;
+    this.errorSummary.hidden = false;
+    this.errorSummary.focus();
+  }
+
+  clearError() {
+    if (!this.errorSummary) return;
+    this.errorSummary.hidden = true;
+    this.errorSummary.innerHTML = '';
+  }
+
+  escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
 }
 
@@ -1034,6 +1114,9 @@ class ScheduleModal {
     this.whatsappNumberField.hidden = true;
     this.messengerGroup.hidden = true;
     this.meetNote.hidden = true;
+    if (this.contactMethodGroup) this.contactMethodGroup.removeAttribute('aria-invalid');
+    this.clearStepError('sched-step1-error');
+    this.clearStepError('sched-step2-error');
     this.showStep(1);
   }
 
@@ -1133,19 +1216,39 @@ class ScheduleModal {
     return honeypot && honeypot.value === '';
   }
 
-  showStep1Error(message) {
-    const el = document.getElementById('sched-step1-error');
-    el.textContent = message;
+  // Accessible, persistent error summary shared by Step 1 (registration)
+  // and Step 2 (slot booking / availability): translated headline, optional
+  // server-supplied detail (safe, user-facing text only -- never an
+  // exception or secret), and a direct-email fallback. Stays up until the
+  // user retries successfully or the modal is reset -- never auto-dismisses,
+  // so a customer who looks away doesn't miss it.
+  renderStepError(elId, headline, opts) {
+    opts = opts || {};
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+    let html = `<strong>${esc(this.tr('sch.err.title', "We couldn't save your request"))}</strong>`;
+    html += `<p style="margin:4px 0 0;">${esc(headline)}</p>`;
+    if (opts.details && opts.details.length) {
+      html += '<ul>' + opts.details.map(d => `<li>${esc(String(d))}</li>`).join('') + '</ul>';
+    }
+    if (opts.showEmail !== false) {
+      html += `<p style="margin:8px 0 0;">${esc(this.tr('sch.err.emailFallback', 'Email us directly at'))} <a href="mailto:info@lavaall.com">info@lavaall.com</a></p>`;
+    }
+    el.innerHTML = html;
     el.hidden = false;
-    setTimeout(() => { el.hidden = true; }, 6000);
+    el.focus();
   }
 
-  showStep2Error(message) {
-    const el = document.getElementById('sched-step2-error');
-    el.textContent = message;
-    el.hidden = false;
-    setTimeout(() => { el.hidden = true; }, 6000);
+  clearStepError(elId) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.hidden = true;
+    el.innerHTML = '';
   }
+
+  showStep1Error(message, opts) { this.renderStepError('sched-step1-error', message, opts); }
+  showStep2Error(message, opts) { this.renderStepError('sched-step2-error', message, opts); }
 
   tr(key, fallback) {
     const t = (translations[currentLang] || translations.en)[key];
@@ -1195,6 +1298,7 @@ class ScheduleModal {
     this.whatsappGroup.hidden = method !== 'whatsapp';
     this.messengerGroup.hidden = method !== 'messenger';
     if (method !== 'whatsapp') this.whatsappNumberField.hidden = true;
+    if (method && this.contactMethodGroup) this.contactMethodGroup.removeAttribute('aria-invalid');
   }
 
   onWhatsappConnectedChange() {
@@ -1207,50 +1311,68 @@ class ScheduleModal {
   // method itself needs (email for Google Meet, phone for a callback, a
   // WhatsApp-connected number + consent for WhatsApp, a profile link +
   // consent for Messenger). Returns an error string, or '' if valid.
+  // Returns null when valid, or { message, code } describing the first rule
+  // violated. code === 'method_required' is the one case the submit handler
+  // treats specially (moves focus into the fieldset itself, per BUG-C) --
+  // every other case is a specific field the customer can see and fix.
   validateContactRules() {
     const email = this.emailInput.value.trim();
     const phone = this.phoneInput.value.trim();
     if (!email && !phone) {
-      return this.tr('sch.err.contactRequired', 'Please enter an email address or phone number so we can contact you.');
+      return { message: this.tr('sch.err.contactRequired', 'Please enter an email address or phone number so we can contact you.') };
     }
     if (!this.selectedMethod) {
-      return this.tr('sch.lbl.contactMethod', 'How would you like us to reach you?');
+      return { message: this.tr('sch.err.methodRequired', 'Please choose how you would like us to reach you.'), code: 'method_required' };
     }
     if (this.selectedMethod === 'email' && !email) {
-      return this.tr('sch.note.meetEmail', 'An email address is required so we can send your Google Meet invitation.');
+      return { message: this.tr('sch.note.meetEmail', 'An email address is required so we can send your Google Meet invitation.') };
     }
     if (this.selectedMethod === 'phone' && !phone) {
-      return this.tr('sch.lbl.phone', 'Phone Number');
+      return { message: this.tr('sch.lbl.phone', 'Phone Number') };
     }
     if (this.selectedMethod === 'whatsapp') {
       const connected = this.regForm.querySelector('[name="whatsappConnected"]:checked');
-      if (!connected) return this.tr('sch.lbl.whatsappConnected', 'Is this phone number also connected to WhatsApp?');
+      if (!connected) return { message: this.tr('sch.lbl.whatsappConnected', 'Is this phone number also connected to WhatsApp?') };
       if (connected.value === 'no' && !this.whatsappNumberInput.value.trim()) {
-        return this.tr('sch.lbl.whatsappNumber', 'WhatsApp Number');
+        return { message: this.tr('sch.lbl.whatsappNumber', 'WhatsApp Number') };
       }
       if (!this.whatsappConsentInput.checked) {
-        return this.tr('sch.lbl.whatsappConsent', 'Yes, LAVAALL may contact me on WhatsApp regarding this request.');
+        return { message: this.tr('sch.lbl.whatsappConsent', 'Yes, LAVAALL may contact me on WhatsApp regarding this request.') };
       }
     }
     if (this.selectedMethod === 'messenger') {
       if (!this.messengerProfileInput.value.trim()) {
-        return this.tr('sch.lbl.messengerProfile', 'Please provide your Facebook or Messenger profile link so our team can find the correct account.');
+        return { message: this.tr('sch.lbl.messengerProfile', 'Please provide your Facebook or Messenger profile link so our team can find the correct account.') };
       }
       if (!this.messengerConsentInput.checked) {
-        return this.tr('sch.lbl.messengerConsent', 'Yes, LAVAALL may contact me through Facebook Messenger regarding this request.');
+        return { message: this.tr('sch.lbl.messengerConsent', 'Yes, LAVAALL may contact me through Facebook Messenger regarding this request.') };
       }
     }
-    return '';
+    return null;
   }
 
   async handleRegister(e) {
     e.preventDefault();
+    this.clearStepError('sched-step1-error');
     if (!this.regForm.checkValidity()) { this.regForm.reportValidity(); return; }
     if (!this.checkHoneypot()) { console.log('Bot detected via honeypot'); return; }
     const contactError = this.validateContactRules();
-    if (contactError) { this.showStep1Error(contactError); return; }
+    if (contactError) {
+      this.showStep1Error(contactError.message, { showEmail: false });
+      if (contactError.code === 'method_required') {
+        // Never a silent return: mark the fieldset invalid, connect it to
+        // the visible error via aria-describedby (set once in markup), and
+        // move focus to the first available contact choice so keyboard and
+        // screen-reader users land exactly where the fix is needed.
+        this.contactMethodGroup.setAttribute('aria-invalid', 'true');
+        const firstRadio = this.contactMethodOptions.querySelector('input[type="radio"]');
+        if (firstRadio) firstRadio.focus(); else this.contactMethodGroup.focus();
+      }
+      return;
+    }
+    if (this.contactMethodGroup) this.contactMethodGroup.removeAttribute('aria-invalid');
     const rateCheck = ScheduleRateLimiter.checkLimit();
-    if (!rateCheck.allowed) { this.showStep1Error(rateCheck.message); return; }
+    if (!rateCheck.allowed) { this.showStep1Error(rateCheck.message, { showEmail: false }); return; }
 
     const f = this.regForm;
     let payload;
@@ -1280,22 +1402,30 @@ class ScheduleModal {
         sourcePage: location.pathname,
       };
     } catch (err) {
-      this.showStep1Error('Please check your email and phone number are entered correctly.');
+      console.error('Schedule payload build error:', err);
+      this.showStep1Error(this.tr('sch.err.notSaved', 'Your registration has not been saved. Please try again, or email us directly.'));
       return;
     }
 
+    // Client-side correlation id, logged locally only -- never shown to the
+    // customer, but lets a support agent match a console report to what we
+    // see without exposing any exception detail in the UI.
+    const requestId = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `sch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     this.regSubmitBtn.disabled = true;
-    this.regSubmitBtn.textContent = 'Sending...';
+    this.regSubmitBtn.textContent = this.tr('form.sending', 'Sending...');
 
     try {
       const response = await fetch('/api/schedule', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Request-Id': requestId },
         body: JSON.stringify({ action: 'register', ...payload }),
       });
       const body = await response.json().catch(() => ({}));
       if (response.ok && body.ok) {
         ScheduleRateLimiter.recordSubmission();
+        console.info(`[sch:${requestId}] registered`, body.leadId);
         this.lead = {
           leadId: body.leadId, token: body.token,
           firstName: payload.firstName,
@@ -1304,14 +1434,24 @@ class ScheduleModal {
           hasEmail: !!payload.email,
           phone: payload.phone || (payload.preferredContactMethod === 'whatsapp' ? payload.whatsappNumber : '') || '',
         };
+        // Only ever advance to Step 2 once the backend has confirmed the
+        // registration was actually saved (response.ok && body.ok above) --
+        // never on faith that the request merely went out (BUG-B).
         this.enterStep2();
       } else {
-        const message = (body.errors && body.errors.join(' ')) || body.message || 'Registration failed. Please try again.';
-        this.showStep1Error(message);
+        // Not saved. Never surface body.message or an exception verbatim --
+        // map the known backend error codes to translated, customer-safe
+        // copy, and only append body.errors (the backend's own intentional,
+        // user-facing validation reasons) as extra detail.
+        console.error(`[sch:${requestId}] registration failed`, response.status, body && body.error);
+        let messageKey = 'sch.err.notSaved';
+        if (body && body.error === 'scheduling_not_configured') messageKey = 'sch.err.notConfigured';
+        const details = (body && Array.isArray(body.errors)) ? body.errors : [];
+        this.showStep1Error(this.tr(messageKey, 'Your registration has not been saved. Please try again, or email us directly.'), { details });
       }
     } catch (error) {
-      console.error('Schedule registration error:', error);
-      this.showStep1Error('An error occurred. Please try again or email us directly.');
+      console.error(`[sch:${requestId}] network error`, error);
+      this.showStep1Error(this.tr('sch.err.network', "We couldn't reach our scheduler. Please check your connection and try again, or email us directly."));
     } finally {
       this.regSubmitBtn.disabled = false;
       const label = this.tr('sch.step1.submit', 'Continue to Select a Time &#8594;');
@@ -1348,7 +1488,7 @@ class ScheduleModal {
       const body = await response.json().catch(() => ({}));
       this.loadingEl.hidden = true;
       if (!response.ok || !body.ok) {
-        this.showStep2Error(body.message || 'Could not load availability. Please try another date.');
+        this.showStep2Error(this.tr('sch.err.availabilityFailed', 'Could not load availability. Please try another date.'), { showEmail: false });
         return;
       }
       const slots = body.slots || [];
@@ -1366,30 +1506,42 @@ class ScheduleModal {
     } catch (error) {
       console.error('Availability load error:', error);
       this.loadingEl.hidden = true;
-      this.showStep2Error('Could not load availability. Please try another date.');
+      this.showStep2Error(this.tr('sch.err.availabilityFailed', 'Could not load availability. Please try another date.'), { showEmail: false });
     }
   }
 
   async bookSlot(date, time, btnEl) {
     if (!this.lead) return;
+    this.clearStepError('sched-step2-error');
     Array.from(this.slotsEl.querySelectorAll('.sched-slot')).forEach(b => b.disabled = true);
+    const requestId = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `sch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     try {
       const response = await fetch('/api/schedule', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Request-Id': requestId },
         body: JSON.stringify({ action: 'book', leadId: this.lead.leadId, token: this.lead.token, date, time }),
       });
       const body = await response.json().catch(() => ({}));
       if (response.ok && body.ok) {
+        console.info(`[sch:${requestId}] booked`, date, time);
         this.showConfirmation(date, time, body);
       } else {
-        const message = body.message || (body.error === 'slot_taken' ? 'That time was just taken -- please pick another.' : 'Could not book that time. Please try another.');
-        this.showStep2Error(message);
+        // Never surface body.message verbatim -- distinguish the one case
+        // that matters to the customer (the slot they picked is gone, so
+        // pick another) from every other booking failure.
+        console.error(`[sch:${requestId}] booking failed`, response.status, body && body.error);
+        if (body && body.error === 'slot_taken') {
+          this.showStep2Error(this.tr('sch.err.slotTaken', 'That time was just taken. Please choose another available time below.'), { showEmail: false });
+        } else {
+          this.showStep2Error(this.tr('sch.err.notSaved', 'Your registration has not been saved. Please try again, or email us directly.'));
+        }
         this.loadAvailability(); // refresh in case the slot list is now stale
       }
     } catch (error) {
-      console.error('Booking error:', error);
-      this.showStep2Error('Could not reach the scheduler. Please try again.');
+      console.error(`[sch:${requestId}] booking network error`, error);
+      this.showStep2Error(this.tr('sch.err.network', "We couldn't reach our scheduler. Please check your connection and try again, or email us directly."));
     } finally {
       Array.from(this.slotsEl.querySelectorAll('.sched-slot')).forEach(b => b.disabled = false);
     }
@@ -1855,8 +2007,15 @@ const translations={
     'form.title':'Send an Inquiry',
     'form.note':'We will only contact you regarding this inquiry. No spam.',
     'form.submit':'Send Inquiry →',
+    'form.sending':'Sending...',
     'form.ok.h3':'Inquiry Received!',
     'form.ok.p':'The right LAVAALL team will contact you within 24 hours.',
+    'iq.err.title':'We couldn\'t submit your request',
+    'iq.err.notSubmitted':'Your information has not been submitted. Please try again, or email us directly.',
+    'iq.err.partial':'Your request was received, but we couldn\'t send the confirmation email. Our team can still review your request.',
+    'iq.err.rateLimited':'Please wait a moment before submitting again.',
+    'iq.err.network':'We couldn\'t reach our server. Please check your connection and try again, or email us directly.',
+    'iq.err.emailFallback':'Email us directly at',
     /* PERKS */
     'perk1':'Global equipment procurement &amp; sourcing',
     'perk2':'Professional on-site installation',
@@ -1965,6 +2124,14 @@ const translations={
     'sch.opt.contactMessenger':'Messenger',
     'sch.note.meetEmail':'An email address is required so we can send your Google Meet invitation.',
     'sch.err.contactRequired':'Please enter an email address or phone number so we can contact you.',
+    'sch.err.title':'We couldn\'t save your request',
+    'sch.err.notSaved':'Your registration has not been saved. Please try again, or email us directly.',
+    'sch.err.network':'We couldn\'t reach our scheduler. Please check your connection and try again, or email us directly.',
+    'sch.err.notConfigured':'Scheduling is temporarily unavailable. Please email us directly, or use Send an Inquiry.',
+    'sch.err.slotTaken':'That time was just taken. Please choose another available time below.',
+    'sch.err.availabilityFailed':'Could not load availability. Please try another date.',
+    'sch.err.methodRequired':'Please choose how you would like us to reach you.',
+    'sch.err.emailFallback':'Email us directly at',
     'sch.lbl.whatsappConnected':'Is this phone number also connected to WhatsApp?',
     'sch.opt.yes':'Yes',
     'sch.opt.no':'No',
@@ -2135,6 +2302,13 @@ const translations={
     'form.title':'Envoyer une Demande',
     'form.note':'Nous vous contacterons uniquement au sujet de cette demande. Pas de spam.',
     'form.submit':'Envoyer la Demande →',
+    'form.sending':'Envoi en cours...',
+    'iq.err.title':'Nous n\'avons pas pu envoyer votre demande',
+    'iq.err.notSubmitted':'Vos informations n\'ont pas été envoyées. Veuillez réessayer, ou nous écrire directement par e-mail.',
+    'iq.err.partial':'Votre demande a bien été reçue, mais nous n\'avons pas pu envoyer l\'e-mail de confirmation. Notre équipe peut tout de même la traiter.',
+    'iq.err.rateLimited':'Veuillez patienter un instant avant de soumettre à nouveau.',
+    'iq.err.network':'Nous n\'avons pas pu joindre notre serveur. Vérifiez votre connexion et réessayez, ou écrivez-nous directement.',
+    'iq.err.emailFallback':'Écrivez-nous directement à',
     'form.ok.h3':'Demande Reçue !',
     'form.ok.p':'L\'équipe LAVAALL compétente vous contactera sous 24 heures.',
     /* PERKS */
@@ -2245,6 +2419,14 @@ const translations={
     'sch.opt.contactMessenger':'Messenger',
     'sch.note.meetEmail':'Une adresse e-mail est requise pour vous envoyer votre invitation Google Meet.',
     'sch.err.contactRequired':'Veuillez indiquer une adresse e-mail ou un numéro de téléphone afin que nous puissions vous contacter.',
+    'sch.err.title':'Nous n\'avons pas pu enregistrer votre demande',
+    'sch.err.notSaved':'Votre inscription n\'a pas été enregistrée. Veuillez réessayer, ou nous écrire directement par e-mail.',
+    'sch.err.network':'Nous n\'avons pas pu joindre notre système de planification. Vérifiez votre connexion et réessayez, ou écrivez-nous directement.',
+    'sch.err.notConfigured':'La prise de rendez-vous est temporairement indisponible. Veuillez nous écrire directement, ou utiliser Envoyer une Demande.',
+    'sch.err.slotTaken':'Ce créneau vient d\'être pris. Veuillez en choisir un autre ci-dessous.',
+    'sch.err.availabilityFailed':'Impossible de charger les disponibilités. Veuillez essayer une autre date.',
+    'sch.err.methodRequired':'Veuillez choisir comment vous souhaitez que nous vous contactions.',
+    'sch.err.emailFallback':'Écrivez-nous directement à',
     'sch.lbl.whatsappConnected':'Ce numéro de téléphone est-il également connecté à WhatsApp ?',
     'sch.opt.yes':'Oui',
     'sch.opt.no':'Non',
@@ -2415,6 +2597,13 @@ const translations={
     'form.title':'Sɛn Wan Inkwayri',
     'form.note':'Wi go ɔnli kɔntakt unu abɔt dis inkwayri. No spɛm.',
     'form.submit':'Sen Inkwayri →',
+    'form.sending':'I De Sɛn...',
+    'iq.err.title':'Wi Nɔ Ebul Sɛn Yu Rikwɛst',
+    'iq.err.notSubmitted':'Yu infɔmeshɔn nɔ dɔn sɛn. Duya tray egen, ɔ rayt wi direkt bay imel.',
+    'iq.err.partial':'Wi dɔn risiv yu rikwɛst, bɔt wi nɔ ebul sɛn di kɔnfɔmeshɔn imel. Wi tim go stil ebul chɛk yu rikwɛst.',
+    'iq.err.rateLimited':'Duya wet wan lil bit bifo yu sɔbmit egen.',
+    'iq.err.network':'Wi nɔ ebul rich wi sava. Chɛk yu kɔnɛkshɔn ɛn tray egen, ɔ rayt wi direkt.',
+    'iq.err.emailFallback':'Rayt wi direkt na',
     'form.ok.h3':'Inkwayri Risiivd!',
     'form.ok.p':'Di rait LAVAALL tim go kɔntakt unu insay 24 awa.',
     /* PERKS */
@@ -2525,6 +2714,14 @@ const translations={
     'sch.opt.contactMessenger':'Mɛsenja',
     'sch.note.meetEmail':'Wi nid wan imel adres fɔ sɛn yu Google Meet invitayshɔn.',
     'sch.err.contactRequired':'Duya put wan imel adres ɔ fon nɔmba mek wi go ebul kɔntakt yu.',
+    'sch.err.title':'Wi Nɔ Ebul Sev Yu Rikwɛst',
+    'sch.err.notSaved':'Yu rejistreshɔn nɔ dɔn sev. Duya tray egen, ɔ rayt wi direkt bay imel.',
+    'sch.err.network':'Wi nɔ ebul rich wi skedul sistɛm. Chɛk yu kɔnɛkshɔn ɛn tray egen, ɔ rayt wi direkt.',
+    'sch.err.notConfigured':'Skedulin nɔ de wok naw naw. Duya rayt wi direkt, ɔ yuz Sɛn Wan Inkwayri.',
+    'sch.err.slotTaken':'Dat tɛm dɔn tek finish. Duya pik anɔda tɛm we de below.',
+    'sch.err.availabilityFailed':'Wi nɔ ebul lod di tɛm dɛn we de available. Duya tray anɔda de.',
+    'sch.err.methodRequired':'Duya pik aw yu want mek wi rich yu.',
+    'sch.err.emailFallback':'Rayt wi direkt na',
     'sch.lbl.whatsappConnected':'Dis fon nɔmba kɔnɛkt to WhatsApp tu?',
     'sch.opt.yes':'Yes',
     'sch.opt.no':'No',
@@ -2583,11 +2780,21 @@ function setLang(l){
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const k = el.getAttribute('data-i18n');
     if(tr[k] !== undefined) {
+      // Translation strings never include the hand-authored "required"
+      // asterisk (translating "*" per language makes no sense), but the
+      // static markup puts it as a trailing <span class="req"> inside the
+      // very label/legend this loop overwrites. Save it and re-append it
+      // after the translated text is applied, or every required-field
+      // indicator on the page disappears the moment setLang() runs (it
+      // runs on every load, via setLang('en') at init) -- exactly the
+      // "silent, color-only" required marker BUG-C is meant to prevent.
+      const reqMarker = el.querySelector(':scope > .req');
       if(typeof DOMPurify !== 'undefined') {
         el.innerHTML = DOMPurify.sanitize(tr[k]);
       } else {
         el.textContent = tr[k];
       }
+      if (reqMarker) el.appendChild(reqMarker);
     }
   });
   
@@ -2858,11 +3065,11 @@ document.addEventListener('DOMContentLoaded', function() {
 </select>
 </div>
 
-<div class="fg" id="sched-contact-method-group" hidden>
-<label data-i18n="sch.lbl.contactMethod">How would you like us to reach you?<span class="req" aria-hidden="true">*</span></label>
+<fieldset class="fg" id="sched-contact-method-group" aria-describedby="sched-step1-error" tabindex="-1" hidden>
+<legend data-i18n="sch.lbl.contactMethod">How would you like us to reach you?<span class="req" aria-hidden="true">*</span></legend>
 <div id="sched-contact-method-options" class="sched-radio-group" role="radiogroup" aria-label="Preferred contact method"></div>
 <p class="fnote" id="sched-meet-note" data-i18n="sch.note.meetEmail" hidden>An email address is required so we can send your Google Meet invitation.</p>
-</div>
+</fieldset>
 
 <div id="sched-whatsapp-group" hidden>
 <div class="fg">
@@ -2905,7 +3112,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </label>
 </div>
 <button type="submit" class="fsub" id="sched-reg-submit" data-i18n="sch.step1.submit">Continue to Select a Time &#8594;</button>
-<div class="error-message" id="sched-step1-error" hidden></div>
+<div class="form-error-summary" id="sched-step1-error" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
 </form>
 </div>
 
@@ -2919,7 +3126,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="sched-loading" data-i18n="sch.loading" hidden>Loading available times...</div>
 <div id="sched-slots" class="sched-slots" role="group" aria-label="Available times"></div>
 <div id="sched-slots-empty" class="fnote" data-i18n="sch.noSlots" hidden>No available times on this date. Please try another date.</div>
-<div class="error-message" id="sched-step2-error" hidden></div>
+<div class="form-error-summary" id="sched-step2-error" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
 <button type="button" class="sched-back" id="sched-back-btn" data-i18n="sch.step2.back">&#8592; Back</button>
 </div>
 

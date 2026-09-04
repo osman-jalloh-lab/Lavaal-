@@ -281,9 +281,11 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .ftitle{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:600;margin-bottom:22px;color:var(--ink);}
 .fg{margin-bottom:14px;}
 .fg label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fg fieldset{border:none;margin:0;padding:0;}
+.fg legend{display:block;width:100%;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;padding:0;}
+.fg fieldset[aria-invalid="true"] .sched-radio-group{outline:2px solid #d92c2c;outline-offset:4px;border-radius:8px;}
 .fg input,.fg select,.fg textarea{width:100%;padding:11px 14px;background:var(--offwhite);border:2px solid rgba(10,10,20,.1);border-radius:10px;color:var(--ink);font-family:'Bricolage Grotesque',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;}
 .fg input[type="checkbox"],.fg input[type="radio"]{width:auto;padding:0;background:none;border:none;border-radius:0;appearance:auto;accent-color:var(--sky);cursor:pointer;}
-.fg input[type="checkbox"]:focus-visible,.fg input[type="radio"]:focus-visible{outline:3px solid var(--sky);outline-offset:3px;border-radius:4px;}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(0,194,255,.1);}
 .fg textarea{resize:vertical;min-height:80px;}
 .fgrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -298,6 +300,15 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 /* Error message styling */
 .error-message{background:#ff5c5c;color:white;padding:12px 20px;border-radius:8px;margin:12px 0;font-size:14px;font-weight:500;animation:slideIn .3s ease;}
 @keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+/* Accessible, persistent error summary for form submission failures (inquiry
+   form + schedule registration). Stays visible until the user retries
+   successfully or dismisses it by resubmitting -- never auto-hides, since a
+   failure the user might miss defeats the point. */
+.form-error-summary{background:#fff1f0;border:2px solid #d92c2c;color:#7a1414;padding:14px 18px;border-radius:8px;margin:0 0 16px;font-size:14px;line-height:1.5;animation:slideIn .3s ease;}
+.form-error-summary:focus{outline:3px solid #d92c2c;outline-offset:2px;}
+.form-error-summary strong{display:block;font-size:15px;margin-bottom:4px;}
+.form-error-summary ul{margin:8px 0 0;padding-left:20px;}
+.form-error-summary a{color:#7a1414;font-weight:600;text-decoration:underline;}
 /* SCHEDULE A CALL modal -- reuses .pgal-overlay/.pgal-backdrop/.pgal-panel/
    .pgal-close chrome (single-column override below) so it matches the
    product-quote modal instead of introducing a new visual pattern. */
