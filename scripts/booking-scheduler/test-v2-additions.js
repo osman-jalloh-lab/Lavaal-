@@ -55,6 +55,40 @@ check('SHEET_DEFS covers all 9 required worksheets', SHEET_DEFS.length === 9 &&
   ['All Requests', 'Scheduling Leads', 'Call Bookings', 'Sales & Quotes', 'Customer Support', 'Orders', 'Partnerships', 'General Inquiries', 'System Errors']
     .every(name => SHEET_DEFS.some(d => d.name === name)));
 
+// --- resolveBookingCalendarId: pass "primary" / configured id through literally ---
+check('resolveBookingCalendarId defaults empty/null to primary',
+  resolveBookingCalendarId(null) === 'primary' && resolveBookingCalendarId('') === 'primary' && resolveBookingCalendarId('   ') === 'primary');
+check('resolveBookingCalendarId keeps literal primary', resolveBookingCalendarId('primary') === 'primary');
+check('resolveBookingCalendarId keeps an explicit calendar id',
+  resolveBookingCalendarId('team@lavaall.com') === 'team@lavaall.com');
+check('calendarIdForAdvancedApi source does not translate primary via getActiveUser',
+  src.indexOf('Session.getActiveUser()') === -1 &&
+  src.indexOf('function calendarIdForAdvancedApi()') !== -1 &&
+  src.indexOf('return resolveBookingCalendarId(') !== -1);
+
+// --- combinedNotificationStatus: All Requests Sent / Failed / N/A ---
+check('combinedNotificationStatus Sent+Sent = Sent',
+  combinedNotificationStatus('Sent', 'Sent') === 'Sent');
+check('combinedNotificationStatus Failed wins over Sent',
+  combinedNotificationStatus('Sent', 'Failed') === 'Failed' &&
+  combinedNotificationStatus('Failed', 'Sent') === 'Failed');
+check('combinedNotificationStatus N/A + Sent = Sent',
+  combinedNotificationStatus('Not Applicable (no email provided)', 'Sent') === 'Sent');
+check('combinedNotificationStatus N/A + Failed = Failed',
+  combinedNotificationStatus('Not Applicable (no email provided)', 'Failed') === 'Failed');
+check('combinedNotificationStatus N/A + N/A = Not Applicable',
+  combinedNotificationStatus('Not Applicable (no email provided)', 'Not Applicable (no email provided)') === 'Not Applicable');
+check('combinedNotificationStatus leftover Pending stays Pending',
+  combinedNotificationStatus('Pending', 'Pending') === 'Pending');
+check('handleRegister and handleBook sync All Requests Notification Status',
+  src.indexOf("updateAllRequestsStatus(leadId, 'Registration Received', combinedNotificationStatus") !== -1 &&
+  src.indexOf("combinedNotificationStatus(customerNotifyStatus, internalNotifyStatus)") !== -1 &&
+  /updateAllRequestsStatus\(\s*lead\.values\['Scheduling Lead ID'\],\s*'Scheduled',\s*combinedNotificationStatus/.test(src));
+check('phone-only bookings still skip Meet creation',
+  src.indexOf("var wantsMeet = method === 'email';") !== -1 &&
+  src.indexOf('? createMeetEvent(') !== -1 &&
+  src.indexOf(': createPlainEvent(') !== -1);
+
 let failed = 0;
 for (const r of results) {
   console.log((r.pass ? 'PASS' : 'FAIL') + ' - ' + r.name);

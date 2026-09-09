@@ -294,11 +294,14 @@ function handleRegister(payload) {
   var teamNotifyOk = safeSendEmail(inbox, 'New scheduling registration: ' + fullName,
     teamBodyLines.join('\n'), email ? { replyTo: email } : undefined);
 
+  var customerNotifyStatus = hasEmail ? (custNotifyOk ? 'Sent' : 'Failed') : 'Not Applicable (no email provided)';
+  var internalNotifyStatus = teamNotifyOk ? 'Sent' : 'Failed';
   updateRowStatusFields(sheetRowIndex, {
-    'Customer Notification Status': hasEmail ? (custNotifyOk ? 'Sent' : 'Failed') : 'Not Applicable (no email provided)',
+    'Customer Notification Status': customerNotifyStatus,
     'Scheduling Link Status': hasEmail ? (custNotifyOk ? 'Sent' : 'Failed') : 'Not Applicable (no email provided)',
-    'Internal Notification Status': teamNotifyOk ? 'Sent' : 'Failed',
+    'Internal Notification Status': internalNotifyStatus,
   });
+  updateAllRequestsStatus(leadId, 'Registration Received', combinedNotificationStatus(customerNotifyStatus, internalNotifyStatus));
 
   return jsonOut({ ok: true, leadId: leadId, token: token, tokenExpiration: expiry.toISOString(), timezone: TIMEZONE, hasEmail: hasEmail });
 }
@@ -365,14 +368,20 @@ function handleBook(payload) {
     var teamOk = safeSendEmail(inbox, 'New call booked: ' + fullName + ' — ' + whenStr,
       'A call was booked.\n\nWhen: ' + whenStr + '\n' + descLines.join('\n'), hasEmail ? { replyTo: lead.values['Email'] } : undefined);
 
+    var customerNotifyStatus = hasEmail ? (custOk ? 'Sent' : 'Failed') : 'Not Applicable (no email provided)';
+    var internalNotifyStatus = teamOk ? 'Sent' : 'Failed';
     updateRowStatusFields(lead.rowIndex, {
       'Booking Status': 'Scheduled',
       'Appointment Date': payload.date, 'Appointment Time': payload.time, 'Appointment Timezone': TIMEZONE,
       'Calendar Event ID': created.eventId, 'Google Meet Link': created.meetLink || '',
-      'Customer Notification Status': hasEmail ? (custOk ? 'Sent' : 'Failed') : 'Not Applicable (no email provided)',
-      'Internal Notification Status': teamOk ? 'Sent' : 'Failed',
+      'Customer Notification Status': customerNotifyStatus,
+      'Internal Notification Status': internalNotifyStatus,
     });
-    updateAllRequestsStatus(lead.values['Scheduling Lead ID'], 'Scheduled');
+    updateAllRequestsStatus(
+      lead.values['Scheduling Lead ID'],
+      'Scheduled',
+      combinedNotificationStatus(customerNotifyStatus, internalNotifyStatus)
+    );
 
     return jsonOut({ ok: true, start: start.toISOString(), end: end.toISOString(), timezone: TIMEZONE, meetLink: created.meetLink || null });
   } finally {
@@ -436,13 +445,25 @@ function createPlainEvent(title, start, end, description, guestEmail) {
   return { eventId: event.getId(), meetLink: '' };
 }
 
+function resolveBookingCalendarId(configuredId) {
+  var id = String(configuredId == null ? '' : configuredId).trim();
+  return id || 'primary';
+}
+
 function calendarIdForAdvancedApi() {
-  var id = PropertiesService.getScriptProperties().getProperty('BOOKING_CALENDAR_ID') || 'primary';
-  return id === 'primary' ? Session.getActiveUser().getEmail() : id;
+  // Calendar.Events.insert accepts "primary" (and any real calendar id) as-is.
+  // Do NOT translate "primary" through the active-user email: in a Web App
+  // deployed Execute as Me / Who has access Anyone, that email is empty and
+  // Events.insert then fails with Not Found for most bookings.
+  return resolveBookingCalendarId(
+    PropertiesService.getScriptProperties().getProperty('BOOKING_CALENDAR_ID')
+  );
 }
 
 function getCalendar() {
-  var id = PropertiesService.getScriptProperties().getProperty('BOOKING_CALENDAR_ID') || 'primary';
+  var id = resolveBookingCalendarId(
+    PropertiesService.getScriptProperties().getProperty('BOOKING_CALENDAR_ID')
+  );
   return id === 'primary' ? CalendarApp.getDefaultCalendar() : CalendarApp.getCalendarById(id);
 }
 
@@ -586,14 +607,39 @@ function updateRowStatusFields(rowIndex, fields) {
   });
 }
 
-function updateAllRequestsStatus(requestId, status) {
+function combinedNotificationStatus(customerStatus, internalStatus) {
+  var values = [customerStatus, internalStatus];
+  var sawFailed = false;
+  var sawSent = false;
+  var sawApplicable = false;
+  for (var i = 0; i < values.length; i++) {
+    var raw = String(values[i] || '').trim();
+    if (!raw) continue;
+    var lowered = raw.toLowerCase();
+    if (lowered.indexOf('not applicable') === 0) continue;
+    sawApplicable = true;
+    if (lowered.indexOf('failed') === 0) sawFailed = true;
+    else if (lowered.indexOf('sent') === 0) sawSent = true;
+  }
+  if (sawFailed) return 'Failed';
+  if (sawSent) return 'Sent';
+  if (!sawApplicable) return 'Not Applicable';
+  return 'Pending';
+}
+
+function updateAllRequestsStatus(requestId, status, notificationStatus) {
   var ss = getOrCreateSpreadsheet();
   var sheet = ss.getSheetByName('All Requests');
   var data = sheet.getDataRange().getValues();
   var idCol = data[0].indexOf('Request ID');
   var statusCol = data[0].indexOf('Status');
+  var notifyCol = data[0].indexOf('Notification Status');
   for (var r = 1; r < data.length; r++) {
-    if (data[r][idCol] === requestId) { sheet.getRange(r + 1, statusCol + 1).setValue(status); return; }
+    if (data[r][idCol] === requestId) {
+      if (status && statusCol >= 0) sheet.getRange(r + 1, statusCol + 1).setValue(sanitizeForSheet(status));
+      if (notificationStatus && notifyCol >= 0) sheet.getRange(r + 1, notifyCol + 1).setValue(sanitizeForSheet(notificationStatus));
+      return;
+    }
   }
 }
 
