@@ -25,6 +25,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/", "destination": "/index.html" }
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/schedule", "destination": "/index.html" }
   ]
 }
