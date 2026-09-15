@@ -9,7 +9,14 @@ const lib = require(path.join(slackDir, '_lib.js'));
 const events = require(path.join(slackDir, 'events.js'));
 const commands = require(path.join(slackDir, 'commands.js'));
 const interactions = require(path.join(slackDir, 'interactions.js'));
-const { classify, isConnected } = require(path.join(slackDir, '_router/classify.js'));
+const {
+  AGENT_REGISTRY,
+  COUNCIL_SKILLS,
+  GROK_SPECIALIST_IDS,
+  MODE_COUNCIL,
+  classify,
+  isConnected,
+} = require(path.join(slackDir, '_router/classify.js'));
 const { STATUSES, needsApproval, isStatus } = require(path.join(slackDir, '_router/status.js'));
 const { ACTION_IDS } = require(path.join(slackDir, '_router/approval.js'));
 const { DEFAULT_HANDOFF_CHANNEL, SLACK_POST_MESSAGE, formatLavalTaskFence, buildHandoffPayload } = require(path.join(slackDir, '_router/bridge.js'));
@@ -28,6 +35,16 @@ function mockRes() {
     return res;
   };
   return res;
+}
+
+function parseLavalTaskFence(text) {
+  const match = String(text || '').match(/```LAVAALL_TASK\n([\s\S]*?)\n```/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
 }
 
 function sign(secret, timestamp, rawBody) {
@@ -331,6 +348,86 @@ async function run() {
     check('status registry has L0–L4 pipeline names', names.every((name) => STATUSES[name] === name && isStatus(name)));
   }
 
+  // --- Council / group mode ---
+  {
+    const council = classify({ text: 'council review the Accra launch', source: 'slash_command' });
+    check('council lead is lavaall-ceo', council.leadAgent === 'lavaall-ceo' && council.mode === MODE_COUNCIL && council.verb === 'council');
+    check('council helpers are all CONNECTED Grok specialists', GROK_SPECIALIST_IDS.every((id) => council.helperAgents.includes(id)));
+    check('council helpers omit UNAVAILABLE APIs by default', !council.helperAgents.some((h) => /claude-api|chatgpt-api|grok-xai-api/.test(String(h))));
+    check('council skills are grill-founder, research-primary, decision-log', COUNCIL_SKILLS.every((s) => council.skills.includes(s)));
+    check('council default risk is L1–L2', council.risk === 'L1' || council.risk === 'L2');
+    check('council does not require approval by default', needsApproval(council.risk) === false);
+  }
+  {
+    const samples = [
+      'deliberate the supplier strategy',
+      'debate pricing with specialists',
+      'all-hands on the catalog',
+      'all hands on the catalog',
+      'everyone review the Accra launch',
+      'ask the team about next week',
+    ];
+    const allCouncil = samples.every((text) => {
+      const result = classify({ text, source: 'slash_command' });
+      return result.mode === MODE_COUNCIL && result.leadAgent === 'lavaall-ceo' && GROK_SPECIALIST_IDS.every((id) => result.helperAgents.includes(id));
+    });
+    check('council verbs/keywords fan out to connected specialists', allCouncil);
+  }
+  {
+    const bumped = classify({ text: 'council deploy production', source: 'slash_command' });
+    check('council + deploy stays L3 approval', bumped.mode === MODE_COUNCIL && bumped.risk === 'L3' && needsApproval(bumped.risk) === true && bumped.leadAgent === 'lavaall-ceo');
+  }
+  {
+    const l4 = classify({ text: 'council delete production secrets', source: 'slash_command' });
+    check('council + secret/delete stays L4', l4.mode === MODE_COUNCIL && l4.risk === 'L4' && needsApproval(l4.risk) === true);
+  }
+  {
+    const prevAnthropic = process.env.ANTHROPIC_API_KEY;
+    const prevOpenAI = process.env.OPENAI_API_KEY;
+    process.env.ANTHROPIC_API_KEY = 'present';
+    process.env.OPENAI_API_KEY = 'present';
+    const council = classify({ text: 'council review', source: 'slash_command' });
+    const claude = AGENT_REGISTRY.agents.find((a) => a.id === 'claude-api');
+    const chatgpt = AGENT_REGISTRY.agents.find((a) => a.id === 'chatgpt-api');
+    check('ANTHROPIC_API_KEY adds claude-api as CONNECTED helper', council.helperAgents.includes('claude-api'));
+    check('OPENAI_API_KEY adds chatgpt-api as CONNECTED helper', council.helperAgents.includes('chatgpt-api'));
+    check('registry JSON still marks claude-api UNAVAILABLE', !!(claude && claude.status === 'UNAVAILABLE'));
+    check('registry JSON still marks chatgpt-api UNAVAILABLE', !!(chatgpt && chatgpt.status === 'UNAVAILABLE'));
+    const mentioned = classify({ text: 'use claude to research the Accra market', source: 'slash_command' });
+    check('env-connected claude-api is still never lead', mentioned.leadAgent === 'lavaall-ceo' && mentioned.helperAgents.includes('claude-api'));
+    if (prevAnthropic === undefined) delete process.env.ANTHROPIC_API_KEY;
+    else process.env.ANTHROPIC_API_KEY = prevAnthropic;
+    if (prevOpenAI === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = prevOpenAI;
+  }
+
+  // --- Tighter non-council routing ---
+  {
+    const sales = classify({ text: 'customer order from the supplier', source: 'slash_command' });
+    check('order/customer/supplier → sales lead', sales.leadAgent === 'sales' && sales.area === 'sales' && sales.mode !== MODE_COUNCIL);
+  }
+  {
+    const tech = classify({ text: 'vercel repo api bug in the importer', source: 'slash_command' });
+    check('vercel/repo/api/bug → technical lead', tech.leadAgent === 'technical' && tech.area === 'technical');
+  }
+  {
+    const life = classify({ text: 'email klaviyo journey for retention', source: 'slash_command' });
+    check('klaviyo/journey/retention lead is ceo', life.leadAgent === 'lavaall-ceo' && life.area === 'lifecycle');
+    check('lifecycle stays a helper when it is the only specialist', life.helperAgents.includes('lifecycle'));
+  }
+  {
+    const growth = classify({ text: 'social ugc for the phones category', source: 'slash_command' });
+    check('social/ugc → growth lead', growth.leadAgent === 'growth' && growth.area === 'growth' && needsApproval(growth.risk) === false);
+  }
+  {
+    const researchCeo = classify({ text: 'research supplier lead times', source: 'slash_command' });
+    check('research + supplier stays ceo unless clearly sales', researchCeo.leadAgent === 'lavaall-ceo' && researchCeo.verb === 'research' && researchCeo.area === 'ceo');
+  }
+  {
+    const auditCeo = classify({ text: 'audit the catalog images', source: 'slash_command' });
+    check('audit/qa without sales/tech stays ceo', auditCeo.leadAgent === 'lavaall-ceo' && auditCeo.verb === 'audit');
+  }
+
   // --- Ticket 03–04: /lavaall research routes; deploy asks approval ---
   {
     fetchCalls.length = 0;
@@ -577,6 +674,68 @@ async function run() {
     const fence = formatLavalTaskFence(payload);
     check('handoff payload has required LAVAALL_TASK fields', !!(payload.id && payload.text && payload.verb && payload.risk && payload.lead && Array.isArray(payload.helpers) && Array.isArray(payload.skills) && payload.channel && payload.thread_ts && payload.user));
     check('LAVAALL_TASK fence is labeled JSON', fence.startsWith('```LAVAALL_TASK') && fence.includes('"lead": "lavaall-ceo"'));
+  }
+
+  // --- Council slash command posts one LAVAALL_TASK with mode + helpers ---
+  {
+    fetchCalls.length = 0;
+    process.env.SLACK_BOT_TOKEN = 'xoxb-test-token';
+    lib.resetRecordedTasks();
+    const order = [];
+    const prevFetch = global.fetch;
+    global.fetch = async (url, opts) => {
+      order.push('fetch');
+      return prevFetch(url, opts);
+    };
+    const res = mockRes();
+    const origSend = res.send.bind(res);
+    res.send = (b) => {
+      order.push('send');
+      return origSend(b);
+    };
+    await commands(signedReq({
+      rawBody: 'command=%2Flavaall&text=council+review+the+Accra+launch&user_id=U1&channel_id=C1',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    }), res);
+    global.fetch = prevFetch;
+    const task = lib.getRecordedTasks().find((t) => t.kind === 'slash_command');
+    const payload = parseLavalTaskFence(fetchCalls[0] && fetchCalls[0].body && fetchCalls[0].body.text);
+    check('/lavaall council HTTP 200', res.statusCode === 200);
+    check('/lavaall council founder ack names ceo + helpers', !!(res.body && /Routed to lavaall-ceo/.test(res.body.text) && /helpers sales, technical, lifecycle, growth/.test(res.body.text)));
+    check('/lavaall council posts one LAVAALL_TASK', fetchCalls.length === 1 && fetchCalls[0].url === SLACK_POST_MESSAGE);
+    check('/lavaall council fence mode is council', !!(payload && payload.mode === MODE_COUNCIL && payload.lead === 'lavaall-ceo' && payload.verb === 'council'));
+    check('/lavaall council fence lists connected helpers', !!(payload && GROK_SPECIALIST_IDS.every((id) => payload.helpers.includes(id))));
+    check('/lavaall council fence keeps full text', !!(payload && payload.text === 'council review the Accra launch'));
+    check('/lavaall council handoff completes before ephemeral ack', order.indexOf('fetch') > -1 && order.indexOf('send') > -1 && order.indexOf('fetch') < order.indexOf('send'));
+    check('/lavaall council task ends BRIDGED', task && task.status === STATUSES.BRIDGED && task.mode === MODE_COUNCIL);
+    delete process.env.SLACK_BOT_TOKEN;
+  }
+  {
+    fetchCalls.length = 0;
+    process.env.SLACK_BOT_TOKEN = 'xoxb-test-token';
+    lib.resetRecordedTasks();
+    const res = mockRes();
+    await commands(signedReq({
+      rawBody: 'command=%2Flavaall&text=deliberate+the+Accra+launch&user_id=U1&channel_id=C1',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    }), res);
+    const payload = parseLavalTaskFence(fetchCalls[0] && fetchCalls[0].body && fetchCalls[0].body.text);
+    check('/lavaall deliberate is council mode', !!(payload && payload.mode === MODE_COUNCIL && payload.lead === 'lavaall-ceo' && GROK_SPECIALIST_IDS.every((id) => payload.helpers.includes(id))));
+    delete process.env.SLACK_BOT_TOKEN;
+  }
+  {
+    fetchCalls.length = 0;
+    process.env.SLACK_BOT_TOKEN = 'xoxb-test-token';
+    lib.resetRecordedTasks();
+    const res = mockRes();
+    await commands(signedReq({
+      rawBody: 'command=%2Flavaall&text=council+deploy+production&user_id=U1&channel_id=C1',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    }), res);
+    const task = lib.getRecordedTasks().find((t) => t.kind === 'slash_command');
+    check('/lavaall council deploy does not bridge yet', fetchCalls.length === 0 && res.statusCode === 200);
+    check('/lavaall council deploy is AWAITING_APPROVAL', task && task.status === STATUSES.AWAITING_APPROVAL && task.risk === 'L3' && task.mode === MODE_COUNCIL);
+    delete process.env.SLACK_BOT_TOKEN;
   }
 
   global.fetch = origFetch;

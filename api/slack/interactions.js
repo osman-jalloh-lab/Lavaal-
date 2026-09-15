@@ -29,6 +29,7 @@ function resolveTaskFromAction(action, payload) {
           leadAgent: fromValue.lead,
           helperAgents: fromValue.helpers || [],
           skills: fromValue.skills || [],
+          mode: fromValue.mode,
         },
       });
     }
@@ -40,6 +41,7 @@ function resolveTaskFromAction(action, payload) {
       leadAgent: fromValue.lead,
       helperAgents: fromValue.helpers || [],
       skills: fromValue.skills || [],
+      mode: fromValue.mode,
       channelId: fromValue.channel || actionChannelId(payload),
       thread_ts: fromValue.thread_ts || '',
       userId: fromValue.user || actionUserId(payload),
@@ -49,6 +51,7 @@ function resolveTaskFromAction(action, payload) {
         leadAgent: fromValue.lead,
         helperAgents: fromValue.helpers || [],
         skills: fromValue.skills || [],
+        mode: fromValue.mode,
       },
     };
   }

@@ -19,7 +19,7 @@
     "delete": ["security"],
     "ship": ["ship"],
     "deploy": ["ship"],
-    "council": ["council", "decision"],
+    "council": ["grill-founder", "research-primary", "decision-log"],
     "decision": ["council", "decision"],
     "quote": ["quote", "crm", "sales"],
     "crm": ["quote", "crm", "sales"],

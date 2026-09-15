@@ -16,7 +16,7 @@ function handoffChannel() {
 
 function buildHandoffPayload(taskLike) {
   const classification = taskLike.classification || {};
-  return {
+  const payload = {
     id: taskLike.id,
     text: taskLike.text || '',
     verb: taskLike.verb || classification.verb || '',
@@ -28,6 +28,9 @@ function buildHandoffPayload(taskLike) {
     thread_ts: taskLike.thread_ts || taskLike.ts || '',
     user: taskLike.user || taskLike.userId || '',
   };
+  const mode = taskLike.mode || classification.mode;
+  if (mode) payload.mode = mode;
+  return payload;
 }
 
 function formatLavalTaskFence(payload) {
@@ -45,9 +48,13 @@ function formatHandoffText(payload) {
 function founderAckText(classification, taskId) {
   const helpers = Array.isArray(classification.helperAgents) ? classification.helperAgents : [];
   const disconnected = helpers.filter((h) => String(h).includes('NOT CONNECTED') || String(h).includes('NOT_INVOKEABLE'));
-  const base = `Routed to ${classification.leadAgent} · risk ${classification.risk} · task ${taskId}`;
-  if (!disconnected.length) return base;
-  return `${base} · ${disconnected.join(', ')}`;
+  const parts = [`Routed to ${classification.leadAgent} · risk ${classification.risk} · task ${taskId}`];
+  if (classification.mode === 'council') {
+    const connected = helpers.filter((h) => !String(h).includes('NOT CONNECTED') && !String(h).includes('NOT_INVOKEABLE'));
+    if (connected.length) parts.push(`helpers ${connected.join(', ')}`);
+  }
+  if (disconnected.length) parts.push(disconnected.join(', '));
+  return parts.join(' · ');
 }
 
 async function slackPostMessage({ channel, text, thread_ts, blocks }) {
