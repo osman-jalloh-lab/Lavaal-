@@ -1,0 +1,32 @@
+{
+  "byVerb": {
+    "research": ["research", "source"],
+    "source": ["research", "source"],
+    "build": ["build"],
+    "code": ["build"],
+    "bug": ["build", "audit", "qa"],
+    "audit": ["audit", "qa"],
+    "qa": ["audit", "qa"],
+    "spec": ["spec", "tickets"],
+    "tickets": ["spec", "tickets"],
+    "draft": ["spec", "tickets"],
+    "brand": ["brand"],
+    "creative": ["brand"],
+    "ugc": ["brand"],
+    "handoff": ["handoff"],
+    "security": ["security"],
+    "secret": ["security"],
+    "delete": ["security"],
+    "ship": ["ship"],
+    "deploy": ["ship"],
+    "council": ["council", "decision"],
+    "decision": ["council", "decision"],
+    "quote": ["quote", "crm", "sales"],
+    "crm": ["quote", "crm", "sales"],
+    "sales": ["quote", "crm", "sales"],
+    "send": ["handoff"],
+    "pay": ["quote", "crm", "sales"],
+    "ads": ["brand"],
+    "contract": ["quote", "crm", "sales"]
+  }
+}

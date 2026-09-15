@@ -1,11 +1,10 @@
 // Shared Slack HTTP helpers for Vercel serverless routes under api/slack/.
-// Ticket 02: verify + ack only. HMAC signature check and replay window are
-// reused by events, commands, and interactions. No npm dependencies.
+// HMAC signature check and replay window are reused by events, commands,
+// and interactions. No npm dependencies.
 //
 // Task records are in-memory (process-local). They evaporate on cold start
-// and are a stand-in until ticket 03 persists a queue. Do not treat them as
-// durable. SLACK_BOT_TOKEN is reserved for later outbound replies and is
-// not read here.
+// and are not durable. Ticket 03–05 classify/gate/bridge on top of this log.
+// SLACK_BOT_TOKEN is read by router/bridge.js for chat.postMessage only.
 
 const crypto = require('crypto');
 const querystring = require('querystring');
@@ -14,6 +13,16 @@ const MAX_BODY = 256_000;
 const MAX_SKEW_SECONDS = 5 * 60;
 const MAX_TASKS = 50;
 const tasks = [];
+
+let waitUntilImpl = null;
+try {
+  const vercelFunctions = require('@vercel/functions');
+  if (vercelFunctions && typeof vercelFunctions.waitUntil === 'function') {
+    waitUntilImpl = vercelFunctions.waitUntil.bind(vercelFunctions);
+  }
+} catch {
+  waitUntilImpl = null;
+}
 
 function json(res, status, body) {
   res.status(status).setHeader('Content-Type', 'application/json').send(JSON.stringify(body));
@@ -105,7 +114,19 @@ function recordTask(entry) {
   };
   tasks.push(task);
   while (tasks.length > MAX_TASKS) tasks.shift();
-  console.log('[slack] task', task.id, task.kind);
+  console.log('[slack] task', task.id, task.kind, task.status || '');
+  return task;
+}
+
+function getTask(id) {
+  if (!id) return null;
+  return tasks.find((task) => task.id === id) || null;
+}
+
+function updateTask(id, patch) {
+  const task = getTask(id);
+  if (!task || !patch || typeof patch !== 'object') return task;
+  Object.assign(task, patch, { updatedAt: new Date().toISOString() });
   return task;
 }
 
@@ -115,6 +136,33 @@ function getRecordedTasks() {
 
 function resetRecordedTasks() {
   tasks.length = 0;
+}
+
+function scheduleWaitUntil(promise) {
+  if (typeof waitUntilImpl === 'function') {
+    waitUntilImpl(promise);
+    return true;
+  }
+  if (typeof globalThis.waitUntil === 'function') {
+    globalThis.waitUntil(promise);
+    return true;
+  }
+  return false;
+}
+
+// Return the Slack HTTP ack, then run work via waitUntil when Vercel
+// provides it. If waitUntil is missing, await the work so the isolate
+// stays alive (chat.postMessage is typically fast).
+async function continueAfterAck(res, status, body, work) {
+  json(res, status, body);
+  if (!work) return;
+  const promise = Promise.resolve()
+    .then(() => (typeof work === 'function' ? work() : work))
+    .catch((err) => {
+      console.error('[slack] background work failed', err && err.message ? err.message : err);
+    });
+  if (scheduleWaitUntil(promise)) return;
+  await promise;
 }
 
 async function withVerifiedSlackRequest(req, res, onVerified) {
@@ -143,19 +191,23 @@ async function withVerifiedSlackRequest(req, res, onVerified) {
     return json(res, status, { error: result.error });
   }
 
-  return onVerified(rawBody);
+  return await onVerified(rawBody);
 }
 
 module.exports = {
   MAX_BODY,
   MAX_SKEW_SECONDS,
   computeSlackSignature,
+  continueAfterAck,
   getRawBody,
   getRecordedTasks,
+  getTask,
   json,
   parseForm,
   recordTask,
   resetRecordedTasks,
+  scheduleWaitUntil,
+  updateTask,
   verifySlackRequest,
   withVerifiedSlackRequest,
 };
