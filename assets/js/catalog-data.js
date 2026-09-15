@@ -80,6 +80,17 @@ function simpleFields(conditions) {
 
 const P = 'images/products/'; // shorthand for the existing real-photo folder
 const C = 'images/catalog/';  // shorthand for the imported distributor photo folder
+const PACK = P + 'pack-2026-09-02/'; // recovered 2026-09-02 image-pack files only
+const REPRESENTATIVE_NOTE = 'Representative sourcing artwork — not verified exact product photography.';
+
+/** Attach pack artwork to a handwritten sourcing listing. Never use this for Icecat/distributor SKUs. */
+function representativeArt(file, name) {
+  return {
+    image: PACK + file,
+    imageRole: 'representative',
+    imageAlt: 'Representative sourcing artwork for ' + name + '. ' + REPRESENTATIVE_NOTE,
+  };
+}
 
 /** Build a standardised images[] for a product whose photos live in
  *  images/catalog/{category}/{brand}/{srcId}/ numbered 01–{count}.webp
@@ -222,8 +233,9 @@ const CATALOG_TABLETS = {
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(['64GB', '256GB'], ['Silver', 'Blue', 'Pink', 'Yellow']) },
       { id: 'ipad-air', name: 'iPad Air', image: null, specLine: '64GB · 256GB · Wi-Fi / Cellular',
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(['64GB', '256GB'], ['Space Grey', 'Starlight', 'Blue', 'Purple']) },
-      { id: 'ipad-pro', name: 'iPad Pro', image: null, specLine: '128GB · 256GB · 512GB · 1TB',
+      Object.assign({ id: 'ipad-pro', name: 'iPad Pro', specLine: '128GB · 256GB · 512GB · 1TB',
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(APPLE_STORAGE_NEW, ['Space Grey', 'Silver']) },
+        representativeArt('ipad-pro.webp', 'iPad Pro')),
     ]}]},
     { name: 'Samsung', families: [{ name: 'Galaxy Tab', models: [
       Object.assign(samsungModel('galaxy-tab-s9', 'Galaxy Tab S9', ['Graphite', 'Beige', 'Silver']), {
@@ -334,7 +346,7 @@ const CATALOG_TVS = {
     { name: 'Samsung', families: [
       { name: 'QLED', models: [Object.assign(tvModel('samsung-qled', 'Samsung QLED TV', 'Quantum dot · 4K'), { primaryImage: C + 'tvs/samsung/79453785/01.webp', images: catalogImages('tvs', 'samsung', '79453785', 'Samsung QLED TV') })] },
       { name: 'Neo QLED', models: [Object.assign(tvModel('samsung-neo-qled', 'Samsung Neo QLED TV', 'Mini-LED · 4K/8K'), { primaryImage: C + 'tvs/samsung/79809054/01.webp', images: catalogImages('tvs', 'samsung', '79809054', 'Samsung Neo QLED TV') })] },
-      { name: 'UHD', models: [tvModel('samsung-uhd', 'Samsung UHD TV', '4K UHD · Tizen')] },
+      { name: 'UHD', models: [Object.assign(tvModel('samsung-uhd', 'Samsung UHD TV', '4K UHD · Tizen'), representativeArt('samsung-uhd-tv.webp', 'Samsung UHD TV'))] },
     ]},
     { name: 'Sony', families: [{ name: 'Bravia', models: [tvModel('sony-bravia', 'Sony Bravia TV', '4K HDR · Google TV')] }]},
     { name: 'TCL', families: [{ name: 'UHD', models: [tvModel('tcl-uhd', 'TCL UHD TV', '4K UHD · Android TV')] }]},
@@ -452,8 +464,9 @@ const CATALOG_NETWORKING = {
         fields: networkFields(['Standard', 'ISP Grade', 'Multi-Site']) },
     ]}]},
     { name: 'Ubiquiti', families: [{ name: 'Access Points', models: [
-      { id: 'ubiquiti-ap', name: 'Ubiquiti UniFi Access Point', image: null, specLine: 'Wi-Fi 6 · PoE',
+      Object.assign({ id: 'ubiquiti-ap', name: 'Ubiquiti UniFi Access Point', specLine: 'Wi-Fi 6 · PoE',
         desc: 'Enterprise wireless access point.', fields: networkFields(['Indoor', 'Outdoor', 'Long-Range']) },
+        representativeArt('ubiquiti-unifi-ap.webp', 'Ubiquiti UniFi Access Point')),
     ]}]},
     { name: 'Fortinet', families: [{ name: 'Firewalls', models: [
       { id: 'fortinet-firewall', name: 'FortiGate Firewall / UTM', image: null, specLine: 'Security appliance',
@@ -517,8 +530,9 @@ const CATALOG_GAMING = {
     { name: 'Sony', families: [{ name: 'PlayStation', models: [
       { id: 'ps5', name: 'PlayStation 5', image: null, specLine: 'Standard / Digital Edition',
         desc: 'Sourced to order — new or refurbished.', fields: simpleFields(CONDITION_NEW_REFURB) },
-      { id: 'ps4', name: 'PlayStation 4', image: null, specLine: 'Standard / Pro',
+      Object.assign({ id: 'ps4', name: 'PlayStation 4', specLine: 'Standard / Pro',
         desc: 'Sourced to order — new or refurbished.', fields: simpleFields(CONDITION_NEW_REFURB) },
+        representativeArt('playstation-4.webp', 'PlayStation 4')),
     ]}]},
     { name: 'Microsoft', families: [{ name: 'Xbox', models: [
       { id: 'xbox-series-x', name: 'Xbox Series X', image: null, specLine: '1TB',

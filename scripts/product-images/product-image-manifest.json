@@ -180,5 +180,57 @@
     "representativeModel": "Unbranded business laptop",
     "usageStatus": "original",
     "notes": "Original neutral sourcing-family visual; no HP logo, ProBook model, or exact SKU claim."
+  },
+  {
+    "id": "ipad-pro",
+    "displayName": "iPad Pro",
+    "type": "specific-product",
+    "sourcePage": "LAVAALL_Product_Image_Pack_2026-09-02",
+    "sourceDomain": "LAVAALL generated image pack",
+    "imageUrl": "",
+    "localFile": "images/products/pack-2026-09-02/ipad-pro.webp",
+    "sourceType": "representative-pack",
+    "representativeModel": "iPad Pro family (no exact MPN selected)",
+    "usageStatus": "representative",
+    "notes": "Recovered pack file with exact catalog id match. Wired only because the handwritten listing had no image. Not Icecat/distributor media."
+  },
+  {
+    "id": "ubiquiti-ap",
+    "displayName": "Ubiquiti UniFi Access Point",
+    "type": "specific-product",
+    "sourcePage": "LAVAALL_Product_Image_Pack_2026-09-02",
+    "sourceDomain": "LAVAALL generated image pack",
+    "imageUrl": "",
+    "localFile": "images/products/pack-2026-09-02/ubiquiti-unifi-ap.webp",
+    "sourceType": "representative-pack",
+    "representativeModel": "UniFi access-point family (no exact SKU selected)",
+    "usageStatus": "representative",
+    "notes": "Recovered pack file mapped from filename ubiquiti-unifi-ap.webp to unique catalog id ubiquiti-ap. Representative sourcing artwork only."
+  },
+  {
+    "id": "ps4",
+    "displayName": "PlayStation 4",
+    "type": "specific-product",
+    "sourcePage": "LAVAALL_Product_Image_Pack_2026-09-02",
+    "sourceDomain": "LAVAALL generated image pack",
+    "imageUrl": "",
+    "localFile": "images/products/pack-2026-09-02/playstation-4.webp",
+    "sourceType": "representative-pack",
+    "representativeModel": "PlayStation 4 family (Standard / Pro)",
+    "usageStatus": "representative",
+    "notes": "Recovered pack file mapped from filename playstation-4.webp to unique catalog id ps4. Representative sourcing artwork only."
+  },
+  {
+    "id": "samsung-uhd",
+    "displayName": "Samsung UHD TV",
+    "type": "specific-product",
+    "sourcePage": "LAVAALL_Product_Image_Pack_2026-09-02",
+    "sourceDomain": "LAVAALL generated image pack",
+    "imageUrl": "",
+    "localFile": "images/products/pack-2026-09-02/samsung-uhd-tv.webp",
+    "sourceType": "representative-pack",
+    "representativeModel": "Samsung UHD television family (no exact MPN selected)",
+    "usageStatus": "representative",
+    "notes": "Recovered pack file mapped from filename samsung-uhd-tv.webp to unique catalog id samsung-uhd. Representative sourcing artwork only."
   }
 ]
