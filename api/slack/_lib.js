@@ -7,6 +7,8 @@
 // SLACK_BOT_TOKEN is read by _router/bridge.js for chat.postMessage only.
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const querystring = require('querystring');
 
 const MAX_BODY = 256_000;
@@ -22,6 +24,35 @@ try {
   }
 } catch {
   waitUntilImpl = null;
+}
+
+function readPackageJson() {
+  const candidates = [
+    path.join(process.cwd(), 'package.json'),
+    path.join(__dirname, '../../package.json'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(fs.readFileSync(candidate, 'utf8'));
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+// waitUntil is only safe when @vercel/functions is a real package.json
+// dependency. A bare require() can succeed on Vercel even when Hobby Node
+// still freezes the isolate after res.send — that dropped LAVAALL_TASK posts.
+function hasDeclaredVercelFunctionsDependency() {
+  const pkg = readPackageJson();
+  if (!pkg || typeof pkg !== 'object') return false;
+  const deps = Object.assign({}, pkg.dependencies, pkg.devDependencies);
+  return Object.prototype.hasOwnProperty.call(deps, '@vercel/functions');
+}
+
+function canUseWaitUntil() {
+  return typeof waitUntilImpl === 'function' && hasDeclaredVercelFunctionsDependency();
 }
 
 function json(res, status, body) {
@@ -139,30 +170,36 @@ function resetRecordedTasks() {
 }
 
 function scheduleWaitUntil(promise) {
-  if (typeof waitUntilImpl === 'function') {
-    waitUntilImpl(promise);
-    return true;
-  }
-  if (typeof globalThis.waitUntil === 'function') {
-    globalThis.waitUntil(promise);
-    return true;
-  }
-  return false;
+  if (!canUseWaitUntil()) return false;
+  waitUntilImpl(promise);
+  return true;
 }
 
-// Return the Slack HTTP ack, then run work via waitUntil when Vercel
-// provides it. If waitUntil is missing, await the work so the isolate
-// stays alive (chat.postMessage is typically fast).
+async function runWork(work) {
+  try {
+    return await (typeof work === 'function' ? work() : work);
+  } catch (err) {
+    console.error('[slack] background work failed', err && err.message ? err.message : err);
+    return null;
+  }
+}
+
+// Proven waitUntil (declared @vercel/functions dep): ack first, then extend
+// isolate lifetime. Otherwise always await work BEFORE res.send — Hobby Node
+// freezes as soon as the response is sent, which dropped LAVAALL_TASK posts.
 async function continueAfterAck(res, status, body, work) {
+  if (!work) {
+    json(res, status, body);
+    return;
+  }
+  if (canUseWaitUntil()) {
+    const promise = Promise.resolve().then(() => runWork(work));
+    json(res, status, body);
+    scheduleWaitUntil(promise);
+    return;
+  }
+  await runWork(work);
   json(res, status, body);
-  if (!work) return;
-  const promise = Promise.resolve()
-    .then(() => (typeof work === 'function' ? work() : work))
-    .catch((err) => {
-      console.error('[slack] background work failed', err && err.message ? err.message : err);
-    });
-  if (scheduleWaitUntil(promise)) return;
-  await promise;
 }
 
 async function withVerifiedSlackRequest(req, res, onVerified) {
@@ -198,6 +235,7 @@ module.exports = {
   MAX_BODY,
   MAX_SKEW_SECONDS,
   computeSlackSignature,
+  canUseWaitUntil,
   continueAfterAck,
   getRawBody,
   getRecordedTasks,
