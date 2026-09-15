@@ -108,6 +108,12 @@ async function postLavalHandoff(taskLike) {
     channel,
     text: formatHandoffText(payload),
   });
+  if (!result.ok) {
+    console.error('[slack] postLavalHandoff failed', result.error, {
+      id: taskLike && taskLike.id ? taskLike.id : null,
+      channel,
+    });
+  }
   if (taskLike.id) {
     updateTask(taskLike.id, {
       status: result.ok ? STATUSES.BRIDGED : STATUSES.FAILED,

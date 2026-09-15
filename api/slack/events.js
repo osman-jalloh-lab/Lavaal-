@@ -2,7 +2,7 @@
 // POST /api/slack/events
 //
 // Tickets 03–05: url_verification unchanged. app_mention classifies,
-// gates L3+, and thread-replies the founder ack (bridge via waitUntil).
+// gates L3+, then awaits thread ack + handoff before returning { ok: true }.
 
 const { continueAfterAck, json, recordTask, withVerifiedSlackRequest } = require('./_lib');
 const { planRoute, postMentionFollowUp } = require('./_router/route-task');

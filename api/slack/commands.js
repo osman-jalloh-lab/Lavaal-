@@ -2,8 +2,8 @@
 // POST /api/slack/commands
 //
 // Tickets 03–05: verify → classify → L0–L4 gate → bridge or approval.
-// Ack ≤3s: ephemeral founder summary immediately; waitUntil(bridge) when
-// Vercel provides it.
+// L0–L2: await postLavalHandoff before the ephemeral ack (chat.postMessage
+// is typically ≪3s). L3/L4 approval blocks are returned with no bridge.
 
 const { continueAfterAck, json, parseForm, withVerifiedSlackRequest } = require('./_lib');
 const { planRoute } = require('./_router/route-task');

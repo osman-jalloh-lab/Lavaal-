@@ -356,6 +356,67 @@ async function run() {
     fetchCalls.length = 0;
     process.env.SLACK_BOT_TOKEN = 'xoxb-test-token';
     lib.resetRecordedTasks();
+    const order = [];
+    const prevFetch = global.fetch;
+    global.fetch = async (url, opts) => {
+      order.push('fetch');
+      return prevFetch(url, opts);
+    };
+    const res = mockRes();
+    const origSend = res.send.bind(res);
+    res.send = (b) => {
+      order.push('send');
+      return origSend(b);
+    };
+    const fakeWaitUntil = [];
+    globalThis.waitUntil = (promise) => {
+      fakeWaitUntil.push(promise);
+    };
+    await commands(signedReq({
+      rawBody: 'command=%2Flavaall&text=research+competitor+pricing+in+Accra&user_id=U1&channel_id=C1',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    }), res);
+    delete globalThis.waitUntil;
+    global.fetch = prevFetch;
+    check('waitUntil is not used without @vercel/functions in package.json', lib.canUseWaitUntil() === false);
+    check('research planRoute background posts chat.postMessage', fetchCalls.length === 1 && fetchCalls[0].url === SLACK_POST_MESSAGE && fetchCalls[0].body.text.includes('LAVAALL_TASK'));
+    check('research handoff completes before ephemeral ack (no fire-and-forget)', order.length >= 2 && order.indexOf('fetch') > -1 && order.indexOf('send') > -1 && order.indexOf('fetch') < order.indexOf('send'));
+    check('fake waitUntil is not relied on for the handoff', fakeWaitUntil.length === 0);
+    delete process.env.SLACK_BOT_TOKEN;
+  }
+  {
+    fetchCalls.length = 0;
+    process.env.SLACK_BOT_TOKEN = 'xoxb-test-token';
+    lib.resetRecordedTasks();
+    const logged = [];
+    const origError = console.error;
+    console.error = function (...args) {
+      logged.push(args);
+      return origError.apply(console, args);
+    };
+    const prevFetch = global.fetch;
+    global.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: false, error: 'channel_not_found' }),
+    });
+    const res = mockRes();
+    await commands(signedReq({
+      rawBody: 'command=%2Flavaall&text=research+bridge+failure&user_id=U1&channel_id=C1',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    }), res);
+    console.error = origError;
+    global.fetch = prevFetch;
+    const task = lib.getRecordedTasks().find((t) => t.kind === 'slash_command');
+    check('bridge failure still returns routed ack', res.statusCode === 200 && res.body && /Routed to /.test(res.body.text));
+    check('bridge failure marks task FAILED', task && task.status === STATUSES.FAILED && task.bridgeError === 'channel_not_found');
+    check('bridge failure logs result.error', logged.some((args) => String(args[0]).includes('postLavalHandoff failed') && args[1] === 'channel_not_found'));
+    delete process.env.SLACK_BOT_TOKEN;
+  }
+  {
+    fetchCalls.length = 0;
+    process.env.SLACK_BOT_TOKEN = 'xoxb-test-token';
+    lib.resetRecordedTasks();
     const rawBody = 'command=%2Flavaall&text=deploy+production&user_id=U1&channel_id=C1';
     const res = mockRes();
     await commands(signedReq({
