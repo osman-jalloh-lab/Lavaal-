@@ -1,17 +1,18 @@
 // Tests for api/slack/* Ticket 02–05 handlers — mocks req/res/fetch so these
-// run in plain node (same pattern as api/test-inquiry-and-schedule.js).
+// run in plain node (same pattern as tests/test-inquiry-and-schedule.js).
 const crypto = require('crypto');
 const path = require('path');
 const { Readable } = require('stream');
 
-const lib = require(path.join(__dirname, 'slack/_lib.js'));
-const events = require(path.join(__dirname, 'slack/events.js'));
-const commands = require(path.join(__dirname, 'slack/commands.js'));
-const interactions = require(path.join(__dirname, 'slack/interactions.js'));
-const { classify, isConnected } = require(path.join(__dirname, 'slack/router/classify.js'));
-const { STATUSES, needsApproval, isStatus } = require(path.join(__dirname, 'slack/router/status.js'));
-const { ACTION_IDS } = require(path.join(__dirname, 'slack/router/approval.js'));
-const { DEFAULT_HANDOFF_CHANNEL, SLACK_POST_MESSAGE, formatLavalTaskFence, buildHandoffPayload } = require(path.join(__dirname, 'slack/router/bridge.js'));
+const slackDir = path.join(__dirname, '../api/slack');
+const lib = require(path.join(slackDir, '_lib.js'));
+const events = require(path.join(slackDir, 'events.js'));
+const commands = require(path.join(slackDir, 'commands.js'));
+const interactions = require(path.join(slackDir, 'interactions.js'));
+const { classify, isConnected } = require(path.join(slackDir, '_router/classify.js'));
+const { STATUSES, needsApproval, isStatus } = require(path.join(slackDir, '_router/status.js'));
+const { ACTION_IDS } = require(path.join(slackDir, '_router/approval.js'));
+const { DEFAULT_HANDOFF_CHANNEL, SLACK_POST_MESSAGE, formatLavalTaskFence, buildHandoffPayload } = require(path.join(slackDir, '_router/bridge.js'));
 
 const TEST_SECRET = 'test-signing-secret';
 const results = [];

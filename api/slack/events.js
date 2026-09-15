@@ -5,7 +5,7 @@
 // gates L3+, and thread-replies the founder ack (bridge via waitUntil).
 
 const { continueAfterAck, json, recordTask, withVerifiedSlackRequest } = require('./_lib');
-const { planRoute, postMentionFollowUp } = require('./router/route-task');
+const { planRoute, postMentionFollowUp } = require('./_router/route-task');
 
 async function events(req, res) {
   return withVerifiedSlackRequest(req, res, async (rawBody) => {

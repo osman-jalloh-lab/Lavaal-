@@ -4,7 +4,7 @@
 //
 // Task records are in-memory (process-local). They evaporate on cold start
 // and are not durable. Ticket 03–05 classify/gate/bridge on top of this log.
-// SLACK_BOT_TOKEN is read by router/bridge.js for chat.postMessage only.
+// SLACK_BOT_TOKEN is read by _router/bridge.js for chat.postMessage only.
 
 const crypto = require('crypto');
 const querystring = require('querystring');

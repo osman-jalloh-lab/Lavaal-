@@ -6,7 +6,7 @@
 // Vercel provides it.
 
 const { continueAfterAck, json, parseForm, withVerifiedSlackRequest } = require('./_lib');
-const { planRoute } = require('./router/route-task');
+const { planRoute } = require('./_router/route-task');
 
 async function commands(req, res) {
   return withVerifiedSlackRequest(req, res, async (rawBody) => {

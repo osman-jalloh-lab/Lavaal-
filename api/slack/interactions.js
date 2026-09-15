@@ -5,9 +5,9 @@
 // reject_task). AuditEvent is console.log JSON. approve → bridge.
 
 const { continueAfterAck, getTask, json, parseForm, recordTask, updateTask, withVerifiedSlackRequest } = require('./_lib');
-const { ACTION_IDS, logAuditEvent, parseActionValue } = require('./router/approval');
-const { postLavalHandoff } = require('./router/bridge');
-const { STATUSES } = require('./router/status');
+const { ACTION_IDS, logAuditEvent, parseActionValue } = require('./_router/approval');
+const { postLavalHandoff } = require('./_router/bridge');
+const { STATUSES } = require('./_router/status');
 
 function actionUserId(payload) {
   return payload.user && typeof payload.user.id === 'string' ? payload.user.id : '';

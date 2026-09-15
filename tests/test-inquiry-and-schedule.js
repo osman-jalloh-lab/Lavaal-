@@ -1,8 +1,8 @@
 // Tests for api/contact.js (Send an Inquiry) and api/schedule.js (Schedule
 // a Call proxy) -- mocks req/res/fetch so these run in plain node.
 const path = require('path');
-const contactMod = require(process.env.CONTACT_JS || require('path').join(__dirname, 'contact.js'));
-const scheduleMod = require(process.env.SCHEDULE_JS || require('path').join(__dirname, 'schedule.js'));
+const contactMod = require(process.env.CONTACT_JS || path.join(__dirname, '../api/contact.js'));
+const scheduleMod = require(process.env.SCHEDULE_JS || path.join(__dirname, '../api/schedule.js'));
 
 const results = [];
 function check(name, cond) { results.push({ name, pass: !!cond }); }
