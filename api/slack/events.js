@@ -1,13 +1,14 @@
 // api/slack/events.js — Slack Events API endpoint (Vercel serverless).
 // POST /api/slack/events
 //
-// Ticket 02: url_verification challenge + app_mention ack in ≤3s.
-// Signature + replay checks live in ./_lib.js. No Grok/council work here.
+// Tickets 03–05: url_verification unchanged. app_mention classifies,
+// gates L3+, and thread-replies the founder ack (bridge via waitUntil).
 
-const { json, recordTask, withVerifiedSlackRequest } = require('./_lib');
+const { continueAfterAck, json, recordTask, withVerifiedSlackRequest } = require('./_lib');
+const { planRoute, postMentionFollowUp } = require('./_router/route-task');
 
 async function events(req, res) {
-  return withVerifiedSlackRequest(req, res, (rawBody) => {
+  return withVerifiedSlackRequest(req, res, async (rawBody) => {
     let payload;
     try {
       payload = rawBody ? JSON.parse(rawBody) : {};
@@ -28,21 +29,22 @@ async function events(req, res) {
       case 'event_callback': {
         const event = payload.event && typeof payload.event === 'object' ? payload.event : {};
         if (event.type === 'app_mention') {
-          recordTask({
+          const plan = planRoute({
             kind: 'app_mention',
-            eventId: payload.event_id || '',
+            text: typeof event.text === 'string' ? event.text : '',
+            source: 'app_mention',
             userId: event.user || '',
             channelId: event.channel || '',
-            text: typeof event.text === 'string' ? event.text : '',
-            ts: event.ts || event.event_ts || '',
+            threadTs: event.ts || event.thread_ts || event.event_ts || '',
+            extra: { eventId: payload.event_id || '', ts: event.ts || event.event_ts || '' },
           });
-        } else {
-          recordTask({
-            kind: 'event_callback',
-            eventType: event.type || 'unknown',
-            eventId: payload.event_id || '',
-          });
+          return continueAfterAck(res, 200, { ok: true }, () => postMentionFollowUp(plan));
         }
+        recordTask({
+          kind: 'event_callback',
+          eventType: event.type || 'unknown',
+          eventId: payload.event_id || '',
+        });
         return json(res, 200, { ok: true });
       }
       default:

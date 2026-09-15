@@ -1,0 +1,50 @@
+{
+  "agents": [
+    {
+      "id": "lavaall-ceo",
+      "status": "CONNECTED",
+      "capabilities": ["route", "grill", "decide"]
+    },
+    {
+      "id": "sales",
+      "status": "CONNECTED",
+      "capabilities": ["quote", "crm", "sales"]
+    },
+    {
+      "id": "technical",
+      "status": "CONNECTED",
+      "capabilities": ["build", "code", "bug", "ship"]
+    },
+    {
+      "id": "lifecycle",
+      "status": "CONNECTED",
+      "capabilities": ["lifecycle"],
+      "note": "parked"
+    },
+    {
+      "id": "growth",
+      "status": "CONNECTED",
+      "capabilities": ["creative", "ads", "ugc", "brand"]
+    },
+    {
+      "id": "claude-api",
+      "status": "UNAVAILABLE",
+      "capabilities": []
+    },
+    {
+      "id": "claude-slack-assistant",
+      "status": "NOT_INVOKEABLE",
+      "capabilities": []
+    },
+    {
+      "id": "chatgpt-api",
+      "status": "UNAVAILABLE",
+      "capabilities": []
+    },
+    {
+      "id": "grok-xai-api",
+      "status": "UNAVAILABLE",
+      "capabilities": []
+    }
+  ]
+}
