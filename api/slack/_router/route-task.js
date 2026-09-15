@@ -39,6 +39,7 @@ function planRoute({
     helperAgents: classification.helperAgents,
     skills: classification.skills,
     reasons: classification.reasons,
+    mode: classification.mode,
   });
 
   const recorded = getTask(task.id);

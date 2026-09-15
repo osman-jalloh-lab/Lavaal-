@@ -4,6 +4,7 @@ const AGENT_REGISTRY = require('./agent-registry.json');
 const SKILL_REGISTRY = require('./skill-registry.json');
 
 const CEO_ID = 'lavaall-ceo';
+const MODE_COUNCIL = 'council';
 
 const VERB_ALIASES = Object.freeze({
   research: 'research',
@@ -28,6 +29,13 @@ const VERB_ALIASES = Object.freeze({
   decision: 'decision',
   decide: 'decision',
   grill: 'council',
+  deliberate: 'council',
+  debate: 'council',
+  everyone: 'council',
+  specialists: 'council',
+  team: 'council',
+  'all-hands': 'council',
+  allhands: 'council',
   route: 'handoff',
   quote: 'quote',
   crm: 'crm',
@@ -43,6 +51,36 @@ const VERB_ALIASES = Object.freeze({
   secrets: 'secret',
   delete: 'delete',
 });
+
+const COUNCIL_TOKENS = new Set([
+  'council',
+  'deliberate',
+  'debate',
+  'everyone',
+  'specialists',
+  'team',
+  'all-hands',
+  'allhands',
+  'grill',
+]);
+
+const SALES_TOKENS = new Set([
+  'sales', 'quote', 'crm', 'invoice', 'procurement', 'customer',
+  'order', 'supplier', 'outreach',
+]);
+const TECHNICAL_TOKENS = new Set([
+  'build', 'code', 'bug', 'deploy', 'technical', 'api', 'repo', 'ship', 'vercel',
+]);
+const GROWTH_TOKENS = new Set([
+  'creative', 'ads', 'ad', 'ugc', 'campaign', 'brand', 'growth', 'social',
+]);
+const LIFECYCLE_TOKENS = new Set([
+  'lifecycle', 'churn', 'onboard', 'retention', 'email', 'klaviyo', 'journey',
+]);
+const BRANDISH_TOKENS = new Set([
+  'brand', 'creative', 'ugc', 'ads', 'ad', 'campaign', 'social',
+]);
+const RESEARCH_VERBS = new Set(['research', 'source', 'audit', 'qa']);
 
 const COMPLEXITY_BY_RISK = Object.freeze({
   L0: 'low',
@@ -76,6 +114,11 @@ function isConnected(id) {
   return !!(agent && agent.status === 'CONNECTED');
 }
 
+function isParked(id) {
+  const agent = lookupAgent(id);
+  return !!(agent && agent.note === 'parked');
+}
+
 function displayStatus(agent) {
   if (!agent) return 'NOT CONNECTED';
   if (agent.status === 'CONNECTED') return 'CONNECTED';
@@ -107,20 +150,25 @@ function detectVerb(tokens, firstToken) {
   return { verb: 'handoff', via: 'default' };
 }
 
+function isCouncilAsk(tokens, firstToken) {
+  if (COUNCIL_TOKENS.has(firstToken)) return true;
+  if (tokens.some((token) => COUNCIL_TOKENS.has(token))) return true;
+  for (let i = 0; i < tokens.length - 1; i += 1) {
+    if (tokens[i] === 'all' && tokens[i + 1] === 'hands') return true;
+  }
+  return false;
+}
+
+function tokenMatches(tokens, set) {
+  return tokens.some((token) => set.has(token));
+}
+
 function detectArea(tokens) {
   const has = (word) => tokens.includes(word);
-  if (tokens.some((t) => t === 'sales' || t === 'quote' || t === 'crm' || t === 'invoice' || t === 'procurement' || t === 'customer')) {
-    return 'sales';
-  }
-  if (tokens.some((t) => t === 'build' || t === 'code' || t === 'bug' || t === 'deploy' || t === 'technical' || t === 'api' || t === 'repo' || t === 'ship')) {
-    return 'technical';
-  }
-  if (tokens.some((t) => t === 'creative' || t === 'ads' || t === 'ad' || t === 'ugc' || t === 'campaign' || t === 'brand' || t === 'growth')) {
-    return 'growth';
-  }
-  if (tokens.some((t) => t === 'lifecycle' || t === 'churn' || t === 'onboard' || t === 'retention')) {
-    return 'lifecycle';
-  }
+  if (tokenMatches(tokens, SALES_TOKENS)) return 'sales';
+  if (tokenMatches(tokens, TECHNICAL_TOKENS)) return 'technical';
+  if (tokenMatches(tokens, GROWTH_TOKENS)) return 'growth';
+  if (tokenMatches(tokens, LIFECYCLE_TOKENS)) return 'lifecycle';
   if (has('pay') || has('contract')) return 'sales';
   return 'ceo';
 }
@@ -171,23 +219,53 @@ function mentionedExternalAgents(tokens) {
   return found;
 }
 
+function pushHelper(helpers, id) {
+  const label = helperLabel(id);
+  if (!helpers.includes(label)) helpers.push(label);
+}
+
+function connectedSpecialists() {
+  return (AGENT_REGISTRY.agents || [])
+    .filter((agent) => agent && agent.id && agent.id !== CEO_ID && agent.status === 'CONNECTED')
+    .map((agent) => agent.id);
+}
+
+function councilSkills(tokens) {
+  const skills = skillsForVerb('council');
+  if (tokenMatches(tokens, BRANDISH_TOKENS) && !skills.includes('brand-check')) {
+    skills.push('brand-check');
+  }
+  return skills;
+}
+
 function classify({ text, source } = {}) {
   const reasons = [];
   const cleaned = stripMentions(text);
   const tokens = tokenize(cleaned);
   const firstToken = tokens[0] || '';
   const sourceLabel = typeof source === 'string' && source ? source : 'unknown';
+  const councilMode = isCouncilAsk(tokens, firstToken);
 
   const verbHit = detectVerb(tokens, firstToken);
-  const verb = verbHit.verb;
-  reasons.push(`verb=${verb} via ${verbHit.via}`);
+  let verb = councilMode ? 'council' : verbHit.verb;
+  reasons.push(`verb=${verb} via ${councilMode ? 'council' : verbHit.via}`);
 
-  const area = detectArea(tokens);
+  let area = detectArea(tokens);
+  if (councilMode) {
+    area = 'ceo';
+    reasons.push('mode=council fan-out to CONNECTED specialists');
+  } else if (RESEARCH_VERBS.has(verb) && area !== 'sales' && area !== 'technical') {
+    area = 'ceo';
+    reasons.push(`${verb} leads ${CEO_ID} unless sales/tech`);
+  }
   reasons.push(`area=${area}`);
 
   let risk = detectRisk(tokens, verb);
-  if ((verb === 'research' || verb === 'draft' || verb === 'audit' || verb === 'qa' || verb === 'source')
-    && risk !== 'L3' && risk !== 'L4') {
+  if (councilMode && risk !== 'L3' && risk !== 'L4') {
+    risk = 'L2';
+    reasons.push('council default risk L2');
+  }
+  if (!councilMode && RESEARCH_VERBS.has(verb) && risk !== 'L3' && risk !== 'L4') {
     risk = verb === 'audit' || verb === 'qa' ? 'L1' : 'L0';
     reasons.push(`${verb} stays ${risk}`);
   }
@@ -196,38 +274,50 @@ function classify({ text, source } = {}) {
   }
 
   const complexity = COMPLEXITY_BY_RISK[risk] || 'low';
-  const preferredLead = leadForArea(area);
   const helpers = [];
-
   const mentioned = mentionedExternalAgents(tokens);
+  const specialists = connectedSpecialists();
+
+  let leadAgent;
+  if (councilMode) {
+    leadAgent = CEO_ID;
+    for (const id of specialists) pushHelper(helpers, id);
+    reasons.push(`lead=${CEO_ID} helpers=${specialists.join(',')}`);
+  } else {
+    const preferredLead = leadForArea(area);
+    leadAgent = preferredLead;
+    if (preferredLead === 'lifecycle' && isParked('lifecycle')) {
+      pushHelper(helpers, 'lifecycle');
+      reasons.push('lifecycle is CONNECTED (parked); lead=lavaall-ceo');
+      leadAgent = CEO_ID;
+    } else if (!isConnected(leadAgent)) {
+      pushHelper(helpers, leadAgent);
+      reasons.push(`${leadAgent} is not CONNECTED; lead=${CEO_ID}`);
+      leadAgent = CEO_ID;
+    }
+  }
+
   for (const id of mentioned) {
-    helpers.push(helperLabel(id));
+    pushHelper(helpers, id);
     const agent = lookupAgent(id);
     reasons.push(`${id} is ${displayStatus(agent)}`);
   }
 
-  let leadAgent = preferredLead;
-  if (!isConnected(leadAgent)) {
-    helpers.push(helperLabel(leadAgent));
+  if (mentioned.length && !isConnected(mentioned[0]) && area === 'ceo' && verbHit.via !== 'first_token') {
+    reasons.push('only unavailable agent matched; lead=lavaall-ceo');
+  }
+
+  if (leadAgent !== CEO_ID && !isConnected(leadAgent)) {
+    pushHelper(helpers, leadAgent);
     reasons.push(`${leadAgent} is not CONNECTED; lead=${CEO_ID}`);
     leadAgent = CEO_ID;
   }
 
-  if (mentioned.length && !isConnected(mentioned[0]) && area === 'ceo' && verbHit.via !== 'first_token') {
-    // Only-unavailable match: keep CEO lead (already set) and helpers labeled NOT CONNECTED.
-    reasons.push('only unavailable agent matched; lead=lavaall-ceo');
-  }
-
-  const lifecycle = lookupAgent('lifecycle');
-  if (leadAgent === 'lifecycle' && lifecycle && lifecycle.note === 'parked') {
-    reasons.push('lifecycle is CONNECTED (parked)');
-  }
-
-  const skills = skillsForVerb(verb);
+  const skills = councilMode ? councilSkills(tokens) : skillsForVerb(verb);
   if (!skills.length) reasons.push('no skills mapped for verb');
   reasons.push(`source=${sourceLabel}`);
 
-  return {
+  const result = {
     verb,
     area,
     complexity,
@@ -237,16 +327,21 @@ function classify({ text, source } = {}) {
     skills,
     reasons,
   };
+  if (councilMode) result.mode = MODE_COUNCIL;
+  return result;
 }
 
 module.exports = {
   AGENT_REGISTRY,
   CEO_ID,
+  MODE_COUNCIL,
   SKILL_REGISTRY,
   classify,
+  connectedSpecialists,
   displayStatus,
   helperLabel,
   isConnected,
+  isCouncilAsk,
   lookupAgent,
   stripMentions,
 };

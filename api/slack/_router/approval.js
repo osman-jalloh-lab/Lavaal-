@@ -60,6 +60,7 @@ function buildApprovalBlocks(task, classification) {
     lead: classification.leadAgent,
     helpers: classification.helperAgents || [],
     skills: classification.skills || [],
+    mode: classification.mode,
     channel: task.channelId || task.channel || '',
     thread_ts: task.thread_ts || task.ts || '',
     user: task.userId || task.user || '',

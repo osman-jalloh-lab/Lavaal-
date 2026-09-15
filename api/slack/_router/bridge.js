@@ -16,7 +16,7 @@ function handoffChannel() {
 
 function buildHandoffPayload(taskLike) {
   const classification = taskLike.classification || {};
-  return {
+  const payload = {
     id: taskLike.id,
     text: taskLike.text || '',
     verb: taskLike.verb || classification.verb || '',
@@ -28,6 +28,9 @@ function buildHandoffPayload(taskLike) {
     thread_ts: taskLike.thread_ts || taskLike.ts || '',
     user: taskLike.user || taskLike.userId || '',
   };
+  const mode = taskLike.mode || classification.mode;
+  if (mode) payload.mode = mode;
+  return payload;
 }
 
 function formatLavalTaskFence(payload) {
