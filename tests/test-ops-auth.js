@@ -77,13 +77,43 @@ function tokenFromUrl(url) {
   }
 }
 
+function clearDeliveryEnv() {
+  delete process.env.RESEND_API_KEY;
+  delete process.env.OPS_FROM_EMAIL;
+  delete process.env.OPS_MAGIC_LINK_WEBHOOK_URL;
+  delete process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET;
+  delete process.env.OPS_GMAIL_CLIENT_ID;
+  delete process.env.OPS_GMAIL_CLIENT_SECRET;
+  delete process.env.OPS_GMAIL_REFRESH_TOKEN;
+  delete process.env.OPS_GMAIL_FROM;
+  delete process.env.OPS_PREVIEW_INLINE_LINK;
+}
+
+function setGmailEnv() {
+  process.env.OPS_GMAIL_CLIENT_ID = 'gmail-client-id';
+  process.env.OPS_GMAIL_CLIENT_SECRET = 'gmail-client-secret';
+  process.env.OPS_GMAIL_REFRESH_TOKEN = 'gmail-refresh-token';
+  process.env.OPS_GMAIL_FROM = 'Osmanjalloh104@gmail.com';
+}
+
+function mockMailFetch(handler) {
+  const fetchCalls = [];
+  global.fetch = async (url, opts) => {
+    const raw = opts && opts.body ? String(opts.body) : '';
+    let body = raw;
+    try { body = JSON.parse(raw); } catch { /* urlencoded */ }
+    fetchCalls.push({ url: String(url), body, raw, headers: opts && opts.headers ? opts.headers : {} });
+    return handler(String(url), opts, fetchCalls[fetchCalls.length - 1]);
+  };
+  return fetchCalls;
+}
+
 async function run() {
   const origFetch = global.fetch;
   process.env.OPS_AUTH_SECRET = SECRET;
+  clearDeliveryEnv();
   process.env.OPS_MAGIC_LINK_WEBHOOK_URL = 'https://example.test/ops-mail';
   process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET = 'hook-secret';
-  delete process.env.RESEND_API_KEY;
-  delete process.env.OPS_FROM_EMAIL;
   delete process.env.OPS_PUBLIC_URL;
   lib.resetAuthState();
 
@@ -107,11 +137,12 @@ async function run() {
   }
 
   {
-    delete process.env.OPS_MAGIC_LINK_WEBHOOK_URL;
+    clearDeliveryEnv();
     const res = mockRes();
     await auth(jsonReq({ body: { action: 'request', email: ALLOWED } }), res);
     check('request without a mail sender returns 503 for everyone', res.statusCode === 503 && res.body && res.body.error === 'delivery_not_configured');
     process.env.OPS_MAGIC_LINK_WEBHOOK_URL = 'https://example.test/ops-mail';
+    process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET = 'hook-secret';
   }
 
   {
@@ -253,6 +284,129 @@ async function run() {
     const res = mockRes();
     await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.41' }, body: { action: 'request', email: ALLOWED, website: 'https://spam.test' } }), res);
     check('honeypot request is silently accepted and sends no mail', res.statusCode === 200 && fetchCalls.length === 0);
+  }
+
+  {
+    clearDeliveryEnv();
+    process.env.RESEND_API_KEY = 're_test_valid_prefix';
+    process.env.OPS_FROM_EMAIL = 'LAVAALL OS <os@test.example>';
+    check('describeDeliveryConfig reports re_ prefix as boolean only',
+      lib.resendKeyPrefixOk() === true
+      && lib.describeDeliveryConfig().resend_key_present === true
+      && lib.describeDeliveryConfig().resend_key_prefix_ok === true
+      && !JSON.stringify(lib.describeDeliveryConfig()).includes('re_test'));
+    process.env.RESEND_API_KEY = 'not-a-resend-key';
+    check('invalid Resend key logs prefix_ok false without echoing the key',
+      lib.resendKeyPrefixOk() === false
+      && lib.describeDeliveryConfig().resend_key_prefix_ok === false
+      && !JSON.stringify(lib.describeDeliveryConfig()).includes('not-a-resend-key'));
+  }
+
+  {
+    clearDeliveryEnv();
+    process.env.RESEND_API_KEY = 're_primary';
+    process.env.OPS_FROM_EMAIL = 'LAVAALL OS <os@test.example>';
+    setGmailEnv();
+    const fetchCalls = mockMailFetch(async (url) => {
+      if (url.includes('api.resend.com')) return { ok: true, status: 200, text: async () => '{}' };
+      return { ok: false, status: 500, text: async () => '{}' };
+    });
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.50' }, body: { action: 'request', email: ALLOWED } }), res);
+    check('Resend success is primary and skips Gmail',
+      res.statusCode === 200 && res.body.via === 'resend'
+      && fetchCalls.some((call) => call.url.includes('api.resend.com'))
+      && !fetchCalls.some((call) => call.url.includes('googleapis.com')));
+  }
+
+  {
+    clearDeliveryEnv();
+    process.env.RESEND_API_KEY = 're_primary';
+    process.env.OPS_FROM_EMAIL = 'LAVAALL OS <os@test.example>';
+    setGmailEnv();
+    const fetchCalls = mockMailFetch(async (url) => {
+      if (url.includes('api.resend.com')) return { ok: false, status: 401, text: async () => '{"name":"validation_error"}' };
+      if (url.includes('oauth2.googleapis.com/token')) return { ok: true, status: 200, json: async () => ({ access_token: 'ya29.test-token' }) };
+      if (url.includes('gmail.googleapis.com')) return { ok: true, status: 200, json: async () => ({ id: 'msg-1' }) };
+      return { ok: false, status: 500, text: async () => '{}' };
+    });
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.51' }, body: { action: 'request', email: ALLOWED } }), res);
+    check('Gmail fallback is used when Resend HTTP fails',
+      res.statusCode === 200 && res.body.via === 'gmail'
+      && fetchCalls.some((call) => call.url.includes('api.resend.com'))
+      && fetchCalls.some((call) => call.url.includes('oauth2.googleapis.com/token'))
+      && fetchCalls.some((call) => call.url.includes('gmail.googleapis.com/gmail/v1/users/me/messages/send')));
+    const tokenCall = fetchCalls.find((call) => call.url.includes('oauth2.googleapis.com/token'));
+    check('Gmail OAuth refresh uses grant_type=refresh_token and does not put the token in JSON logs shape',
+      tokenCall && String(tokenCall.raw).includes('grant_type=refresh_token') && String(tokenCall.raw).includes('refresh_token='));
+  }
+
+  {
+    clearDeliveryEnv();
+    process.env.RESEND_API_KEY = 'bad-key-without-prefix';
+    process.env.OPS_FROM_EMAIL = 'LAVAALL OS <os@test.example>';
+    setGmailEnv();
+    const fetchCalls = mockMailFetch(async (url) => {
+      if (url.includes('oauth2.googleapis.com/token')) return { ok: true, status: 200, json: async () => ({ access_token: 'ya29.test-token' }) };
+      if (url.includes('gmail.googleapis.com')) return { ok: true, status: 200, json: async () => ({ id: 'msg-2' }) };
+      return { ok: false, status: 500, text: async () => '{}' };
+    });
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.52' }, body: { action: 'request', email: ALLOWED } }), res);
+    check('invalid re_ prefix skips Resend and uses Gmail',
+      res.statusCode === 200 && res.body.via === 'gmail'
+      && !fetchCalls.some((call) => call.url.includes('api.resend.com')));
+  }
+
+  {
+    clearDeliveryEnv();
+    setGmailEnv();
+    const fetchCalls = mockMailFetch(async (url) => {
+      if (url.includes('oauth2.googleapis.com/token')) return { ok: true, status: 200, json: async () => ({ access_token: 'ya29.test-token' }) };
+      if (url.includes('gmail.googleapis.com')) return { ok: true, status: 200, json: async () => ({ id: 'msg-3' }) };
+      return { ok: false, status: 500, text: async () => '{}' };
+    });
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.53' }, body: { action: 'request', email: ALLOWED_2 } }), res);
+    check('Gmail is used when Resend is missing', res.statusCode === 200 && res.body.via === 'gmail' && fetchCalls.length === 2);
+  }
+
+  {
+    clearDeliveryEnv();
+    process.env.RESEND_API_KEY = 're_primary';
+    process.env.OPS_FROM_EMAIL = 'LAVAALL OS <os@test.example>';
+    setGmailEnv();
+    mockMailFetch(async () => ({ ok: false, status: 503, text: async () => '{"name":"unavailable"}', json: async () => ({}) }));
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.54' }, body: { action: 'request', email: ALLOWED } }), res);
+    check('both Resend and Gmail failing returns delivery_failed', res.statusCode === 502 && res.body.error === 'delivery_failed' && !res.body.previewLoginUrl);
+  }
+
+  {
+    clearDeliveryEnv();
+    process.env.RESEND_API_KEY = 're_primary';
+    process.env.OPS_FROM_EMAIL = 'LAVAALL OS <os@test.example>';
+    setGmailEnv();
+    process.env.OPS_PREVIEW_INLINE_LINK = '1';
+    mockMailFetch(async () => ({ ok: false, status: 503, text: async () => '{"name":"unavailable"}', json: async () => ({}) }));
+    lib.resetAuthState();
+    const allowed = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.55' }, body: { action: 'request', email: ALLOWED } }), allowed);
+    check('preview inline link is returned only after both senders fail',
+      allowed.statusCode === 200
+      && allowed.body.via === 'preview_inline'
+      && /\/api\/ops\/auth\?token=/.test(allowed.body.previewLoginUrl || ''));
+    lib.resetAuthState();
+    const denied = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.56' }, body: { action: 'request', email: DENIED } }), denied);
+    check('preview inline link is never returned for non-allowlisted emails',
+      denied.statusCode === 200 && denied.body.accepted === true && !denied.body.previewLoginUrl && !denied.body.via);
   }
 
   {

@@ -37,6 +37,7 @@ input[type=email]:focus{outline:2px solid var(--sky);outline-offset:2px;}
 .ok{margin-top:14px;color:#c8ffe8;background:rgba(0,245,160,.1);border:1px solid rgba(0,245,160,.32);border-radius:10px;padding:10px 12px;font-size:14px;}
 .who{margin:18px 0 8px;padding:12px 14px;border-radius:12px;background:var(--navy);border:1px solid var(--line);font-size:15px;color:var(--text);word-break:break-word;}
 .who span{color:var(--lime);}
+.preview-link{color:var(--sky);word-break:break-all;}
 </style>
 </head>
 <body>
@@ -45,12 +46,16 @@ input[type=email]:focus{outline:2px solid var(--sky);outline-offset:2px;}
 </html>`;
 }
 
-function loginPage({ error, sent } = {}) {
-  const alert = sent
-    ? `<p class="ok" role="status">${escapeHtml('If that email is authorized, a sign-in link is on its way.')}</p>`
-    : error
-      ? `<p class="err" role="alert">${escapeHtml(error)}</p>`
-      : '';
+function loginPage({ error, sent, previewLoginUrl } = {}) {
+  const alert = previewLoginUrl
+    ? `<p class="ok" role="status">${escapeHtml('Preview only — email delivery failed. Use this one-time link:')}</p>
+      <p class="who"><a class="preview-link" href="${escapeHtml(previewLoginUrl)}">Open sign-in link</a></p>
+      <p class="note">${escapeHtml('Shown only because OPS_PREVIEW_INLINE_LINK=1. Never shown for non-allowlisted addresses.')}</p>`
+    : sent
+      ? `<p class="ok" role="status">${escapeHtml('If that email is authorized, a sign-in link is on its way.')}</p>`
+      : error
+        ? `<p class="err" role="alert">${escapeHtml(error)}</p>`
+        : '';
   return layout({
     title: 'LAVAALL OS — Sign in',
     body: `

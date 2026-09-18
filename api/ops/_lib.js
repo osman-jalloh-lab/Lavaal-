@@ -10,6 +10,7 @@
 // Short TTL (10 minutes) bounds replay across cold starts.
 
 const crypto = require('crypto');
+const { gmailConfigured, sendGmailMessage } = require('./_gmail');
 
 const ALLOWLIST = Object.freeze([
   'osmanjalloh104@gmail.com',
@@ -57,8 +58,55 @@ function authConfigured() {
   return Boolean(getSecret());
 }
 
+function resendKeyPresent() {
+  return Boolean(process.env.RESEND_API_KEY);
+}
+
+function resendKeyPrefixOk() {
+  return typeof process.env.RESEND_API_KEY === 'string' && process.env.RESEND_API_KEY.startsWith('re_');
+}
+
+function resendFromSet() {
+  return Boolean(process.env.OPS_FROM_EMAIL);
+}
+
+function webhookConfigured() {
+  return Boolean(process.env.OPS_MAGIC_LINK_WEBHOOK_URL);
+}
+
+function previewInlineEnabled() {
+  return process.env.OPS_PREVIEW_INLINE_LINK === '1';
+}
+
+function describeDeliveryConfig() {
+  return {
+    resend_key_present: resendKeyPresent(),
+    resend_key_prefix_ok: resendKeyPrefixOk(),
+    resend_from_set: resendFromSet(),
+    gmail_configured: gmailConfigured(),
+    webhook_configured: webhookConfigured(),
+    preview_inline: previewInlineEnabled(),
+  };
+}
+
 function deliveryConfigured() {
-  return Boolean(process.env.RESEND_API_KEY || process.env.OPS_MAGIC_LINK_WEBHOOK_URL);
+  return resendKeyPresent() || gmailConfigured() || webhookConfigured() || previewInlineEnabled();
+}
+
+function logDelivery(event, extra) {
+  const payload = Object.assign({ type: 'OpsAuthDelivery', event }, describeDeliveryConfig(), extra || {});
+  console.log(JSON.stringify(payload));
+}
+
+async function readSafeErrorName(response) {
+  try {
+    const text = await response.text();
+    const parsed = JSON.parse(text);
+    const name = parsed && (parsed.name || parsed.error || parsed.status);
+    return typeof name === 'string' ? name.slice(0, 80) : '';
+  } catch {
+    return '';
+  }
 }
 
 function b64urlJson(value) {
@@ -288,7 +336,7 @@ function redirect(res, location, cookie) {
   res.status(302).setHeader('Location', location).setHeader('Cache-Control', 'no-store').send('');
 }
 
-async function sendMagicLink({ to, loginUrl }) {
+function buildMagicLinkMessage(loginUrl) {
   const subject = 'Your LAVAALL OS sign-in link';
   const text = [
     'Sign in to LAVAALL OS with this one-time link:',
@@ -303,59 +351,112 @@ async function sendMagicLink({ to, loginUrl }) {
     `<p><a href="${escapeHtml(loginUrl)}">Sign in to LAVAALL OS</a></p>`,
     '<p>The link expires in 10 minutes and can be used once. If you did not request this, you can ignore this email.</p>',
   ].join('');
+  return { subject, text, html };
+}
 
-  if (process.env.RESEND_API_KEY) {
-    const from = process.env.OPS_FROM_EMAIL;
-    if (!from) {
-      const err = new Error('delivery_not_configured');
-      err.code = 'delivery_not_configured';
-      throw err;
-    }
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to,
-        subject,
-        text,
-        html,
-      }),
+async function tryResend({ to, subject, text, html }) {
+  if (!resendKeyPresent()) return { skipped: true, reason: 'missing' };
+  logDelivery('resend_attempt');
+  if (!resendKeyPrefixOk()) {
+    logDelivery('resend_skipped', { reason: 'key_prefix' });
+    return { failed: true, reason: 'key_prefix' };
+  }
+  if (!resendFromSet()) {
+    logDelivery('resend_skipped', { reason: 'from_missing' });
+    return { failed: true, reason: 'from_missing' };
+  }
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: process.env.OPS_FROM_EMAIL,
+      to,
+      subject,
+      text,
+      html,
+    }),
+  });
+  if (!response.ok) {
+    const name = await readSafeErrorName(response);
+    logDelivery('resend_failed', { status: response.status, reason: name || 'http' });
+    return { failed: true, reason: 'http', status: response.status };
+  }
+  logDelivery('resend_ok', { status: response.status });
+  return { ok: true, via: 'resend' };
+}
+
+async function tryGmail({ to, subject, text, html }) {
+  if (!gmailConfigured()) return { skipped: true, reason: 'missing' };
+  logDelivery('gmail_attempt');
+  try {
+    const sent = await sendGmailMessage({ to, subject, text, html });
+    logDelivery('gmail_ok', { status: sent.status || 200 });
+    return { ok: true, via: 'gmail' };
+  } catch (err) {
+    logDelivery('gmail_failed', {
+      status: err && err.status ? err.status : 0,
+      reason: err && err.reason ? err.reason : 'http',
     });
-    if (!response.ok) {
-      const err = new Error('delivery_failed');
-      err.code = 'delivery_failed';
-      throw err;
-    }
-    return { via: 'resend' };
+    return { failed: true, reason: err && err.reason ? err.reason : 'http' };
+  }
+}
+
+async function tryWebhook({ to, subject, text, html }) {
+  if (!webhookConfigured()) return { skipped: true, reason: 'missing' };
+  logDelivery('webhook_attempt');
+  const response = await fetch(process.env.OPS_MAGIC_LINK_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      secret: process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET || undefined,
+      to,
+      subject,
+      text,
+      html,
+      receivedAt: new Date().toISOString(),
+    }),
+  });
+  if (!response.ok) {
+    logDelivery('webhook_failed', { status: response.status, reason: 'http' });
+    return { failed: true, reason: 'http', status: response.status };
+  }
+  logDelivery('webhook_ok', { status: response.status });
+  return { ok: true, via: 'webhook' };
+}
+
+async function deliverMagicLink({ to, loginUrl }) {
+  const message = buildMagicLinkMessage(loginUrl);
+  const payload = { to, subject: message.subject, text: message.text, html: message.html };
+
+  const resend = await tryResend(payload);
+  if (resend.ok) return resend;
+
+  const gmail = await tryGmail(payload);
+  if (gmail.ok) return gmail;
+
+  const webhook = await tryWebhook(payload);
+  if (webhook.ok) return webhook;
+
+  if (previewInlineEnabled()) {
+    logDelivery('preview_inline');
+    return { ok: true, via: 'preview_inline', previewLoginUrl: loginUrl };
   }
 
-  if (process.env.OPS_MAGIC_LINK_WEBHOOK_URL) {
-    const response = await fetch(process.env.OPS_MAGIC_LINK_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secret: process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET || undefined,
-        to,
-        subject,
-        text,
-        html,
-        receivedAt: new Date().toISOString(),
-      }),
-    });
-    if (!response.ok) {
-      const err = new Error('delivery_failed');
-      err.code = 'delivery_failed';
-      throw err;
-    }
-    return { via: 'webhook' };
-  }
+  const attempted = [resend, gmail, webhook].some((row) => row.failed);
+  return {
+    ok: false,
+    code: attempted ? 'delivery_failed' : 'delivery_not_configured',
+  };
+}
 
-  const err = new Error('delivery_not_configured');
-  err.code = 'delivery_not_configured';
+async function sendMagicLink({ to, loginUrl }) {
+  const result = await deliverMagicLink({ to, loginUrl });
+  if (result.ok) return result;
+  const err = new Error(result.code);
+  err.code = result.code;
   throw err;
 }
 
@@ -375,11 +476,14 @@ module.exports = {
   consumeMagicToken,
   createMagicToken,
   createSessionToken,
+  deliverMagicLink,
   deliveryConfigured,
+  describeDeliveryConfig,
   escapeHtml,
   genericLinkFailure,
   genericRequestMessage,
   getSecret,
+  gmailConfigured,
   header,
   isAllowlisted,
   isValidEmail,
@@ -388,6 +492,7 @@ module.exports = {
   normalizeEmail,
   parseCookies,
   payloadTooLarge,
+  previewInlineEnabled,
   publicOrigin,
   queryOf,
   rateLimited,
@@ -396,6 +501,8 @@ module.exports = {
   readSessionToken,
   redirect,
   resetAuthState,
+  resendKeyPrefixOk,
+  resendKeyPresent,
   sendMagicLink,
   sessionCookie,
   wantsJson,

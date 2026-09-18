@@ -2,6 +2,7 @@
 // POST action=request|logout  ·  GET ?token=… consumes a one-time link.
 // JSON when Accept/Content-Type is application/json; otherwise HTML redirects.
 
+const { loginPage } = require('./_html');
 const {
   authConfigured,
   clearSessionCookie,
@@ -9,12 +10,14 @@ const {
   consumeMagicToken,
   createMagicToken,
   createSessionToken,
+  deliverMagicLink,
   deliveryConfigured,
   genericLinkFailure,
   genericRequestMessage,
   isAllowlisted,
   isValidEmail,
   json,
+  noStore,
   payloadTooLarge,
   publicOrigin,
   queryOf,
@@ -22,7 +25,6 @@ const {
   readBody,
   readSession,
   redirect,
-  sendMagicLink,
   sessionCookie,
   wantsJson,
 } = require('./_lib');
@@ -61,13 +63,28 @@ async function handleRequest(req, res) {
   if (isAllowlisted(email)) {
     const token = createMagicToken(email);
     const loginUrl = `${publicOrigin(req)}/api/ops/auth?token=${encodeURIComponent(token)}`;
-    try {
-      await sendMagicLink({ to: email.trim(), loginUrl });
-    } catch (err) {
-      const code = err && err.code === 'delivery_not_configured' ? 'delivery_not_configured' : 'delivery_failed';
+    const result = await deliverMagicLink({ to: email.trim(), loginUrl });
+    if (!result.ok) {
+      const code = result.code === 'delivery_not_configured' ? 'delivery_not_configured' : 'delivery_failed';
       const status = code === 'delivery_not_configured' ? 503 : 502;
       return requestFailed(req, res, status, code, 'We could not send a sign-in link. Try again shortly.');
     }
+    if (result.via === 'preview_inline' && result.previewLoginUrl) {
+      if (wantsJson(req)) {
+        return json(res, 200, {
+          accepted: true,
+          message: genericRequestMessage(),
+          via: 'preview_inline',
+          previewLoginUrl: result.previewLoginUrl,
+        });
+      }
+      noStore(res, 'text/html; charset=utf-8');
+      return res.status(200).send(loginPage({ sent: true, previewLoginUrl: result.previewLoginUrl }));
+    }
+    if (wantsJson(req)) {
+      return json(res, 200, { accepted: true, message: genericRequestMessage(), via: result.via });
+    }
+    return redirect(res, '/ops?sent=1');
   }
 
   if (wantsJson(req)) return json(res, 200, { accepted: true, message: genericRequestMessage() });
