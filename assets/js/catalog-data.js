@@ -80,7 +80,7 @@ function simpleFields(conditions) {
 
 const P = 'images/products/'; // shorthand for the existing real-photo folder
 const C = 'images/catalog/';  // shorthand for the imported distributor photo folder
-const PACK = P + 'pack-2026-09-02/'; // recovered 2026-09-02 image-pack files only
+const PACK = P + 'pack-2026-09-02/'; // 2026-09-02 image pack (IMAGE_MANIFEST.tsv)
 const REPRESENTATIVE_NOTE = 'Representative sourcing artwork — not verified exact product photography.';
 
 /** Attach pack artwork to a handwritten sourcing listing. Never use this for Icecat/distributor SKUs. */
@@ -90,6 +90,9 @@ function representativeArt(file, name) {
     imageRole: 'representative',
     imageAlt: 'Representative sourcing artwork for ' + name + '. ' + REPRESENTATIVE_NOTE,
   };
+}
+function withPack(model, file) {
+  return Object.assign(model, representativeArt(file, model.name));
 }
 
 /** Build a standardised images[] for a product whose photos live in
@@ -124,8 +127,11 @@ const APPLE_STORAGE_NEW = ['128GB', '256GB', '512GB', '1TB'];
 
 function iphoneFamily(name, models) {
   return { name: name, models: models.map(m => ({
-    id: m.id, name: m.name, image: null,
+    id: m.id, name: m.name,
+    image: m.image || null,
     primaryImage: m.primaryImage || null,
+    imageRole: m.imageRole || null,
+    imageAlt: m.imageAlt || null,
     specLine: m.storage.join(' · ') + ' · ' + m.colors.length + ' colors',
     desc: 'Sourced to order — new or professionally refurbished, tested and warrantied.',
     fields: phoneFields(m.storage, m.colors),
@@ -167,6 +173,9 @@ const iphone16 = iphoneFamily('iPhone 16', [
   { id: 'iphone-16-pro', name: 'iPhone 16 Pro', storage: APPLE_STORAGE_NEW, colors: ['Black Titanium', 'White Titanium', 'Natural Titanium', 'Desert Titanium'] },
   { id: 'iphone-16-pro-max', name: 'iPhone 16 Pro Max', storage: APPLE_STORAGE_NEW, colors: ['Black Titanium', 'White Titanium', 'Natural Titanium', 'Desert Titanium'] },
 ]);
+iphone13.models.forEach(function (m) { Object.assign(m, representativeArt('iphone-13-family.webp', m.name)); });
+iphone14.models.forEach(function (m) { Object.assign(m, representativeArt('iphone-14-family.webp', m.name)); });
+iphone16.models.forEach(function (m) { Object.assign(m, representativeArt('iphone-16-family.webp', m.name)); });
 
 const SAMSUNG_STORAGE = ['128GB', '256GB', '512GB'];
 function samsungModel(id, name, colors) {
@@ -198,12 +207,12 @@ const galaxyZ = { name: 'Galaxy Z', models: [
 
 // Brands prepared for future expansion — one starter family/model each so the
 // browsing tree isn't empty; extend freely without touching catalog.js.
-function stubPhoneBrand(brandName, modelName, id) {
-  return { name: brandName, families: [{ name: modelName, models: [
-    { id, name: modelName, image: null, specLine: '64GB · 128GB · 256GB',
+function stubPhoneBrand(brandName, modelName, id, packFile) {
+  var model = { id: id, name: modelName, image: null, specLine: '64GB · 128GB · 256GB',
       desc: 'Contact us to confirm current stock for this model.',
-      fields: phoneFields(['64GB', '128GB', '256GB'], ['Black', 'Blue', 'White']) },
-  ]}]};
+      fields: phoneFields(['64GB', '128GB', '256GB'], ['Black', 'Blue', 'White']) };
+  if (packFile) Object.assign(model, representativeArt(packFile, modelName));
+  return { name: brandName, families: [{ name: modelName, models: [model] }] };
 }
 
 const CATALOG_PHONES = {
@@ -212,12 +221,12 @@ const CATALOG_PHONES = {
   brands: [
     { name: 'Apple', families: [iphone11, iphone12, iphone13, iphone14, iphone15, iphone16] },
     { name: 'Samsung', families: [galaxyS, galaxyA, galaxyZ] },
-    stubPhoneBrand('Google', 'Pixel 8', 'pixel-8'),
-    stubPhoneBrand('Tecno', 'Camon 20', 'tecno-camon-20'),
-    stubPhoneBrand('Infinix', 'Note 30', 'infinix-note-30'),
-    stubPhoneBrand('Motorola', 'Moto G84', 'moto-g84'),
-    stubPhoneBrand('Xiaomi', 'Redmi Note 13', 'redmi-note-13'),
-    stubPhoneBrand('OnePlus', 'OnePlus 12', 'oneplus-12'),
+    stubPhoneBrand('Google', 'Pixel 8', 'pixel-8', 'google-pixel-8.webp'),
+    stubPhoneBrand('Tecno', 'Camon 20', 'tecno-camon-20', 'tecno-camon-20.webp'),
+    stubPhoneBrand('Infinix', 'Note 30', 'infinix-note-30', 'infinix-note-30.webp'),
+    stubPhoneBrand('Motorola', 'Moto G84', 'moto-g84', 'motorola-moto-g84.webp'),
+    stubPhoneBrand('Xiaomi', 'Redmi Note 13', 'redmi-note-13', 'xiaomi-redmi-note-13.webp'),
+    stubPhoneBrand('OnePlus', 'OnePlus 12', 'oneplus-12', 'oneplus-12.webp'),
   ],
 };
 
@@ -231,8 +240,9 @@ const CATALOG_TABLETS = {
     { name: 'Apple', families: [{ name: 'iPad', models: [
       { id: 'ipad-10th-gen', name: 'iPad (10th Gen)', image: null, primaryImage: P + 'apple-ipad-10.png', specLine: '64GB · 256GB · Wi-Fi / Cellular',
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(['64GB', '256GB'], ['Silver', 'Blue', 'Pink', 'Yellow']) },
-      { id: 'ipad-air', name: 'iPad Air', image: null, specLine: '64GB · 256GB · Wi-Fi / Cellular',
+      Object.assign({ id: 'ipad-air', name: 'iPad Air', specLine: '64GB · 256GB · Wi-Fi / Cellular',
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(['64GB', '256GB'], ['Space Grey', 'Starlight', 'Blue', 'Purple']) },
+        representativeArt('ipad-air.webp', 'iPad Air')),
       Object.assign({ id: 'ipad-pro', name: 'iPad Pro', specLine: '128GB · 256GB · 512GB · 1TB',
         desc: 'Sourced to order — new or refurbished.', fields: phoneFields(APPLE_STORAGE_NEW, ['Space Grey', 'Silver']) },
         representativeArt('ipad-pro.webp', 'iPad Pro')),
@@ -316,14 +326,14 @@ const CATALOG_COMPUTERS = {
       { name: 'Yoga', models: [ { id: 'lenovo-yoga', name: 'Lenovo Yoga', image: null, primaryImage: C + 'computers/lenovo/149919314/01.webp', images: catalogImages('computers', 'lenovo', '149919314', 'Lenovo Yoga'), specLine: '2-in-1 convertible', desc: 'Convertible 2-in-1 laptop.', fields: computerFields(['8GB', '16GB', '32GB'], ['512GB SSD', '1TB SSD'], ['Intel Core i5', 'Intel Core i7']) } ]},
     ]},
     { name: 'Apple', families: [
-      { name: 'MacBook Air', models: [ { id: 'macbook-air', name: 'MacBook Air', image: null, specLine: '13" / 15" · M2 / M3', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['8GB', '16GB', '24GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Apple M2', 'Apple M3']) } ]},
+      { name: 'MacBook Air', models: [ withPack({ id: 'macbook-air', name: 'MacBook Air', specLine: '13" / 15" · M2 / M3', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['8GB', '16GB', '24GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Apple M2', 'Apple M3']) }, 'macbook-air.webp') ]},
       { name: 'MacBook Pro', models: [ { id: 'macbook-pro', name: 'MacBook Pro', image: null, primaryImage: P + 'apple-macbook-pro.png', specLine: '14" / 16" · M3 Pro / Max', desc: 'Sourced to order — new or refurbished.', fields: computerFields(['16GB', '32GB', '64GB'], ['512GB SSD', '1TB SSD', '2TB SSD'], ['Apple M3 Pro', 'Apple M3 Max']) } ]},
-      { name: 'iMac', models: [ { id: 'imac', name: 'iMac 24"', image: null, specLine: '24" 4.5K · M3', desc: 'All-in-one desktop.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) } ]},
-      { name: 'Mac mini', models: [ { id: 'mac-mini', name: 'Mac mini', image: null, specLine: 'M2 / M2 Pro', desc: 'Compact desktop Mac.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Apple M2', 'Apple M2 Pro']) } ]},
+      { name: 'iMac', models: [ withPack({ id: 'imac', name: 'iMac 24"', specLine: '24" 4.5K · M3', desc: 'All-in-one desktop.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) }, 'imac-24.webp') ]},
+      { name: 'Mac mini', models: [ withPack({ id: 'mac-mini', name: 'Mac mini', specLine: 'M2 / M2 Pro', desc: 'Compact desktop Mac.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD', '1TB SSD'], ['Apple M2', 'Apple M2 Pro']) }, 'mac-mini.webp') ]},
     ]},
-    { name: 'Acer', families: [{ name: 'Aspire', models: [ { id: 'acer-aspire', name: 'Acer Aspire', image: null, specLine: 'Everyday laptop', desc: 'Reliable everyday laptop.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) } ]}]},
-    { name: 'ASUS', families: [{ name: 'VivoBook', models: [ { id: 'asus-vivobook', name: 'ASUS VivoBook', image: null, specLine: 'Everyday laptop', desc: 'Reliable everyday laptop.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) } ]}]},
-    { name: 'Microsoft', families: [{ name: 'Surface', models: [ { id: 'surface-laptop', name: 'Surface Laptop', image: null, specLine: '13.5" / 15"', desc: 'Premium Windows laptop.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD'], ['Intel Core i5', 'Intel Core i7']) } ]}]},
+    { name: 'Acer', families: [{ name: 'Aspire', models: [ withPack({ id: 'acer-aspire', name: 'Acer Aspire', specLine: 'Everyday laptop', desc: 'Reliable everyday laptop.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) }, 'acer-aspire.webp') ]}]},
+    { name: 'ASUS', families: [{ name: 'VivoBook', models: [ withPack({ id: 'asus-vivobook', name: 'ASUS VivoBook', specLine: 'Everyday laptop', desc: 'Reliable everyday laptop.', fields: computerFields(['8GB', '16GB'], ['256GB SSD', '512GB SSD'], null) }, 'asus-vivobook.webp') ]}]},
+    { name: 'Microsoft', families: [{ name: 'Surface', models: [ withPack({ id: 'surface-laptop', name: 'Surface Laptop', specLine: '13.5" / 15"', desc: 'Premium Windows laptop.', fields: computerFields(['8GB', '16GB', '32GB'], ['256GB SSD', '512GB SSD'], ['Intel Core i5', 'Intel Core i7']) }, 'microsoft-surface-laptop.webp') ]}]},
   ],
 };
 
@@ -348,10 +358,10 @@ const CATALOG_TVS = {
       { name: 'Neo QLED', models: [Object.assign(tvModel('samsung-neo-qled', 'Samsung Neo QLED TV', 'Mini-LED · 4K/8K'), { primaryImage: C + 'tvs/samsung/79809054/01.webp', images: catalogImages('tvs', 'samsung', '79809054', 'Samsung Neo QLED TV') })] },
       { name: 'UHD', models: [Object.assign(tvModel('samsung-uhd', 'Samsung UHD TV', '4K UHD · Tizen'), representativeArt('samsung-uhd-tv.webp', 'Samsung UHD TV'))] },
     ]},
-    { name: 'Sony', families: [{ name: 'Bravia', models: [tvModel('sony-bravia', 'Sony Bravia TV', '4K HDR · Google TV')] }]},
-    { name: 'TCL', families: [{ name: 'UHD', models: [tvModel('tcl-uhd', 'TCL UHD TV', '4K UHD · Android TV')] }]},
+    { name: 'Sony', families: [{ name: 'Bravia', models: [Object.assign(tvModel('sony-bravia', 'Sony Bravia TV', '4K HDR · Google TV'), representativeArt('sony-bravia-tv.webp', 'Sony Bravia TV'))] }]},
+    { name: 'TCL', families: [{ name: 'UHD', models: [Object.assign(tvModel('tcl-uhd', 'TCL UHD TV', '4K UHD · Android TV'), representativeArt('tcl-uhd-tv.webp', 'TCL UHD TV'))] }]},
     { name: 'Hisense', families: [{ name: 'ULED', models: [Object.assign(tvModel('hisense-uled', 'Hisense ULED TV', '4K ULED'), { primaryImage: C + 'tvs/hisense/120583473/01.webp', images: catalogImages('tvs', 'hisense', '120583473', 'Hisense ULED TV') })] }]},
-    { name: 'Vizio', families: [{ name: 'Quantum', models: [tvModel('vizio-quantum', 'Vizio Quantum TV', '4K Quantum Dot')] }]},
+    { name: 'Vizio', families: [{ name: 'Quantum', models: [Object.assign(tvModel('vizio-quantum', 'Vizio Quantum TV', '4K Quantum Dot'), representativeArt('vizio-quantum-tv.webp', 'Vizio Quantum TV'))] }]},
   ],
 };
 
@@ -432,12 +442,12 @@ const CATALOG_MONITORS = {
       ]},
     ]},
     { name: 'LG', families: [{ name: 'UltraGear', models: [
-      { id: 'lg-ultragear', name: 'LG UltraGear Gaming Monitor', image: null, specLine: '27" · 144Hz+ · Gaming',
-        desc: 'High refresh-rate gaming monitor.', fields: [{ key: 'size', label: 'Screen Size', type: 'select', options: ['24"', '27"', '34"'] }, { key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K'] }, qtyField(1)] },
+      withPack({ id: 'lg-ultragear', name: 'LG UltraGear Gaming Monitor', specLine: '27" · 144Hz+ · Gaming',
+        desc: 'High refresh-rate gaming monitor.', fields: [{ key: 'size', label: 'Screen Size', type: 'select', options: ['24"', '27"', '34"'] }, { key: 'resolution', label: 'Resolution', type: 'select', options: ['1080p', '1440p', '4K'] }, qtyField(1)] }, 'lg-ultragear-monitor.webp'),
     ]}]},
     { name: 'Samsung', families: [{ name: 'Odyssey', models: [
-      { id: 'samsung-odyssey', name: 'Samsung Odyssey Curved Monitor', image: null, specLine: 'Curved · 165Hz+',
-        desc: 'Curved high-performance display.', fields: [{ key: 'size', label: 'Screen Size', type: 'select', options: ['27"', '32"', '49"'] }, qtyField(1)] },
+      withPack({ id: 'samsung-odyssey', name: 'Samsung Odyssey Curved Monitor', specLine: 'Curved · 165Hz+',
+        desc: 'Curved high-performance display.', fields: [{ key: 'size', label: 'Screen Size', type: 'select', options: ['27"', '32"', '49"'] }, qtyField(1)] }, 'samsung-odyssey-monitor.webp'),
     ]}]},
   ],
 };
@@ -469,8 +479,8 @@ const CATALOG_NETWORKING = {
         representativeArt('ubiquiti-unifi-ap.webp', 'Ubiquiti UniFi Access Point')),
     ]}]},
     { name: 'Fortinet', families: [{ name: 'Firewalls', models: [
-      { id: 'fortinet-firewall', name: 'FortiGate Firewall / UTM', image: null, specLine: 'Security appliance',
-        desc: 'Firewall and unified threat management appliance.', fields: networkFields(['Branch', 'Data Centre', 'SD-WAN']) },
+      withPack({ id: 'fortinet-firewall', name: 'FortiGate Firewall / UTM', specLine: 'Security appliance',
+        desc: 'Firewall and unified threat management appliance.', fields: networkFields(['Branch', 'Data Centre', 'SD-WAN']) }, 'fortigate-firewall.webp'),
     ]}]},
   ],
 };
@@ -490,8 +500,8 @@ const CATALOG_SERVERS = {
         fields: serverFields(['16GB', '32GB', '64GB', '128GB+'], ['1TB HDD', '2TB HDD', '4x 1TB SSD RAID'], ['1U Rack', '2U Rack', 'Tower']) },
     ]}]},
     { name: 'Lenovo', families: [{ name: 'ThinkSystem', models: [
-      { id: 'lenovo-thinksystem', name: 'Lenovo ThinkSystem Server', image: null, specLine: 'Rack server',
-        desc: 'Enterprise rack server.', fields: serverFields(['16GB', '32GB', '64GB'], ['1TB HDD', '2TB HDD'], ['1U Rack', '2U Rack']) },
+      withPack({ id: 'lenovo-thinksystem', name: 'Lenovo ThinkSystem Server', specLine: 'Rack server',
+        desc: 'Enterprise rack server.', fields: serverFields(['16GB', '32GB', '64GB'], ['1TB HDD', '2TB HDD'], ['1U Rack', '2U Rack']) }, 'lenovo-thinksystem-server.webp'),
     ]}]},
   ],
 };
@@ -528,19 +538,19 @@ const CATALOG_GAMING = {
   audiences: ['consumer'],
   brands: [
     { name: 'Sony', families: [{ name: 'PlayStation', models: [
-      { id: 'ps5', name: 'PlayStation 5', image: null, specLine: 'Standard / Digital Edition',
-        desc: 'Sourced to order — new or refurbished.', fields: simpleFields(CONDITION_NEW_REFURB) },
+      withPack({ id: 'ps5', name: 'PlayStation 5', specLine: 'Standard / Digital Edition',
+        desc: 'Sourced to order — new or refurbished.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'playstation-5.webp'),
       Object.assign({ id: 'ps4', name: 'PlayStation 4', specLine: 'Standard / Pro',
         desc: 'Sourced to order — new or refurbished.', fields: simpleFields(CONDITION_NEW_REFURB) },
         representativeArt('playstation-4.webp', 'PlayStation 4')),
     ]}]},
     { name: 'Microsoft', families: [{ name: 'Xbox', models: [
-      { id: 'xbox-series-x', name: 'Xbox Series X', image: null, specLine: '1TB',
-        desc: 'Sourced to order — new or refurbished.', fields: simpleFields(CONDITION_NEW_REFURB) },
+      withPack({ id: 'xbox-series-x', name: 'Xbox Series X', specLine: '1TB',
+        desc: 'Sourced to order — new or refurbished.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'xbox-series-x.webp'),
     ]}]},
     { name: 'Nintendo', families: [{ name: 'Switch', models: [
-      { id: 'nintendo-switch', name: 'Nintendo Switch', image: null, specLine: 'Standard / OLED',
-        desc: 'Sourced to order — new or refurbished.', fields: simpleFields(CONDITION_NEW_REFURB) },
+      withPack({ id: 'nintendo-switch', name: 'Nintendo Switch', specLine: 'Standard / OLED',
+        desc: 'Sourced to order — new or refurbished.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'nintendo-switch.webp'),
     ]}]},
   ],
 };
@@ -550,13 +560,13 @@ const CATALOG_AUDIO = {
   audiences: ['consumer', 'business'],
   brands: [
     { name: 'Apple', families: [{ name: 'AirPods', models: [
-      { id: 'airpods-pro', name: 'AirPods Pro', image: null, specLine: 'Active noise cancellation', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
+      withPack({ id: 'airpods-pro', name: 'AirPods Pro', specLine: 'Active noise cancellation', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'airpods-pro.webp'),
     ]}]},
     { name: 'JBL', families: [{ name: 'Speakers', models: [
-      { id: 'jbl-speaker', name: 'JBL Bluetooth Speaker', image: null, specLine: 'Portable · Bluetooth', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_ONLY) },
+      withPack({ id: 'jbl-speaker', name: 'JBL Bluetooth Speaker', specLine: 'Portable · Bluetooth', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_ONLY) }, 'jbl-bluetooth-speaker.webp'),
     ]}]},
     { name: 'Sony', families: [{ name: 'Headphones', models: [
-      { id: 'sony-headphones', name: 'Sony Noise-Cancelling Headphones', image: null, specLine: 'Over-ear · Wireless', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
+      withPack({ id: 'sony-headphones', name: 'Sony Noise-Cancelling Headphones', specLine: 'Over-ear · Wireless', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'sony-noise-cancelling-headphones.webp'),
     ]}]},
   ],
 };
@@ -566,11 +576,11 @@ const CATALOG_WATCHES = {
   audiences: ['consumer'],
   brands: [
     { name: 'Apple', families: [{ name: 'Apple Watch', models: [
-      { id: 'apple-watch-series-9', name: 'Apple Watch Series 9', image: null, specLine: '41mm / 45mm', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
-      { id: 'apple-watch-ultra', name: 'Apple Watch Ultra 2', image: null, specLine: '49mm', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
+      withPack({ id: 'apple-watch-series-9', name: 'Apple Watch Series 9', specLine: '41mm / 45mm', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'apple-watch-series-9.webp'),
+      withPack({ id: 'apple-watch-ultra', name: 'Apple Watch Ultra 2', specLine: '49mm', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'apple-watch-ultra-2.webp'),
     ]}]},
     { name: 'Samsung', families: [{ name: 'Galaxy Watch', models: [
-      { id: 'galaxy-watch-6', name: 'Galaxy Watch 6', image: null, specLine: '40mm / 44mm', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
+      withPack({ id: 'galaxy-watch-6', name: 'Galaxy Watch 6', specLine: '40mm / 44mm', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'samsung-galaxy-watch-6.webp'),
     ]}]},
   ],
 };
@@ -580,13 +590,13 @@ const CATALOG_CAMERAS = {
   audiences: ['consumer', 'business'],
   brands: [
     { name: 'Canon', families: [{ name: 'EOS', models: [
-      { id: 'canon-eos', name: 'Canon EOS Camera', image: null, specLine: 'Mirrorless / DSLR', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
+      withPack({ id: 'canon-eos', name: 'Canon EOS Camera', specLine: 'Mirrorless / DSLR', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'canon-eos-camera.webp'),
     ]}]},
     { name: 'Sony', families: [{ name: 'Alpha', models: [
-      { id: 'sony-alpha', name: 'Sony Alpha Camera', image: null, specLine: 'Mirrorless', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) },
+      withPack({ id: 'sony-alpha', name: 'Sony Alpha Camera', specLine: 'Mirrorless', desc: 'Sourced to order.', fields: simpleFields(CONDITION_NEW_REFURB) }, 'sony-alpha-camera.webp'),
     ]}]},
     { name: 'Hikvision', families: [{ name: 'CCTV', models: [
-      { id: 'hikvision-cctv', name: 'Hikvision CCTV Camera', image: null, specLine: 'Indoor / Outdoor · IP', desc: 'Supply and installation.', fields: [{ key: 'configuration', label: 'Configuration', type: 'select', options: ['Single Camera', '4-Camera Kit', '8-Camera Kit', 'Custom'] }, qtyField(1)] },
+      withPack({ id: 'hikvision-cctv', name: 'Hikvision CCTV Camera', specLine: 'Indoor / Outdoor · IP', desc: 'Supply and installation.', fields: [{ key: 'configuration', label: 'Configuration', type: 'select', options: ['Single Camera', '4-Camera Kit', '8-Camera Kit', 'Custom'] }, qtyField(1)] }, 'hikvision-cctv.webp'),
     ]}]},
   ],
 };
@@ -596,9 +606,9 @@ const CATALOG_ACCESSORIES = {
   audiences: ['consumer', 'education', 'business'],
   brands: [
     { name: 'Various', families: [
-      { name: 'Chargers & Cables', models: [ { id: 'charger-cable', name: 'Chargers & Charging Cables', image: null, specLine: 'USB-C · Lightning · Wireless', desc: 'Genuine and compatible charging accessories.', fields: simpleFields(CONDITION_NEW_ONLY) } ]},
-      { name: 'Cases & Screen Protectors', models: [ { id: 'cases-protectors', name: 'Cases & Screen Protectors', image: null, specLine: 'Phone · Tablet · Laptop', desc: 'Protective accessories for your devices.', fields: simpleFields(CONDITION_NEW_ONLY) } ]},
-      { name: 'Power Banks', models: [ { id: 'power-bank', name: 'Power Banks', image: null, specLine: '10,000mAh · 20,000mAh', desc: 'Portable charging.', fields: simpleFields(CONDITION_NEW_ONLY) } ]},
+      { name: 'Chargers & Cables', models: [ withPack({ id: 'charger-cable', name: 'Chargers & Charging Cables', specLine: 'USB-C · Lightning · Wireless', desc: 'Genuine and compatible charging accessories.', fields: simpleFields(CONDITION_NEW_ONLY) }, 'chargers-and-charging-cables.webp') ]},
+      { name: 'Cases & Screen Protectors', models: [ withPack({ id: 'cases-protectors', name: 'Cases & Screen Protectors', specLine: 'Phone · Tablet · Laptop', desc: 'Protective accessories for your devices.', fields: simpleFields(CONDITION_NEW_ONLY) }, 'cases-and-screen-protectors.webp') ]},
+      { name: 'Power Banks', models: [ withPack({ id: 'power-bank', name: 'Power Banks', specLine: '10,000mAh · 20,000mAh', desc: 'Portable charging.', fields: simpleFields(CONDITION_NEW_ONLY) }, 'power-banks.webp') ]},
     ]},
   ],
 };
@@ -684,12 +694,12 @@ const CATALOG_POWER = {
       { id: 'stabilizer-5000w', name: 'Andeli 5000W Voltage Stabilizer', image: P + 'power-andeli-5000w.jpg', specLine: '5000W', desc: 'AC automatic voltage stabilizer.', fields: simpleFields() },
       { id: 'stabilizer-10kva', name: 'Andeli 10KVA Voltage Stabilizer', image: P + 'power-andeli-10kva.jpg', specLine: '10KVA', desc: 'AC automatic voltage stabilizer.', fields: simpleFields() },
       { id: 'stabilizer-15kva', name: 'Andeli 15KVA Voltage Stabilizer', image: P + 'power-andeli-15kva.jpg', specLine: '15KVA · Single-phase', desc: 'AC automatic voltage stabilizer.', fields: simpleFields() },
-      { id: 'stabilizer-20kva-1p', name: 'Andeli 20KVA Voltage Stabilizer (Single-Phase)', image: null, specLine: '20KVA · Single-phase', desc: 'Contact us to confirm current stock/photo for this size.', fields: simpleFields() },
+      withPack({ id: 'stabilizer-20kva-1p', name: 'Andeli 20KVA Voltage Stabilizer (Single-Phase)', specLine: '20KVA · Single-phase', desc: 'Contact us to confirm current stock/photo for this size.', fields: simpleFields() }, 'andeli-20kva-single-phase.webp'),
     ]},
     { name: '3-Phase Stabilizers', models: [
-      { id: 'stabilizer-20kva-3p', name: 'Andeli 20KVA Voltage Stabilizer (3-Phase)', image: null, specLine: '20KVA · 3-phase', desc: 'Contact us to confirm current stock/photo for this size.', fields: simpleFields() },
+      withPack({ id: 'stabilizer-20kva-3p', name: 'Andeli 20KVA Voltage Stabilizer (3-Phase)', specLine: '20KVA · 3-phase', desc: 'Contact us to confirm current stock/photo for this size.', fields: simpleFields() }, 'andeli-20kva-three-phase.webp'),
       { id: 'stabilizer-30kva', name: 'Andeli 30KVA Voltage Stabilizer (3-Phase)', image: P + 'power-andeli-30kva.jpg', specLine: '30KVA · 3-phase', desc: 'AC automatic voltage stabilizer.', fields: simpleFields() },
-      { id: 'stabilizer-50kva', name: 'Andeli 50KVA Voltage Stabilizer (3-Phase)', image: null, specLine: '50KVA · 3-phase', desc: 'Contact us to confirm current stock/photo for this size.', fields: simpleFields() },
+      withPack({ id: 'stabilizer-50kva', name: 'Andeli 50KVA Voltage Stabilizer (3-Phase)', specLine: '50KVA · 3-phase', desc: 'Contact us to confirm current stock/photo for this size.', fields: simpleFields() }, 'andeli-50kva-three-phase.webp'),
     ]},
     { name: 'Transformers', models: [
       { id: 'transformer-2000w', name: '2000W Step Up/Down Transformer', image: P + 'power-transformer.jpg', specLine: '2000W', desc: 'Step up/down voltage transformer.', fields: simpleFields() },

@@ -1,63 +1,57 @@
-# Reconstructed from LAVAALL_Product_Image_Pack_2026-09-02 filenames.
-# Original IMAGE_MANIFEST.tsv / START_HERE_CLAUDE.md were in the pack but the
-# Cursor-attached zip was truncated and the Slack zip dump was UTF-8 corrupted.
-# Mapping rule: unique handwritten catalog id with no image ref, from pack filename.
-# Status: APPLIED = valid recovered file wired. HELD = binary missing/invalid. SKIPPED = already has media.
-pack_file	catalog_id	category	status	reason
-category-artwork/category-gaming.webp	gaming	gaming	SKIPPED	Overview already has valid images/products/category-gaming.webp
-category-artwork/category-cameras.webp	cameras	cameras	SKIPPED	Overview already has valid images/products/category-cameras.webp
-category-artwork/category-monitors.webp	monitors	monitors	SKIPPED	Overview already has valid images/products/category-monitors.webp
-category-artwork/category-phones.webp	phones	phones	SKIPPED	Overview already has valid images/products/category-phones.webp
-category-artwork/category-televisions.webp	tvs	tvs	SKIPPED	Overview already has valid images/products/category-tvs.webp
-category-artwork/category-printers.webp	printers	printers	SKIPPED	Overview already has valid images/products/category-printers.webp
-category-artwork/category-tablets.webp	tablets	tablets	SKIPPED	Overview already has valid images/products/category-tablets.webp
-category-artwork/category-accessories.webp	accessories	accessories	SKIPPED	Overview already has valid images/products/category-accessories.webp
-category-artwork/category-smart-watches.webp	watches	watches	SKIPPED	Overview already has valid images/products/category-watches.webp
-category-artwork/category-audio.webp	audio	audio	SKIPPED	Overview already has valid images/products/category-audio.webp
-product-images/ipad-pro.webp	ipad-pro	tablets	APPLIED	Exact catalog id; missing image; valid recovered WebP
-product-images/ubiquiti-unifi-ap.webp	ubiquiti-ap	networking	APPLIED	Unique filename-to-id match; missing image; valid recovered WebP
-product-images/playstation-4.webp	ps4	gaming	APPLIED	Unique filename-to-id match; missing image; valid recovered WebP
-product-images/samsung-uhd-tv.webp	samsung-uhd	tvs	APPLIED	Unique filename-to-id match; missing image; valid recovered WebP
-product-images/asus-vivobook.webp	asus-vivobook	computers	HELD	Recovered payload truncated / not a valid WebP
-product-images/xbox-series-x.webp	xbox-series-x	gaming	HELD	Pack binary not recoverable from truncated zip
-product-images/apple-watch-series-9.webp	apple-watch-series-9	watches	HELD	Pack binary not recoverable from truncated zip
-product-images/microsoft-surface-laptop.webp	surface-laptop	computers	HELD	Pack binary not recoverable from truncated zip
-product-images/infinix-note-30.webp	infinix-note-30	phones	HELD	Pack binary not recoverable from truncated zip
-product-images/imac-24.webp	imac	computers	HELD	Pack binary not recoverable from truncated zip
-product-images/sony-noise-cancelling-headphones.webp	sony-headphones	audio	HELD	Pack binary not recoverable from truncated zip
-product-images/mac-mini.webp	mac-mini	computers	HELD	Pack binary not recoverable from truncated zip
-product-images/andeli-20kva-three-phase.webp	stabilizer-20kva-3p	power	HELD	Pack binary not recoverable from truncated zip
-product-images/iphone-16-family.webp	iphone-16|iphone-16-plus|iphone-16-pro|iphone-16-pro-max	phones	HELD	Shared family artwork; binary not recoverable
-product-images/xiaomi-redmi-note-13.webp	redmi-note-13	phones	HELD	Pack binary not recoverable from truncated zip
-product-images/samsung-odyssey-monitor.webp	samsung-odyssey	monitors	HELD	Pack binary not recoverable from truncated zip
-product-images/cases-and-screen-protectors.webp	cases-protectors	accessories	HELD	Pack binary not recoverable from truncated zip
-product-images/oneplus-12.webp	oneplus-12	phones	HELD	Pack binary not recoverable from truncated zip
-product-images/macbook-air.webp	macbook-air	computers	HELD	Pack binary not recoverable from truncated zip
-product-images/nintendo-switch.webp	nintendo-switch	gaming	HELD	Pack binary not recoverable from truncated zip
-product-images/vizio-quantum-tv.webp	vizio-quantum	tvs	HELD	Pack binary not recoverable from truncated zip
-product-images/jbl-bluetooth-speaker.webp	jbl-speaker	audio	HELD	Pack binary not recoverable from truncated zip
-product-images/lg-ultragear-monitor.webp	lg-ultragear	monitors	HELD	Pack binary not recoverable from truncated zip
-product-images/tcl-uhd-tv.webp	tcl-uhd	tvs	HELD	Pack binary not recoverable from truncated zip
-product-images/airpods-pro.webp	airpods-pro	audio	HELD	Pack binary not recoverable from truncated zip
-product-images/lenovo-thinksystem-server.webp	lenovo-thinksystem	servers	HELD	Pack binary not recoverable from truncated zip
-product-images/sony-bravia-tv.webp	sony-bravia	tvs	HELD	Pack binary not recoverable from truncated zip
-product-images/apple-watch-ultra-2.webp	apple-watch-ultra	watches	HELD	Pack binary not recoverable from truncated zip
-product-images/tecno-camon-20.webp	tecno-camon-20	phones	HELD	Pack binary not recoverable from truncated zip
-product-images/ipad-air.webp	ipad-air	tablets	HELD	Pack binary not recoverable from truncated zip
-product-images/iphone-14-family.webp	iphone-14|iphone-14-plus|iphone-14-pro|iphone-14-pro-max	phones	HELD	Shared family artwork; binary not recoverable
-product-images/andeli-50kva-three-phase.webp	stabilizer-50kva	power	HELD	Pack binary not recoverable from truncated zip
-product-images/hikvision-cctv.webp	hikvision-cctv	cameras	HELD	Pack binary not recoverable from truncated zip
-product-images/playstation-5.webp	ps5	gaming	HELD	Pack binary not recoverable from truncated zip
-product-images/sony-alpha-camera.webp	sony-alpha	cameras	HELD	Pack binary not recoverable from truncated zip
-product-images/iphone-13-family.webp	iphone-13-mini|iphone-13|iphone-13-pro|iphone-13-pro-max	phones	HELD	Shared family artwork; binary not recoverable
-product-images/power-banks.webp	power-bank	accessories	HELD	Pack binary not recoverable from truncated zip
-product-images/google-pixel-8.webp	pixel-8	phones	HELD	Pack binary not recoverable from truncated zip
-product-images/andeli-20kva-single-phase.webp	stabilizer-20kva-1p	power	HELD	Pack binary not recoverable from truncated zip
-product-images/chargers-and-charging-cables.webp	charger-cable	accessories	HELD	Pack binary not recoverable from truncated zip
-product-images/acer-aspire.webp	acer-aspire	computers	HELD	Pack binary not recoverable from truncated zip
-product-images/fortigate-firewall.webp	fortinet-firewall	networking	HELD	Pack binary not recoverable from truncated zip
-product-images/samsung-galaxy-watch-6.webp	galaxy-watch-6	watches	HELD	Pack binary not recoverable from truncated zip
-product-images/motorola-moto-g84.webp	moto-g84	phones	HELD	Pack binary not recoverable from truncated zip
-product-images/canon-eos-camera.webp	canon-eos	cameras	HELD	Pack binary not recoverable from truncated zip
-# SKIPPED verified Icecat/distributor (do not overwrite) — examples include Dell/HP/Lenovo computers, Samsung phones with catalog galleries, LG/Samsung/Hisense TVs with source IDs, monitor galleries, refrigeration galleries.
-# BROKEN local paths held (gitignored / extra gallery frame; not pack targets): galaxy-s24-ultra 132622690, galaxy-z-flip5 140065173, hp-z-display 04.webp
+type	asset_file	catalogue_targets
+category	category-artwork/category-phones.webp	Phones
+category	category-artwork/category-televisions.webp	Televisions
+category	category-artwork/category-monitors.webp	Monitors
+category	category-artwork/category-gaming.webp	Gaming
+category	category-artwork/category-audio.webp	Audio
+category	category-artwork/category-smart-watches.webp	Smart Watches
+category	category-artwork/category-cameras.webp	Cameras
+category	category-artwork/category-printers.webp	Printers
+category	category-artwork/category-accessories.webp	Accessories
+category	category-artwork/category-tablets.webp	Tablets
+product	product-images/iphone-13-family.webp	iPhone 13 mini | iPhone 13 | iPhone 13 Pro | iPhone 13 Pro Max
+product	product-images/iphone-14-family.webp	iPhone 14 | iPhone 14 Plus | iPhone 14 Pro | iPhone 14 Pro Max
+product	product-images/iphone-16-family.webp	iPhone 16 | iPhone 16 Plus | iPhone 16 Pro | iPhone 16 Pro Max
+product	product-images/google-pixel-8.webp	Pixel 8
+product	product-images/tecno-camon-20.webp	Tecno Camon 20
+product	product-images/infinix-note-30.webp	Infinix Note 30
+product	product-images/motorola-moto-g84.webp	Moto G84
+product	product-images/xiaomi-redmi-note-13.webp	Redmi Note 13
+product	product-images/oneplus-12.webp	OnePlus 12
+product	product-images/ipad-air.webp	iPad Air
+product	product-images/ipad-pro.webp	iPad Pro
+product	product-images/macbook-air.webp	MacBook Air
+product	product-images/imac-24.webp	iMac 24
+product	product-images/mac-mini.webp	Mac mini
+product	product-images/acer-aspire.webp	Acer Aspire
+product	product-images/asus-vivobook.webp	ASUS VivoBook
+product	product-images/microsoft-surface-laptop.webp	Surface Laptop
+product	product-images/samsung-uhd-tv.webp	Samsung UHD TV
+product	product-images/sony-bravia-tv.webp	Sony Bravia TV
+product	product-images/tcl-uhd-tv.webp	TCL UHD TV
+product	product-images/vizio-quantum-tv.webp	Vizio Quantum TV
+product	product-images/lg-ultragear-monitor.webp	LG UltraGear
+product	product-images/samsung-odyssey-monitor.webp	Samsung Odyssey
+product	product-images/ubiquiti-unifi-ap.webp	Ubiquiti UniFi AP
+product	product-images/fortigate-firewall.webp	FortiGate Firewall
+product	product-images/lenovo-thinksystem-server.webp	Lenovo ThinkSystem Server
+product	product-images/playstation-5.webp	PS5
+product	product-images/playstation-4.webp	PS4
+product	product-images/xbox-series-x.webp	Xbox Series X
+product	product-images/nintendo-switch.webp	Nintendo Switch
+product	product-images/airpods-pro.webp	AirPods Pro
+product	product-images/jbl-bluetooth-speaker.webp	JBL Bluetooth Speaker
+product	product-images/sony-noise-cancelling-headphones.webp	Sony Noise-Cancelling Headphones
+product	product-images/apple-watch-series-9.webp	Apple Watch Series 9
+product	product-images/apple-watch-ultra-2.webp	Apple Watch Ultra 2
+product	product-images/samsung-galaxy-watch-6.webp	Galaxy Watch 6
+product	product-images/canon-eos-camera.webp	Canon EOS
+product	product-images/sony-alpha-camera.webp	Sony Alpha
+product	product-images/hikvision-cctv.webp	Hikvision CCTV
+product	product-images/chargers-and-charging-cables.webp	Chargers & Charging Cables
+product	product-images/cases-and-screen-protectors.webp	Cases & Screen Protectors
+product	product-images/power-banks.webp	Power Banks
+product	product-images/andeli-20kva-single-phase.webp	Andeli 20KVA single phase
+product	product-images/andeli-20kva-three-phase.webp	Andeli 20KVA 3 phase
+product	product-images/andeli-50kva-three-phase.webp	Andeli 50KVA 3 phase
+
