@@ -3,6 +3,8 @@
 // Underscore prefix: not a Vercel function.
 
 const { escapeHtml } = require('./_lib');
+const { dashboardPage } = require('./_shell');
+const { dashboardSnapshot, emptyStore } = require('./_store');
 
 function layout({ title, body }) {
   return `<!DOCTYPE html>
@@ -74,19 +76,10 @@ function loginPage({ error, sent, previewLoginUrl } = {}) {
   });
 }
 
-function signedInPage(email) {
-  return layout({
-    title: 'LAVAALL OS',
-    body: `
-      <div class="kicker"><span class="dot" aria-hidden="true"></span> Signed in</div>
-      <h1>LAVAALL OS</h1>
-      <p>Ticket 01 placeholder. Dashboard, mail, calendar, and agent chat ship in later tickets.</p>
-      <p class="who">signed in as <span>${escapeHtml(email)}</span></p>
-      <form method="POST" action="/api/ops/auth">
-        <input type="hidden" name="action" value="logout"/>
-        <button class="btn btn-ghost" type="submit">Sign out</button>
-      </form>
-    `,
+function signedInPage(email, snapshot) {
+  return dashboardPage({
+    email,
+    snapshot: snapshot || dashboardSnapshot(emptyStore()),
   });
 }
 

@@ -27,7 +27,7 @@
   "rewrites": [
     { "source": "/ops", "destination": "/api/ops" },
     { "source": "/ops/", "destination": "/api/ops" },
-    { "source": "/ops/:path*", "destination": "/api/ops" },
+    { "source": "/ops/:path*", "destination": "/api/ops?area=:path*" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/schedule", "destination": "/index.html" }
   ]

@@ -205,7 +205,7 @@ async function run() {
       headers: { cookie: sessionCookie, host: 'preview.example.test' },
       query: {},
     }, res);
-    check('/ops with a session shows the signed-in placeholder', res.statusCode === 200 && String(res.raw).includes('signed in as') && String(res.raw).includes(ALLOWED.toLowerCase()));
+    check('/ops with a session shows the signed-in dashboard', res.statusCode === 200 && String(res.raw).includes('signed in as') && String(res.raw).includes(ALLOWED.toLowerCase()) && String(res.raw).includes('Dashboard'));
     check('signed-in page includes Sign out', /Sign out/.test(String(res.raw)));
   }
 
@@ -414,7 +414,7 @@ async function run() {
     const sources = vercel.rewrites.map((row) => row.source + '->' + row.destination);
     check('public / still rewrites to index.html', sources.includes('/->/index.html'));
     check('public /schedule still rewrites to index.html', sources.includes('/schedule->/index.html'));
-    check('/ops is rewritten to the session gate', sources.includes('/ops->/api/ops') && sources.includes('/ops/:path*->/api/ops'));
+    check('/ops is rewritten to the session gate', sources.includes('/ops->/api/ops') && sources.includes('/ops/:path*->/api/ops?area=:path*'));
   }
 
   {
