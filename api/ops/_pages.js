@@ -1,8 +1,8 @@
-// Ticket 03 pages: Profile & goals, Projects & tasks.
+// Ticket 03–04 pages: Profile & goals, Projects & tasks, Memory.
 // Underscore prefix: not a Vercel function.
 
 const { escapeHtml } = require('./_lib');
-const { getProfile, statusLabel } = require('./_store');
+const { getProfile, searchNotes, statusLabel } = require('./_store');
 const { persistenceBanner, shellPage } = require('./_shell');
 
 function option(value, label, selected) {
@@ -159,4 +159,75 @@ function tasksPage({ email, store, snapshot, notice, error }) {
   });
 }
 
-module.exports = { profilePage, tasksPage };
+function memoryPage({ email, store, snapshot, notice, error, search }) {
+  const query = typeof search === 'string' ? search : '';
+  const notes = searchNotes(store, query);
+  const list = notes.length
+    ? notes.map((note) => `
+        <li>
+          <form method="POST" action="/ops/memory" class="task-row">
+            <input type="hidden" name="action" value="update-note"/>
+            <input type="hidden" name="id" value="${escapeHtml(note.id)}"/>
+            <input type="hidden" name="returnTo" value="/ops/memory"/>
+            <label>Title <input name="title" required maxlength="160" value="${escapeHtml(note.title)}"/></label>
+            <label>Body <textarea name="body" maxlength="4000">${escapeHtml(note.body)}</textarea></label>
+            <label>Source (optional) <input name="source" maxlength="240" value="${escapeHtml(note.source)}"/></label>
+            <button class="btn btn-sm" type="submit">Save changes</button>
+          </form>
+          <form method="POST" action="/ops/memory">
+            <input type="hidden" name="action" value="delete-note"/>
+            <input type="hidden" name="id" value="${escapeHtml(note.id)}"/>
+            <input type="hidden" name="returnTo" value="/ops/memory"/>
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </li>`).join('')
+    : '';
+
+  return shellPage({
+    title: 'LAVAALL OS — Memory',
+    email,
+    area: 'memory',
+    notice,
+    error,
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <h1>Memory</h1>
+      <p>Short facts, preferences, and lessons. Search, edit, or delete. Deleted notes leave search and cannot be selected for future chat.</p>
+      <p class="empty">AI-proposed memories (ticket 05) will require review before save. Manual notes save immediately.</p>
+      <div class="grid forms">
+        <section class="card">
+          <div class="kicker">Capture</div>
+          <h2>Add a note</h2>
+          <form method="POST" action="/ops/memory">
+            <input type="hidden" name="action" value="add-note"/>
+            <input type="hidden" name="returnTo" value="/ops/memory"/>
+            <label for="mem-title">Title</label>
+            <input id="mem-title" name="title" required maxlength="160" placeholder="SL quote preference"/>
+            <label for="mem-body">Body</label>
+            <textarea id="mem-body" name="body" maxlength="4000" placeholder="Fact, preference, or lesson — no invented metrics."></textarea>
+            <label for="mem-source">Source (optional)</label>
+            <input id="mem-source" name="source" maxlength="240" placeholder="Call, email, or page"/>
+            <button class="btn" type="submit">Save note</button>
+          </form>
+        </section>
+        <section class="card">
+          <div class="kicker">Find</div>
+          <h2>Search</h2>
+          <form method="GET" action="/ops/memory">
+            <label for="mem-q">Text</label>
+            <input id="mem-q" name="q" maxlength="200" value="${escapeHtml(query)}" placeholder="Preference, supplier, lesson"/>
+            <button class="btn" type="submit">Search</button>
+          </form>
+          ${query ? `<p>Showing matches for “${escapeHtml(query)}”.</p>` : '<p>Showing all live notes.</p>'}
+        </section>
+      </div>
+      <section class="card" style="margin-top:14px">
+        <div class="kicker">Library</div>
+        <h2>Notes</h2>
+        ${list ? `<ul class="list">${list}</ul>` : '<p class="empty">No notes match. Save one or clear search.</p>'}
+      </section>
+    `,
+  });
+}
+
+module.exports = { profilePage, tasksPage, memoryPage };

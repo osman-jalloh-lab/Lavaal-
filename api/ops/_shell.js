@@ -7,7 +7,7 @@ const NAV = Object.freeze([
   { id: 'dashboard', href: '/ops', label: 'Dashboard' },
   { id: 'profile', href: '/ops/profile', label: 'Profile & goals' },
   { id: 'chat', href: '/ops/chat', label: 'Contextual chat', ticket: '05' },
-  { id: 'memory', href: '/ops/memory', label: 'Memory', ticket: '04' },
+  { id: 'memory', href: '/ops/memory', label: 'Memory' },
   { id: 'inbox', href: '/ops/inbox', label: 'Inbox', ticket: '06' },
   { id: 'calendar', href: '/ops/calendar', label: 'Calendar', ticket: '07' },
   { id: 'tasks', href: '/ops/tasks', label: 'Projects & tasks' },
@@ -67,6 +67,7 @@ input,textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px
 textarea{min-height:88px;resize:vertical;}
 .btn{margin-top:14px;width:100%;padding:12px 14px;border:0;border-radius:999px;background:var(--sky);color:var(--ink);font:inherit;font-weight:600;cursor:pointer;}
 .btn-sm{width:auto;margin-top:10px;padding:8px 14px;}
+.btn-danger{background:transparent;color:var(--coral);border:1px solid rgba(255,92,92,.45);}
 .task-row label{margin-top:8px;}
 .ok{margin-bottom:12px;color:#c8ffe8;background:rgba(0,245,160,.1);border:1px solid rgba(0,245,160,.32);border-radius:10px;padding:10px 12px;font-size:14px;}
 .err{margin-bottom:12px;color:#ffc4c4;background:rgba(255,92,92,.12);border:1px solid rgba(255,92,92,.35);border-radius:10px;padding:10px 12px;font-size:14px;}
@@ -118,7 +119,7 @@ function shellPage({ title, email, area, body, notice, error }) {
 
 function persistenceBanner(durable) {
   if (durable) return '';
-  return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Profile, goals, and tasks are ready; they may reset on a cold start until KV is on.</p>';
+  return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Profile, goals, tasks, and memory are ready; they may reset on a cold start until KV is on.</p>';
 }
 
 function dashboardPage({ email, snapshot, notice, error }) {
@@ -141,9 +142,9 @@ function dashboardPage({ email, snapshot, notice, error }) {
 
   const notes = snapshot.notes.length
     ? `<ul class="list">${snapshot.notes.map((note) => (
-      `<li><strong>${escapeHtml(note.title)}</strong>${note.body ? ` — ${escapeHtml(note.body)}` : ''}</li>`
+      `<li><strong>${escapeHtml(note.title)}</strong>${note.body ? ` — ${escapeHtml(note.body)}` : ''}${note.source ? ` · ${escapeHtml(note.source)}` : ''}</li>`
     )).join('')}</ul>`
-    : '<p class="empty">No notes yet.</p>';
+    : '<p class="empty">No notes yet. Add one below or open Memory.</p>';
 
   const emptyLead = snapshot.empty
     ? '<p class="empty">Nothing saved yet. Add a task or note to start the operating floor.</p>'
@@ -164,7 +165,7 @@ function dashboardPage({ email, snapshot, notice, error }) {
         <section class="card"><div class="kicker">Current goal</div><h2>Goal</h2>${goal}</section>
         <section class="card"><div class="kicker">Do this next</div><h2>Next action</h2>${next}</section>
         <section class="card"><div class="kicker">Open work</div><h2>Unfinished tasks</h2>${tasks}</section>
-        <section class="card"><div class="kicker">Memory</div><h2>Recent notes</h2>${notes}</section>
+        <section class="card"><div class="kicker">Memory</div><h2>Recent notes</h2>${notes}<p><a href="/ops/memory">Open Memory</a></p></section>
       </div>
       <div class="grid forms" style="margin-top:14px">
         <section class="card" id="add-task">
@@ -188,6 +189,8 @@ function dashboardPage({ email, snapshot, notice, error }) {
             <input id="note-title" name="title" required maxlength="160" placeholder="Supplier call"/>
             <label for="note-body">Body (optional)</label>
             <textarea id="note-body" name="body" maxlength="4000" placeholder="Facts only — no invented metrics."></textarea>
+            <label for="note-source">Source (optional)</label>
+            <input id="note-source" name="source" maxlength="240" placeholder="Call, email, or page"/>
             <button class="btn" type="submit">Save note</button>
           </form>
         </section>

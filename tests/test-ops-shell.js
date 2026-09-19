@@ -98,6 +98,9 @@ async function run() {
     const res = mockRes();
     await ops(authed({ json: true, method: 'POST', body: { action: 'add-note', title: 'Supplier fact', body: 'Asked for lead time only.' } }), res);
     check('add-note from home saves a note', res.statusCode === 200 && res.body.ok === true && res.body.snapshot.notes[0].title === 'Supplier fact');
+    const memory = mockRes();
+    await ops(authed({ json: true, url: '/ops/memory', query: { area: 'memory' } }), memory);
+    check('dashboard note is visible on the Memory page', memory.body.visibleNotes[0].title === 'Supplier fact');
   }
 
   {

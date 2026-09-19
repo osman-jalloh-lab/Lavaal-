@@ -1,19 +1,22 @@
-// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks.
+// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks, memory.
 // Session required. Public catalog routes are unchanged.
 
 const { loginPage } = require('./_html');
 const { NAV, areaInfo, dashboardPage, stubPage } = require('./_shell');
-const { profilePage, tasksPage } = require('./_pages');
+const { memoryPage, profilePage, tasksPage } = require('./_pages');
 const {
   addNote,
   addProject,
   addTask,
   dashboardSnapshot,
+  deleteNote,
   emptyStore,
   isDurable,
   readStore,
   saveGoal,
   saveProfile,
+  searchNotes,
+  updateNote,
   updateTask,
 } = require('./_store');
 const {
@@ -53,12 +56,13 @@ function knownArea(area) {
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops') return value;
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops') return value;
   return '/ops';
 }
 
-async function payload(session, area) {
+async function payload(session, area, search) {
   const resolved = knownArea(area) ? area : 'dashboard';
+  const query = typeof search === 'string' ? search : '';
   try {
     const store = await readStore();
     return {
@@ -68,6 +72,8 @@ async function payload(session, area) {
       store,
       snapshot: dashboardSnapshot(store),
       durable: isDurable(),
+      search: query,
+      visibleNotes: searchNotes(store, query),
     };
   } catch {
     const store = emptyStore();
@@ -78,6 +84,8 @@ async function payload(session, area) {
       store,
       snapshot: dashboardSnapshot(store),
       durable: isDurable(),
+      search: query,
+      visibleNotes: [],
       storeError: 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
     };
   }
@@ -85,7 +93,8 @@ async function payload(session, area) {
 
 async function renderArea(req, res, session, extra) {
   const area = resolveArea(req);
-  const data = await payload(session, area);
+  const search = firstQuery(queryOf(req), 'q') || '';
+  const data = await payload(session, area, search);
   if (wantsJson(req)) return json(res, 200, data);
 
   const pageOpts = {
@@ -94,6 +103,7 @@ async function renderArea(req, res, session, extra) {
     snapshot: data.snapshot,
     notice: extra && extra.notice,
     error: (extra && extra.error) || data.storeError,
+    search: data.search,
   };
 
   switch (area) {
@@ -103,8 +113,9 @@ async function renderArea(req, res, session, extra) {
       return sendHtml(res, 200, profilePage(pageOpts));
     case 'tasks':
       return sendHtml(res, 200, tasksPage(pageOpts));
-    case 'chat':
     case 'memory':
+      return sendHtml(res, 200, memoryPage(pageOpts));
+    case 'chat':
     case 'inbox':
     case 'calendar':
     case 'routines':
@@ -122,6 +133,7 @@ async function renderArea(req, res, session, extra) {
 function writeStatus(error) {
   switch (error) {
     case 'task_not_found':
+    case 'note_not_found':
       return 404;
     case 'store_unavailable':
       return 503;
@@ -130,6 +142,7 @@ function writeStatus(error) {
     case 'invalid_project':
     case 'invalid_task':
     case 'invalid_note':
+    case 'memory_review_required':
     case 'unknown_action':
       return 400;
     default: {
@@ -142,7 +155,9 @@ async function finishWrite(req, res, session, body, result, notice) {
   if (result.error) {
     const message = result.error === 'store_unavailable'
       ? 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).'
-      : notice.error;
+      : result.error === 'memory_review_required'
+        ? 'Proposed memories need review before save.'
+        : notice.error;
     return wantsJson(req)
       ? json(res, writeStatus(result.error), { error: result.error })
       : renderArea(req, res, session, { error: message });
@@ -201,8 +216,17 @@ async function handleWrite(req, res, session) {
       return finishWrite(req, res, session, body, await addNote({
         title: body.title,
         body: body.body,
+        source: body.source,
         createdBy: session.email,
       }), { error: 'Enter a note title.' });
+    case 'update-note':
+      return finishWrite(req, res, session, body, await updateNote(body.id, {
+        title: body.title,
+        body: body.body,
+        source: body.source,
+      }), { error: 'Could not update that note.' });
+    case 'delete-note':
+      return finishWrite(req, res, session, body, await deleteNote(body.id), { error: 'Could not delete that note.' });
     default:
       return wantsJson(req)
         ? json(res, 400, { error: 'unknown_action' })

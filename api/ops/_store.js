@@ -126,13 +126,45 @@ function normalizeTask(row, projectIds) {
 }
 
 function normalizeNote(row) {
+  const deletedAt = Number.isFinite(row && row.deletedAt) && row.deletedAt > 0 ? row.deletedAt : 0;
   return {
     id: clean(row && row.id, 40) || newId(),
     title: clean(row && row.title, 160),
     body: clean(row && row.body, 4000),
+    source: clean(row && row.source, 240),
     createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
+    updatedAt: Number.isFinite(row && row.updatedAt) ? row.updatedAt : Date.now(),
     createdBy: clean(row && row.createdBy, 120),
+    deletedAt,
   };
+}
+
+function isDeletedNote(note) {
+  return Boolean(note && note.deletedAt > 0);
+}
+
+function activeNotes(storeData) {
+  return (storeData.notes || []).filter((note) => !isDeletedNote(note) && note.title);
+}
+
+// Ticket 05 chat context: only live notes. Deleted notes stay in the store
+// but must never be offered as selectableForChat.
+function selectableForChat(note) {
+  return Boolean(note && note.id && note.title && !isDeletedNote(note));
+}
+
+function notesSelectableForChat(storeData) {
+  return activeNotes(storeData).filter(selectableForChat);
+}
+
+function searchNotes(storeData, query) {
+  const needle = clean(query, 200).toLowerCase();
+  const list = activeNotes(storeData).slice().sort((a, b) => b.updatedAt - a.updatedAt);
+  if (!needle) return list;
+  return list.filter((note) => {
+    const hay = `${note.title} ${note.body} ${note.source}`.toLowerCase();
+    return hay.includes(needle);
+  });
 }
 
 function normalizeProfiles(raw) {
@@ -183,14 +215,15 @@ function nextActionFrom(storeData) {
 
 function dashboardSnapshot(storeData) {
   const data = normalizeStore(storeData);
+  const liveNotes = activeNotes(data).slice().sort((a, b) => b.updatedAt - a.updatedAt);
   return {
     goal: data.goal,
     unfinished: unfinishedTasks(data),
     nextAction: nextActionFrom(data),
-    notes: data.notes.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 5),
+    notes: liveNotes.slice(0, 5),
     projects: data.projects,
     tasks: data.tasks,
-    empty: !data.goal && unfinishedTasks(data).length === 0 && data.notes.length === 0,
+    empty: !data.goal && unfinishedTasks(data).length === 0 && liveNotes.length === 0,
     mode: storeMode(),
     durable: isDurable(),
   };
@@ -369,14 +402,85 @@ async function updateTask(id, patch) {
   });
 }
 
-async function addNote({ title, body, createdBy }) {
+async function addNote({ title, body, source, createdBy, proposed, approved }) {
   return mutate(async () => {
+    // Ticket 05 hook: AI-proposed memories require an explicit approve-before-save.
+    // Manual create from /ops is implicit approval (the founder typed it).
+    if (proposed && approved !== true) {
+      return { error: 'memory_review_required' };
+    }
     const storeData = await readStore();
-    const note = normalizeNote({ title, body, createdBy, createdAt: Date.now() });
+    const note = normalizeNote({
+      title,
+      body,
+      source,
+      createdBy,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
     if (!note.title) return { error: 'invalid_note' };
     storeData.notes = [note].concat(storeData.notes).slice(0, MAX_NOTES);
     await writeStore(storeData);
     return { ok: true, note };
+  });
+}
+
+async function updateNote(id, patch) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const noteId = clean(id, 40);
+    const index = storeData.notes.findIndex((row) => row.id === noteId && !isDeletedNote(row));
+    if (index === -1) return { error: 'note_not_found' };
+    const current = storeData.notes[index];
+    const next = normalizeNote({
+      id: current.id,
+      title: patch.title == null ? current.title : patch.title,
+      body: patch.body == null ? current.body : patch.body,
+      source: patch.source == null ? current.source : patch.source,
+      createdAt: current.createdAt,
+      createdBy: current.createdBy,
+      deletedAt: current.deletedAt,
+      updatedAt: Date.now(),
+    });
+    if (!next.title) return { error: 'invalid_note' };
+    storeData.notes[index] = next;
+    await writeStore(storeData);
+    return { ok: true, note: next };
+  });
+}
+
+async function deleteNote(id) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const noteId = clean(id, 40);
+    const index = storeData.notes.findIndex((row) => row.id === noteId && !isDeletedNote(row));
+    if (index === -1) return { error: 'note_not_found' };
+    const current = storeData.notes[index];
+    const next = normalizeNote({
+      id: current.id,
+      title: current.title,
+      body: current.body,
+      source: current.source,
+      createdAt: current.createdAt,
+      createdBy: current.createdBy,
+      updatedAt: Date.now(),
+      deletedAt: Date.now(),
+    });
+    storeData.notes[index] = next;
+    await writeStore(storeData);
+    return { ok: true, note: next };
+  });
+}
+
+// Ticket 05: persist a chat-proposed memory only after founder review.
+async function approveProposedNote(proposal, { approvedBy }) {
+  return addNote({
+    title: proposal && proposal.title,
+    body: proposal && proposal.body,
+    source: proposal && proposal.source,
+    createdBy: approvedBy,
+    proposed: true,
+    approved: true,
   });
 }
 
@@ -388,23 +492,30 @@ module.exports = {
   STATUSES,
   STATUS_LABELS,
   STORE_KEY,
+  activeNotes,
   addNote,
   addProject,
   addTask,
+  approveProposedNote,
   dashboardSnapshot,
+  deleteNote,
   emptyStore,
   getProfile,
   isDurable,
   kvConfigured,
   nextActionFrom,
   normalizeStore,
+  notesSelectableForChat,
   readStore,
   resetStore,
   saveGoal,
   saveProfile,
+  searchNotes,
+  selectableForChat,
   statusLabel,
   storeMode,
   unfinishedTasks,
+  updateNote,
   updateTask,
   writeStore,
 };
