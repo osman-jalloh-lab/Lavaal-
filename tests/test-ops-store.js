@@ -33,13 +33,14 @@ function cookieFor(email) {
 }
 
 function authed(extra) {
+  const asJson = extra && extra.json !== false;
   return {
     method: extra && extra.method ? extra.method : 'GET',
     headers: {
       cookie: cookieFor(ALLOWED),
       host: 'preview.example.test',
-      accept: extra && extra.json === false ? 'text/html' : 'application/json',
-      'content-type': 'application/json',
+      accept: asJson ? 'application/json' : 'text/html',
+      'content-type': asJson ? 'application/json' : 'text/html',
     },
     query: extra && extra.query ? extra.query : {},
     url: extra && extra.url ? extra.url : '/ops',
