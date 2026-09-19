@@ -1,4 +1,6 @@
 // Ticket 03 — durable store CRUD and dashboard agreement.
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const opsDir = path.join(__dirname, '../api/ops');
@@ -52,12 +54,16 @@ function installKv() {
   const bucket = { value: null };
   process.env.KV_REST_API_URL = 'https://kv.example.test';
   process.env.KV_REST_API_TOKEN = 'kv-token';
-  global.fetch = async (url, opts) => {
-    if (String(url).includes('/get/')) {
+  global.fetch = async (_url, opts) => {
+    const cmd = JSON.parse(opts.body);
+    if (cmd[0] === 'GET') {
       return { ok: true, json: async () => ({ result: bucket.value }) };
     }
-    bucket.value = JSON.parse(opts.body);
-    return { ok: true, json: async () => ({ result: 'OK' }) };
+    if (cmd[0] === 'SET') {
+      bucket.value = cmd[2];
+      return { ok: true, json: async () => ({ result: 'OK' }) };
+    }
+    return { ok: false, json: async () => ({ error: 'unknown_cmd' }) };
   };
   return bucket;
 }
@@ -156,7 +162,8 @@ async function run() {
       && afterRestart.tasks.length === 3
       && snap.unfinished.length === 2
       && afterRestart.tasks.filter((row) => row.status === 'done')[0].title === 'Three');
-    check('KV write actually landed in the REST body', bucket.value && bucket.value.goal && bucket.value.goal.title === 'Durable goal');
+    const landed = typeof bucket.value === 'string' ? JSON.parse(bucket.value) : bucket.value;
+    check('KV write actually landed in the REST body', landed && landed.goal && landed.goal.title === 'Durable goal');
     global.fetch = origFetch;
     delete process.env.KV_REST_API_URL;
     delete process.env.KV_REST_API_TOKEN;
@@ -167,6 +174,71 @@ async function run() {
     const html = mockRes();
     await ops(authed({ json: false }), html);
     check('dashboard does not invent owners or completions', !/assigned to|owner:|completed this week/i.test(String(html.raw)));
+  }
+
+  {
+    store.resetStore();
+    const profile = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/profile',
+      query: { area: 'profile' },
+      body: { action: 'save-profile', role: 'Founder', timezone: 'Africa/Freetown', writingPreferences: 'Short, factual' },
+    }), profile);
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/profile',
+      body: { action: 'save-goal', title: 'Ship ticket 03', definitionOfDone: 'Home and tasks agree after refresh', nextStep: 'Add three tasks', targetDate: '2026-10-01' },
+    }), mockRes());
+    await ops(authed({ json: true, method: 'POST', url: '/ops/tasks', body: { action: 'add-task', title: 'Task one', nextAction: 'Start the first item' } }), mockRes());
+    await ops(authed({ json: true, method: 'POST', url: '/ops/tasks', body: { action: 'add-task', title: 'Task two' } }), mockRes());
+    const third = mockRes();
+    await ops(authed({ json: true, method: 'POST', url: '/ops/tasks', body: { action: 'add-task', title: 'Task three' } }), third);
+    await ops(authed({ json: true, method: 'POST', url: '/ops/tasks', body: { action: 'update-task', id: third.body.task.id, status: 'done' } }), mockRes());
+    const home = mockRes();
+    await ops(authed({ json: true, url: '/ops' }), home);
+    const tasks = mockRes();
+    await ops(authed({ json: true, url: '/ops/tasks', query: { area: 'tasks' } }), tasks);
+    check('HTTP profile save returns the written role', profile.body.ok === true && profile.body.profile.role === 'Founder');
+    check('HTTP goal + 3 tasks + one done: home and tasks views agree',
+      home.body.snapshot.goal.title === 'Ship ticket 03'
+      && home.body.snapshot.goal.title === tasks.body.snapshot.goal.title
+      && home.body.store.tasks.length === 3
+      && home.body.store.tasks.length === tasks.body.store.tasks.length
+      && home.body.snapshot.unfinished.length === 2
+      && home.body.snapshot.unfinished.length === tasks.body.snapshot.unfinished.length
+      && home.body.store.tasks.filter((row) => row.status === 'done')[0].title === 'Task three');
+  }
+
+  {
+    const tmp = path.join(os.tmpdir(), `lavaall-ops-test-${Date.now()}.json`);
+    process.env.OPS_STORE_FILE = tmp;
+    store.resetStore();
+    await store.saveGoal({ title: 'File-backed goal', nextStep: 'Restart the process' });
+    await store.addTask({ title: 'File task', createdBy: ALLOWED });
+    store.resetStore();
+    const afterRestart = await store.readStore();
+    check('local OPS_STORE_FILE survives a memory reset',
+      store.isDurable() === true
+      && afterRestart.goal.title === 'File-backed goal'
+      && afterRestart.tasks[0].title === 'File task');
+    try { fs.unlinkSync(tmp); } catch { /* ignore */ }
+    delete process.env.OPS_STORE_FILE;
+    store.resetStore();
+  }
+
+  {
+    process.env.KV_REST_API_URL = 'https://kv.example.test';
+    process.env.KV_REST_API_TOKEN = 'kv-token';
+    global.fetch = async () => ({ ok: false, json: async () => ({ error: 'down' }) });
+    const saved = await store.saveGoal({ title: 'Must not pretend to persist' });
+    check('KV outage returns store_unavailable instead of a silent demo write', saved.error === 'store_unavailable');
+    global.fetch = origFetch;
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    store.resetStore();
   }
 
   global.fetch = origFetch;

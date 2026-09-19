@@ -134,11 +134,12 @@ async function run() {
     process.env.KV_REST_API_TOKEN = 'kv-token';
     store.resetStore();
     const origFetch = global.fetch;
-    global.fetch = async (url, opts) => {
-      if (String(url).includes('/get/')) {
+    global.fetch = async (_url, opts) => {
+      const cmd = JSON.parse(opts.body);
+      if (cmd[0] === 'GET') {
         return { ok: true, json: async () => ({ result: kv.lavaall }) };
       }
-      kv.lavaall = JSON.parse(opts.body);
+      kv.lavaall = cmd[2];
       return { ok: true, json: async () => ({ result: 'OK' }) };
     };
     await store.addNote({ title: 'KV note', body: 'durable', createdBy: ALLOWED });

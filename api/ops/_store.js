@@ -1,9 +1,12 @@
 // LAVAALL OS store — profile, current goal, projects, tasks, notes.
-// Memory demo until KV_REST_API_URL + KV_REST_API_TOKEN are set.
-// Durable path: Vercel KV / Upstash REST via fetch. No npm.
+// Durable path: Vercel KV / Upstash REST via fetch (no npm).
+// Local fallback: OPS_STORE_FILE JSON (ignored on Vercel — /tmp is not shared).
+// Preview without KV stays demo memory + banner.
 // Underscore prefix: not a Vercel function.
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const STORE_KEY = 'lavaall-ops-v2';
 const MAX_TASKS = 100;
@@ -26,12 +29,21 @@ function kvConfigured() {
   return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
 }
 
+function filePath() {
+  if (kvConfigured()) return '';
+  if (process.env.VERCEL) return '';
+  const custom = process.env.OPS_STORE_FILE;
+  return typeof custom === 'string' && custom.trim() ? custom.trim() : '';
+}
+
 function storeMode() {
-  return kvConfigured() ? 'kv' : 'memory';
+  if (kvConfigured()) return 'kv';
+  if (filePath()) return 'file';
+  return 'memory';
 }
 
 function isDurable() {
-  return storeMode() === 'kv';
+  return storeMode() === 'kv' || storeMode() === 'file';
 }
 
 function clean(value, max) {
@@ -184,56 +196,85 @@ function dashboardSnapshot(storeData) {
   };
 }
 
-async function kvGet() {
-  const response = await fetch(`${process.env.KV_REST_API_URL.replace(/\/$/, '')}/get/${STORE_KEY}`, {
-    headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` },
-  });
-  if (!response.ok) throw new Error('kv_get_failed');
-  const payload = await response.json();
-  if (payload == null || payload.result == null) return emptyStore();
-  if (typeof payload.result === 'string') {
+function decodeKvResult(result) {
+  if (result == null) return emptyStore();
+  if (typeof result === 'string') {
     try {
-      return normalizeStore(JSON.parse(payload.result));
+      return normalizeStore(JSON.parse(result));
     } catch {
       return emptyStore();
     }
   }
-  return normalizeStore(payload.result);
+  return normalizeStore(result);
 }
 
-async function kvSet(storeData) {
-  const response = await fetch(`${process.env.KV_REST_API_URL.replace(/\/$/, '')}/set/${STORE_KEY}`, {
+async function kvCommand(args) {
+  const base = process.env.KV_REST_API_URL.replace(/\/$/, '');
+  const response = await fetch(base, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(storeData),
+    body: JSON.stringify(args),
   });
-  if (!response.ok) throw new Error('kv_set_failed');
+  if (!response.ok) throw new Error('kv_command_failed');
+  return response.json();
+}
+
+async function kvGet() {
+  const payload = await kvCommand(['GET', STORE_KEY]);
+  return decodeKvResult(payload && payload.result);
+}
+
+async function kvSet(storeData) {
+  await kvCommand(['SET', STORE_KEY, JSON.stringify(storeData)]);
+}
+
+function fileGet() {
+  const target = filePath();
+  if (!target || !fs.existsSync(target)) return emptyStore();
+  try {
+    return normalizeStore(JSON.parse(fs.readFileSync(target, 'utf8')));
+  } catch {
+    return emptyStore();
+  }
+}
+
+function fileSet(storeData) {
+  const target = filePath();
+  if (!target) return;
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, JSON.stringify(storeData));
 }
 
 async function readStore() {
   if (kvConfigured()) {
-    try {
-      memory = await kvGet();
-    } catch {
-      console.log(JSON.stringify({ type: 'OpsStore', event: 'kv_get_failed', mode: storeMode() }));
-    }
+    memory = await kvGet();
+  } else if (filePath()) {
+    memory = fileGet();
   }
   return clone(normalizeStore(memory));
 }
 
 async function writeStore(next) {
-  memory = normalizeStore(next);
+  const normalized = normalizeStore(next);
   if (kvConfigured()) {
-    try {
-      await kvSet(memory);
-    } catch {
-      console.log(JSON.stringify({ type: 'OpsStore', event: 'kv_set_failed', mode: storeMode() }));
-    }
+    await kvSet(normalized);
+  } else if (filePath()) {
+    fileSet(normalized);
   }
+  memory = normalized;
   return clone(memory);
+}
+
+async function mutate(work) {
+  try {
+    return await work();
+  } catch {
+    console.log(JSON.stringify({ type: 'OpsStore', event: 'store_unavailable', mode: storeMode() }));
+    return { error: 'store_unavailable' };
+  }
 }
 
 function getProfile(storeData, email) {
@@ -241,90 +282,102 @@ function getProfile(storeData, email) {
 }
 
 async function saveProfile(email, fields) {
-  const who = normalizeEmail(email);
-  if (!who) return { error: 'invalid_profile' };
-  const storeData = await readStore();
-  storeData.profiles[who] = normalizeProfile({
-    role: fields && fields.role,
-    timezone: fields && fields.timezone,
-    writingPreferences: fields && fields.writingPreferences,
-    updatedAt: Date.now(),
+  return mutate(async () => {
+    const who = normalizeEmail(email);
+    if (!who) return { error: 'invalid_profile' };
+    const storeData = await readStore();
+    storeData.profiles[who] = normalizeProfile({
+      role: fields && fields.role,
+      timezone: fields && fields.timezone,
+      writingPreferences: fields && fields.writingPreferences,
+      updatedAt: Date.now(),
+    });
+    await writeStore(storeData);
+    return { ok: true, profile: storeData.profiles[who] };
   });
-  await writeStore(storeData);
-  return { ok: true, profile: storeData.profiles[who] };
 }
 
 async function saveGoal(fields) {
-  const storeData = await readStore();
-  storeData.goal = normalizeGoal({
-    title: fields && fields.title,
-    definitionOfDone: fields && fields.definitionOfDone,
-    nextStep: fields && fields.nextStep,
-    targetDate: fields && fields.targetDate,
-    updatedAt: Date.now(),
+  return mutate(async () => {
+    const storeData = await readStore();
+    storeData.goal = normalizeGoal({
+      title: fields && fields.title,
+      definitionOfDone: fields && fields.definitionOfDone,
+      nextStep: fields && fields.nextStep,
+      targetDate: fields && fields.targetDate,
+      updatedAt: Date.now(),
+    });
+    if (!storeData.goal) return { error: 'invalid_goal' };
+    await writeStore(storeData);
+    return { ok: true, goal: storeData.goal };
   });
-  if (!storeData.goal) return { error: 'invalid_goal' };
-  await writeStore(storeData);
-  return { ok: true, goal: storeData.goal };
 }
 
 async function addProject({ name, finishLine, createdBy }) {
-  const storeData = await readStore();
-  const project = normalizeProject({ name, finishLine, createdBy, createdAt: Date.now() });
-  if (!project.name) return { error: 'invalid_project' };
-  storeData.projects = [project].concat(storeData.projects).slice(0, MAX_PROJECTS);
-  await writeStore(storeData);
-  return { ok: true, project };
+  return mutate(async () => {
+    const storeData = await readStore();
+    const project = normalizeProject({ name, finishLine, createdBy, createdAt: Date.now() });
+    if (!project.name) return { error: 'invalid_project' };
+    storeData.projects = [project].concat(storeData.projects).slice(0, MAX_PROJECTS);
+    await writeStore(storeData);
+    return { ok: true, project };
+  });
 }
 
 async function addTask({ title, nextAction, status, due, projectId, createdBy }) {
-  const storeData = await readStore();
-  const task = normalizeTask({
-    title,
-    nextAction,
-    status,
-    due,
-    projectId,
-    createdBy,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  }, new Set(storeData.projects.map((row) => row.id)));
-  if (!task.title) return { error: 'invalid_task' };
-  storeData.tasks = [task].concat(storeData.tasks).slice(0, MAX_TASKS);
-  await writeStore(storeData);
-  return { ok: true, task };
+  return mutate(async () => {
+    const storeData = await readStore();
+    const task = normalizeTask({
+      title,
+      nextAction,
+      status,
+      due,
+      projectId,
+      createdBy,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }, new Set(storeData.projects.map((row) => row.id)));
+    if (!task.title) return { error: 'invalid_task' };
+    storeData.tasks = [task].concat(storeData.tasks).slice(0, MAX_TASKS);
+    await writeStore(storeData);
+    return { ok: true, task };
+  });
 }
 
 async function updateTask(id, patch) {
-  const storeData = await readStore();
-  const taskId = clean(id, 40);
-  const index = storeData.tasks.findIndex((row) => row.id === taskId);
-  if (index === -1) return { error: 'task_not_found' };
-  const current = storeData.tasks[index];
-  const next = normalizeTask({
-    id: current.id,
-    title: patch.title == null ? current.title : patch.title,
-    status: patch.status == null ? current.status : patch.status,
-    nextAction: patch.nextAction == null ? current.nextAction : patch.nextAction,
-    due: patch.due == null ? current.due : patch.due,
-    projectId: patch.projectId == null ? current.projectId : patch.projectId,
-    createdAt: current.createdAt,
-    createdBy: current.createdBy,
-    updatedAt: Date.now(),
-  }, new Set(storeData.projects.map((row) => row.id)));
-  if (!next.title) return { error: 'invalid_task' };
-  storeData.tasks[index] = next;
-  await writeStore(storeData);
-  return { ok: true, task: next };
+  return mutate(async () => {
+    const storeData = await readStore();
+    const taskId = clean(id, 40);
+    const index = storeData.tasks.findIndex((row) => row.id === taskId);
+    if (index === -1) return { error: 'task_not_found' };
+    const current = storeData.tasks[index];
+    const next = normalizeTask({
+      id: current.id,
+      title: patch.title == null ? current.title : patch.title,
+      status: patch.status == null ? current.status : patch.status,
+      nextAction: patch.nextAction == null ? current.nextAction : patch.nextAction,
+      due: patch.due == null ? current.due : patch.due,
+      projectId: patch.projectId == null ? current.projectId : patch.projectId,
+      createdAt: current.createdAt,
+      createdBy: current.createdBy,
+      updatedAt: Date.now(),
+    }, new Set(storeData.projects.map((row) => row.id)));
+    if (!next.title) return { error: 'invalid_task' };
+    storeData.tasks[index] = next;
+    await writeStore(storeData);
+    return { ok: true, task: next };
+  });
 }
 
 async function addNote({ title, body, createdBy }) {
-  const storeData = await readStore();
-  const note = normalizeNote({ title, body, createdBy, createdAt: Date.now() });
-  if (!note.title) return { error: 'invalid_note' };
-  storeData.notes = [note].concat(storeData.notes).slice(0, MAX_NOTES);
-  await writeStore(storeData);
-  return { ok: true, note };
+  return mutate(async () => {
+    const storeData = await readStore();
+    const note = normalizeNote({ title, body, createdBy, createdAt: Date.now() });
+    if (!note.title) return { error: 'invalid_note' };
+    storeData.notes = [note].concat(storeData.notes).slice(0, MAX_NOTES);
+    await writeStore(storeData);
+    return { ok: true, note };
+  });
 }
 
 function resetStore(seed) {

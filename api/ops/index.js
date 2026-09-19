@@ -9,6 +9,7 @@ const {
   addProject,
   addTask,
   dashboardSnapshot,
+  emptyStore,
   isDurable,
   readStore,
   saveGoal,
@@ -57,16 +58,29 @@ function safeReturnTo(value) {
 }
 
 async function payload(session, area) {
-  const store = await readStore();
   const resolved = knownArea(area) ? area : 'dashboard';
-  return {
-    authenticated: true,
-    email: session.email,
-    area: resolved,
-    store,
-    snapshot: dashboardSnapshot(store),
-    durable: isDurable(),
-  };
+  try {
+    const store = await readStore();
+    return {
+      authenticated: true,
+      email: session.email,
+      area: resolved,
+      store,
+      snapshot: dashboardSnapshot(store),
+      durable: isDurable(),
+    };
+  } catch {
+    const store = emptyStore();
+    return {
+      authenticated: true,
+      email: session.email,
+      area: resolved,
+      store,
+      snapshot: dashboardSnapshot(store),
+      durable: isDurable(),
+      storeError: 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
+    };
+  }
 }
 
 async function renderArea(req, res, session, extra) {
@@ -79,7 +93,7 @@ async function renderArea(req, res, session, extra) {
     store: data.store,
     snapshot: data.snapshot,
     notice: extra && extra.notice,
-    error: extra && extra.error,
+    error: (extra && extra.error) || data.storeError,
   };
 
   switch (area) {
@@ -105,11 +119,33 @@ async function renderArea(req, res, session, extra) {
   }
 }
 
+function writeStatus(error) {
+  switch (error) {
+    case 'task_not_found':
+      return 404;
+    case 'store_unavailable':
+      return 503;
+    case 'invalid_profile':
+    case 'invalid_goal':
+    case 'invalid_project':
+    case 'invalid_task':
+    case 'invalid_note':
+    case 'unknown_action':
+      return 400;
+    default: {
+      return 400;
+    }
+  }
+}
+
 async function finishWrite(req, res, session, body, result, notice) {
   if (result.error) {
+    const message = result.error === 'store_unavailable'
+      ? 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).'
+      : notice.error;
     return wantsJson(req)
-      ? json(res, result.error === 'task_not_found' ? 404 : 400, { error: result.error })
-      : renderArea(req, res, session, { error: notice.error });
+      ? json(res, writeStatus(result.error), { error: result.error })
+      : renderArea(req, res, session, { error: message });
   }
   const data = await payload(session, resolveArea(req));
   if (wantsJson(req)) return json(res, 200, Object.assign({ ok: true }, result, data));
