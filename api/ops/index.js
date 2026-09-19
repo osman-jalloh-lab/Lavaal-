@@ -1,15 +1,19 @@
-// api/ops/index.js — private /ops gate, shell, and dashboard (Vercel serverless).
-// Rewritten from /ops and /ops/* so ops HTML is never a public static file.
+// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks.
 // Session required. Public catalog routes are unchanged.
 
 const { loginPage } = require('./_html');
 const { NAV, areaInfo, dashboardPage, stubPage } = require('./_shell');
+const { profilePage, tasksPage } = require('./_pages');
 const {
   addNote,
+  addProject,
   addTask,
   dashboardSnapshot,
   isDurable,
   readStore,
+  saveGoal,
+  saveProfile,
+  updateTask,
 } = require('./_store');
 const {
   genericLinkFailure,
@@ -47,33 +51,69 @@ function knownArea(area) {
   return NAV.some((item) => item.id === area);
 }
 
+function safeReturnTo(value) {
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops') return value;
+  return '/ops';
+}
+
+async function payload(session, area) {
+  const store = await readStore();
+  const resolved = knownArea(area) ? area : 'dashboard';
+  return {
+    authenticated: true,
+    email: session.email,
+    area: resolved,
+    store,
+    snapshot: dashboardSnapshot(store),
+    durable: isDurable(),
+  };
+}
+
 async function renderArea(req, res, session, extra) {
   const area = resolveArea(req);
-  const store = await readStore();
-  const snapshot = dashboardSnapshot(store);
-  if (wantsJson(req)) {
-    return json(res, 200, {
-      authenticated: true,
-      email: session.email,
-      area: knownArea(area) ? area : 'dashboard',
-      snapshot,
-      durable: isDurable(),
-    });
-  }
-  if (!knownArea(area) || area === 'dashboard') {
-    return sendHtml(res, 200, dashboardPage({
-      email: session.email,
-      snapshot,
-      notice: extra && extra.notice,
-      error: extra && extra.error,
-    }));
-  }
-  return sendHtml(res, 200, stubPage({
+  const data = await payload(session, area);
+  if (wantsJson(req)) return json(res, 200, data);
+
+  const pageOpts = {
     email: session.email,
-    area: areaInfo(area).id,
+    store: data.store,
+    snapshot: data.snapshot,
     notice: extra && extra.notice,
     error: extra && extra.error,
-  }));
+  };
+
+  switch (area) {
+    case 'dashboard':
+      return sendHtml(res, 200, dashboardPage(pageOpts));
+    case 'profile':
+      return sendHtml(res, 200, profilePage(pageOpts));
+    case 'tasks':
+      return sendHtml(res, 200, tasksPage(pageOpts));
+    case 'chat':
+    case 'memory':
+    case 'inbox':
+    case 'calendar':
+    case 'routines':
+      return sendHtml(res, 200, stubPage({
+        email: session.email,
+        area: areaInfo(area).id,
+        notice: extra && extra.notice,
+        error: extra && extra.error,
+      }));
+    default:
+      return sendHtml(res, 200, dashboardPage(pageOpts));
+  }
+}
+
+async function finishWrite(req, res, session, body, result, notice) {
+  if (result.error) {
+    return wantsJson(req)
+      ? json(res, result.error === 'task_not_found' ? 404 : 400, { error: result.error })
+      : renderArea(req, res, session, { error: notice.error });
+  }
+  const data = await payload(session, resolveArea(req));
+  if (wantsJson(req)) return json(res, 200, Object.assign({ ok: true }, result, data));
+  return redirect(res, safeReturnTo(body.returnTo));
 }
 
 async function handleWrite(req, res, session) {
@@ -85,34 +125,48 @@ async function handleWrite(req, res, session) {
   const body = readBody(req);
   const action = String(body.action || '');
   switch (action) {
-    case 'add-task': {
-      const result = await addTask({
+    case 'save-profile':
+      return finishWrite(req, res, session, body, await saveProfile(session.email, {
+        role: body.role,
+        timezone: body.timezone,
+        writingPreferences: body.writingPreferences,
+      }), { error: 'Enter profile fields to save.' });
+    case 'save-goal':
+      return finishWrite(req, res, session, body, await saveGoal({
+        title: body.title,
+        definitionOfDone: body.definitionOfDone,
+        nextStep: body.nextStep,
+        targetDate: body.targetDate,
+      }), { error: 'Enter a goal title.' });
+    case 'add-project':
+      return finishWrite(req, res, session, body, await addProject({
+        name: body.name,
+        finishLine: body.finishLine,
+        createdBy: session.email,
+      }), { error: 'Enter a project name.' });
+    case 'add-task':
+      return finishWrite(req, res, session, body, await addTask({
         title: body.title,
         nextAction: body.nextAction,
+        status: body.status,
+        due: body.due,
+        projectId: body.projectId,
         createdBy: session.email,
-      });
-      if (result.error) {
-        return wantsJson(req)
-          ? json(res, 400, { error: result.error })
-          : renderArea(req, res, session, { error: 'Enter a task title.' });
-      }
-      if (wantsJson(req)) return json(res, 200, { ok: true, task: result.task, snapshot: dashboardSnapshot(await readStore()) });
-      return redirect(res, '/ops');
-    }
-    case 'add-note': {
-      const result = await addNote({
+      }), { error: 'Enter a task title.' });
+    case 'update-task':
+      return finishWrite(req, res, session, body, await updateTask(body.id, {
+        status: body.status,
+        nextAction: body.nextAction,
+        due: body.due,
+        projectId: body.projectId,
+        title: body.title,
+      }), { error: 'Could not update that task.' });
+    case 'add-note':
+      return finishWrite(req, res, session, body, await addNote({
         title: body.title,
         body: body.body,
         createdBy: session.email,
-      });
-      if (result.error) {
-        return wantsJson(req)
-          ? json(res, 400, { error: result.error })
-          : renderArea(req, res, session, { error: 'Enter a note title.' });
-      }
-      if (wantsJson(req)) return json(res, 200, { ok: true, note: result.note, snapshot: dashboardSnapshot(await readStore()) });
-      return redirect(res, '/ops');
-    }
+      }), { error: 'Enter a note title.' });
     default:
       return wantsJson(req)
         ? json(res, 400, { error: 'unknown_action' })

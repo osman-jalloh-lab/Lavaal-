@@ -71,7 +71,7 @@ async function run() {
     const res = mockRes();
     await ops(authed({ json: true }), res);
     check('empty dashboard snapshot has no invented records', res.statusCode === 200 && res.body.snapshot.empty === true && res.body.snapshot.unfinished.length === 0 && !res.body.snapshot.goal && !res.body.snapshot.nextAction);
-    check('empty dashboard names the demo store until ticket 03', String(res.raw).includes('Demo store until ticket 03') || res.body.snapshot.durable === false);
+    check('empty dashboard names the demo store when KV is unset', String(res.raw).includes('Demo store') || res.body.snapshot.durable === false);
   }
 
   {

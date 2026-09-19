@@ -5,12 +5,12 @@ const { escapeHtml } = require('./_lib');
 
 const NAV = Object.freeze([
   { id: 'dashboard', href: '/ops', label: 'Dashboard' },
-  { id: 'profile', href: '/ops/profile', label: 'Profile & goals', ticket: '03' },
+  { id: 'profile', href: '/ops/profile', label: 'Profile & goals' },
   { id: 'chat', href: '/ops/chat', label: 'Contextual chat', ticket: '05' },
   { id: 'memory', href: '/ops/memory', label: 'Memory', ticket: '04' },
   { id: 'inbox', href: '/ops/inbox', label: 'Inbox', ticket: '06' },
   { id: 'calendar', href: '/ops/calendar', label: 'Calendar', ticket: '07' },
-  { id: 'tasks', href: '/ops/tasks', label: 'Projects & tasks', ticket: '03' },
+  { id: 'tasks', href: '/ops/tasks', label: 'Projects & tasks' },
   { id: 'routines', href: '/ops/routines', label: 'Saved routines', ticket: '08' },
 ]);
 
@@ -63,9 +63,11 @@ p,li{color:var(--muted);line-height:1.55;font-size:15px;}
 .list li{padding:10px 12px;border-radius:10px;background:var(--navy);border:1px solid var(--line);color:var(--text);}
 .tag{display:inline-block;margin-right:8px;color:var(--lime);font-size:12px;font-weight:600;text-transform:uppercase;}
 label{display:block;margin:12px 0 6px;font-size:13px;font-weight:600;}
-input,textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--navy);color:var(--text);font:inherit;}
+input,textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--navy);color:var(--text);font:inherit;}
 textarea{min-height:88px;resize:vertical;}
 .btn{margin-top:14px;width:100%;padding:12px 14px;border:0;border-radius:999px;background:var(--sky);color:var(--ink);font:inherit;font-weight:600;cursor:pointer;}
+.btn-sm{width:auto;margin-top:10px;padding:8px 14px;}
+.task-row label{margin-top:8px;}
 .ok{margin-bottom:12px;color:#c8ffe8;background:rgba(0,245,160,.1);border:1px solid rgba(0,245,160,.32);border-radius:10px;padding:10px 12px;font-size:14px;}
 .err{margin-bottom:12px;color:#ffc4c4;background:rgba(255,92,92,.12);border:1px solid rgba(255,92,92,.35);border-radius:10px;padding:10px 12px;font-size:14px;}
 `;
@@ -116,7 +118,7 @@ function shellPage({ title, email, area, body, notice, error }) {
 
 function persistenceBanner(durable) {
   if (durable) return '';
-  return '<p class="banner">Demo store until ticket 03 — records persist for this function instance and may reset on a cold start. Add Vercel KV later for durable saves.</p>';
+  return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Profile, goals, and tasks are ready; they may reset on a cold start until KV is on.</p>';
 }
 
 function dashboardPage({ email, snapshot, notice, error }) {
@@ -125,11 +127,11 @@ function dashboardPage({ email, snapshot, notice, error }) {
        ${snapshot.goal.definitionOfDone ? `<p>Done when: ${escapeHtml(snapshot.goal.definitionOfDone)}</p>` : ''}
        ${snapshot.goal.nextStep ? `<p>Next step: ${escapeHtml(snapshot.goal.nextStep)}</p>` : ''}
        ${snapshot.goal.targetDate ? `<p>Target: ${escapeHtml(snapshot.goal.targetDate)}</p>` : ''}`
-    : '<p class="empty">No current goal saved yet. Profile &amp; goals land in ticket 03.</p>';
+    : '<p class="empty">No current goal saved yet. Add one under Profile &amp; goals.</p>';
 
   const tasks = snapshot.unfinished.length
     ? `<ul class="list">${snapshot.unfinished.map((task) => (
-      `<li><span class="tag">${escapeHtml(task.status)}</span>${escapeHtml(task.title)}${task.nextAction ? ` — ${escapeHtml(task.nextAction)}` : ''}</li>`
+      `<li><span class="tag">${escapeHtml(task.status === 'doing' ? 'Doing' : 'To do')}</span>${escapeHtml(task.title)}${task.nextAction ? ` — ${escapeHtml(task.nextAction)}` : ''}${task.due ? ` · due ${escapeHtml(task.due)}` : ''}</li>`
     )).join('')}</ul>`
     : '<p class="empty">No unfinished tasks. Add one below.</p>';
 
@@ -218,6 +220,7 @@ module.exports = {
   NAV,
   areaInfo,
   dashboardPage,
+  persistenceBanner,
   shellPage,
   stubPage,
 };
