@@ -121,7 +121,7 @@ async function run() {
   {
     const res = mockRes();
     await ops(authed({ query: { area: 'calendar' }, url: '/ops/calendar' }), res);
-    check('calendar stub requires the same session cookie', res.statusCode === 200 && String(res.raw).includes('coming in ticket 07') && String(res.raw).includes('Sign out'));
+    check('calendar page is real, not a ticket stub', res.statusCode === 200 && String(res.raw).includes('Save event') && !String(res.raw).includes('coming in ticket 07') && String(res.raw).includes('Sign out'));
   }
 
   {

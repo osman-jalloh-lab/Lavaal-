@@ -9,7 +9,7 @@ const NAV = Object.freeze([
   { id: 'chat', href: '/ops/chat', label: 'Contextual chat' },
   { id: 'memory', href: '/ops/memory', label: 'Memory' },
   { id: 'inbox', href: '/ops/inbox', label: 'Inbox' },
-  { id: 'calendar', href: '/ops/calendar', label: 'Calendar', ticket: '07' },
+  { id: 'calendar', href: '/ops/calendar', label: 'Calendar' },
   { id: 'tasks', href: '/ops/tasks', label: 'Projects & tasks' },
   { id: 'routines', href: '/ops/routines', label: 'Saved routines', ticket: '08' },
 ]);
@@ -62,6 +62,7 @@ p,li{color:var(--muted);line-height:1.55;font-size:15px;}
 .list{list-style:none;display:grid;gap:8px;}
 .list li{padding:10px 12px;border-radius:10px;background:var(--navy);border:1px solid var(--line);color:var(--text);}
 .tag{display:inline-block;margin-right:8px;color:var(--lime);font-size:12px;font-weight:600;text-transform:uppercase;}
+.tag.overlap{color:#ffe9a8;}
 label{display:block;margin:12px 0 6px;font-size:13px;font-weight:600;}
 input,textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--navy);color:var(--text);font:inherit;}
 textarea{min-height:88px;resize:vertical;}

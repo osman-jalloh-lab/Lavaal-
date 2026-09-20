@@ -8,6 +8,7 @@ const {
   getProfile,
   getSharedChat,
   inboxLabelText,
+  listEvents,
   listInboxItems,
   listMailAudit,
   notesSelectableForChat,
@@ -460,4 +461,113 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
   });
 }
 
-module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage };
+function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) {
+  const setup = calendarSetup || { googleConnected: false, calendarIdSet: false, oauthSet: false };
+  const events = listEvents(store);
+  const setupCard = setup.googleConnected
+    ? `<p>Shared LAVAALL calendar is connected. Refresh pulls events from that calendar only — never Osman’s primary. Creates stay internal-attendee only.</p>
+       <form method="POST" action="/ops/calendar">
+         <input type="hidden" name="action" value="refresh-calendar"/>
+         <input type="hidden" name="returnTo" value="/ops/calendar"/>
+         <button class="btn btn-sm" type="submit">Refresh Google agenda</button>
+       </form>`
+    : `<p class="empty">Google Calendar is not connected. The manual agenda below still works and is stored in KV. No Google events are invented.</p>
+       <p>To sync a <strong>shared</strong> LAVAALL calendar (not a personal primary calendar):</p>
+       <ol class="list">
+         <li>Create a Google Calendar, share it with both founders, and copy its calendar id (not <code>primary</code>).</li>
+         <li>Set <code>OPS_GOOGLE_CALENDAR_ID</code> on Vercel Preview.</li>
+         <li>Reuse Gmail OAuth (<code>OPS_GMAIL_*</code> client + refresh token) with Calendar scope, or set a separate calendar refresh token.</li>
+         <li>Required scope: <code>https://www.googleapis.com/auth/calendar</code> (or <code>calendar.events</code>).</li>
+         <li>Workspace admin may still block this the same way support@ Gmail hits “Service Not Allowed” until that policy is fixed. Out of scope for this ticket.</li>
+       </ol>
+       <p>Checklist: calendar id ${setup.calendarIdSet ? 'set' : 'missing'} · OAuth ${setup.oauthSet ? 'set' : 'missing'}.</p>`;
+
+  const rows = events.length
+    ? `<ul class="list">${events.map((event) => {
+      const when = event.allDay
+        ? `${escapeHtml(event.date)} · all day`
+        : `${escapeHtml(event.date)} · ${escapeHtml(event.start)}–${escapeHtml(event.end)} ${escapeHtml(event.timezone)}`;
+      return `
+        <li>
+          ${event.overlaps ? '<span class="tag overlap">Overlaps</span>' : ''}
+          ${event.allDay ? '<span class="tag">All day</span>' : '<span class="tag">Timed</span>'}
+          ${event.googleEventId ? '<span class="tag">Google</span>' : '<span class="tag">Manual</span>'}
+          <strong>${escapeHtml(event.title)}</strong>
+          <p>${when}${event.attendees.length ? ` · ${escapeHtml(event.attendees.join(', '))}` : ''}</p>
+          ${event.notes ? `<p>${escapeHtml(event.notes)}</p>` : ''}
+          ${event.overlaps ? '<p class="err" role="status">This timed event overlaps another on the same day.</p>' : ''}
+          <form method="POST" action="/ops/calendar" class="task-row">
+            <input type="hidden" name="action" value="update-event"/>
+            <input type="hidden" name="id" value="${escapeHtml(event.id)}"/>
+            <input type="hidden" name="returnTo" value="/ops/calendar"/>
+            <label>Title <input name="title" required maxlength="160" value="${escapeHtml(event.title)}"/></label>
+            <label>Date <input name="date" type="date" required value="${escapeHtml(event.date)}"/></label>
+            <label class="check"><input type="checkbox" name="allDay" value="1"${event.allDay ? ' checked' : ''}/> All day</label>
+            <label>Start <input name="start" type="time" value="${escapeHtml(event.start)}"/></label>
+            <label>End <input name="end" type="time" value="${escapeHtml(event.end)}"/></label>
+            <label>Timezone <input name="timezone" maxlength="80" value="${escapeHtml(event.timezone)}"/></label>
+            <label>Internal attendees <input name="attendees" maxlength="400" value="${escapeHtml(event.attendees.join(', '))}"/></label>
+            <label>Notes <textarea name="notes" maxlength="800">${escapeHtml(event.notes)}</textarea></label>
+            <button class="btn btn-sm" type="submit">Save changes</button>
+          </form>
+          <form method="POST" action="/ops/calendar">
+            <input type="hidden" name="action" value="delete-event"/>
+            <input type="hidden" name="id" value="${escapeHtml(event.id)}"/>
+            <input type="hidden" name="returnTo" value="/ops/calendar"/>
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </li>`;
+    }).join('')}</ul>`
+    : '<p class="empty">No events yet. Add a timed or all-day event — nothing is pulled from Google until the shared calendar is connected.</p>';
+
+  return shellPage({
+    title: 'LAVAALL OS — Calendar',
+    email,
+    area: 'calendar',
+    notice,
+    error,
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <h1>Calendar</h1>
+      <p>Shared LAVAALL agenda. Internal attendees only (Osman, Abdulhamid, @lavaall.com). Customer invites stay out of v1.</p>
+      <div class="grid forms">
+        <section class="card">
+          <div class="kicker">Google</div>
+          <h2>Shared calendar</h2>
+          ${setupCard}
+        </section>
+        <section class="card">
+          <div class="kicker">Manual</div>
+          <h2>Add an event</h2>
+          <form method="POST" action="/ops/calendar">
+            <input type="hidden" name="action" value="save-event"/>
+            <input type="hidden" name="returnTo" value="/ops/calendar"/>
+            <label for="cal-title">Title</label>
+            <input id="cal-title" name="title" required maxlength="160" placeholder="Founder sync"/>
+            <label for="cal-date">Date</label>
+            <input id="cal-date" name="date" type="date" required/>
+            <label class="check" for="cal-allday"><input id="cal-allday" type="checkbox" name="allDay" value="1"/> All day</label>
+            <label for="cal-start">Start</label>
+            <input id="cal-start" name="start" type="time"/>
+            <label for="cal-end">End</label>
+            <input id="cal-end" name="end" type="time"/>
+            <label for="cal-tz">Timezone</label>
+            <input id="cal-tz" name="timezone" maxlength="80" value="Africa/Freetown"/>
+            <label for="cal-attendees">Internal attendees (optional)</label>
+            <input id="cal-attendees" name="attendees" maxlength="400" placeholder="osmanjalloh104@gmail.com, ops@lavaall.com"/>
+            <label for="cal-notes">Notes</label>
+            <textarea id="cal-notes" name="notes" maxlength="800"></textarea>
+            <button class="btn" type="submit">Save event</button>
+          </form>
+        </section>
+      </div>
+      <section class="card" style="margin-top:14px">
+        <div class="kicker">Agenda</div>
+        <h2>Events</h2>
+        ${rows}
+      </section>
+    `,
+  });
+}
+
+module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage };

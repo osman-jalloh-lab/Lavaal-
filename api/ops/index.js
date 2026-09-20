@@ -1,9 +1,15 @@
-// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks, memory, chat, inbox.
+// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks, memory, chat, inbox, calendar.
 // Session required. Public catalog routes are unchanged.
 
 const { loginPage } = require('./_html');
 const { NAV, areaInfo, dashboardPage, stubPage } = require('./_shell');
-const { chatPage, inboxPage, memoryPage, profilePage, tasksPage } = require('./_pages');
+const { calendarPage, chatPage, inboxPage, memoryPage, profilePage, tasksPage } = require('./_pages');
+const {
+  describeCalendarSetup,
+  refreshGoogleAgenda,
+  removeCalendarEvent,
+  saveCalendarEvent,
+} = require('./_calendar');
 const { describeChatSetup, sendChatTurn } = require('./_chat');
 const {
   confirmInboxSend,
@@ -24,6 +30,7 @@ const {
   emptyStore,
   getSharedChat,
   isDurable,
+  listEvents,
   readStore,
   saveGoal,
   saveProfile,
@@ -68,7 +75,7 @@ function knownArea(area) {
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops') return value;
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops') return value;
   if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
   return '/ops';
 }
@@ -92,6 +99,8 @@ async function payload(session, area, search) {
       inboxSetup: describeGmailSetup(),
       inboxItems: store.inbox || [],
       inboxAudit: store.mailAudit || [],
+      calendarSetup: describeCalendarSetup(),
+      events: listEvents(store),
     };
   } catch {
     const store = emptyStore();
@@ -109,6 +118,8 @@ async function payload(session, area, search) {
       inboxSetup: describeGmailSetup(),
       inboxItems: [],
       inboxAudit: [],
+      calendarSetup: describeCalendarSetup(),
+      events: [],
       storeError: 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
     };
   }
@@ -129,6 +140,7 @@ async function renderArea(req, res, session, extra) {
     search: data.search,
     chatSetup: data.chatSetup,
     inboxSetup: data.inboxSetup,
+    calendarSetup: data.calendarSetup,
     openThread: firstQuery(queryOf(req), 'thread') || '',
   };
 
@@ -146,6 +158,7 @@ async function renderArea(req, res, session, extra) {
     case 'inbox':
       return sendHtml(res, 200, inboxPage(pageOpts));
     case 'calendar':
+      return sendHtml(res, 200, calendarPage(pageOpts));
     case 'routines':
       return sendHtml(res, 200, stubPage({
         email: session.email,
@@ -184,7 +197,13 @@ function writeStatus(error) {
     case 'support_not_connected':
       return 400;
     case 'gmail_reconnect':
+    case 'calendar_reconnect':
       return 503;
+    case 'invalid_event':
+    case 'external_attendee':
+      return 400;
+    case 'event_not_found':
+      return 404;
     default: {
       return 400;
     }
@@ -203,7 +222,13 @@ async function finishWrite(req, res, session, body, result, notice) {
             ? 'Save a draft and click Ready to send before Confirm send.'
             : result.error === 'gmail_reconnect'
               ? 'Gmail OAuth failed. Reconnect the support@ refresh token.'
-              : notice.error;
+              : result.error === 'external_attendee'
+                ? 'Internal attendees only. Customer emails cannot be invited from /ops.'
+                : result.error === 'invalid_event'
+                  ? 'Enter a title, date, and valid start/end times (or mark the event all-day).'
+                  : result.error === 'calendar_reconnect'
+                    ? 'Google Calendar OAuth failed. Reconnect the refresh token. Manual events still work.'
+                    : notice.error;
     return wantsJson(req)
       ? json(res, writeStatus(result.error), { error: result.error })
       : renderArea(req, res, session, { error: message });
@@ -313,6 +338,33 @@ async function handleWrite(req, res, session) {
       }), { error: 'Confirm send was rejected.' });
     case 'refresh-inbox':
       return finishWrite(req, res, session, body, await refreshLiveInbox(), { error: 'Could not refresh live mail.' });
+    case 'save-event':
+      return finishWrite(req, res, session, body, await saveCalendarEvent({
+        title: body.title,
+        date: body.date,
+        start: body.start,
+        end: body.end,
+        timezone: body.timezone,
+        allDay: body.allDay,
+        attendees: body.attendees,
+        notes: body.notes,
+      }, { createdBy: session.email }), { error: 'Enter a title, date, and valid times.' });
+    case 'update-event':
+      return finishWrite(req, res, session, body, await saveCalendarEvent({
+        id: body.id,
+        title: body.title,
+        date: body.date,
+        start: body.start,
+        end: body.end,
+        timezone: body.timezone,
+        allDay: body.allDay,
+        attendees: body.attendees,
+        notes: body.notes,
+      }), { error: 'Could not update that event.' });
+    case 'delete-event':
+      return finishWrite(req, res, session, body, await removeCalendarEvent(body.id), { error: 'Could not delete that event.' });
+    case 'refresh-calendar':
+      return finishWrite(req, res, session, body, await refreshGoogleAgenda(), { error: 'Could not refresh the shared calendar.' });
     default:
       return wantsJson(req)
         ? json(res, 400, { error: 'unknown_action' })

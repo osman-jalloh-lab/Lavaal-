@@ -237,6 +237,7 @@ module.exports = {
   gmailFromAddress,
   listGmailThreads,
   readGmailMessage,
+  refreshGmailAccessToken,
   sendGmailMessage,
   sendGmailReply,
   supportInboxConfigured,

@@ -16,6 +16,7 @@ const MAX_MESSAGES = 40;
 const MAX_PROPOSALS = 20;
 const MAX_INBOX = 50;
 const MAX_AUDIT = 50;
+const MAX_EVENTS = 80;
 const CHAT_ID = 'ops-shared';
 const INBOX_LABELS = Object.freeze(['needs_reply', 'task', 'reference', 'done']);
 const INBOX_LABEL_TEXT = Object.freeze({
@@ -37,7 +38,7 @@ const STATUS_LABELS = Object.freeze({
 let memory = emptyStore();
 
 function emptyStore() {
-  return { profiles: {}, goal: null, projects: [], tasks: [], notes: [], chats: [], inbox: [], mailAudit: [] };
+  return { profiles: {}, goal: null, projects: [], tasks: [], notes: [], chats: [], inbox: [], mailAudit: [], events: [] };
 }
 
 function kvConfigured() {
@@ -331,6 +332,66 @@ function listMailAudit(storeData) {
   return ((storeData && storeData.mailAudit) || []).slice().sort((a, b) => b.at - a.at);
 }
 
+function normalizeTime(value) {
+  const raw = clean(value, 8);
+  return /^\d{2}:\d{2}$/.test(raw) ? raw : '';
+}
+
+function normalizeEvent(row) {
+  const allDay = Boolean(row && (row.allDay === true || row.allDay === '1' || row.allDay === 'on'));
+  const attendees = Array.isArray(row && row.attendees)
+    ? row.attendees.map((item) => normalizeEmail(item)).filter(Boolean).slice(0, 8)
+    : [];
+  return {
+    id: clean(row && row.id, 40) || newId(),
+    title: clean(row && row.title, 160),
+    date: normalizeDate(row && row.date),
+    start: allDay ? '' : normalizeTime(row && row.start),
+    end: allDay ? '' : normalizeTime(row && row.end),
+    timezone: clean(row && row.timezone, 80) || 'Africa/Freetown',
+    allDay,
+    attendees,
+    notes: clean(row && row.notes, 800),
+    googleEventId: clean(row && row.googleEventId, 80),
+    createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
+    updatedAt: Number.isFinite(row && row.updatedAt) ? row.updatedAt : Date.now(),
+    createdBy: clean(row && row.createdBy, 120),
+  };
+}
+
+function eventRange(event) {
+  if (!event || event.allDay || !event.date || !event.start || !event.end) return null;
+  return { date: event.date, start: event.start, end: event.end };
+}
+
+function timedEventsOverlap(a, b) {
+  const left = eventRange(a);
+  const right = eventRange(b);
+  if (!left || !right || left.date !== right.date) return false;
+  return left.start < right.end && right.start < left.end;
+}
+
+function withOverlapFlags(events) {
+  return (events || []).map((event) => {
+    const overlaps = !event.allDay && (events || []).some((other) => other.id !== event.id && timedEventsOverlap(event, other));
+    return Object.assign({}, event, { overlaps });
+  });
+}
+
+function listEvents(storeData) {
+  const rows = ((storeData && storeData.events) || []).slice().sort((a, b) => {
+    const dateCmp = String(a.date).localeCompare(String(b.date));
+    if (dateCmp !== 0) return dateCmp;
+    return String(a.start || '').localeCompare(String(b.start || ''));
+  });
+  return withOverlapFlags(rows);
+}
+
+function getEvent(storeData, id) {
+  const eventId = clean(id, 40);
+  return listEvents(storeData).find((item) => item.id === eventId) || null;
+}
+
 function normalizeProfiles(raw) {
   const out = {};
   if (!raw || typeof raw !== 'object') return out;
@@ -366,6 +427,9 @@ function normalizeStore(raw) {
       : [],
     mailAudit: Array.isArray(src.mailAudit)
       ? src.mailAudit.map(normalizeAudit).filter((row) => row.email).slice(0, MAX_AUDIT)
+      : [],
+    events: Array.isArray(src.events)
+      ? src.events.map(normalizeEvent).filter((row) => row.title && row.date).slice(0, MAX_EVENTS)
       : [],
   };
 }
@@ -852,6 +916,52 @@ async function addMailAudit(fields) {
   });
 }
 
+async function addEvent(fields) {
+  return mutate(async () => {
+    const event = normalizeEvent(Object.assign({}, fields, { createdAt: Date.now(), updatedAt: Date.now() }));
+    if (!event.title || !event.date) return { error: 'invalid_event' };
+    if (!event.allDay && (!event.start || !event.end || event.end <= event.start)) return { error: 'invalid_event' };
+    const storeData = await readStore();
+    storeData.events = [event].concat(storeData.events).slice(0, MAX_EVENTS);
+    await writeStore(storeData);
+    return { ok: true, event: getEvent(storeData, event.id) };
+  });
+}
+
+async function updateEvent(id, patch) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const eventId = clean(id, 40);
+    const index = storeData.events.findIndex((row) => row.id === eventId);
+    if (index === -1) return { error: 'event_not_found' };
+    const current = storeData.events[index];
+    const next = normalizeEvent(Object.assign({}, current, patch, {
+      id: current.id,
+      createdAt: current.createdAt,
+      createdBy: current.createdBy,
+      updatedAt: Date.now(),
+    }));
+    if (!next.title || !next.date) return { error: 'invalid_event' };
+    if (!next.allDay && (!next.start || !next.end || next.end <= next.start)) return { error: 'invalid_event' };
+    storeData.events[index] = next;
+    await writeStore(storeData);
+    return { ok: true, event: getEvent(storeData, next.id) };
+  });
+}
+
+async function deleteEvent(id) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const eventId = clean(id, 40);
+    const index = storeData.events.findIndex((row) => row.id === eventId);
+    if (index === -1) return { error: 'event_not_found' };
+    const removed = storeData.events[index];
+    storeData.events = storeData.events.filter((row) => row.id !== eventId);
+    await writeStore(storeData);
+    return { ok: true, event: removed };
+  });
+}
+
 function resetStore(seed) {
   memory = normalizeStore(seed || emptyStore());
 }
@@ -864,8 +974,15 @@ module.exports = {
   INBOX_LABELS,
   INBOX_LABEL_TEXT,
   PROPOSAL_KINDS,
+  addEvent,
   addInboxItem,
   addMailAudit,
+  deleteEvent,
+  getEvent,
+  listEvents,
+  timedEventsOverlap,
+  updateEvent,
+  withOverlapFlags,
   getInboxItem,
   inboxLabelText,
   listInboxItems,
