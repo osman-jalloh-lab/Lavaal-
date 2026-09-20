@@ -23,6 +23,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:cen
 .lb.on{background:var(--sun);color:var(--ink);}
 .nav-cta{padding:9px 22px;background:var(--ink);color:var(--white);border:2px solid var(--ink);border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;text-decoration:none;}
 .nav-cta:hover{background:var(--sun);color:var(--ink);}
+.nav-links a.nav-login{color:var(--muted);}
+.nav-links a.nav-login:hover{color:var(--ink);}
 /* HAMBURGER BUTTON */
 .nav-hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;width:40px;height:40px;background:none;border:2px solid var(--ink);border-radius:8px;cursor:pointer;padding:0;gap:5px;transition:background .2s;}
 .nav-hamburger:hover{background:var(--sun);}
@@ -41,6 +43,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:cen
 .nav-mobile-drawer .drawer-cta{display:block;margin:20px 6%;padding:13px 22px;background:var(--ink);color:var(--white);border-radius:100px;font-size:15px;font-weight:600;text-decoration:none;text-align:center;font-family:'Bricolage Grotesque',sans-serif;transition:background .2s,color .2s;}
 .nav-mobile-drawer .drawer-cta:hover{background:var(--sun);color:var(--ink);}
 .nav-mobile-drawer .drawer-cta:focus-visible{outline:3px solid var(--sky);outline-offset:2px;}
+.nav-mobile-drawer ul li a.drawer-login{font-weight:500;color:var(--muted);}
+.nav-mobile-drawer ul li a.drawer-login:hover{color:var(--ink);}
 /* HERO */
 .hero{min-height:100vh;background:var(--sky);border-bottom:3px solid var(--ink);display:flex;align-items:center;padding:120px 6% 80px;position:relative;overflow:hidden;}
 .ring{position:absolute;border-radius:50%;border:2px solid rgba(0,0,0,.07);animation:expandRing 4s ease-out infinite;pointer-events:none;}
@@ -230,7 +234,7 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .cat-card:focus-visible{outline:3px solid var(--sky);outline-offset:3px;border-color:var(--sky);}
 .sc:focus-visible{outline:3px solid var(--sky);outline-offset:-3px;}
 .ctry:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
-.bp:focus-visible,.bs:focus-visible,.nav-cta:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
+.bp:focus-visible,.bs:focus-visible,.nav-cta:focus-visible,.nav-login:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
 .catalog-back-btn:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
 .pgal-thumb:focus-visible{outline:3px solid var(--sky);outline-offset:2px;opacity:1;}
 .pgal-close:focus-visible{outline:3px solid var(--sky);outline-offset:3px;}
