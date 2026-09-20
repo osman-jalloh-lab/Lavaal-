@@ -22,6 +22,7 @@ const {
 } = require('./_store');
 const { buildMapGraph } = require('./_map');
 const { SHEET_WRITE_BANNER } = require('./_kits');
+const { isTalkAgent, officeAgentById } = require('./_office');
 const { persistenceBanner, shellPage } = require('./_shell');
 
 function option(value, label, selected) {
@@ -246,14 +247,19 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
   });
 }
 
-function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
+function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId }) {
   const chat = getSharedChat(store);
   const setup = chatSetup || { modelConfigured: false, anthropic: false, openai: false, lead: 'lavaall-ceo' };
   const notes = notesSelectableForChat(store);
   const drafts = pendingProposals(store);
   const goal = store.goal;
+  const talkAgent = isTalkAgent(agentId) ? officeAgentById(agentId) : null;
+  const returnTo = talkAgent ? talkAgent.talk : '/ops/chat';
+  const chatLead = talkAgent
+    ? `Talking with ${talkAgent.name}. Same chat as everyone else — pinned to this desk. Open Chat with no agent to talk to everyone.`
+    : 'Ask about the goal, a task, or a note. This tab talks to everyone. Chat does not send mail or change records until you confirm.';
   const setupCard = setup.modelConfigured
-    ? `<p>Helper connected (${setup.anthropic ? 'Anthropic' : ''}${setup.anthropic && setup.openai ? ' + ' : ''}${setup.openai ? 'OpenAI' : ''}). Lead stays ${escapeHtml(setup.lead)}. Drafts only — nothing is sent or written without confirm.</p>`
+    ? `<p>Helper connected (${setup.anthropic ? 'Anthropic' : ''}${setup.anthropic && setup.openai ? ' + ' : ''}${setup.openai ? 'OpenAI' : ''}). Lead stays ${escapeHtml(talkAgent ? talkAgent.id : setup.lead)}. Drafts only — nothing is sent or written without confirm.</p>`
     : '<p class="empty">No Anthropic or OpenAI key on this project. Ask a saved next step and it still reads the record. Anything else shows this message — no invented reply.</p>';
 
   const contextPick = `
@@ -293,13 +299,13 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
         <form method="POST" action="/ops/chat" style="display:inline">
           <input type="hidden" name="action" value="confirm-proposal"/>
           <input type="hidden" name="id" value="${escapeHtml(item.id)}"/>
-          <input type="hidden" name="returnTo" value="/ops/chat"/>
+          <input type="hidden" name="returnTo" value="${escapeHtml(returnTo)}"/>
           <button class="btn btn-sm" type="submit">Confirm draft</button>
         </form>
         <form method="POST" action="/ops/chat" style="display:inline">
           <input type="hidden" name="action" value="dismiss-proposal"/>
           <input type="hidden" name="id" value="${escapeHtml(item.id)}"/>
-          <input type="hidden" name="returnTo" value="/ops/chat"/>
+          <input type="hidden" name="returnTo" value="${escapeHtml(returnTo)}"/>
           <button class="btn btn-sm btn-danger" type="submit">Dismiss</button>
         </form>
       </li>`
@@ -315,7 +321,7 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Chat</h1>
-      <p class="lead">Ask about the goal, a task, or a note. Chat does not send mail or change records until you confirm.</p>
+      <p class="lead">${escapeHtml(chatLead)}</p>
       <div class="grid forms">
         <section class="card">
           <div class="kicker">Ready?</div>
@@ -329,12 +335,13 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
         </section>
       </div>
       <section class="card" style="margin-top:14px">
-        <div class="kicker">Talk</div>
+        <div class="kicker">${talkAgent ? 'Desk' : 'Everyone'}</div>
         <h2>Conversation</h2>
         ${thread}
         <form method="POST" action="/ops/chat">
           <input type="hidden" name="action" value="send-chat"/>
-          <input type="hidden" name="returnTo" value="/ops/chat"/>
+          <input type="hidden" name="returnTo" value="${escapeHtml(returnTo)}"/>
+          ${talkAgent ? `<input type="hidden" name="agent" value="${escapeHtml(talkAgent.id)}"/>` : ''}
           ${contextPick}
           <label for="chat-message">Message</label>
           <textarea id="chat-message" name="message" required maxlength="2000" placeholder="What is the next step?"></textarea>

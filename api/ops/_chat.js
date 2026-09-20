@@ -5,6 +5,7 @@
 // Underscore prefix: not a Vercel function. No npm.
 
 const { classify, CEO_ID } = require('../slack/_router/classify');
+const { TALK_AGENT_IDS } = require('./_office');
 const {
   addChatProposals,
   appendChatTurn,
@@ -189,13 +190,26 @@ function trimQuestion(value) {
   return typeof value === 'string' ? value.trim().slice(0, 2000) : '';
 }
 
-async function sendChatTurn({ question, selection, createdBy }) {
+function pinTalkAgent(route, agentId) {
+  const id = String(agentId || '').trim();
+  if (!TALK_AGENT_IDS.includes(id)) return route;
+  const helpers = Array.isArray(route && route.helperAgents)
+    ? route.helperAgents.filter((item) => item && item !== id)
+    : [];
+  return Object.assign({}, route, {
+    leadAgent: id,
+    helperAgents: helpers,
+    mode: 'agent',
+  });
+}
+
+async function sendChatTurn({ question, selection, createdBy, agentId }) {
   const text = trimQuestion(question);
   if (!text) return { error: 'invalid_message' };
 
   const storeData = await readStore();
   const context = resolveChatContext(storeData, selection);
-  const route = classify({ text, source: 'ops_chat' });
+  const route = pinTalkAgent(classify({ text, source: 'ops_chat' }), agentId);
   const grounded = groundedReply(text, context);
 
   let replyText;
@@ -258,6 +272,7 @@ async function sendChatTurn({ question, selection, createdBy }) {
       helperAgents: route.helperAgents,
       verb: route.verb,
       risk: route.risk,
+      mode: route.mode,
     },
     chat: getSharedChat(after),
   };
@@ -274,6 +289,7 @@ function selectableContext(storeData) {
 module.exports = {
   CEO_ID,
   SETUP_COPY,
+  TALK_AGENT_IDS,
   completeWithModel,
   describeChatSetup,
   extractDrafts,
@@ -281,6 +297,7 @@ module.exports = {
   groundedReply,
   looksLikeNextStepAsk,
   modelConfigured,
+  pinTalkAgent,
   selectableContext,
   sendChatTurn,
   setupMessage,

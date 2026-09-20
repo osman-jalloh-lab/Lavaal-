@@ -6,6 +6,7 @@ const { escapeHtml } = require('./_lib');
 
 const NAV = Object.freeze([
   { id: 'dashboard', href: '/ops', label: 'Dashboard' },
+  { id: 'office', href: '/ops/office', label: 'Office' },
   { id: 'profile', href: '/ops/profile', label: 'You' },
   { id: 'chat', href: '/ops/chat', label: 'Chat' },
   { id: 'memory', href: '/ops/memory', label: 'Memory' },
@@ -21,6 +22,7 @@ function areaInfo(area) {
   const id = NAV.some((item) => item.id === area) ? area : 'dashboard';
   switch (id) {
     case 'dashboard':
+    case 'office':
     case 'profile':
     case 'chat':
     case 'memory':

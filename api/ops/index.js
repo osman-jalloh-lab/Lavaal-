@@ -4,6 +4,7 @@
 const { kitsDeniedPage, loginPage } = require('./_html');
 const { NAV, dashboardPage } = require('./_shell');
 const { calendarPage, chatPage, inboxPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
+const { officePage } = require('./_office');
 const {
   describeKitsSetup,
   hydrateKitsIfEmpty,
@@ -89,8 +90,9 @@ function knownArea(area) {
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/map' || value === '/ops/routines' || value === '/ops') return value;
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/map' || value === '/ops/routines' || value === '/ops/office' || value === '/ops') return value;
   if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
+  if (typeof value === 'string' && /^\/ops\/chat\?agent=(lavaall-ceo|sales|technical|growth|lifecycle)$/.test(value)) return value;
   return '/ops';
 }
 
@@ -168,11 +170,14 @@ async function renderArea(req, res, session, extra) {
     kitsSetup: data.kitsSetup,
     csrf: (extra && extra.csrf) || createCsrfToken(session.email),
     openThread: firstQuery(queryOf(req), 'thread') || '',
+    agentId: firstQuery(queryOf(req), 'agent') || '',
   };
 
   switch (area) {
     case 'dashboard':
       return sendHtml(res, 200, dashboardPage(pageOpts));
+    case 'office':
+      return sendHtml(res, 200, officePage(pageOpts));
     case 'profile':
       return sendHtml(res, 200, profilePage(pageOpts));
     case 'tasks':
@@ -375,6 +380,7 @@ async function handleWrite(req, res, session) {
     case 'send-chat':
       return finishWrite(req, res, session, body, await sendChatTurn({
         question: body.message,
+        agentId: body.agent || body.agentId || '',
         selection: {
           useGoal: body.useGoal,
           taskId: body.taskId,

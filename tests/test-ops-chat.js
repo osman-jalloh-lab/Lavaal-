@@ -70,6 +70,10 @@ async function run() {
       !/sk-ant|sk-proj|re_[A-Za-z0-9]|ANTHROPIC_API_KEY=|OPENAI_API_KEY=/.test(page));
     check('unconfigured setup copy is honest',
       page.includes('No Anthropic or OpenAI key') && page.includes('no invented reply'));
+    check('Chat tab without an agent stays council / talk-to-everyone',
+      page.includes('This tab talks to everyone')
+      && !page.includes('name="agent"')
+      && page.includes('name="returnTo" value="/ops/chat"'));
   }
 
   {
@@ -113,6 +117,22 @@ async function run() {
     check('send-chat does not auto-mutate goal, tasks, or notes',
       after.goal.title === goalTitle && after.notes.length === noteCount && after.goal.nextStep === before.goal.nextStep);
     check('CEO router stays lead on the turn', asked.route.leadAgent === 'lavaall-ceo');
+    const pinned = await chat.sendChatTurn({
+      question: 'What is the next step?',
+      selection: { useGoal: '1' },
+      createdBy: ALLOWED,
+      agentId: 'sales',
+    });
+    check('Talk pins the existing sales chat without a second system',
+      pinned.ok && pinned.route.leadAgent === 'sales' && pinned.route.mode === 'agent');
+    const ignored = await chat.sendChatTurn({
+      question: 'What is the next step?',
+      selection: { useGoal: '1' },
+      createdBy: ALLOWED,
+      agentId: 'researchy',
+    });
+    check('Researchy and unknown desks do not pin Talk',
+      ignored.ok && ignored.route.leadAgent === 'lavaall-ceo' && ignored.route.mode !== 'agent');
   }
 
   {
@@ -165,6 +185,40 @@ async function run() {
     }), sent);
     check('HTTP send-chat returns the stored next step',
       sent.statusCode === 200 && sent.body.ok === true && sent.body.reply.includes('Ask chat'));
+  }
+
+  {
+    const talk = mockRes();
+    await ops(authed({
+      json: false,
+      url: '/ops/chat?agent=sales',
+      query: { area: 'chat', agent: 'sales' },
+    }), talk);
+    const html = String(talk.raw);
+    check('Talk from Office opens the existing chat pinned to that agent',
+      html.includes('<h1>Chat</h1>')
+      && html.includes('Talking with LAVAALL Sales & Customer Success')
+      && html.includes('name="agent" value="sales"')
+      && html.includes('name="returnTo" value="/ops/chat?agent=sales"')
+      && html.includes('Open Chat with no agent to talk to everyone'));
+    const researchy = mockRes();
+    await ops(authed({
+      json: false,
+      url: '/ops/chat?agent=researchy',
+      query: { area: 'chat', agent: 'researchy' },
+    }), researchy);
+    check('Researchy cannot open a Talk pin',
+      String(researchy.raw).includes('This tab talks to everyone')
+      && !String(researchy.raw).includes('name="agent"'));
+    const sentTalk = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/chat',
+      body: { action: 'send-chat', message: 'What is the next step?', useGoal: '1', agent: 'growth' },
+    }), sentTalk);
+    check('HTTP send-chat with agent pins that existing desk',
+      sentTalk.statusCode === 200 && sentTalk.body.ok === true && sentTalk.body.route.leadAgent === 'growth' && sentTalk.body.route.mode === 'agent');
   }
 
   {
