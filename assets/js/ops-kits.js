@@ -87,4 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   applyFilter();
+
+  const params = new URLSearchParams(window.location.search);
+  const wanted = (params.get('kit') || '').toUpperCase();
+  if (wanted) {
+    const row = rows.find((item) => (item.getAttribute('data-kit') || '').toUpperCase() === wanted);
+    if (row) openDrawer(row);
+  }
 });

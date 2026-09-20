@@ -20,6 +20,7 @@ const {
   searchNotes,
   statusLabel,
 } = require('./_store');
+const { buildMapGraph } = require('./_map');
 const { persistenceBanner, shellPage } = require('./_shell');
 
 function option(value, label, selected) {
@@ -787,4 +788,58 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
   });
 }
 
-module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage, routinesPage, kitsPage };
+function embedMapJson(value) {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
+function mapPage({ email, store, snapshot, notice, error }) {
+  const graph = buildMapGraph(store || {});
+  return shellPage({
+    title: 'LAVAALL OS — Map',
+    email,
+    area: 'map',
+    notice,
+    error,
+    scripts: `<script type="application/json" id="map-data">${embedMapJson(graph)}</script>\n<script src="/assets/js/ops-map.js" defer></script>`,
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <div id="map-root">
+        <h1>Map</h1>
+        <p class="map-lead">LAVAALL’s private context — kits, people, tasks, and decisions. Not the public catalog.</p>
+        <div class="map-legend" aria-label="Node legend">
+          <span class="map-chip kit" title="hardware kit in the registry">Kit</span>
+          <span class="map-chip person" title="someone tied to a kit or note">Person</span>
+          <span class="map-chip task" title="something to do in /ops">Task</span>
+          <span class="map-chip decision" title="a founder call to remember">Decision</span>
+        </div>
+        <div class="map-tools">
+          <label class="visually-hidden" for="map-search">Search kit number or name</label>
+          <input id="map-search" type="search" maxlength="200" placeholder="Search…"/>
+          <div class="map-filters" id="map-filters" role="group" aria-label="Node types">
+            <button type="button" class="is-on" data-type="kit" aria-pressed="true">Kits</button>
+            <button type="button" class="is-on" data-type="person" aria-pressed="true">People</button>
+            <button type="button" class="is-on" data-type="task" aria-pressed="true">Tasks</button>
+            <button type="button" class="is-on" data-type="decision" aria-pressed="true">Decisions</button>
+          </div>
+          <label class="map-opt"><input type="checkbox" id="map-opt-cream"/> Soft cream wash</label>
+          <label class="map-opt"><input type="checkbox" id="map-opt-sound"/> Soft sound</label>
+        </div>
+        <div class="map-stage-wrap">
+          <div class="map-stage" id="map-stage">
+            <svg id="map-svg" viewBox="0 0 360 320" role="img" aria-label="Workspace map"></svg>
+            <div class="map-empty" id="map-empty">
+              <strong>Only a few links so far</strong>
+              <span>Add kits and notes as you work. The map grows when things connect — we won’t invent fake nodes.</span>
+            </div>
+          </div>
+          <div class="map-detail card" id="map-detail">
+            <p class="map-placeholder">Tap a bubble. You’ll see what it is, what we’re working on, and a link to the real Kits, Memory, or Tasks record.</p>
+          </div>
+        </div>
+        <p class="map-cap" id="map-cap" hidden>Showing first 200 records.</p>
+      </div>
+    `,
+  });
+}
+
+module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage, routinesPage, kitsPage, mapPage };

@@ -89,7 +89,7 @@ function kitsDeniedPage() {
     body: `
       <div class="kicker"><span class="dot" aria-hidden="true"></span> Internal</div>
       <h1>Access denied</h1>
-      <p>Kit Registry is founder-only. Agents cannot read this mirror.</p>
+      <p>This area is founder-only. Agents cannot read the Kit Registry or Map.</p>
     `,
   });
 }

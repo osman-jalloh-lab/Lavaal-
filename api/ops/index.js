@@ -3,7 +3,7 @@
 
 const { kitsDeniedPage, loginPage } = require('./_html');
 const { NAV, dashboardPage } = require('./_shell');
-const { calendarPage, chatPage, inboxPage, kitsPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
+const { calendarPage, chatPage, inboxPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
 const {
   describeKitsSetup,
   hydrateKitsIfEmpty,
@@ -12,6 +12,7 @@ const {
   syncKitsFromSheet,
   verifyKitsCsrf,
 } = require('./_kits');
+const { mapGuard, mapListPayload } = require('./_map');
 const { copyRoutinePrompt, runRoutine, updateRoutine } = require('./_routines');
 const {
   describeCalendarSetup,
@@ -87,7 +88,7 @@ function knownArea(area) {
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/routines' || value === '/ops') return value;
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/map' || value === '/ops/routines' || value === '/ops') return value;
   if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
   return '/ops';
 }
@@ -140,7 +141,9 @@ async function payload(session, area, search) {
       kitsSetup: describeKitsSetup(),
       storeError: resolved === 'kits'
         ? "Couldn't load kits · try Refresh"
-        : 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
+        : resolved === 'map'
+          ? "Couldn't load the map. Nothing was invented."
+          : 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
     };
   }
 }
@@ -188,6 +191,14 @@ async function renderArea(req, res, session, extra) {
         if (hydrated.error) pageOpts.error = "Couldn't load kits · try Refresh";
       }
       return sendHtml(res, 200, kitsPage(pageOpts));
+    }
+    case 'map': {
+      if (!pageOpts.error) {
+        const hydrated = await hydrateKitsIfEmpty(session);
+        if (hydrated.store) pageOpts.store = hydrated.store;
+        if (hydrated.error) pageOpts.error = "Couldn't load the map. Nothing was invented.";
+      }
+      return sendHtml(res, 200, mapPage(pageOpts));
     }
     case 'routines':
       return sendHtml(res, 200, routinesPage(pageOpts));
@@ -468,8 +479,16 @@ function kitsApiKind(req) {
   return '';
 }
 
+function mapApiKind(req) {
+  const area = String(firstQueryValue(req, 'area') || '');
+  const pathOnly = String(req.url || '').split('?')[0].replace(/\/+$/, '');
+  const hay = `${area} ${pathOnly}`.toLowerCase();
+  if (/(^|[\s/])api\/map$/.test(hay) || area === 'api/map') return 'list';
+  return '';
+}
+
 function denyKits(req, res, access) {
-  if (kitsApiKind(req) || wantsJson(req)) {
+  if (kitsApiKind(req) || mapApiKind(req) || wantsJson(req)) {
     json(res, access.status, { error: access.error });
     return true;
   }
@@ -537,13 +556,31 @@ async function handleKitsApi(req, res) {
   return true;
 }
 
+async function handleMapApi(req, res) {
+  if (!mapApiKind(req)) return false;
+  const access = mapGuard(req);
+  if (!access.session) return denyKits(req, res, access);
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    json(res, 405, { error: 'method_not_allowed' });
+    return true;
+  }
+  try {
+    const store = await readStore();
+    json(res, 200, mapListPayload(store));
+  } catch {
+    json(res, 503, { error: 'store_unavailable', nodes: [], edges: [] });
+  }
+  return true;
+}
+
 async function ops(req, res) {
   if (await handleKitsApi(req, res)) return;
+  if (await handleMapApi(req, res)) return;
 
   const session = readSession(req);
   const area = resolveArea(req);
-  if (area === 'kits') {
-    const access = kitsGuard(req);
+  if (area === 'kits' || area === 'map') {
+    const access = area === 'map' ? mapGuard(req) : kitsGuard(req);
     if (!access.session) return denyKits(req, res, access);
   }
 

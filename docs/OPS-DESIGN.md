@@ -71,6 +71,7 @@ Every tab: **2–3 plain sentences**. What it is. What to do. No snobby admin ja
 | Inbox | Mail people sent us. Write a reply, then Confirm send. |
 | Calendar | What is next. Add a meeting if you need one. |
 | Kits | Full kit list inside OS. Search. Read-only. Edits stay in the Sheet. |
+| Map | Kits, people, tasks, and decisions as bubbles. Tap a bubble, then open the real record. |
 | Tasks | Task-first. Projects are optional folders at the bottom. |
 | Routines | Saved questions you run yourself. Nothing in the background. |
 
@@ -92,3 +93,4 @@ Every tab: **2–3 plain sentences**. What it is. What to do. No snobby admin ja
 - Login: `api/ops/_html.js`
 - Pages / copy: `api/ops/_pages.js`
 - Kits behavior: `assets/js/ops-kits.js` (unchanged)
+- Map graph: `api/ops/_map.js` + `assets/js/ops-map.js`
