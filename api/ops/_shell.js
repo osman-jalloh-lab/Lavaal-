@@ -10,6 +10,7 @@ const NAV = Object.freeze([
   { id: 'memory', href: '/ops/memory', label: 'Memory' },
   { id: 'inbox', href: '/ops/inbox', label: 'Inbox' },
   { id: 'calendar', href: '/ops/calendar', label: 'Calendar' },
+  { id: 'kits', href: '/ops/kits', label: 'Kits' },
   { id: 'tasks', href: '/ops/tasks', label: 'Projects & tasks' },
   { id: 'routines', href: '/ops/routines', label: 'Saved routines' },
 ]);
@@ -23,6 +24,7 @@ function areaInfo(area) {
     case 'memory':
     case 'inbox':
     case 'calendar':
+    case 'kits':
     case 'tasks':
     case 'routines':
       return NAV.find((item) => item.id === id);
@@ -81,6 +83,42 @@ textarea{min-height:88px;resize:vertical;}
 .bubble.assistant{border-color:rgba(0,245,160,.28);}
 .ok{margin-bottom:12px;color:#c8ffe8;background:rgba(0,245,160,.1);border:1px solid rgba(0,245,160,.32);border-radius:10px;padding:10px 12px;font-size:14px;}
 .err{margin-bottom:12px;color:#ffc4c4;background:rgba(255,92,92,.12);border:1px solid rgba(255,92,92,.35);border-radius:10px;padding:10px 12px;font-size:14px;}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.kits-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
+.kits-head .btn{width:auto;margin-top:0;}
+.kits-sub{color:var(--muted);font-size:14px;}
+.kits-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,245,160,.28);background:rgba(0,245,160,.08);color:#c8ffe8;font-size:13px;}
+.kits-tools{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:center;}
+.kits-tools input,.kits-tools select{width:auto;min-width:220px;flex:1;}
+.kits-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.kits-chips button{border:1px solid var(--line);background:var(--navy);color:var(--text);border-radius:999px;padding:6px 10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;}
+.kits-chips button.is-on{background:var(--sky);color:var(--ink);border-color:var(--sky);}
+.kits-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;}
+.kits-table{width:100%;border-collapse:collapse;font-size:14px;}
+.kits-table th{position:sticky;top:0;background:#0d1828;text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line);}
+.kits-table td{padding:10px 12px;border-bottom:1px solid rgba(0,194,255,.12);color:var(--text);vertical-align:top;}
+.kits-table tbody tr:nth-child(even){background:rgba(11,20,36,.65);}
+.kits-table tbody tr{cursor:pointer;}
+.kits-table tbody tr:hover,.kits-table tbody tr.is-open{background:rgba(0,194,255,.1);}
+.kit-no{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:.02em;}
+.kit-status{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:rgba(138,160,184,.14);color:var(--muted);}
+.kit-status.is-active{background:rgba(0,194,255,.16);color:var(--sky);}
+.kits-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-top:10px;color:var(--muted);font-size:13px;}
+.kits-skel{height:42px;margin:8px 12px;border-radius:8px;background:linear-gradient(90deg,rgba(18,28,46,.4),rgba(0,194,255,.08),rgba(18,28,46,.4));}
+.kits-layout{display:grid;gap:14px;}
+@media (min-width:960px){.kits-layout.has-drawer{grid-template-columns:minmax(0,1fr) 320px;}}
+.kit-drawer{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;}
+.kit-drawer[hidden]{display:none;}
+.kit-drawer dt{color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:12px;}
+.kit-drawer dd{color:var(--text);margin:4px 0 0;word-break:break-word;}
+.kit-drawer .btn{width:auto;}
+@media (max-width:700px){
+  .kits-table thead{display:none;}
+  .kits-table,.kits-table tbody,.kits-table tr,.kits-table td{display:block;width:100%;}
+  .kits-table tr{padding:10px 12px;border-bottom:1px solid var(--line);}
+  .kits-table td{border:0;padding:2px 0;}
+  .kits-table td.kit-no{font-size:16px;}
+}
 `;
 }
 
@@ -130,7 +168,7 @@ ${typeof scripts === 'string' ? scripts : ''}
 
 function persistenceBanner(durable) {
   if (durable) return '';
-  return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Goals, tasks, notes, inbox, calendar, and routines may reset on a cold start until KV is on.</p>';
+  return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Goals, tasks, notes, inbox, calendar, routines, and kits may reset on a cold start until KV is on.</p>';
 }
 
 function dashboardPage({ email, snapshot, notice, error }) {

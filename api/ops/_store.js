@@ -19,6 +19,8 @@ const MAX_AUDIT = 50;
 const MAX_EVENTS = 80;
 const MAX_ROUTINES = 20;
 const MAX_RUNS = 10;
+const MAX_KITS = 500;
+const KIT_STATUSES = Object.freeze(['Active', 'Inactive', 'Returned', 'Lost', 'Unknown']);
 const CHAT_ID = 'ops-shared';
 const ROUTINE_NEEDS = Object.freeze(['goal', 'tasks', 'notes']);
 const ROUTINE_RUN_STATUSES = Object.freeze(['ok', 'missing_input', 'unconfigured', 'helper_failed']);
@@ -43,7 +45,20 @@ const STATUS_LABELS = Object.freeze({
 let memory = emptyStore();
 
 function emptyStore() {
-  return { profiles: {}, goal: null, projects: [], tasks: [], notes: [], chats: [], inbox: [], mailAudit: [], events: [], routines: [] };
+  return {
+    profiles: {},
+    goal: null,
+    projects: [],
+    tasks: [],
+    notes: [],
+    chats: [],
+    inbox: [],
+    mailAudit: [],
+    events: [],
+    routines: [],
+    kits: [],
+    kitsMeta: null,
+  };
 }
 
 function kvConfigured() {
@@ -433,6 +448,140 @@ function getRoutine(storeData, id) {
   return listRoutines(storeData).find((item) => item.id === routineId) || null;
 }
 
+function normalizeKitStatus(value) {
+  const raw = clean(value, 40);
+  const found = KIT_STATUSES.find((item) => item.toLowerCase() === raw.toLowerCase());
+  return found || 'Unknown';
+}
+
+function normalizeDateAdded(value) {
+  const iso = normalizeDate(value);
+  if (iso) return iso;
+  const raw = clean(value, 40);
+  if (!raw) return '';
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const serial = Number(raw);
+    if (serial > 20000 && serial < 80000) {
+      const utc = Date.UTC(1899, 11, 30) + Math.round(serial) * 86400000;
+      return new Date(utc).toISOString().slice(0, 10);
+    }
+  }
+  const mdY = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (mdY) {
+    const month = Number(mdY[1]);
+    const day = Number(mdY[2]);
+    const year = Number(mdY[3]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+  return '';
+}
+
+function normalizeKit(row) {
+  if (!row || typeof row !== 'object') return null;
+  const kitNumber = clean(row.kit_number, 40).toUpperCase();
+  const personName = clean(row.person_name, 160);
+  if (!kitNumber || !personName) return null;
+  const sheetRow = Number(row.sheet_row);
+  return {
+    kit_number: kitNumber,
+    person_name: personName,
+    email: normalizeEmail(row.email),
+    status: normalizeKitStatus(row.status),
+    date_added: normalizeDateAdded(row.date_added),
+    notes: clean(row.notes, 2000),
+    sheet_row: Number.isFinite(sheetRow) && sheetRow > 0 ? Math.floor(sheetRow) : 0,
+    synced_at: Number.isFinite(row.synced_at) ? row.synced_at : 0,
+    updated_at: Number.isFinite(row.updated_at) ? row.updated_at : Date.now(),
+  };
+}
+
+function listKits(storeData) {
+  return ((storeData && storeData.kits) || []).slice().sort((a, b) => {
+    const dateCmp = String(b.date_added || '').localeCompare(String(a.date_added || ''));
+    if (dateCmp !== 0) return dateCmp;
+    return String(a.kit_number).localeCompare(String(b.kit_number));
+  });
+}
+
+function searchKits(storeData, query) {
+  const needle = clean(query && query.q, 200).toLowerCase();
+  const rawStatus = clean(query && query.status, 40);
+  const statusFilter = rawStatus && rawStatus.toLowerCase() !== 'all'
+    ? normalizeKitStatus(rawStatus)
+    : '';
+  return listKits(storeData).filter((kit) => {
+    if (statusFilter && kit.status !== statusFilter) return false;
+    if (!needle) return true;
+    return `${kit.kit_number} ${kit.person_name}`.toLowerCase().includes(needle);
+  });
+}
+
+function normalizeKitsMeta(row) {
+  if (!row || typeof row !== 'object') return null;
+  return {
+    syncedAt: Number.isFinite(row.syncedAt) ? row.syncedAt : 0,
+    upserted: Number.isFinite(row.upserted) ? row.upserted : 0,
+    unknown: Number.isFinite(row.unknown) ? row.unknown : 0,
+    skipped: Number.isFinite(row.skipped) ? row.skipped : 0,
+    syncedBy: clean(row.syncedBy, 120),
+  };
+}
+
+function lastKitsSync(storeData) {
+  const meta = storeData && storeData.kitsMeta ? storeData.kitsMeta : null;
+  return meta && meta.syncedAt ? meta.syncedAt : 0;
+}
+
+async function applyKitsSync({ rows, syncedBy, now }) {
+  return mutate(async () => {
+    const syncedAt = Number.isFinite(now) ? now : Date.now();
+    const storeData = await readStore();
+    const byNumber = new Map((storeData.kits || []).map((row) => [row.kit_number, row]));
+    const seen = new Set();
+    let upserted = 0;
+    let skipped = 0;
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const kit = normalizeKit(Object.assign({}, row, { synced_at: syncedAt, updated_at: syncedAt }));
+      if (!kit) {
+        skipped += 1;
+        return;
+      }
+      seen.add(kit.kit_number);
+      byNumber.set(kit.kit_number, kit);
+      upserted += 1;
+    });
+    let unknown = 0;
+    byNumber.forEach((existing, kitNumber) => {
+      if (seen.has(kitNumber)) return;
+      unknown += 1;
+      byNumber.set(kitNumber, normalizeKit(Object.assign({}, existing, {
+        status: 'Unknown',
+        synced_at: syncedAt,
+        updated_at: syncedAt,
+      })));
+    });
+    storeData.kits = Array.from(byNumber.values()).slice(0, MAX_KITS);
+    storeData.kitsMeta = normalizeKitsMeta({
+      syncedAt,
+      upserted,
+      unknown,
+      skipped,
+      syncedBy,
+    });
+    await writeStore(storeData);
+    return {
+      ok: true,
+      upserted,
+      unknown,
+      skipped,
+      synced_at: new Date(syncedAt).toISOString(),
+      kits: listKits(storeData),
+    };
+  });
+}
+
 function normalizeEvent(row) {
   const allDay = Boolean(row && (row.allDay === true || row.allDay === '1' || row.allDay === 'on'));
   const attendees = Array.isArray(row && row.attendees)
@@ -528,6 +677,10 @@ function normalizeStore(raw) {
       ? src.events.map(normalizeEvent).filter((row) => row.title && row.date).slice(0, MAX_EVENTS)
       : [],
     routines: withSeededRoutines(src.routines),
+    kits: Array.isArray(src.kits)
+      ? src.kits.map(normalizeKit).filter(Boolean).slice(0, MAX_KITS)
+      : [],
+    kitsMeta: normalizeKitsMeta(src.kitsMeta),
   };
 }
 
@@ -1124,12 +1277,15 @@ module.exports = {
   STATUS_LABELS,
   STORE_KEY,
   CHAT_ID,
+  KIT_STATUSES,
+  MAX_KITS,
   SEED_ROUTINE_IDS,
   INBOX_LABELS,
   INBOX_LABEL_TEXT,
   PROPOSAL_KINDS,
   addEvent,
   addInboxItem,
+  applyKitsSync,
   addMailAudit,
   deleteEvent,
   getEvent,
@@ -1162,7 +1318,12 @@ module.exports = {
   recordRoutineRun,
   isDurable,
   kvConfigured,
+  lastKitsSync,
+  listKits,
   nextActionFrom,
+  normalizeDateAdded,
+  normalizeKit,
+  normalizeKitStatus,
   normalizeStore,
   notesSelectableForChat,
   pendingProposals,
@@ -1171,6 +1332,7 @@ module.exports = {
   resolveChatContext,
   saveGoal,
   saveProfile,
+  searchKits,
   searchNotes,
   selectableForChat,
   statusLabel,

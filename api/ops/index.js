@@ -1,9 +1,16 @@
-// api/ops/index.js — private /ops gate through calendar and saved routines.
-// Session required. Public catalog routes are unchanged.
+// api/ops/index.js — private /ops gate through calendar, routines, and kits.
+// Session required. Public catalog routes are unchanged. Preview only.
 
-const { loginPage } = require('./_html');
+const { kitsDeniedPage, loginPage } = require('./_html');
 const { NAV, dashboardPage } = require('./_shell');
-const { calendarPage, chatPage, inboxPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
+const { calendarPage, chatPage, inboxPage, kitsPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
+const {
+  describeKitsSetup,
+  kitsGuard,
+  kitsListPayload,
+  syncKitsFromSheet,
+  verifyKitsCsrf,
+} = require('./_kits');
 const { copyRoutinePrompt, runRoutine, updateRoutine } = require('./_routines');
 const {
   describeCalendarSetup,
@@ -34,6 +41,7 @@ const {
   listEvents,
   listRoutines,
   readStore,
+  searchKits,
   saveGoal,
   saveProfile,
   searchNotes,
@@ -41,6 +49,7 @@ const {
   updateTask,
 } = require('./_store');
 const {
+  createCsrfToken,
   genericLinkFailure,
   json,
   noStore,
@@ -77,7 +86,7 @@ function knownArea(area) {
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/routines' || value === '/ops') return value;
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/routines' || value === '/ops') return value;
   if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
   return '/ops';
 }
@@ -104,6 +113,8 @@ async function payload(session, area, search) {
       calendarSetup: describeCalendarSetup(),
       events: listEvents(store),
       routines: listRoutines(store),
+      kits: searchKits(store, { q: query, status: '' }),
+      kitsSetup: describeKitsSetup(),
     };
   } catch {
     const store = emptyStore();
@@ -124,7 +135,11 @@ async function payload(session, area, search) {
       calendarSetup: describeCalendarSetup(),
       events: [],
       routines: [],
-      storeError: 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
+      kits: [],
+      kitsSetup: describeKitsSetup(),
+      storeError: resolved === 'kits'
+        ? "Couldn't load kits · try Refresh"
+        : 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
     };
   }
 }
@@ -145,6 +160,8 @@ async function renderArea(req, res, session, extra) {
     chatSetup: data.chatSetup,
     inboxSetup: data.inboxSetup,
     calendarSetup: data.calendarSetup,
+    kitsSetup: data.kitsSetup,
+    csrf: (extra && extra.csrf) || createCsrfToken(session.email),
     openThread: firstQuery(queryOf(req), 'thread') || '',
   };
 
@@ -163,10 +180,15 @@ async function renderArea(req, res, session, extra) {
       return sendHtml(res, 200, inboxPage(pageOpts));
     case 'calendar':
       return sendHtml(res, 200, calendarPage(pageOpts));
+    case 'kits':
+      return sendHtml(res, 200, kitsPage(pageOpts));
     case 'routines':
       return sendHtml(res, 200, routinesPage(pageOpts));
-    default:
+    default: {
+      const _never = area;
+      void _never;
       return sendHtml(res, 200, dashboardPage(pageOpts));
+    }
   }
 }
 
@@ -209,7 +231,15 @@ function writeStatus(error) {
     case 'unconfigured':
       return 400;
     case 'helper_failed':
+    case 'sheet_unavailable':
       return 503;
+    case 'sheet_unconfigured':
+    case 'invalid_csrf':
+      return 400;
+    case 'agent_denied':
+    case 'forbidden':
+    case 'csrf':
+      return 403;
     default: {
       return 400;
     }
@@ -242,7 +272,11 @@ async function finishWrite(req, res, session, body, result, notice) {
                           ? (result.message || 'The helper failed. No invented result.')
                           : result.error === 'invalid_routine'
                             ? 'Enter a routine name and prompt.'
-                            : notice.error;
+                            : result.error === 'sheet_unavailable' || result.error === 'sheet_unconfigured'
+                              ? "Couldn't load kits · try Refresh"
+                              : result.error === 'csrf' || result.error === 'invalid_csrf'
+                                ? 'Refresh was rejected. Reload Kits and try again.'
+                                : notice.error;
     return wantsJson(req)
       ? json(res, writeStatus(result.error), {
         error: result.error,
@@ -414,8 +448,97 @@ async function handleWrite(req, res, session) {
   }
 }
 
+function firstQueryValue(req, key) {
+  return firstQuery(queryOf(req), key);
+}
+
+function kitsApiKind(req) {
+  const area = String(firstQueryValue(req, 'area') || '');
+  const pathOnly = String(req.url || '').split('?')[0].replace(/\/+$/, '');
+  const hay = `${area} ${pathOnly}`.toLowerCase();
+  if (hay.includes('api/kits/sync')) return 'sync';
+  if (/(^|[\s/])api\/kits$/.test(hay) || area === 'api/kits') return 'list';
+  return '';
+}
+
+function denyKits(req, res, access) {
+  if (kitsApiKind(req) || wantsJson(req)) {
+    json(res, access.status, { error: access.error });
+    return true;
+  }
+  if (access.error === 'agent_denied') {
+    sendHtml(res, 403, kitsDeniedPage());
+    return true;
+  }
+  if (access.status === 401) {
+    sendHtml(res, 401, loginPage({ error: 'Sign in required.' }));
+    return true;
+  }
+  sendHtml(res, 403, kitsDeniedPage());
+  return true;
+}
+
+async function handleKitsApi(req, res) {
+  const kind = kitsApiKind(req);
+  if (!kind) return false;
+  const access = kitsGuard(req);
+  if (!access.session) return denyKits(req, res, access);
+  if (kind === 'list') {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      json(res, 405, { error: 'method_not_allowed' });
+      return true;
+    }
+    try {
+      const store = await readStore();
+      json(res, 200, kitsListPayload(store, access.session, {
+        q: firstQueryValue(req, 'q') || '',
+        status: firstQueryValue(req, 'status') || '',
+      }));
+    } catch {
+      json(res, 503, { error: 'store_unavailable', kits: [] });
+    }
+    return true;
+  }
+  if (req.method !== 'POST') {
+    json(res, 405, { error: 'method_not_allowed' });
+    return true;
+  }
+  const body = readBody(req);
+  const kitsReq = { method: 'GET', headers: req.headers, query: { area: 'kits' }, url: '/ops/kits' };
+  if (!verifyKitsCsrf(access.session, req, body)) {
+    if (wantsJson(req)) json(res, 403, { error: 'csrf' });
+    else await renderArea(kitsReq, res, access.session, { error: 'Refresh was rejected. Reload Kits and try again.' });
+    return true;
+  }
+  const result = await syncKitsFromSheet({ syncedBy: access.session.email });
+  if (result.error) {
+    const message = result.error === 'store_unavailable'
+      ? "Couldn't load kits · try Refresh"
+      : result.error === 'sheet_unconfigured' || result.error === 'sheet_unavailable'
+        ? "Couldn't load kits · try Refresh"
+        : 'Refresh was rejected. Reload Kits and try again.';
+    if (wantsJson(req)) json(res, writeStatus(result.error), { error: result.error });
+    else await renderArea(kitsReq, res, access.session, { error: message });
+    return true;
+  }
+  if (wantsJson(req)) {
+    const store = await readStore();
+    json(res, 200, Object.assign({ ok: true }, result, kitsListPayload(store, access.session, {})));
+    return true;
+  }
+  redirect(res, safeReturnTo(body.returnTo || '/ops/kits'));
+  return true;
+}
+
 async function ops(req, res) {
+  if (await handleKitsApi(req, res)) return;
+
   const session = readSession(req);
+  const area = resolveArea(req);
+  if (area === 'kits') {
+    const access = kitsGuard(req);
+    if (!access.session) return denyKits(req, res, access);
+  }
 
   if (req.method === 'POST') {
     if (!session) {

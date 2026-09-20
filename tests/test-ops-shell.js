@@ -59,8 +59,8 @@ async function run() {
   delete process.env.KV_REST_API_TOKEN;
   store.resetStore();
 
-  check('nav lists all eight areas', NAV.length === 8
-    && NAV.map((item) => item.id).join(',') === 'dashboard,profile,chat,memory,inbox,calendar,tasks,routines');
+  check('nav lists all nine areas', NAV.length === 9
+    && NAV.map((item) => item.id).join(',') === 'dashboard,profile,chat,memory,inbox,calendar,kits,tasks,routines');
 
   {
     const res = mockRes();
@@ -80,7 +80,7 @@ async function run() {
     await ops(authed(), res);
     const html = String(res.raw);
     check('logged-in /ops is the dashboard shell', res.statusCode === 200 && html.includes('Dashboard') && html.includes('signed in as') && html.includes(ALLOWED));
-    check('dashboard nav links all eight areas', NAV.every((item) => html.includes(`href="${item.href}"`)));
+    check('dashboard nav links all nine areas', NAV.every((item) => html.includes(`href="${item.href}"`)));
     check('empty state copy is present', html.includes('Nothing saved yet') && html.includes('No current goal saved yet') && html.includes('No unfinished tasks'));
     check('add task and note are reachable from home', html.includes('id="add-task"') && html.includes('id="add-note"') && html.includes('Save task') && html.includes('Save note'));
     check('dashboard does not invent activity metrics', !/productivity|streak|points|12 tasks completed/i.test(html));

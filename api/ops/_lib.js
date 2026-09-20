@@ -465,6 +465,53 @@ function resetAuthState() {
   recent.clear();
 }
 
+function peekSessionEmail(req) {
+  const cookies = parseCookies(req);
+  const token = cookies[SESSION_COOKIE];
+  if (!token) return '';
+  const read = readSignedToken('session', token);
+  if (read.error || !read.payload || typeof read.payload.e !== 'string') return '';
+  return normalizeEmail(read.payload.e);
+}
+
+function createCsrfToken(email, opts) {
+  const now = opts && Number.isFinite(opts.now) ? opts.now : Date.now();
+  const ttl = opts && Number.isFinite(opts.ttlMs) ? opts.ttlMs : SESSION_TTL_MS;
+  return signToken('csrf', {
+    v: 1,
+    e: normalizeEmail(email),
+    exp: now + ttl,
+  });
+}
+
+function readCsrfToken(token, email, opts) {
+  const now = opts && Number.isFinite(opts.now) ? opts.now : Date.now();
+  const read = readSignedToken('csrf', token);
+  if (read.error) return null;
+  const { payload } = read;
+  if (payload.v !== 1 || !isAllowlisted(payload.e) || !Number.isFinite(payload.exp)) return null;
+  if (payload.exp + EXP_SKEW_MS <= now) return null;
+  if (normalizeEmail(email) !== payload.e) return null;
+  return { email: payload.e };
+}
+
+function looksLikeAgentRequest(req) {
+  const authz = String(header(req, 'authorization') || '');
+  if (/^\s*(bearer|slack|bot)\s+/i.test(authz)) return true;
+  const names = [
+    'x-lavaall-agent',
+    'x-agent-id',
+    'x-agent-name',
+    'x-slack-signature',
+    'x-slack-request-timestamp',
+  ];
+  if (names.some((name) => header(req, name))) return true;
+  const body = req && req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)
+    ? req.body
+    : {};
+  return Boolean(body.agentToken || body.agent || body.botToken);
+}
+
 module.exports = {
   ALLOWLIST,
   MAGIC_TTL_MS,
@@ -474,6 +521,7 @@ module.exports = {
   clearSessionCookie,
   clientIp,
   consumeMagicToken,
+  createCsrfToken,
   createMagicToken,
   createSessionToken,
   deliverMagicLink,
@@ -488,15 +536,18 @@ module.exports = {
   isAllowlisted,
   isValidEmail,
   json,
+  looksLikeAgentRequest,
   noStore,
   normalizeEmail,
   parseCookies,
   payloadTooLarge,
+  peekSessionEmail,
   previewInlineEnabled,
   publicOrigin,
   queryOf,
   rateLimited,
   readBody,
+  readCsrfToken,
   readSession,
   readSessionToken,
   redirect,

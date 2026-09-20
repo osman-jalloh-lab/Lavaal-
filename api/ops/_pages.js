@@ -4,12 +4,15 @@
 const { escapeHtml } = require('./_lib');
 const {
   INBOX_LABELS,
+  KIT_STATUSES,
   getInboxItem,
   getProfile,
   getSharedChat,
   inboxLabelText,
+  lastKitsSync,
   listEvents,
   listInboxItems,
+  listKits,
   listMailAudit,
   listRoutines,
   notesSelectableForChat,
@@ -679,4 +682,107 @@ function routinesPage({ email, store, snapshot, notice, error, chatSetup }) {
   });
 }
 
-module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage, routinesPage };
+function formatKitsSync(ts) {
+  if (!ts) return 'never';
+  return new Date(ts).toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+}
+
+function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
+  const kits = listKits(store);
+  const setup = kitsSetup || { sheetConfigured: false, sheetUrl: '' };
+  const syncedAt = lastKitsSync(store);
+  const openHref = setup.sheetUrl || '';
+  const token = csrf || '';
+  const rows = kits.map((kit) => {
+    const active = kit.status === 'Active' ? ' is-active' : '';
+    return `<tr class="kits-row" tabindex="0" data-kit="${escapeHtml(kit.kit_number)}" data-status="${escapeHtml(kit.status)}" data-search="${escapeHtml(`${kit.kit_number} ${kit.person_name}`.toLowerCase())}" data-email="${escapeHtml(kit.email)}" data-notes="${escapeHtml(kit.notes)}" data-date="${escapeHtml(kit.date_added)}">
+      <td class="kit-no">${escapeHtml(kit.kit_number)}</td>
+      <td>${escapeHtml(kit.person_name)}</td>
+      <td><span class="kit-status${active}">${escapeHtml(kit.status)}</span></td>
+      <td>${escapeHtml(kit.date_added || '—')}</td>
+    </tr>`;
+  }).join('');
+  const empty = kits.length
+    ? ''
+    : '<p class="empty" id="kits-empty">No kits in mirror yet · Refresh or check Sheet</p>';
+  const table = `<div class="kits-table-wrap">
+        <table class="kits-table" id="kits-table">
+          <thead>
+            <tr>
+              <th scope="col">Kit Number</th>
+              <th scope="col">Name</th>
+              <th scope="col">Status</th>
+              <th scope="col">Date Added</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      ${empty}`;
+  const chips = ['All'].concat(KIT_STATUSES).map((status, index) => (
+    `<button type="button" data-status="${index === 0 ? '' : escapeHtml(status)}"${index === 0 ? ' class="is-on"' : ''}>${escapeHtml(status)}</button>`
+  )).join('');
+  const sheetLink = openHref
+    ? `<a href="${escapeHtml(openHref)}" rel="noopener noreferrer" target="_blank">Open Sheet</a>`
+    : '<span>Set KIT_REGISTRY_SHEET_ID to open the Sheet</span>';
+  const setupHint = setup.sheetConfigured
+    ? ''
+    : '<p class="empty">Sheet credentials are not connected yet. The last good mirror stays. Nothing is invented.</p>';
+
+  return shellPage({
+    title: 'LAVAALL OS — Kits',
+    email,
+    area: 'kits',
+    notice,
+    error,
+    scripts: '<script src="/assets/js/ops-kits.js" defer></script>',
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <div class="kits-head">
+        <div>
+          <h1>Kits</h1>
+          <p class="kits-sub">Sheet is source of truth</p>
+        </div>
+        <form method="POST" action="/ops/api/kits/sync" id="kits-sync-form">
+          <input type="hidden" name="csrf" value="${escapeHtml(token)}"/>
+          <input type="hidden" name="returnTo" value="/ops/kits"/>
+          <button class="btn btn-sm" type="submit">Refresh</button>
+        </form>
+      </div>
+      <div class="kits-banner">
+        <span>Source of truth: Kit Registry Sheet · last sync ${escapeHtml(formatKitsSync(syncedAt))}</span>
+        ${sheetLink}
+      </div>
+      ${setupHint}
+      <div class="kits-tools">
+        <label class="visually-hidden" for="kits-search">Search name or kit number</label>
+        <input id="kits-search" type="search" maxlength="200" placeholder="Search name or kit #"/>
+        <div class="kits-chips" role="group" aria-label="Status">${chips}</div>
+      </div>
+      <div class="kits-layout" id="kits-layout">
+        <section>
+          <div id="kits-loading" hidden>
+            <div class="kits-skel"></div>
+            <div class="kits-skel"></div>
+            <div class="kits-skel"></div>
+          </div>
+          ${table}
+          <p class="kits-foot"><span id="kits-count">${kits.length} kits</span><span>read-only</span></p>
+        </section>
+        <aside class="kit-drawer" id="kit-drawer" hidden>
+          <div class="kicker">Kit detail</div>
+          <h2 id="kit-drawer-title">Select a row</h2>
+          <dl>
+            <dt>Status</dt><dd id="kit-drawer-status"></dd>
+            <dt>Date added</dt><dd id="kit-drawer-date"></dd>
+            <dt>Email</dt><dd id="kit-drawer-email"></dd>
+            <dt>Notes</dt><dd id="kit-drawer-notes"></dd>
+          </dl>
+          <p>${sheetLink}</p>
+        </aside>
+      </div>
+    `,
+  });
+}
+
+module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage, routinesPage, kitsPage };
