@@ -52,7 +52,7 @@ function loginPage({ error, sent, previewLoginUrl } = {}) {
   const alert = previewLoginUrl
     ? `<p class="ok" role="status">${escapeHtml('Preview only — email delivery failed. Use this one-time link:')}</p>
       <p class="who"><a class="preview-link" href="${escapeHtml(previewLoginUrl)}">Open sign-in link</a></p>
-      <p class="note">${escapeHtml('Shown only because OPS_PREVIEW_INLINE_LINK=1. Never shown for non-allowlisted addresses.')}</p>`
+      <p class="note">${escapeHtml('Shown only because OPS_PREVIEW_INLINE_LINK=1. Never shown except for an approved work email.')}</p>`
     : sent
       ? `<p class="ok" role="status">${escapeHtml('If that email is authorized, a sign-in link is on its way.')}</p>`
       : error
@@ -63,7 +63,7 @@ function loginPage({ error, sent, previewLoginUrl } = {}) {
     body: `
       <div class="kicker"><span class="dot" aria-hidden="true"></span> Internal</div>
       <h1>LAVAALL OS</h1>
-      <p>Private work floor for Osman and Hamid. Enter an authorized work email to get a one-time sign-in link.</p>
+      <p>Private operations workspace for Osman and Hamid. Enter an approved work email to get a one-time sign-in link.</p>
       ${alert}
       <form method="POST" action="/api/ops/auth">
         <input type="hidden" name="action" value="request"/>
@@ -71,7 +71,7 @@ function loginPage({ error, sent, previewLoginUrl } = {}) {
         <input id="email" name="email" type="email" autocomplete="username" required maxlength="120" placeholder="name@example.com"/>
         <button class="btn" type="submit">Email me a sign-in link</button>
       </form>
-      <p class="note">No public signup. Access is allowlisted.</p>
+      <p class="note">No public signup. Access needs an approved work email.</p>
     `,
   });
 }
