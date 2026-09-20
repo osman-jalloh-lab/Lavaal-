@@ -163,6 +163,9 @@ async function run() {
       html.includes('href="/ops/chat"')
       && html.includes('href="/ops/chat?agent=sales"')
       && html.includes('Chat without an agent is still everyone'));
+    check('Office CEO Talk still opens the lavaall-ceo chat route',
+      html.includes('href="/ops/chat?agent=lavaall-ceo"')
+      && html.includes('CEO Talk waits on the real LAVAALL CEO'));
   }
 
   {

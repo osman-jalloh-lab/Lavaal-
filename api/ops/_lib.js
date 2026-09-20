@@ -579,5 +579,6 @@ module.exports = {
   resendKeyPresent,
   sendMagicLink,
   sessionCookie,
+  timingSafeEqualString,
   wantsJson,
 };

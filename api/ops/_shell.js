@@ -272,7 +272,7 @@ ${typeof scripts === 'string' ? scripts : ''}
 
 function persistenceBanner(durable) {
   if (durable) return '';
-  return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Goals, tasks, notes, inbox, calendar, routines, and kits may reset on a cold start until KV is on.</p>';
+  return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Goals, tasks, notes, inbox, calendar, routines, kits, and CEO Talk may reset on a cold start until KV is on.</p>';
 }
 
 function dashboardPage({ email, snapshot, notice, error }) {

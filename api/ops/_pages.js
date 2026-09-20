@@ -22,6 +22,7 @@ const {
 } = require('./_store');
 const { buildMapGraph } = require('./_map');
 const { SHEET_WRITE_BANNER } = require('./_kits');
+const { SLACK_FALLBACK, WAITING_COPY } = require('./_ceo_bridge');
 const { isTalkAgent, officeAgentById } = require('./_office');
 const { persistenceBanner, shellPage } = require('./_shell');
 
@@ -247,13 +248,72 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
   });
 }
 
-function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId }) {
+function ceoMessageBubble(item) {
+  const mine = item.role === 'founder';
+  return `<li class="bubble ${mine ? 'user' : 'assistant'}">
+        <div class="kicker">${mine ? 'You' : 'LAVAALL CEO'}</div>
+        <p>${escapeHtml(item.text)}</p>
+      </li>`;
+}
+
+function ceoChatPage({ email, snapshot, notice, error, csrf, ceoThread, talkAgent }) {
+  const thread = ceoThread && ceoThread.id
+    ? ceoThread
+    : { id: '', messages: [], status: 'answered', updatedAt: 0 };
+  const waiting = thread.status === 'pending';
+  const messages = Array.isArray(thread.messages) ? thread.messages : [];
+  const list = messages.length
+    ? `<ol class="thread" id="ceo-thread">${messages.map(ceoMessageBubble).join('')}</ol>`
+    : '<ol class="thread" id="ceo-thread"></ol><p class="empty" id="ceo-empty">No messages yet. Send one to the real LAVAALL CEO.</p>';
+  const graph = {
+    threadId: thread.id || '',
+    status: thread.status || 'answered',
+    csrf: csrf || '',
+    pollUrl: thread.id ? `/ops/api/ceo-bridge/thread?id=${encodeURIComponent(thread.id)}` : '/ops/api/ceo-bridge/thread',
+    postUrl: '/ops/api/ceo-bridge/message',
+    waitingCopy: WAITING_COPY,
+  };
+  return shellPage({
+    title: 'LAVAALL OS — Chat',
+    email,
+    area: 'chat',
+    notice,
+    error,
+    scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
+<script src="/assets/js/ops-ceo-chat.js?v=12d" defer></script>`,
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <h1>Chat</h1>
+      <p class="lead">Talking with ${escapeHtml(talkAgent.name)}. This desk uses the CEO Talk bridge — not the Anthropic or OpenAI helper. Open Chat with no agent to talk to everyone.</p>
+      <section class="card">
+        <div class="kicker">Desk</div>
+        <h2>LAVAALL CEO</h2>
+        <p id="ceo-waiting" class="empty"${waiting ? '' : ' hidden'}>${escapeHtml(WAITING_COPY)}</p>
+        ${list}
+        <form id="ceo-bridge-form" method="POST" action="/ops/api/ceo-bridge/message">
+          <input type="hidden" name="csrf" value="${escapeHtml(csrf || '')}"/>
+          <input type="hidden" name="threadId" id="ceo-thread-id" value="${escapeHtml(thread.id || '')}"/>
+          <input type="hidden" name="source" value="ops-office"/>
+          <label for="ceo-message">Message</label>
+          <textarea id="ceo-message" name="text" required maxlength="2000" placeholder="Ask the LAVAALL CEO"></textarea>
+          <button class="btn" type="submit">Send</button>
+        </form>
+        <p class="empty">${escapeHtml(SLACK_FALLBACK)}</p>
+      </section>
+    `,
+  });
+}
+
+function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, csrf, ceoThread }) {
+  const talkAgent = isTalkAgent(agentId) ? officeAgentById(agentId) : null;
+  if (talkAgent && talkAgent.id === 'lavaall-ceo') {
+    return ceoChatPage({ email, snapshot, notice, error, csrf, ceoThread, talkAgent });
+  }
   const chat = getSharedChat(store);
   const setup = chatSetup || { modelConfigured: false, anthropic: false, openai: false, lead: 'lavaall-ceo' };
   const notes = notesSelectableForChat(store);
   const drafts = pendingProposals(store);
   const goal = store.goal;
-  const talkAgent = isTalkAgent(agentId) ? officeAgentById(agentId) : null;
   const returnTo = talkAgent ? talkAgent.talk : '/ops/chat';
   const chatLead = talkAgent
     ? `Talking with ${talkAgent.name}. Same chat as everyone else — pinned to this desk. Open Chat with no agent to talk to everyone.`

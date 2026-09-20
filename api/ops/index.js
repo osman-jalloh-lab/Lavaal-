@@ -23,6 +23,7 @@ const {
   saveCalendarEvent,
 } = require('./_calendar');
 const { describeChatSetup, sendChatTurn } = require('./_chat');
+const { CEO_DESK_ID, getFounderThread, handleCeoBridge } = require('./_ceo_bridge');
 const {
   confirmInboxSend,
   pasteSnapshot,
@@ -172,6 +173,15 @@ async function renderArea(req, res, session, extra) {
     openThread: firstQuery(queryOf(req), 'thread') || '',
     agentId: firstQuery(queryOf(req), 'agent') || '',
   };
+
+  if (area === 'chat' && String(pageOpts.agentId) === CEO_DESK_ID) {
+    const loaded = await getFounderThread(session.email);
+    if (loaded.error === 'store_unavailable') {
+      pageOpts.error = pageOpts.error || 'The CEO bridge store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).';
+    } else if (loaded.thread) {
+      pageOpts.ceoThread = loaded.thread;
+    }
+  }
 
   switch (area) {
     case 'dashboard':
@@ -619,6 +629,7 @@ async function handleMapApi(req, res) {
 }
 
 async function ops(req, res) {
+  if (await handleCeoBridge(req, res)) return;
   if (await handleKitsApi(req, res)) return;
   if (await handleMapApi(req, res)) return;
 

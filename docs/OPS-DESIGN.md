@@ -66,7 +66,8 @@ Every tab: **2–3 plain sentences**. What it is. What to do. No snobby admin ja
 |---|---|
 | Dashboard | What we are finishing, and the next thing to do. |
 | You | Your role, and the one company goal. |
-| Chat | Ask about the goal, a task, or a note. Confirm before anything is sent or saved. |
+| Office | Who sits where. Talk opens that desk. CEO Talk waits on the real LAVAALL CEO. |
+| Chat | Ask about the goal, a task, or a note. Confirm before anything is sent or saved. CEO desk uses the bridge, not the helper. |
 | Memory | Short notes on who we talk to. |
 | Inbox | Mail people sent us. Write a reply, then Confirm send. |
 | Calendar | What is next. Add a meeting if you need one. |

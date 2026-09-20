@@ -8,6 +8,7 @@ const lib = require(path.join(opsDir, '_lib.js'));
 const store = require(path.join(opsDir, '_store.js'));
 const chat = require(path.join(opsDir, '_chat.js'));
 const ops = require(path.join(opsDir, 'index.js'));
+const ceoBridge = require(path.join(opsDir, '_ceo_bridge.js'));
 
 const SECRET = 'test-ops-auth-secret-32chars!!';
 const ALLOWED = 'osmanjalloh104@gmail.com';
@@ -59,6 +60,7 @@ async function run() {
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
   store.resetStore();
+  ceoBridge.resetCeoBridge();
 
   {
     const html = mockRes();
@@ -219,6 +221,22 @@ async function run() {
     }), sentTalk);
     check('HTTP send-chat with agent pins that existing desk',
       sentTalk.statusCode === 200 && sentTalk.body.ok === true && sentTalk.body.route.leadAgent === 'growth' && sentTalk.body.route.mode === 'agent');
+    const ceoDesk = mockRes();
+    await ops(authed({
+      json: false,
+      url: '/ops/chat?agent=lavaall-ceo',
+      query: { area: 'chat', agent: 'lavaall-ceo' },
+    }), ceoDesk);
+    const ceoHtml = String(ceoDesk.raw);
+    check('CEO Talk uses the bridge and hides the Anthropic/OpenAI helper',
+      ceoHtml.includes('Talking with LAVAALL CEO')
+      && ceoHtml.includes('Waiting on CEO')
+      && ceoHtml.includes('Slack #laval is the backup')
+      && ceoHtml.includes('/ops/api/ceo-bridge/message')
+      && ceoHtml.includes('/assets/js/ops-ceo-chat.js')
+      && !ceoHtml.includes('name="action" value="send-chat"')
+      && !ceoHtml.includes('No Anthropic or OpenAI key')
+      && !ceoHtml.includes('<h2>Helper</h2>'));
   }
 
   {
@@ -242,6 +260,27 @@ async function run() {
       helper.usedModel === true && seenUrl.includes('api.anthropic.com') && helper.reply.includes('Helper draft only'));
     check('helper draft stays pending and does not auto-save the note',
       mid.notes.length === 0 && store.pendingProposals(mid).some((item) => item.title === 'From helper'));
+    let fetchCalls = 0;
+    seenUrl = '';
+    global.fetch = async (url) => {
+      fetchCalls += 1;
+      seenUrl = String(url);
+      return { ok: true, json: async () => ({ content: [{ type: 'text', text: 'Should not run for CEO desk' }] }) };
+    };
+    const ceoTurn = await chat.sendChatTurn({
+      question: 'What should LAVAALL CEO do this week?',
+      selection: {},
+      createdBy: ALLOWED,
+      agentId: 'lavaall-ceo',
+    });
+    check('lavaall-ceo Talk does not call Anthropic or OpenAI',
+      ceoTurn.ok === true
+      && ceoTurn.usedModel === false
+      && ceoTurn.ceoBridge === true
+      && fetchCalls === 0
+      && !seenUrl.includes('api.anthropic.com')
+      && !seenUrl.includes('api.openai.com')
+      && ceoTurn.reply.includes('Waiting on CEO'));
     delete process.env.ANTHROPIC_API_KEY;
     global.fetch = origFetch;
   }

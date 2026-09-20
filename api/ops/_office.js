@@ -323,7 +323,7 @@ function officePage({ email, snapshot, notice, error }) {
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Office</h1>
-      <p class="office-lead">Who sits where. Talk opens that agent’s existing chat. Chat without an agent is still everyone.</p>
+      <p class="office-lead">Who sits where. Talk opens that desk’s chat. CEO Talk waits on the real LAVAALL CEO. Chat without an agent is still everyone.</p>
       <div class="office-cameras" id="office-cameras" role="group" aria-label="Cameras">
         ${OFFICE_CAMERAS.map((camera, index) => (
           `<button type="button" data-camera="${escapeHtml(camera.id)}"${index === 0 ? ' class="is-on"' : ''}>${escapeHtml(camera.label)}</button>`
