@@ -727,7 +727,7 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
     : '<span>Set KIT_REGISTRY_SHEET_ID to open the Sheet</span>';
   const setupHint = setup.sheetConfigured
     ? ''
-    : '<p class="empty">Sheet credentials are not connected yet. The last good mirror stays. Nothing is invented.</p>';
+    : '<p class="empty">Drive export is not connected yet. The last good mirror stays. Nothing is invented.</p>';
 
   return shellPage({
     title: 'LAVAALL OS — Kits',
@@ -741,7 +741,7 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
       <div class="kits-head">
         <div>
           <h1>Kits</h1>
-          <p class="kits-sub">Sheet is source of truth</p>
+          <p class="kits-sub">Sheet is source of truth · Drive export</p>
         </div>
       </div>
       <div class="kits-banner">

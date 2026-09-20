@@ -1,6 +1,6 @@
-// Ticket 10 — Kit Registry Sheet → private /ops mirror.
-// Sheet is source of truth. /ops is read-only. Agents default-deny.
-// Underscore prefix: not a Vercel function. No npm. Never log emails.
+// Ticket 10 — Kit Registry Drive file → private /ops mirror.
+// Drive files.export (CSV) is the primary pull. Sheet file remains SoT.
+// /ops is read-only. Agents default-deny. Never log emails.
 
 const { refreshGmailAccessToken } = require('./_gmail');
 const {
@@ -8,6 +8,7 @@ const {
   KIT_STATUSES,
   lastKitsSync,
   listKits,
+  readStore,
   searchKits,
 } = require('./_store');
 const {
@@ -21,7 +22,9 @@ const {
   readSession,
 } = require('./_lib');
 
+const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const SHEETS_API = 'https://sheets.googleapis.com/v4';
+const CSV_MIME = 'text/csv';
 const HEADER_ALIASES = Object.freeze({
   kitnumber: 'kit_number',
   kitno: 'kit_number',
@@ -82,6 +85,7 @@ function describeKitsSetup() {
     sheetIdSet: Boolean(sheetId()),
     oauthSet: sheetsOAuthConfigured(),
     sheetUrl: sheetUrl(),
+    via: 'drive_export',
   };
 }
 
@@ -91,6 +95,49 @@ function headerKey(value) {
 
 function mapHeader(value) {
   return HEADER_ALIASES[headerKey(value)] || '';
+}
+
+function splitCsvLine(line) {
+  const cells = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if ((ch === ',' && !inQuotes)) {
+      cells.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  cells.push(current);
+  return cells;
+}
+
+function parseCsvText(text) {
+  const normalized = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const rows = [];
+  let line = '';
+  let inQuotes = false;
+  for (let i = 0; i < normalized.length; i += 1) {
+    const ch = normalized[i];
+    if (ch === '"') inQuotes = !inQuotes;
+    if (ch === '\n' && !inQuotes) {
+      if (line.length) rows.push(splitCsvLine(line));
+      line = '';
+    } else {
+      line += ch;
+    }
+  }
+  if (line.length) rows.push(splitCsvLine(line));
+  return parseSheetValues(rows);
 }
 
 function parseSheetValues(values) {
@@ -130,44 +177,80 @@ function logKits(event, extra) {
   console.log(JSON.stringify(payload));
 }
 
-async function sheetsRequest(path) {
+async function googleAccessToken() {
   const previous = process.env.OPS_GMAIL_REFRESH_TOKEN;
   const override = process.env.KIT_REGISTRY_REFRESH_TOKEN;
   if (override) process.env.OPS_GMAIL_REFRESH_TOKEN = override;
   try {
-    const accessToken = await refreshGmailAccessToken();
-    return await fetch(`${SHEETS_API}/${path.replace(/^\//, '')}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    return await refreshGmailAccessToken();
   } finally {
     if (previous == null) delete process.env.OPS_GMAIL_REFRESH_TOKEN;
     else process.env.OPS_GMAIL_REFRESH_TOKEN = previous;
   }
 }
 
-async function firstSheetTitle(id) {
-  const configured = sheetTab();
-  if (configured) return configured;
-  const response = await sheetsRequest(`spreadsheets/${encodeURIComponent(id)}?fields=sheets.properties.title`);
-  if (!response.ok) throw new Error('sheet_unavailable');
-  const payload = await response.json();
-  const title = payload && payload.sheets && payload.sheets[0] && payload.sheets[0].properties
-    ? payload.sheets[0].properties.title
-    : '';
-  if (!title) throw new Error('sheet_unavailable');
-  return title;
+function driveExportUrl(id) {
+  return `${DRIVE_API}/files/${encodeURIComponent(id)}/export?mimeType=${encodeURIComponent(CSV_MIME)}`;
 }
 
-async function fetchSheetRows() {
+async function googleGet(url) {
+  const accessToken = await googleAccessToken();
+  return fetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+async function fetchDriveExportRows() {
   const id = sheetId();
   if (!id) throw new Error('sheet_unconfigured');
-  const title = await firstSheetTitle(id);
+  const response = await googleGet(driveExportUrl(id));
+  const text = await response.text();
+  if (!response.ok) {
+    logKits('drive_export_failed', { status: response.status });
+    throw new Error('sheet_unavailable');
+  }
+  if (!text || text.trim().charAt(0) === '{') {
+    logKits('drive_export_failed', { status: response.status, reason: 'not_csv' });
+    throw new Error('sheet_unavailable');
+  }
+  const parsed = parseCsvText(text);
+  logKits('drive_export_ok', { rows: parsed.rows.length, skipped: parsed.skipped.length });
+  return parsed;
+}
+
+async function fetchSheetsApiRows() {
+  const id = sheetId();
+  if (!id) throw new Error('sheet_unconfigured');
+  const configured = sheetTab();
+  let title = configured;
+  if (!title) {
+    const meta = await googleGet(`${SHEETS_API}/spreadsheets/${encodeURIComponent(id)}?fields=sheets.properties.title`);
+    if (!meta.ok) throw new Error('sheet_unavailable');
+    const payload = await meta.json();
+    title = payload && payload.sheets && payload.sheets[0] && payload.sheets[0].properties
+      ? payload.sheets[0].properties.title
+      : '';
+  }
+  if (!title) throw new Error('sheet_unavailable');
   const range = encodeURIComponent(`'${title}'!A:F`);
-  const response = await sheetsRequest(`spreadsheets/${encodeURIComponent(id)}/values/${range}`);
+  const response = await googleGet(`${SHEETS_API}/spreadsheets/${encodeURIComponent(id)}/values/${range}`);
   if (!response.ok) throw new Error('sheet_unavailable');
   const payload = await response.json();
   return parseSheetValues(payload && payload.values);
+}
+
+async function fetchSheetRows() {
+  try {
+    return await fetchDriveExportRows();
+  } catch (err) {
+    if (err && err.message === 'sheet_unconfigured') throw err;
+    try {
+      return await fetchSheetsApiRows();
+    } catch {
+      throw err;
+    }
+  }
 }
 
 function setSheetReader(fn) {
@@ -202,6 +285,15 @@ async function syncKitsFromSheet({ syncedBy, now } = {}) {
     skipped: result.skipped + skippedRows.length,
   });
   return Object.assign({}, result, { skipped: result.skipped + skippedRows.length });
+}
+
+async function ensureKitsMirrored(session) {
+  const current = await readStore();
+  if (listKits(current).length > 0) return { store: current, error: '' };
+  if (!sheetId()) return { store: current, error: '' };
+  const result = await syncKitsFromSheet({ syncedBy: session && session.email });
+  const store = await readStore();
+  return { store, error: result.error || '' };
 }
 
 function kitsGuard(req) {
@@ -244,9 +336,13 @@ module.exports = {
   KIT_STATUSES,
   csrfFrom,
   describeKitsSetup,
+  driveExportUrl,
+  ensureKitsMirrored,
+  fetchDriveExportRows,
   fetchSheetRows,
   kitsGuard,
   kitsListPayload,
+  parseCsvText,
   parseSheetValues,
   resetSheetReader,
   setSheetReader,

@@ -57,10 +57,10 @@ Ticket 09 also requires **founder L3 approve before production deploy**. That ga
 | `node tests/test-ops-inbox.js` | 20/20 |
 | `node tests/test-ops-calendar.js` | 25/25 |
 | `node tests/test-ops-routines.js` | 19/19 |
-| `node tests/test-ops-kits.js` | 44/44 |
+| `node tests/test-ops-kits.js` | 49/49 |
 | `node tests/test-inquiry-and-schedule.js` | 60/60 |
 | `node tests/test-slack-handlers.js` | 111/111 |
-| **Total** | **422/422** |
+| **Total** | **427/427** |
 
 GitHub checks on PR #12 at this writing: Vercel Preview Comments success; Netlify header/redirect rules success. Netlify does **not** run Vercel `/api/ops` functions — use Vercel Preview for `/ops`.
 

@@ -25,6 +25,32 @@ const FIXTURE_VALUES = [
   ['', 'Missing Number', 'skip.example@example.test', 'Active', '2026-09-19', 'malformed'],
 ];
 
+function syntheticRegistryCsv(count) {
+  const header = 'Kit Number,Name,Email,Status,Date Added,Notes';
+  const rows = [];
+  for (let i = 1; i <= count; i += 1) {
+    const n = String(i).padStart(2, '0');
+    rows.push(`KIT000TEST${n},Person ${n},person${n}@example.test,Active,2026-09-20,`);
+  }
+  return [header, ...rows].join('\n');
+}
+
+const SYNTHETIC_CSV = syntheticRegistryCsv(19);
+
+function mockDriveFetch(calls) {
+  return async (url) => {
+    const href = String(url);
+    calls.push(href);
+    if (href.includes('oauth2.googleapis.com/token')) {
+      return { ok: true, status: 200, json: async () => ({ access_token: 'ya29.test-drive' }), text: async () => '' };
+    }
+    if (href.includes('/drive/v3/files/') && href.includes('export')) {
+      return { ok: true, status: 200, text: async () => SYNTHETIC_CSV, json: async () => ({}) };
+    }
+    return { ok: false, status: 404, text: async () => '{"error":"unexpected"}', json: async () => ({ error: 'unexpected' }) };
+  };
+}
+
 const results = [];
 function check(name, cond) { results.push({ name, pass: !!cond }); }
 
@@ -112,6 +138,12 @@ async function run() {
     check('fixture emails are synthetic only',
       parsed.rows.every((row) => row.email.endsWith('@example.test'))
       && !REAL_EMAILS.some((email) => JSON.stringify(parsed).includes(email)));
+    const csv = kits.parseCsvText(SYNTHETIC_CSV);
+    check('CSV parser loads a 19-row synthetic registry',
+      csv.rows.length === 19
+      && csv.rows[0].kit_number === 'KIT000TEST01'
+      && csv.rows[18].kit_number === 'KIT000TEST19'
+      && csv.rows.every((row) => row.email.endsWith('@example.test')));
   }
 
   {
@@ -208,6 +240,7 @@ async function run() {
 
   {
     store.resetStore();
+    kits.setSheetReader(async () => ({ rows: [], skipped: [] }));
     const page = mockRes();
     await ops(authed({ json: false, url: '/ops/kits', query: { area: 'kits' } }), page);
     const html = String(page.raw);
@@ -219,7 +252,7 @@ async function run() {
       && !html.includes('coming in ticket 10'));
     check('Kits banner names last sync and Open Sheet',
       html.includes('Sheet is SoT')
-      && html.includes('last sync never')
+      && html.includes('last sync')
       && html.includes('Open Sheet')
       && html.includes('docs.google.com/spreadsheets/d/' + TEST_SHEET_ID));
     check('Kits table columns are Kit Number, Name, Status, Date Added',
@@ -239,13 +272,16 @@ async function run() {
       && html.includes('Search name or kit #')
       && html.includes('data-status="Active"'));
     check('logged-in nav includes Kits', html.includes('href="/ops/kits"') && html.includes('aria-current="page"'));
+    kits.resetSheetReader();
   }
 
   {
+    kits.setSheetReader(async () => ({ rows: [], skipped: [] }));
     const list = mockRes();
     await ops(apiReq({ json: true }), list);
-    check('founder GET /ops/api/kits is empty before sync',
+    check('founder GET /ops/api/kits is empty when Drive returns no rows',
       list.statusCode === 200 && Array.isArray(list.body.kits) && list.body.kits.length === 0 && list.body.csrf);
+    kits.resetSheetReader();
     const denied = mockRes();
     await ops(apiReq({ json: true, method: 'POST', sync: true, body: {} }), denied);
     check('founder sync without CSRF is 403', denied.statusCode === 403 && denied.body.error === 'csrf');
@@ -379,11 +415,47 @@ async function run() {
 
   {
     store.resetStore();
+    kits.setSheetReader(async () => ({ rows: [], skipped: [] }));
     const html = mockRes();
     await ops(authed({ json: false, url: '/ops/kits', query: { area: 'kits' } }), html);
     check('error copy is reserved for failures, empty state is not a fake load',
       String(html.raw).includes("No kits in mirror yet · Refresh or check Sheet")
       && !String(html.raw).includes("Couldn't load kits · try Refresh"));
+    kits.resetSheetReader();
+  }
+
+  {
+    store.resetStore();
+    kits.resetSheetReader();
+    const calls = [];
+    global.fetch = mockDriveFetch(calls);
+    const page = mockRes();
+    await ops(authed({ json: false, url: '/ops/kits', query: { area: 'kits' } }), page);
+    const html = String(page.raw);
+    check('first authenticated Kits load fills Drive export rows',
+      page.statusCode === 200
+      && html.includes('KIT000TEST01')
+      && html.includes('Person 19')
+      && /19 kits/.test(html)
+      && !html.includes('No kits in mirror yet')
+      && !html.includes('alhadd54'));
+    check('first load uses Drive files.export CSV',
+      calls.some((url) => url.includes('/drive/v3/files/' + TEST_SHEET_ID + '/export') && url.includes('text%2Fcsv')));
+    const list = mockRes();
+    await ops(apiReq({ json: true }), list);
+    check('GET /ops/api/kits after Drive pull has all 19 synthetic rows',
+      list.statusCode === 200 && list.body.kits.length === 19 && list.body.setup.via === 'drive_export');
+    store.resetStore();
+    const refreshCalls = [];
+    global.fetch = mockDriveFetch(refreshCalls);
+    const sync = mockRes();
+    await ops(apiReq({ json: true, method: 'POST', sync: true, body: { csrf: lib.createCsrfToken(ALLOWED) } }), sync);
+    check('Refresh re-pulls via Drive export',
+      sync.statusCode === 200
+      && sync.body.ok === true
+      && sync.body.upserted === 19
+      && refreshCalls.some((url) => url.includes('/drive/v3/files/') && url.includes('export')));
+    global.fetch = origFetch;
   }
 
   {
@@ -403,7 +475,8 @@ async function run() {
     const env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
     check('.env.example documents KIT_REGISTRY_SHEET_ID by name',
       /^KIT_REGISTRY_SHEET_ID=\s*$/m.test(env)
-      && env.includes('KIT_REGISTRY_REFRESH_TOKEN'));
+      && env.includes('KIT_REGISTRY_REFRESH_TOKEN')
+      && env.includes('drive.readonly'));
   }
 
   kits.resetSheetReader();

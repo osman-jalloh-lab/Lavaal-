@@ -6,6 +6,7 @@ const { NAV, dashboardPage } = require('./_shell');
 const { calendarPage, chatPage, inboxPage, kitsPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
 const {
   describeKitsSetup,
+  ensureKitsMirrored,
   kitsGuard,
   kitsListPayload,
   syncKitsFromSheet,
@@ -95,7 +96,13 @@ async function payload(session, area, search) {
   const resolved = knownArea(area) ? area : 'dashboard';
   const query = typeof search === 'string' ? search : '';
   try {
-    const store = await readStore();
+    let store = await readStore();
+    let storeError = '';
+    if (resolved === 'kits') {
+      const ensured = await ensureKitsMirrored(session);
+      store = ensured.store;
+      if (ensured.error) storeError = "Couldn't load kits · try Refresh";
+    }
     return {
       authenticated: true,
       email: session.email,
@@ -115,6 +122,7 @@ async function payload(session, area, search) {
       routines: listRoutines(store),
       kits: searchKits(store, { q: query, status: '' }),
       kitsSetup: describeKitsSetup(),
+      storeError,
     };
   } catch {
     const store = emptyStore();
@@ -489,11 +497,16 @@ async function handleKitsApi(req, res) {
       return true;
     }
     try {
-      const store = await readStore();
-      json(res, 200, kitsListPayload(store, access.session, {
+      const ensured = await ensureKitsMirrored(access.session);
+      const payloadBody = kitsListPayload(ensured.store, access.session, {
         q: firstQueryValue(req, 'q') || '',
         status: firstQueryValue(req, 'status') || '',
-      }));
+      });
+      if (ensured.error && payloadBody.kits.length === 0) {
+        json(res, writeStatus(ensured.error), Object.assign({ error: ensured.error }, payloadBody));
+        return true;
+      }
+      json(res, 200, payloadBody);
     } catch {
       json(res, 503, { error: 'store_unavailable', kits: [] });
     }
