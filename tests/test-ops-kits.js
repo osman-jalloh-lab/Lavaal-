@@ -427,6 +427,13 @@ async function run() {
       && html.includes('Search name or kit #')
       && html.includes('data-status="Active"'));
     check('logged-in nav includes Kits', html.includes('href="/ops/kits"') && html.includes('aria-current="page"'));
+    check('Kits Option I board is cream table-first not navy fortress',
+      html.includes('kits-board')
+      && html.includes('--canvas:#F3EEE8')
+      && html.includes('--surface:#F9F4EF')
+      && html.includes('.kit-status.is-active{background:var(--emerald-wash)')
+      && html.includes('.kit-status.is-inactive{background:#F1EAE4')
+      && !html.includes('#0B1424'));
   }
 
   {

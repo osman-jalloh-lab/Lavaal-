@@ -85,6 +85,9 @@ async function run() {
     check('add task and note are reachable from home', html.includes('id="add-task"') && html.includes('id="add-note"') && html.includes('Save task') && html.includes('Save note'));
     check('dashboard does not invent activity metrics', !/productivity|streak|points|12 tasks completed/i.test(html));
     check('Sign out is still on the shell', /Sign out/.test(html));
+    check('Option I canvas is warm cream not dark navy', html.includes('--canvas:#F3EEE8') && html.includes('--surface:#F9F4EF') && html.includes('--blush:#F8E6DF') && !html.includes('#0B1424') && !html.includes('#121C2E'));
+    check('Option I accents are LAVAALL cyan and emerald', html.includes('--sky:#00C2FF') && html.includes('--emerald:#0B8F6A') && html.includes('--lime:#00F5A0'));
+    check('shell uses a light sidebar workspace', html.includes('class="ops-side"') && html.includes('class="ops-nav"') && html.includes('aria-label="LAVAALL OS"'));
   }
 
   {

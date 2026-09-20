@@ -754,13 +754,13 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
         ${sheetLink}
       </div>
       ${setupHint}
-      <div class="kits-tools">
-        <label class="visually-hidden" for="kits-search">Search name or kit number</label>
-        <input id="kits-search" type="search" maxlength="200" placeholder="Search name or kit #"/>
-        <div class="kits-chips" role="group" aria-label="Status">${chips}</div>
-      </div>
       <div class="kits-layout" id="kits-layout">
-        <section>
+        <section class="kits-board">
+          <div class="kits-tools">
+            <label class="visually-hidden" for="kits-search">Search name or kit number</label>
+            <input id="kits-search" type="search" maxlength="200" placeholder="Search name or kit #"/>
+            <div class="kits-chips" role="group" aria-label="Status">${chips}</div>
+          </div>
           <div id="kits-loading" hidden>
             <div class="kits-skel"></div>
             <div class="kits-skel"></div>
