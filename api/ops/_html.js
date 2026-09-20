@@ -63,15 +63,15 @@ function loginPage({ error, sent, previewLoginUrl } = {}) {
     body: `
       <div class="kicker"><span class="dot" aria-hidden="true"></span> Internal</div>
       <h1>LAVAALL OS</h1>
-      <p>Private operations workspace for Osman and Hamid. Enter an approved work email to get a one-time sign-in link.</p>
+      <p>Enter your work email.</p>
       ${alert}
       <form method="POST" action="/api/ops/auth">
         <input type="hidden" name="action" value="request"/>
         <label for="email">Work email</label>
         <input id="email" name="email" type="email" autocomplete="username" required maxlength="120" placeholder="name@example.com"/>
-        <button class="btn" type="submit">Email me a sign-in link</button>
+        <button class="btn" type="submit">Continue</button>
       </form>
-      <p class="note">No public signup. Access needs an approved work email.</p>
+      <p class="note">No public signup.</p>
     `,
   });
 }

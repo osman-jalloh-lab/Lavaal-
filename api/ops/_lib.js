@@ -78,6 +78,18 @@ function previewInlineEnabled() {
   return process.env.OPS_PREVIEW_INLINE_LINK === '1';
 }
 
+function vercelEnv() {
+  return String(process.env.VERCEL_ENV || '').trim().toLowerCase();
+}
+
+function instantLoginEnabled() {
+  if (vercelEnv() === 'production') return false;
+  const flag = String(process.env.OPS_PREVIEW_INSTANT_LOGIN || '').trim().toLowerCase();
+  if (flag === '0' || flag === 'false' || flag === 'off') return false;
+  if (flag === '1' || flag === 'true' || flag === 'on') return true;
+  return vercelEnv() === 'preview';
+}
+
 function describeDeliveryConfig() {
   return {
     resend_key_present: resendKeyPresent(),
@@ -312,6 +324,10 @@ function genericRequestMessage() {
   return 'If that email is authorized, a sign-in link is on its way.';
 }
 
+function genericSignInFailure() {
+  return 'Could not sign in with that email.';
+}
+
 function genericLinkFailure() {
   return 'This sign-in link is invalid or has expired.';
 }
@@ -530,6 +546,8 @@ module.exports = {
   escapeHtml,
   genericLinkFailure,
   genericRequestMessage,
+  genericSignInFailure,
+  instantLoginEnabled,
   getSecret,
   gmailConfigured,
   header,

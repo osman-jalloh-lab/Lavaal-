@@ -252,7 +252,7 @@ async function run() {
   {
     const page = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'map' }, url: '/ops/map' }, page);
-    check('logged-out /ops/map is the login page', page.statusCode === 401 && String(page.raw).includes('Email me a sign-in link'));
+    check('logged-out /ops/map is the login page', page.statusCode === 401 && String(page.raw).includes('Enter your work email'));
     check('logged-out Map HTML has no kit rows',
       !String(page.raw).includes('KIT000TEST01')
       && !String(page.raw).includes('Ada Example')

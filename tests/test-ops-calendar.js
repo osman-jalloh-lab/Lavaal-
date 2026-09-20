@@ -301,7 +301,7 @@ async function run() {
   {
     const gated = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'calendar' }, url: '/ops/calendar' }, gated);
-    check('calendar still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Email me a sign-in link'));
+    check('calendar still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Enter your work email'));
   }
 
   global.fetch = origFetch;

@@ -113,6 +113,8 @@ async function run() {
   const origFetch = global.fetch;
   process.env.OPS_AUTH_SECRET = SECRET;
   clearDeliveryEnv();
+  delete process.env.OPS_PREVIEW_INSTANT_LOGIN;
+  delete process.env.VERCEL_ENV;
   process.env.OPS_MAGIC_LINK_WEBHOOK_URL = 'https://example.test/ops-mail';
   process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET = 'hook-secret';
   delete process.env.OPS_PUBLIC_URL;
@@ -135,12 +137,93 @@ async function run() {
     check('/ops login HTML does not include allowlisted emails', !String(res.raw).toLowerCase().includes('osmanjalloh104@gmail.com') && !String(res.raw).toLowerCase().includes('abdulhbah55@gmail.com'));
     check('/ops login HTML has no public signup CTA', !/sign up|create account|register/i.test(String(res.raw)));
     check('/ops login HTML is Option I cream workspace', String(res.raw).includes('--canvas:#EDE7E0') && String(res.raw).includes('--surface:#F3EEE7') && String(res.raw).includes('#2EC4FF') && String(res.raw).includes('--emerald:#10B981') && !String(res.raw).includes('#0B1424'));
+    check('/ops login is a simple email Continue form',
+      String(res.raw).includes('Enter your work email')
+      && String(res.raw).includes('>Continue<')
+      && !/allowlisted|work floor|Email me a sign-in link/i.test(String(res.raw)));
   }
 
   {
     clearDeliveryEnv();
+    process.env.VERCEL_ENV = 'preview';
+    delete process.env.OPS_PREVIEW_INSTANT_LOGIN;
+    lib.resetAuthState();
+    const fetchCalls = [];
+    global.fetch = async () => {
+      fetchCalls.push(true);
+      return { ok: true, status: 200 };
+    };
     const res = mockRes();
-    await auth(jsonReq({ body: { action: 'request', email: ALLOWED } }), res);
+    await auth({
+      method: 'POST',
+      headers: {
+        host: 'preview.example.test',
+        'content-type': 'application/x-www-form-urlencoded',
+        'x-forwarded-for': '203.0.113.70',
+      },
+      body: { action: 'request', email: ALLOWED },
+    }, res);
+    const instantCookie = cookieFrom(res);
+    check('Preview instant login sets the session cookie and redirects to /ops',
+      res.statusCode === 302
+      && res.headers.Location === '/ops'
+      && /HttpOnly/i.test(String(res.headers['Set-Cookie']))
+      && /SameSite=Lax/i.test(String(res.headers['Set-Cookie']))
+      && fetchCalls.length === 0);
+    const dash = mockRes();
+    await ops({ method: 'GET', headers: { cookie: instantCookie, host: 'preview.example.test' }, query: {}, url: '/ops' }, dash);
+    check('Preview instant login lands on the dashboard',
+      dash.statusCode === 200 && String(dash.raw).includes('Dashboard') && String(dash.raw).includes(ALLOWED.toLowerCase()));
+    const mapPage = mockRes();
+    await ops({ method: 'GET', headers: { cookie: instantCookie, host: 'preview.example.test' }, query: { area: 'map' }, url: '/ops/map' }, mapPage);
+    check('instant session can open Map', mapPage.statusCode === 200 && String(mapPage.raw).includes('<h1>Map</h1>'));
+    const kitsPage = mockRes();
+    await ops({ method: 'GET', headers: { cookie: instantCookie, host: 'preview.example.test' }, query: { area: 'kits' }, url: '/ops/kits' }, kitsPage);
+    check('instant session can open Kits', kitsPage.statusCode === 200 && String(kitsPage.raw).includes('Kits'));
+  }
+
+  {
+    process.env.VERCEL_ENV = 'preview';
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.71' }, body: { action: 'request', email: DENIED } }), res);
+    check('unknown email cannot get an instant session',
+      res.statusCode === 401
+      && res.body && res.body.error === 'sign_in_failed'
+      && !res.headers['Set-Cookie']
+      && !/allowlist|unknown account/i.test(JSON.stringify(res.body)));
+  }
+
+  {
+    process.env.VERCEL_ENV = 'preview';
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({
+      headers: { 'x-forwarded-for': '203.0.113.72', authorization: 'Bearer simulated-agent-token' },
+      body: { action: 'request', email: ALLOWED },
+    }), res);
+    check('agent cannot use instant login',
+      res.statusCode === 403 && res.body.error === 'agent_denied' && !res.headers['Set-Cookie']);
+  }
+
+  {
+    clearDeliveryEnv();
+    process.env.VERCEL_ENV = 'production';
+    process.env.OPS_PREVIEW_INSTANT_LOGIN = '1';
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.73' }, body: { action: 'request', email: ALLOWED } }), res);
+    check('production never uses instant login even if the flag is set',
+      res.statusCode === 503 && res.body && res.body.error === 'delivery_not_configured' && !res.headers['Set-Cookie']);
+  }
+
+  {
+    delete process.env.VERCEL_ENV;
+    delete process.env.OPS_PREVIEW_INSTANT_LOGIN;
+    clearDeliveryEnv();
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.74' }, body: { action: 'request', email: ALLOWED } }), res);
     check('request without a mail sender returns 503 for everyone', res.statusCode === 503 && res.body && res.body.error === 'delivery_not_configured');
     process.env.OPS_MAGIC_LINK_WEBHOOK_URL = 'https://example.test/ops-mail';
     process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET = 'hook-secret';
@@ -233,7 +316,7 @@ async function run() {
   {
     const res = mockRes();
     await ops({ method: 'GET', headers: { cookie: `${lib.SESSION_COOKIE}=` }, query: {} }, res);
-    check('/ops after logout is the login page again', res.statusCode === 401 && String(res.raw).includes('Email me a sign-in link'));
+    check('/ops after logout is the login page again', res.statusCode === 401 && String(res.raw).includes('Enter your work email'));
   }
 
   {
@@ -416,6 +499,14 @@ async function run() {
     check('public / still rewrites to index.html', sources.includes('/->/index.html'));
     check('public /schedule still rewrites to index.html', sources.includes('/schedule->/index.html'));
     check('/ops is rewritten to the session gate', sources.includes('/ops->/api/ops') && sources.includes('/ops/:path*->/api/ops?area=:path*'));
+  }
+
+  {
+    const env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
+    check('.env.example documents Preview instant login and production hold',
+      env.includes('OPS_PREVIEW_INSTANT_LOGIN')
+      && env.includes('VERCEL_ENV=preview')
+      && env.includes('VERCEL_ENV=production'));
   }
 
   {

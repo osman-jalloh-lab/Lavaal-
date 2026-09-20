@@ -1,6 +1,7 @@
-// api/ops/auth.js — LAVAALL OS magic-link auth (Vercel serverless).
-// POST action=request|logout  ·  GET ?token=… consumes a one-time link.
-// JSON when Accept/Content-Type is application/json; otherwise HTML redirects.
+// api/ops/auth.js — LAVAALL OS founder sign-in (Vercel serverless).
+// Preview: instant session for allowlisted emails (VERCEL_ENV=preview).
+// Magic-link remains behind the flag / non-preview. Never instant in production.
+// POST action=request|logout  ·  GET ?token=… still consumes a one-time link.
 
 const { loginPage } = require('./_html');
 const {
@@ -14,7 +15,11 @@ const {
   deliveryConfigured,
   genericLinkFailure,
   genericRequestMessage,
+  genericSignInFailure,
+  instantLoginEnabled,
   isAllowlisted,
+  looksLikeAgentRequest,
+  normalizeEmail,
   isValidEmail,
   json,
   noStore,
@@ -34,12 +39,21 @@ function requestFailed(req, res, status, error, message) {
   return redirect(res, `/ops?error=${encodeURIComponent(message)}`);
 }
 
+function finishInstantSession(req, res, email) {
+  const cookie = sessionCookie(createSessionToken(email), req);
+  if (wantsJson(req)) {
+    res.setHeader('Set-Cookie', cookie);
+    return json(res, 200, { ok: true, email: normalizeEmail(email), via: 'instant' });
+  }
+  return redirect(res, '/ops', cookie);
+}
+
 async function handleRequest(req, res) {
+  if (looksLikeAgentRequest(req)) {
+    return requestFailed(req, res, 403, 'agent_denied', genericSignInFailure());
+  }
   if (!authConfigured()) {
     return requestFailed(req, res, 503, 'auth_not_configured', 'Sign-in is not configured yet.');
-  }
-  if (!deliveryConfigured()) {
-    return requestFailed(req, res, 503, 'delivery_not_configured', 'Magic-link email sending is not configured yet.');
   }
   if (payloadTooLarge(req)) return requestFailed(req, res, 413, 'payload_too_large', 'Request is too large.');
 
@@ -58,6 +72,15 @@ async function handleRequest(req, res) {
   const email = typeof body.email === 'string' ? body.email : '';
   if (!isValidEmail(email)) {
     return requestFailed(req, res, 400, 'invalid_email', 'Enter a valid email address.');
+  }
+
+  if (instantLoginEnabled()) {
+    if (isAllowlisted(email)) return finishInstantSession(req, res, email);
+    return requestFailed(req, res, 401, 'sign_in_failed', genericSignInFailure());
+  }
+
+  if (!deliveryConfigured()) {
+    return requestFailed(req, res, 503, 'delivery_not_configured', 'Magic-link email sending is not configured yet.');
   }
 
   if (isAllowlisted(email)) {
