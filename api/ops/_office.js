@@ -1,8 +1,7 @@
 // Additive /ops Office — agent desks / presence. Preview only.
-// Approved robot PNGs belong in /assets/ops/office/*.png untouched.
-// ChatGPT pack (hotspot contract + PNGs) was not in uploads; each camera still
-// has its own % map. Researchy is a labeled placeholder — no sixth robot.
-// Underscore prefix: not a Vercel function.
+// Approved camera PNGs (untouched) live in /assets/ops/office/cameras/*.png.
+// Phone/iPad cards crop those same photos with object-fit. Researchy is a
+// labeled placeholder — no sixth robot. Underscore prefix: not a Vercel function.
 
 const { escapeHtml } = require('./_lib');
 const { persistenceBanner, shellPage } = require('./_shell');
@@ -17,58 +16,12 @@ const DESK_FILLS = Object.freeze({
   lifecycle: '#F3EFE8',
 });
 
-const OFFICE_AGENTS = Object.freeze([
-  {
-    id: 'lavaall-ceo',
-    name: 'LAVAALL CEO',
-    talk: '/ops/chat?agent=lavaall-ceo',
-    photo: '/assets/ops/office/lavaall-ceo.png',
-    short: 'CEO',
-  },
-  {
-    id: 'sales',
-    name: 'LAVAALL Sales & Customer Success',
-    talk: '/ops/chat?agent=sales',
-    photo: '/assets/ops/office/sales.png',
-    short: 'Sales',
-  },
-  {
-    id: 'technical',
-    name: 'LAVAALL Technical & QA',
-    talk: '/ops/chat?agent=technical',
-    photo: '/assets/ops/office/technical.png',
-    short: 'Technical',
-  },
-  {
-    id: 'growth',
-    name: 'LAVAALL Growth, UGC & Ads',
-    talk: '/ops/chat?agent=growth',
-    photo: '/assets/ops/office/growth.png',
-    short: 'Growth',
-  },
-  {
-    id: 'lifecycle',
-    name: 'LAVAALL Lifecycle & Klaviyo',
-    talk: '/ops/chat?agent=lifecycle',
-    photo: '/assets/ops/office/lifecycle.png',
-    short: 'Lifecycle',
-  },
-  {
-    id: 'researchy',
-    name: 'Researchy',
-    talk: '',
-    photo: '',
-    short: 'Researchy',
-    placeholder: true,
-  },
-]);
-
 const OFFICE_CAMERAS = Object.freeze([
-  { id: 'wide', label: 'Wide' },
-  { id: 'front-left', label: 'Front left' },
-  { id: 'front-right', label: 'Front right' },
-  { id: 'side', label: 'Side' },
-  { id: 'lead', label: 'Lead view' },
+  { id: 'wide', label: 'Wide', photo: '/assets/ops/office/cameras/wide.png', source: '04-primary-wide.png' },
+  { id: 'front-left', label: 'Front left', photo: '/assets/ops/office/cameras/front-left.png', source: '01-front-left.png' },
+  { id: 'front-right', label: 'Front right', photo: '/assets/ops/office/cameras/front-right.png', source: '02-front-right.png' },
+  { id: 'side', label: 'Side', photo: '/assets/ops/office/cameras/side.png', source: '03-side.png' },
+  { id: 'lead', label: 'Lead view', photo: '/assets/ops/office/cameras/lead.png', source: '05-lead-view.png' },
 ]);
 
 // Percent of the camera frame. Each camera has its own map. Researchy has no hit target.
@@ -118,6 +71,87 @@ const RESEARCHY_SEATS = Object.freeze({
   lead: { left: 40, top: 74, width: 20, height: 14 },
 });
 
+const CARD_CAMERA = Object.freeze({
+  'lavaall-ceo': 'lead',
+  sales: 'front-left',
+  technical: 'front-right',
+  growth: 'front-left',
+  lifecycle: 'front-right',
+});
+
+function cameraById(id) {
+  return OFFICE_CAMERAS.find((item) => item.id === id) || null;
+}
+
+function hotspotFor(cameraId, agentId) {
+  return (OFFICE_HOTSPOTS[cameraId] || []).find((spot) => spot.id === agentId) || null;
+}
+
+function cropPosition(cameraId, agentId) {
+  const spot = hotspotFor(cameraId, agentId);
+  if (!spot) return '50% 50%';
+  return `${(spot.left + (spot.width / 2)).toFixed(1)}% ${(spot.top + (spot.height / 2)).toFixed(1)}%`;
+}
+
+function deskPhoto(agentId) {
+  const cameraId = CARD_CAMERA[agentId];
+  const camera = cameraById(cameraId);
+  if (!camera) return '';
+  return camera.photo;
+}
+
+const OFFICE_AGENTS = Object.freeze([
+  {
+    id: 'lavaall-ceo',
+    name: 'LAVAALL CEO',
+    talk: '/ops/chat?agent=lavaall-ceo',
+    photo: deskPhoto('lavaall-ceo'),
+    objectPosition: cropPosition(CARD_CAMERA['lavaall-ceo'], 'lavaall-ceo'),
+    short: 'CEO',
+  },
+  {
+    id: 'sales',
+    name: 'LAVAALL Sales & Customer Success',
+    talk: '/ops/chat?agent=sales',
+    photo: deskPhoto('sales'),
+    objectPosition: cropPosition(CARD_CAMERA.sales, 'sales'),
+    short: 'Sales',
+  },
+  {
+    id: 'technical',
+    name: 'LAVAALL Technical & QA',
+    talk: '/ops/chat?agent=technical',
+    photo: deskPhoto('technical'),
+    objectPosition: cropPosition(CARD_CAMERA.technical, 'technical'),
+    short: 'Technical',
+  },
+  {
+    id: 'growth',
+    name: 'LAVAALL Growth, UGC & Ads',
+    talk: '/ops/chat?agent=growth',
+    photo: deskPhoto('growth'),
+    objectPosition: cropPosition(CARD_CAMERA.growth, 'growth'),
+    short: 'Growth',
+  },
+  {
+    id: 'lifecycle',
+    name: 'LAVAALL Lifecycle & Klaviyo',
+    talk: '/ops/chat?agent=lifecycle',
+    photo: deskPhoto('lifecycle'),
+    objectPosition: cropPosition(CARD_CAMERA.lifecycle, 'lifecycle'),
+    short: 'Lifecycle',
+  },
+  {
+    id: 'researchy',
+    name: 'Researchy',
+    talk: '',
+    photo: '',
+    objectPosition: '',
+    short: 'Researchy',
+    placeholder: true,
+  },
+]);
+
 function officeAgentById(id) {
   return OFFICE_AGENTS.find((agent) => agent.id === id) || null;
 }
@@ -150,9 +184,9 @@ function officeStyles() {
 .office-stage-wrap{display:none;}
 .office-stage{position:relative;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:var(--surface);min-height:280px;}
 .office-stage svg,.office-stage img.office-camera-photo{display:block;width:100%;height:auto;}
-.office-hotspots{position:absolute;inset:0;}
-.office-hotspot{position:absolute;border:2px solid transparent;border-radius:14px;cursor:pointer;background:transparent;padding:0;overflow:hidden;}
-.office-hotspot img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+.office-camera-photo{position:relative;z-index:0;}
+.office-hotspots{position:absolute;inset:0;z-index:1;}
+.office-hotspot{position:absolute;border:2px solid transparent;border-radius:14px;cursor:pointer;background:transparent;padding:0;}
 .office-hotspot:hover,.office-hotspot.is-on{border-color:var(--sky-deep);background:rgba(46,196,255,.12);}
 .office-roster{display:none;}
 .office-roster h2{font-size:18px;margin-bottom:10px;}
@@ -231,7 +265,7 @@ function agentCards() {
     return `<article class="office-card" data-agent="${escapeHtml(agent.id)}">
       <div class="office-card-visual">
         ${fallbackPanel(agent)}
-        <img data-office-photo src="${escapeHtml(agent.photo)}" alt="${escapeHtml(agent.name)}" width="640" height="320"/>
+        <img data-office-photo src="${escapeHtml(agent.photo)}" alt="${escapeHtml(agent.name)}" width="640" height="320" style="object-position:${escapeHtml(agent.objectPosition)}"/>
       </div>
       <div class="office-card-body">
         <h2>${escapeHtml(agent.name)}</h2>
@@ -260,13 +294,20 @@ function officePage({ email, snapshot, notice, error }) {
       name: agent.name,
       talk: agent.talk,
       photo: agent.photo,
+      objectPosition: agent.objectPosition,
       placeholder: Boolean(agent.placeholder),
     })),
-    cameras: OFFICE_CAMERAS.slice(),
+    cameras: OFFICE_CAMERAS.map((camera) => ({
+      id: camera.id,
+      label: camera.label,
+      photo: camera.photo,
+      source: camera.source,
+    })),
     hotspots: OFFICE_HOTSPOTS,
   };
-  const cameraSvgs = OFFICE_CAMERAS.map((camera) => (
-    `<div class="office-camera-art" data-camera-art="${escapeHtml(camera.id)}"${camera.id === 'wide' ? '' : ' hidden'}>${cameraArt(camera.id)}</div>`
+  const cameraLayers = OFFICE_CAMERAS.map((camera) => (
+    `<img class="office-camera-photo" data-camera-photo="${escapeHtml(camera.id)}" src="${escapeHtml(camera.photo)}" alt="Office ${escapeHtml(camera.label)}" width="1280" height="720"${camera.id === 'wide' ? '' : ' hidden'}/>
+     <div class="office-camera-art" data-camera-art="${escapeHtml(camera.id)}" hidden>${cameraArt(camera.id)}</div>`
   )).join('');
   return shellPage({
     title: 'LAVAALL OS — Office',
@@ -276,7 +317,7 @@ function officePage({ email, snapshot, notice, error }) {
     error,
     scripts: `<style>${officeStyles()}</style>
 <script type="application/json" id="office-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-office.js?v=office" defer></script>`,
+<script src="/assets/js/ops-office.js?v=cameras" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Office</h1>
@@ -289,7 +330,7 @@ function officePage({ email, snapshot, notice, error }) {
       <div class="office-desk-layout">
         <div class="office-stage-wrap">
           <div class="office-stage" id="office-stage">
-            ${cameraSvgs}
+            ${cameraLayers}
             <div class="office-hotspots" id="office-hotspots"></div>
           </div>
           <p class="office-selected" id="office-selected">Tap a desk or a name.</p>
@@ -306,10 +347,12 @@ function officePage({ email, snapshot, notice, error }) {
 }
 
 module.exports = {
+  CARD_CAMERA,
   OFFICE_AGENTS,
   OFFICE_CAMERAS,
   OFFICE_HOTSPOTS,
   TALK_AGENT_IDS,
+  cropPosition,
   isTalkAgent,
   officeAgentById,
   officePage,

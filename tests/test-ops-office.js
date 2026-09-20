@@ -22,6 +22,8 @@ const NAMES = [
 ];
 const CAMERAS = ['Wide', 'Front left', 'Front right', 'Side', 'Lead view'];
 const TALK_IDS = ['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle'];
+const CAMERA_FILES = ['wide.png', 'front-left.png', 'front-right.png', 'side.png', 'lead.png'];
+const CAMERA_SOURCES = '04-primary-wide.png,01-front-left.png,02-front-right.png,03-side.png,05-lead-view.png';
 
 const results = [];
 function check(name, cond) { results.push({ name, pass: !!cond }); }
@@ -81,6 +83,10 @@ async function run() {
     TALK_IDS.every((id) => office.talkHref(id) === `/ops/chat?agent=${id}`)
     && office.talkHref('researchy') === '');
 
+  check('camera files map from the approved PNG names',
+    office.OFFICE_CAMERAS.map((item) => item.source).join(',') === CAMERA_SOURCES
+    && office.OFFICE_CAMERAS.every((item) => item.photo === `/assets/ops/office/cameras/${item.id}.png`));
+
   check('each camera has its own five-desk hotspot map and never hits Researchy',
     office.OFFICE_CAMERAS.map((item) => item.label).join(',') === CAMERAS.join(',')
     && Object.keys(office.OFFICE_HOTSPOTS).join(',') === office.OFFICE_CAMERAS.map((item) => item.id).join(',')
@@ -114,16 +120,24 @@ async function run() {
       && html.includes('aria-label="Cameras"')
       && html.includes('>Agents<')
       && html.includes('>Roster<'));
-    check('phone/iPad cards use real photo tags plus Talk, never text-only',
-      TALK_IDS.every((id) => html.includes(`src="/assets/ops/office/${id}.png"`) && html.includes(`href="/ops/chat?agent=${id}"`))
+    check('phone/iPad cards crop the same camera photos plus Talk, never text-only',
+      html.includes('src="/assets/ops/office/cameras/lead.png"')
+      && html.includes('src="/assets/ops/office/cameras/front-left.png"')
+      && html.includes('src="/assets/ops/office/cameras/front-right.png"')
+      && html.includes('object-position:')
+      && TALK_IDS.every((id) => html.includes(`href="/ops/chat?agent=${id}"`))
       && html.includes('grid-template-columns:1fr;')
       && html.includes('min-width:768px')
       && html.includes('orientation:landscape')
       && (html.match(/class="btn"[^>]*>Talk<\/a>/g) || []).length >= 5);
+    check('desktop cameras use the approved photo files',
+      CAMERA_FILES.every((file) => html.includes(`src="/assets/ops/office/cameras/${file}"`))
+      && html.includes('data-camera-photo="wide"'));
     check('Researchy is a labeled visual placeholder with no Talk and no invented robot',
       html.includes('Researchy — visual placeholder')
       && html.includes('No robot portrait')
       && !html.includes('/assets/ops/office/researchy.png')
+      && !html.includes('/assets/ops/office/cameras/researchy.png')
       && !html.includes('href="/ops/chat?agent=researchy"'));
     check('office does not invent online dots or a sixth robot file',
       !/\bonline\b/i.test(html)

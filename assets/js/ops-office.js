@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     graph = { agents: [], cameras: [], hotspots: {} };
   }
   if (!Array.isArray(graph.agents)) graph.agents = [];
+  if (!Array.isArray(graph.cameras)) graph.cameras = [];
   if (!graph.hotspots || typeof graph.hotspots !== 'object') graph.hotspots = {};
 
   function agentById(id) {
@@ -33,9 +34,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('img[data-office-photo]').forEach(bindPhotoFallback);
 
+  function bindCameraPhoto(img) {
+    if (!img) return;
+    const id = img.getAttribute('data-camera-photo');
+    function showArt() {
+      img.hidden = true;
+      document.querySelectorAll('[data-camera-art]').forEach((node) => {
+        node.hidden = node.getAttribute('data-camera-art') !== cameraId;
+      });
+    }
+    img.addEventListener('error', () => {
+      img.setAttribute('data-missing', '1');
+      if (id === cameraId) showArt();
+    });
+    if (img.complete && img.naturalWidth === 0) {
+      img.setAttribute('data-missing', '1');
+    }
+  }
+
+  document.querySelectorAll('img[data-camera-photo]').forEach(bindCameraPhoto);
+
   function showCameraArt() {
+    const photos = document.querySelectorAll('[data-camera-photo]');
+    let showingPhoto = false;
+    photos.forEach((node) => {
+      const match = node.getAttribute('data-camera-photo') === cameraId;
+      const missing = node.getAttribute('data-missing') === '1';
+      node.hidden = !match || missing;
+      if (match && !missing) showingPhoto = true;
+    });
     document.querySelectorAll('[data-camera-art]').forEach((node) => {
-      node.hidden = node.getAttribute('data-camera-art') !== cameraId;
+      node.hidden = showingPhoto || node.getAttribute('data-camera-art') !== cameraId;
     });
   }
 
@@ -74,15 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
       button.style.width = spot.width + '%';
       button.style.height = spot.height + '%';
       if (selectedId === agent.id) button.classList.add('is-on');
-      if (agent.photo) {
-        const img = document.createElement('img');
-        img.src = agent.photo;
-        img.alt = '';
-        img.addEventListener('error', () => {
-          if (img.parentNode) img.parentNode.removeChild(img);
-        });
-        button.appendChild(img);
-      }
       button.addEventListener('click', () => setSelected(agent.id));
       hotspots.appendChild(button);
     });
