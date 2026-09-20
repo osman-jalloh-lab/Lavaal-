@@ -62,10 +62,6 @@ function authed(extra) {
   };
 }
 
-function hotspotIds(cameraId) {
-  return (office.OFFICE_HOTSPOTS[cameraId] || []).map((spot) => spot.id).sort().join(',');
-}
-
 async function run() {
   process.env.OPS_AUTH_SECRET = SECRET;
   delete process.env.KV_REST_API_URL;
@@ -92,10 +88,11 @@ async function run() {
       const spots = office.OFFICE_HOTSPOTS[camera.id] || [];
       const ids = spots.map((spot) => spot.id);
       return spots.length === 5
-        && ids.sort().join(',') === TALK_IDS.slice().sort().join(',')
+        && ids.slice().sort().join(',') === TALK_IDS.slice().sort().join(',')
         && !ids.includes('researchy');
     })
-    && hotspotIds('wide') !== hotspotIds('lead'));
+    && JSON.stringify(office.OFFICE_HOTSPOTS.wide) !== JSON.stringify(office.OFFICE_HOTSPOTS.lead)
+    && JSON.stringify(office.OFFICE_HOTSPOTS['front-left']) !== JSON.stringify(office.OFFICE_HOTSPOTS['front-right']));
 
   {
     const gated = mockRes();

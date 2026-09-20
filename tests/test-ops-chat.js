@@ -197,7 +197,7 @@ async function run() {
     const html = String(talk.raw);
     check('Talk from Office opens the existing chat pinned to that agent',
       html.includes('<h1>Chat</h1>')
-      && html.includes('Talking with LAVAALL Sales & Customer Success')
+      && html.includes('Talking with LAVAALL Sales &amp; Customer Success')
       && html.includes('name="agent" value="sales"')
       && html.includes('name="returnTo" value="/ops/chat?agent=sales"')
       && html.includes('Open Chat with no agent to talk to everyone'));
