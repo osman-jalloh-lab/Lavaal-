@@ -6,6 +6,7 @@ const { NAV, dashboardPage } = require('./_shell');
 const { calendarPage, chatPage, inboxPage, kitsPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
 const {
   describeKitsSetup,
+  hydrateKitsIfEmpty,
   kitsGuard,
   kitsListPayload,
   syncKitsFromSheet,
@@ -180,8 +181,14 @@ async function renderArea(req, res, session, extra) {
       return sendHtml(res, 200, inboxPage(pageOpts));
     case 'calendar':
       return sendHtml(res, 200, calendarPage(pageOpts));
-    case 'kits':
+    case 'kits': {
+      if (!pageOpts.error) {
+        const hydrated = await hydrateKitsIfEmpty(session);
+        if (hydrated.store) pageOpts.store = hydrated.store;
+        if (hydrated.error) pageOpts.error = "Couldn't load kits · try Refresh";
+      }
       return sendHtml(res, 200, kitsPage(pageOpts));
+    }
     case 'routines':
       return sendHtml(res, 200, routinesPage(pageOpts));
     default: {
