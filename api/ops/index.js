@@ -1,16 +1,20 @@
-// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks, memory.
+// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks, memory, chat.
 // Session required. Public catalog routes are unchanged.
 
 const { loginPage } = require('./_html');
 const { NAV, areaInfo, dashboardPage, stubPage } = require('./_shell');
-const { memoryPage, profilePage, tasksPage } = require('./_pages');
+const { chatPage, memoryPage, profilePage, tasksPage } = require('./_pages');
+const { describeChatSetup, sendChatTurn } = require('./_chat');
 const {
   addNote,
   addProject,
   addTask,
+  confirmChatProposal,
   dashboardSnapshot,
   deleteNote,
+  dismissChatProposal,
   emptyStore,
+  getSharedChat,
   isDurable,
   readStore,
   saveGoal,
@@ -56,7 +60,7 @@ function knownArea(area) {
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops') return value;
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops') return value;
   return '/ops';
 }
 
@@ -74,6 +78,8 @@ async function payload(session, area, search) {
       durable: isDurable(),
       search: query,
       visibleNotes: searchNotes(store, query),
+      chat: getSharedChat(store),
+      chatSetup: describeChatSetup(),
     };
   } catch {
     const store = emptyStore();
@@ -86,6 +92,8 @@ async function payload(session, area, search) {
       durable: isDurable(),
       search: query,
       visibleNotes: [],
+      chat: getSharedChat(store),
+      chatSetup: describeChatSetup(),
       storeError: 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
     };
   }
@@ -104,6 +112,7 @@ async function renderArea(req, res, session, extra) {
     notice: extra && extra.notice,
     error: (extra && extra.error) || data.storeError,
     search: data.search,
+    chatSetup: data.chatSetup,
   };
 
   switch (area) {
@@ -116,6 +125,7 @@ async function renderArea(req, res, session, extra) {
     case 'memory':
       return sendHtml(res, 200, memoryPage(pageOpts));
     case 'chat':
+      return sendHtml(res, 200, chatPage(pageOpts));
     case 'inbox':
     case 'calendar':
     case 'routines':
@@ -143,8 +153,12 @@ function writeStatus(error) {
     case 'invalid_task':
     case 'invalid_note':
     case 'memory_review_required':
+    case 'invalid_message':
+    case 'invalid_proposal':
     case 'unknown_action':
       return 400;
+    case 'proposal_not_found':
+      return 404;
     default: {
       return 400;
     }
@@ -227,6 +241,24 @@ async function handleWrite(req, res, session) {
       }), { error: 'Could not update that note.' });
     case 'delete-note':
       return finishWrite(req, res, session, body, await deleteNote(body.id), { error: 'Could not delete that note.' });
+    case 'send-chat':
+      return finishWrite(req, res, session, body, await sendChatTurn({
+        question: body.message,
+        selection: {
+          useGoal: body.useGoal,
+          taskId: body.taskId,
+          noteId: body.noteId,
+          taskIds: body.taskIds,
+          noteIds: body.noteIds,
+        },
+        createdBy: session.email,
+      }), { error: 'Enter a message.' });
+    case 'confirm-proposal':
+      return finishWrite(req, res, session, body, await confirmChatProposal(body.id, {
+        approvedBy: session.email,
+      }), { error: 'Could not confirm that draft.' });
+    case 'dismiss-proposal':
+      return finishWrite(req, res, session, body, await dismissChatProposal(body.id), { error: 'Could not dismiss that draft.' });
     default:
       return wantsJson(req)
         ? json(res, 400, { error: 'unknown_action' })

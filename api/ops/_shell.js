@@ -6,7 +6,7 @@ const { escapeHtml } = require('./_lib');
 const NAV = Object.freeze([
   { id: 'dashboard', href: '/ops', label: 'Dashboard' },
   { id: 'profile', href: '/ops/profile', label: 'Profile & goals' },
-  { id: 'chat', href: '/ops/chat', label: 'Contextual chat', ticket: '05' },
+  { id: 'chat', href: '/ops/chat', label: 'Contextual chat' },
   { id: 'memory', href: '/ops/memory', label: 'Memory' },
   { id: 'inbox', href: '/ops/inbox', label: 'Inbox', ticket: '06' },
   { id: 'calendar', href: '/ops/calendar', label: 'Calendar', ticket: '07' },
@@ -69,6 +69,15 @@ textarea{min-height:88px;resize:vertical;}
 .btn-sm{width:auto;margin-top:10px;padding:8px 14px;}
 .btn-danger{background:transparent;color:var(--coral);border:1px solid rgba(255,92,92,.45);}
 .task-row label{margin-top:8px;}
+.check{display:flex;align-items:flex-start;gap:8px;font-weight:500;}
+.check input{width:auto;margin-top:3px;}
+.ctx{margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:12px;}
+.ctx legend{color:var(--sky);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+.thread{list-style:none;display:grid;gap:10px;margin-bottom:16px;}
+.bubble{padding:12px;border-radius:12px;background:var(--navy);border:1px solid var(--line);}
+.bubble p{color:var(--text);}
+.bubble.user{border-color:rgba(0,194,255,.4);}
+.bubble.assistant{border-color:rgba(0,245,160,.28);}
 .ok{margin-bottom:12px;color:#c8ffe8;background:rgba(0,245,160,.1);border:1px solid rgba(0,245,160,.32);border-radius:10px;padding:10px 12px;font-size:14px;}
 .err{margin-bottom:12px;color:#ffc4c4;background:rgba(255,92,92,.12);border:1px solid rgba(255,92,92,.35);border-radius:10px;padding:10px 12px;font-size:14px;}
 `;

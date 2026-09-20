@@ -2,7 +2,14 @@
 // Underscore prefix: not a Vercel function.
 
 const { escapeHtml } = require('./_lib');
-const { getProfile, searchNotes, statusLabel } = require('./_store');
+const {
+  getProfile,
+  getSharedChat,
+  notesSelectableForChat,
+  pendingProposals,
+  searchNotes,
+  statusLabel,
+} = require('./_store');
 const { persistenceBanner, shellPage } = require('./_shell');
 
 function option(value, label, selected) {
@@ -230,4 +237,103 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
   });
 }
 
-module.exports = { profilePage, tasksPage, memoryPage };
+function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
+  const chat = getSharedChat(store);
+  const setup = chatSetup || { modelConfigured: false, anthropic: false, openai: false, lead: 'lavaall-ceo' };
+  const notes = notesSelectableForChat(store);
+  const drafts = pendingProposals(store);
+  const goal = store.goal;
+  const setupCard = setup.modelConfigured
+    ? `<p>Helper connected (${setup.anthropic ? 'Anthropic' : ''}${setup.anthropic && setup.openai ? ' + ' : ''}${setup.openai ? 'OpenAI' : ''}). Lead stays ${escapeHtml(setup.lead)}. Drafts only — nothing is sent or written without confirm.</p>`
+    : '<p class="empty">No Anthropic or OpenAI key on this project. Asking a stored next step still reads the selected record. Anything else shows this setup message — no invented reply. Slack stays secondary.</p>';
+
+  const contextPick = `
+    <fieldset class="ctx">
+      <legend>Context sent with the next message</legend>
+      ${goal
+        ? `<label class="check"><input type="checkbox" name="useGoal" value="1" checked/> Goal — ${escapeHtml(goal.title)}${goal.nextStep ? ` · next step: ${escapeHtml(goal.nextStep)}` : ''}</label>`
+        : '<p class="empty">No current goal. Save one under Profile &amp; goals.</p>'}
+      <label for="chat-task">Task (optional)</label>
+      <select id="chat-task" name="taskId">
+        ${option('', 'No task', true)}
+        ${(store.tasks || []).map((task) => option(task.id, `${task.title}${task.nextAction ? ` — ${task.nextAction}` : ''}`, false)).join('')}
+      </select>
+      <label for="chat-note">Note (optional)</label>
+      <select id="chat-note" name="noteId">
+        ${option('', 'No note', true)}
+        ${notes.map((note) => option(note.id, note.title, false)).join('')}
+      </select>
+      <p>Checked goal and chosen task/note are attached before send. Deleted notes are not listed.</p>
+    </fieldset>`;
+
+  const thread = chat.messages.length
+    ? `<ol class="thread">${chat.messages.map((item) => (
+      `<li class="bubble ${escapeHtml(item.role)}">
+        <div class="kicker">${item.role === 'user' ? 'You' : 'LAVAALL OS assistant'}${item.grounded ? ' · from record' : ''}${item.setup ? ' · setup' : ''}</div>
+        <p>${escapeHtml(item.text)}</p>
+        ${item.contextSummary ? `<p class="who">${escapeHtml(item.contextSummary)}</p>` : ''}
+      </li>`
+    )).join('')}</ol>`
+    : '<p class="empty">No messages yet. Select context, then ask.</p>';
+
+  const proposalList = drafts.length
+    ? `<ul class="list">${drafts.map((item) => (
+      `<li>
+        <p><span class="tag">Draft</span><strong>${escapeHtml(item.kind)}</strong> — ${escapeHtml(item.title || item.fields.title || 'Untitled')}</p>
+        ${item.body || item.fields.body ? `<p>${escapeHtml(item.body || item.fields.body)}</p>` : ''}
+        <form method="POST" action="/ops/chat" style="display:inline">
+          <input type="hidden" name="action" value="confirm-proposal"/>
+          <input type="hidden" name="id" value="${escapeHtml(item.id)}"/>
+          <input type="hidden" name="returnTo" value="/ops/chat"/>
+          <button class="btn btn-sm" type="submit">Confirm draft</button>
+        </form>
+        <form method="POST" action="/ops/chat" style="display:inline">
+          <input type="hidden" name="action" value="dismiss-proposal"/>
+          <input type="hidden" name="id" value="${escapeHtml(item.id)}"/>
+          <input type="hidden" name="returnTo" value="/ops/chat"/>
+          <button class="btn btn-sm btn-danger" type="submit">Dismiss</button>
+        </form>
+      </li>`
+    )).join('')}</ul>`
+    : '<p class="empty">No pending drafts. Chat cannot write the store until you confirm a proposal.</p>';
+
+  return shellPage({
+    title: 'LAVAALL OS — Contextual chat',
+    email,
+    area: 'chat',
+    notice,
+    error,
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <h1>Contextual chat</h1>
+      <p>Front door for LAVAALL OS. lavaall-ceo stays lead. Helpers never auto-send mail, auto-deploy, or mutate records.</p>
+      <div class="grid forms">
+        <section class="card">
+          <div class="kicker">Setup</div>
+          <h2>Helper status</h2>
+          ${setupCard}
+        </section>
+        <section class="card">
+          <div class="kicker">Drafts</div>
+          <h2>Proposed writes</h2>
+          ${proposalList}
+        </section>
+      </div>
+      <section class="card" style="margin-top:14px">
+        <div class="kicker">Thread</div>
+        <h2>Conversation</h2>
+        ${thread}
+        <form method="POST" action="/ops/chat">
+          <input type="hidden" name="action" value="send-chat"/>
+          <input type="hidden" name="returnTo" value="/ops/chat"/>
+          ${contextPick}
+          <label for="chat-message">Message</label>
+          <textarea id="chat-message" name="message" required maxlength="2000" placeholder="What is the next step?"></textarea>
+          <button class="btn" type="submit">Send</button>
+        </form>
+      </section>
+    `,
+  });
+}
+
+module.exports = { profilePage, tasksPage, memoryPage, chatPage };

@@ -12,6 +12,12 @@ const STORE_KEY = 'lavaall-ops-v2';
 const MAX_TASKS = 100;
 const MAX_NOTES = 100;
 const MAX_PROJECTS = 50;
+const MAX_MESSAGES = 40;
+const MAX_PROPOSALS = 20;
+const CHAT_ID = 'ops-shared';
+const PROPOSAL_KINDS = Object.freeze(['save-goal', 'add-task', 'add-note', 'update-task']);
+const PROPOSAL_STATUSES = Object.freeze(['pending', 'confirmed', 'dismissed']);
+const MESSAGE_ROLES = Object.freeze(['user', 'assistant', 'system']);
 const STATUSES = Object.freeze(['todo', 'doing', 'done']);
 const STATUS_LABELS = Object.freeze({
   todo: 'To do',
@@ -22,7 +28,7 @@ const STATUS_LABELS = Object.freeze({
 let memory = emptyStore();
 
 function emptyStore() {
-  return { profiles: {}, goal: null, projects: [], tasks: [], notes: [] };
+  return { profiles: {}, goal: null, projects: [], tasks: [], notes: [], chats: [] };
 }
 
 function kvConfigured() {
@@ -167,6 +173,97 @@ function searchNotes(storeData, query) {
   });
 }
 
+function normalizeMessage(row) {
+  const role = MESSAGE_ROLES.includes(row && row.role) ? row.role : 'user';
+  return {
+    id: clean(row && row.id, 40) || newId(),
+    role,
+    text: clean(row && row.text, 4000),
+    createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
+    createdBy: clean(row && row.createdBy, 120),
+    leadAgent: clean(row && row.leadAgent, 80),
+    helperAgents: Array.isArray(row && row.helperAgents)
+      ? row.helperAgents.map((item) => clean(item, 80)).filter(Boolean).slice(0, 8)
+      : [],
+    grounded: Boolean(row && row.grounded),
+    setup: Boolean(row && row.setup),
+    contextSummary: clean(row && row.contextSummary, 400),
+  };
+}
+
+function normalizeProposal(row) {
+  const kind = PROPOSAL_KINDS.includes(row && row.kind) ? row.kind : '';
+  const status = PROPOSAL_STATUSES.includes(row && row.status) ? row.status : 'pending';
+  const fields = row && typeof row.fields === 'object' && row.fields ? row.fields : {};
+  return {
+    id: clean(row && row.id, 40) || newId(),
+    kind,
+    status,
+    title: clean(row && row.title, 200),
+    body: clean(row && row.body, 2000),
+    fields: {
+      title: clean(fields.title, 200),
+      body: clean(fields.body, 2000),
+      nextStep: clean(fields.nextStep, 200),
+      definitionOfDone: clean(fields.definitionOfDone, 400),
+      nextAction: clean(fields.nextAction, 200),
+      source: clean(fields.source, 240),
+      taskId: clean(fields.taskId, 40),
+    },
+    createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
+  };
+}
+
+function normalizeChat(row) {
+  return {
+    id: clean(row && row.id, 40) || CHAT_ID,
+    messages: Array.isArray(row && row.messages)
+      ? row.messages.map(normalizeMessage).filter((item) => item.text).slice(-MAX_MESSAGES)
+      : [],
+    proposals: Array.isArray(row && row.proposals)
+      ? row.proposals.map(normalizeProposal).filter((item) => item.kind).slice(-MAX_PROPOSALS)
+      : [],
+    updatedAt: Number.isFinite(row && row.updatedAt) ? row.updatedAt : Date.now(),
+  };
+}
+
+function getSharedChat(storeData) {
+  const list = storeData && Array.isArray(storeData.chats) ? storeData.chats : [];
+  return list[0] ? normalizeChat(list[0]) : normalizeChat({ id: CHAT_ID });
+}
+
+function pendingProposals(storeData) {
+  return getSharedChat(storeData).proposals.filter((item) => item.status === 'pending');
+}
+
+function listIds(value) {
+  if (Array.isArray(value)) return value.map((item) => clean(item, 40)).filter(Boolean);
+  if (typeof value === 'string') return value.split(',').map((item) => clean(item, 40)).filter(Boolean);
+  return [];
+}
+
+function resolveChatContext(storeData, selection) {
+  const data = storeData && typeof storeData === 'object' ? storeData : emptyStore();
+  const flag = selection && selection.useGoal;
+  const useGoal = flag === true || flag === '1' || flag === 'on' || flag === 'yes';
+  const taskIds = new Set(listIds(selection && (selection.taskIds || selection.taskId)));
+  const noteIds = new Set(listIds(selection && (selection.noteIds || selection.noteId)));
+  const goal = useGoal && data.goal ? data.goal : null;
+  const tasks = (data.tasks || []).filter((task) => taskIds.has(task.id));
+  const notes = notesSelectableForChat(data).filter((note) => noteIds.has(note.id));
+  const parts = [];
+  if (goal) parts.push(`Goal: ${goal.title}`);
+  tasks.forEach((task) => parts.push(`Task: ${task.title}`));
+  notes.forEach((note) => parts.push(`Note: ${note.title}`));
+  return {
+    goal,
+    tasks,
+    notes,
+    selected: Boolean(goal || tasks.length || notes.length),
+    summary: parts.length ? parts.join(' · ') : 'No records selected',
+  };
+}
+
 function normalizeProfiles(raw) {
   const out = {};
   if (!raw || typeof raw !== 'object') return out;
@@ -193,6 +290,9 @@ function normalizeStore(raw) {
       : [],
     notes: Array.isArray(src.notes)
       ? src.notes.map(normalizeNote).filter((row) => row.title).slice(0, MAX_NOTES)
+      : [],
+    chats: Array.isArray(src.chats)
+      ? src.chats.map(normalizeChat).slice(0, 1)
       : [],
   };
 }
@@ -484,6 +584,124 @@ async function approveProposedNote(proposal, { approvedBy }) {
   });
 }
 
+async function writeSharedChat(mutator) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const chat = getSharedChat(storeData);
+    const next = mutator(chat);
+    if (next && next.error) return next;
+    storeData.chats = [normalizeChat(next || chat)];
+    await writeStore(storeData);
+    return { ok: true, chat: storeData.chats[0] };
+  });
+}
+
+async function appendChatTurn({ user, assistant }) {
+  return writeSharedChat((chat) => {
+    const messages = chat.messages.slice();
+    if (user && user.text) messages.push(normalizeMessage(Object.assign({ role: 'user' }, user)));
+    if (assistant && assistant.text) messages.push(normalizeMessage(Object.assign({ role: 'assistant' }, assistant)));
+    return {
+      id: chat.id,
+      messages,
+      proposals: chat.proposals,
+      updatedAt: Date.now(),
+    };
+  });
+}
+
+async function addChatProposals(drafts) {
+  const incoming = Array.isArray(drafts) ? drafts : [];
+  if (!incoming.length) return { ok: true, proposals: [] };
+  return writeSharedChat((chat) => {
+    const added = incoming.map((draft) => normalizeProposal({
+      kind: draft.kind,
+      title: draft.title || (draft.fields && draft.fields.title),
+      body: draft.body || (draft.fields && draft.fields.body),
+      fields: draft.fields || draft,
+      status: 'pending',
+      createdAt: Date.now(),
+    })).filter((item) => item.kind);
+    return {
+      id: chat.id,
+      messages: chat.messages,
+      proposals: chat.proposals.concat(added).slice(-MAX_PROPOSALS),
+      updatedAt: Date.now(),
+    };
+  });
+}
+
+async function dismissChatProposal(id) {
+  return writeSharedChat((chat) => {
+    const proposalId = clean(id, 40);
+    const index = chat.proposals.findIndex((item) => item.id === proposalId && item.status === 'pending');
+    if (index === -1) return { error: 'proposal_not_found' };
+    const proposals = chat.proposals.slice();
+    proposals[index] = Object.assign({}, proposals[index], { status: 'dismissed' });
+    return { id: chat.id, messages: chat.messages, proposals, updatedAt: Date.now() };
+  });
+}
+
+async function markProposalStatus(id, status) {
+  return writeSharedChat((chat) => {
+    const proposalId = clean(id, 40);
+    const index = chat.proposals.findIndex((item) => item.id === proposalId && item.status === 'pending');
+    if (index === -1) return { error: 'proposal_not_found' };
+    const proposals = chat.proposals.slice();
+    proposals[index] = Object.assign({}, proposals[index], { status });
+    return { id: chat.id, messages: chat.messages, proposals, updatedAt: Date.now() };
+  });
+}
+
+async function confirmChatProposal(id, { approvedBy }) {
+  const storeData = await readStore();
+  const proposal = getSharedChat(storeData).proposals.find((item) => item.id === clean(id, 40) && item.status === 'pending');
+  if (!proposal) return { error: 'proposal_not_found' };
+  const fields = proposal.fields || {};
+  let applied;
+  switch (proposal.kind) {
+    case 'add-note':
+      applied = await addNote({
+        title: fields.title || proposal.title,
+        body: fields.body || proposal.body,
+        source: fields.source,
+        createdBy: approvedBy,
+        proposed: true,
+        approved: true,
+      });
+      break;
+    case 'save-goal':
+      applied = await saveGoal({
+        title: fields.title || proposal.title,
+        nextStep: fields.nextStep,
+        definitionOfDone: fields.definitionOfDone,
+      });
+      break;
+    case 'add-task':
+      applied = await addTask({
+        title: fields.title || proposal.title,
+        nextAction: fields.nextAction,
+        createdBy: approvedBy,
+      });
+      break;
+    case 'update-task':
+      applied = await updateTask(fields.taskId, {
+        title: fields.title || undefined,
+        nextAction: fields.nextAction || undefined,
+      });
+      break;
+    default: {
+      const _never = proposal.kind;
+      void _never;
+      return { error: 'invalid_proposal' };
+    }
+  }
+  if (applied && applied.error) return applied;
+  const marked = await markProposalStatus(proposal.id, 'confirmed');
+  if (marked.error) return marked;
+  return { ok: true, applied, proposal: Object.assign({}, proposal, { status: 'confirmed' }) };
+}
+
 function resetStore(seed) {
   memory = normalizeStore(seed || emptyStore());
 }
@@ -492,22 +710,31 @@ module.exports = {
   STATUSES,
   STATUS_LABELS,
   STORE_KEY,
+  CHAT_ID,
+  PROPOSAL_KINDS,
   activeNotes,
+  addChatProposals,
   addNote,
   addProject,
   addTask,
+  appendChatTurn,
   approveProposedNote,
+  confirmChatProposal,
   dashboardSnapshot,
   deleteNote,
+  dismissChatProposal,
   emptyStore,
   getProfile,
+  getSharedChat,
   isDurable,
   kvConfigured,
   nextActionFrom,
   normalizeStore,
   notesSelectableForChat,
+  pendingProposals,
   readStore,
   resetStore,
+  resolveChatContext,
   saveGoal,
   saveProfile,
   searchNotes,
