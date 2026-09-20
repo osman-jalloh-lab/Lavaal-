@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const box = document.getElementById('ceo-message');
   let graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '/ops/api/ceo-bridge/thread', postUrl: '/ops/api/ceo-bridge/message', waitingCopy: 'Waiting on CEO…' };
   let timer = 0;
+  let inFlight = false;
 
   try {
     graph = JSON.parse(dataNode && dataNode.textContent ? dataNode.textContent : '{}') || graph;
@@ -22,6 +23,19 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function lastMessage(thread) {
+    const rows = thread && Array.isArray(thread.messages) ? thread.messages : [];
+    return rows.length ? rows[rows.length - 1] : null;
+  }
+
+  function threadIsWaiting(thread, flag) {
+    if (!thread) return false;
+    const last = lastMessage(thread);
+    if (last && last.role === 'ceo') return false;
+    if (flag === false) return false;
+    return thread.status === 'pending' || flag === true;
   }
 
   function renderMessages(messages) {
@@ -44,21 +58,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function applyThread(thread) {
-    if (!thread || !thread.id) return;
+  function applyThread(thread, waitingFlag) {
+    if (!thread || !thread.id) return false;
+    const waiting = threadIsWaiting(thread, waitingFlag);
     graph.threadId = thread.id;
-    graph.status = thread.status || 'answered';
+    graph.status = waiting ? 'pending' : 'answered';
     graph.pollUrl = '/ops/api/ceo-bridge/thread?id=' + encodeURIComponent(thread.id);
     if (threadIdInput) threadIdInput.value = thread.id;
     renderMessages(thread.messages);
-    setWaiting(thread.status === 'pending');
-    if (thread.status === 'pending') startPoll();
+    setWaiting(waiting);
+    if (waiting) startPoll();
     else stopPoll();
+    return waiting;
+  }
+
+  function pollUrl() {
+    const base = graph.pollUrl || '/ops/api/ceo-bridge/thread';
+    return base + (base.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now();
   }
 
   function startPoll() {
     if (timer) return;
-    timer = window.setInterval(poll, 4000);
+    poll();
+    timer = window.setInterval(poll, 2000);
   }
 
   function stopPoll() {
@@ -68,19 +90,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function poll() {
-    const url = graph.pollUrl || '/ops/api/ceo-bridge/thread';
+    if (inFlight) return;
+    inFlight = true;
     try {
-      const response = await fetch(url, {
+      const response = await fetch(pollUrl(), {
         method: 'GET',
-        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        headers: { Accept: 'application/json', 'Cache-Control': 'no-store' },
         credentials: 'same-origin',
       });
       if (!response.ok) return;
       const payload = await response.json();
       if (payload && payload.csrf) graph.csrf = payload.csrf;
-      if (payload && payload.thread) applyThread(payload.thread);
+      if (payload && payload.thread) applyThread(payload.thread, payload.waiting);
     } catch (err) {
       return;
+    } finally {
+      inFlight = false;
     }
   }
 
@@ -98,9 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const response = await fetch(graph.postUrl || '/ops/api/ceo-bridge/message', {
           method: 'POST',
+          cache: 'no-store',
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-store',
           },
           credentials: 'same-origin',
           body: JSON.stringify(body),
@@ -113,8 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (csrfInput) csrfInput.value = payload.csrf;
         }
         if (box) box.value = '';
-        if (payload && payload.thread) applyThread(payload.thread);
-        setWaiting(true);
+        if (payload && payload.thread) applyThread(payload.thread, payload.waiting);
+        else setWaiting(true);
         startPoll();
       } catch (err) {
         return;

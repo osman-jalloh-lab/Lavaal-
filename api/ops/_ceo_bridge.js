@@ -148,6 +148,24 @@ function publicThread(thread) {
   };
 }
 
+function lastThreadMessage(thread) {
+  const messages = thread && Array.isArray(thread.messages) ? thread.messages : [];
+  return messages.length ? messages[messages.length - 1] : null;
+}
+
+function threadIsWaiting(thread) {
+  if (!thread) return false;
+  const last = lastThreadMessage(thread);
+  if (last && last.role === 'ceo') return false;
+  return thread.status === 'pending';
+}
+
+function sendJson(res, status, body) {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
+  return json(res, status, body);
+}
+
 function normalizePendingItem(row) {
   const threadId = clean(row && row.threadId, 40);
   const text = clean(row && row.text, MAX_TEXT);
@@ -495,18 +513,18 @@ function errorMessage(error) {
 
 function sendBridgeError(req, res, error) {
   const status = writeStatus(error);
-  if (wantsJson(req)) return json(res, status, { error, message: errorMessage(error) });
+  if (wantsJson(req)) return sendJson(res, status, { error, message: errorMessage(error) });
   if (error === 'store_unavailable' || error === 'invalid_message' || error === 'csrf' || error === 'invalid_csrf') {
     return redirect(res, '/ops/chat?agent=lavaall-ceo');
   }
-  return json(res, status, { error, message: errorMessage(error) });
+  return sendJson(res, status, { error, message: errorMessage(error) });
 }
 
 async function handleMessage(req, res) {
-  if (req.method !== 'POST') return json(res, 405, { error: 'method_not_allowed' });
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
   const access = founderGuard(req);
-  if (!access.session) return json(res, access.status, { error: access.error });
-  if (payloadTooLarge(req)) return json(res, 413, { error: 'payload_too_large' });
+  if (!access.session) return sendJson(res, access.status, { error: access.error });
+  if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
   const body = readBody(req);
   if (!verifyFounderCsrf(access.session, req, body)) {
     return sendBridgeError(req, res, 'csrf');
@@ -519,8 +537,9 @@ async function handleMessage(req, res) {
   });
   if (result.error) return sendBridgeError(req, res, result.error);
   if (wantsJson(req)) {
-    return json(res, 200, Object.assign({ ok: true }, result, {
+    return sendJson(res, 200, Object.assign({ ok: true }, result, {
       csrf: createCsrfToken(access.session.email),
+      waiting: threadIsWaiting(result.thread),
       waitingCopy: WAITING_COPY,
     }));
   }
@@ -528,37 +547,37 @@ async function handleMessage(req, res) {
 }
 
 async function handleThread(req, res) {
-  if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'method_not_allowed' });
+  if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'method_not_allowed' });
   const access = founderGuard(req);
-  if (!access.session) return json(res, access.status, { error: access.error });
+  if (!access.session) return sendJson(res, access.status, { error: access.error });
   const requested = clean(firstQuery(req, 'id') || firstQuery(req, 'threadId'), 40);
   const ownId = threadIdFor(access.session.email);
-  if (requested && requested !== ownId) return json(res, 403, { error: 'forbidden' });
+  if (requested && requested !== ownId) return sendJson(res, 403, { error: 'forbidden' });
   const loaded = await getFounderThread(access.session.email);
   if (loaded.error) return sendBridgeError(req, res, loaded.error);
-  return json(res, 200, {
+  return sendJson(res, 200, {
     ok: true,
     thread: loaded.thread,
-    waiting: loaded.thread.status === 'pending',
+    waiting: threadIsWaiting(loaded.thread),
     waitingCopy: WAITING_COPY,
     csrf: createCsrfToken(access.session.email),
   });
 }
 
 async function handlePending(req, res) {
-  if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'method_not_allowed' });
+  if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'method_not_allowed' });
   const auth = verifyBridgeSecret(req);
-  if (auth.error) return json(res, 401, { error: 'unauthorized' });
+  if (auth.error) return sendJson(res, 401, { error: 'unauthorized' });
   const result = await listPending();
   if (result.error) return sendBridgeError(req, res, result.error);
-  return json(res, 200, { ok: true, pending: result.pending });
+  return sendJson(res, 200, { ok: true, pending: result.pending });
 }
 
 async function handleReply(req, res) {
-  if (req.method !== 'POST') return json(res, 405, { error: 'method_not_allowed' });
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
   const auth = verifyBridgeSecret(req);
-  if (auth.error) return json(res, 401, { error: 'unauthorized' });
-  if (payloadTooLarge(req)) return json(res, 413, { error: 'payload_too_large' });
+  if (auth.error) return sendJson(res, 401, { error: 'unauthorized' });
+  if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
   const body = readBody(req);
   const result = await postCeoReply({
     threadId: body.threadId || body.id,
@@ -567,7 +586,12 @@ async function handleReply(req, res) {
     messageId: body.messageId,
   });
   if (result.error) return sendBridgeError(req, res, result.error);
-  return json(res, 200, { ok: true, replay: result.replay, thread: result.thread });
+  return sendJson(res, 200, {
+    ok: true,
+    replay: result.replay,
+    thread: result.thread,
+    waiting: threadIsWaiting(result.thread),
+  });
 }
 
 async function handleCeoBridge(req, res) {
@@ -624,6 +648,7 @@ module.exports = {
   resetCeoBridge,
   storeMode,
   threadIdFor,
+  threadIsWaiting,
   threadKey,
   verifyBridgeSecret,
 };

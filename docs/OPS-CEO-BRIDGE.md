@@ -23,7 +23,7 @@ Founder Talk uses the existing allowlist session + CSRF. Agents cannot enqueue a
 3. Confirm the helper card is gone. You should see the CEO thread and the Slack `#laval` backup one-liner — not Anthropic/OpenAI setup copy.
 4. Send a short message. The page shows **Waiting on CEO…** and does not invent a reply.
 5. With `OPS_CEO_BRIDGE_SECRET` set, a secret client `GET /ops/api/ceo-bridge/pending` sees that text.
-6. `POST /ops/api/ceo-bridge/reply` with the same bearer, `{ "threadId", "text", "pendingId" }`. Reload or wait — the CEO reply appears in Chat. Pending clears.
+6. `POST /ops/api/ceo-bridge/reply` with the same bearer, `{ "threadId", "text", "pendingId" }`. The Chat poll should drop **Waiting on CEO…** and show the reply without a hard-refresh. Pending clears.
 7. Open `/ops/chat` with no agent, and Talk on Sales/Technical/Growth/Lifecycle — those still use the existing helper chat.
 8. Sign out. Unauthenticated POST to `/ops/api/ceo-bridge/message` is 403. A wrong bearer on pending/reply is 401.
 

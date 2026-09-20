@@ -280,7 +280,7 @@ function ceoChatPage({ email, snapshot, notice, error, csrf, ceoThread, talkAgen
     notice,
     error,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-ceo-chat.js?v=12d" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=12e-poll" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Chat</h1>

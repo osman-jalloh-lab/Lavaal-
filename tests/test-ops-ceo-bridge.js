@@ -172,6 +172,8 @@ async function run() {
       thread.statusCode === 200
       && thread.body.waiting === true
       && thread.body.thread.messages[0].text === 'Ship the Preview MVP');
+    check('thread poll responses are not cacheable',
+      String(thread.headers['Cache-Control'] || thread.headers['cache-control'] || '') === 'no-store');
 
     const other = mockRes();
     await ops(authed({
@@ -251,6 +253,18 @@ async function run() {
       String(visible.raw).includes('Preview is on track. No deploy.')
       && String(visible.raw).includes('LAVAALL CEO')
       && String(visible.raw).includes('Waiting on CEO'));
+    const afterReply = mockRes();
+    await ops(authed({
+      json: true,
+      url: `/ops/api/ceo-bridge/thread?id=${queued.thread.id}`,
+      query: { area: 'api/ceo-bridge/thread', id: queued.thread.id },
+    }), afterReply);
+    check('GET thread after reply clears waiting without a page reload',
+      afterReply.statusCode === 200
+      && afterReply.body.waiting === false
+      && ceo.threadIsWaiting(afterReply.body.thread) === false
+      && afterReply.body.thread.status === 'answered'
+      && afterReply.body.thread.messages.some((item) => item.role === 'ceo'));
   }
 
   {
@@ -306,6 +320,10 @@ async function run() {
   }
 
   {
+    check('waiting is false once the last message is a CEO reply',
+      ceo.threadIsWaiting({ status: 'pending', messages: [{ role: 'founder', text: 'Hi' }] }) === true
+      && ceo.threadIsWaiting({ status: 'pending', messages: [{ role: 'founder', text: 'Hi' }, { role: 'ceo', text: 'Ok' }] }) === false
+      && ceo.threadIsWaiting({ status: 'answered', messages: [{ role: 'ceo', text: 'Ok' }] }) === false);
     const src = fs.readFileSync(path.join(opsDir, '_ceo_bridge.js'), 'utf8');
     check('bridge uses dedicated KV keys and never posts Slack',
       src.includes('ops:ceo:thread:')
@@ -326,6 +344,14 @@ async function run() {
       && note.includes('GET {PREVIEW_ORIGIN}/ops/api/ceo-bridge/pending')
       && note.includes('POST {PREVIEW_ORIGIN}/ops/api/ceo-bridge/reply')
       && note.includes('Prod HOLD'));
+    const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
+    check('CEO chat poll busts cache and clears waiting when a CEO reply lands',
+      chatJs.includes("cache: 'no-store'")
+      && chatJs.includes("t=' + Date.now()")
+      && chatJs.includes("if (last && last.role === 'ceo') return false")
+      && chatJs.includes('poll();')
+      && chatJs.includes('setInterval(poll, 2000)')
+      && chatJs.includes('applyThread(payload.thread, payload.waiting)'));
   }
 
   {
