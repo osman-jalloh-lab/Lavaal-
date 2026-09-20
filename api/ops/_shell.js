@@ -11,7 +11,7 @@ const NAV = Object.freeze([
   { id: 'inbox', href: '/ops/inbox', label: 'Inbox' },
   { id: 'calendar', href: '/ops/calendar', label: 'Calendar' },
   { id: 'tasks', href: '/ops/tasks', label: 'Projects & tasks' },
-  { id: 'routines', href: '/ops/routines', label: 'Saved routines', ticket: '08' },
+  { id: 'routines', href: '/ops/routines', label: 'Saved routines' },
 ]);
 
 function areaInfo(area) {
@@ -84,7 +84,7 @@ textarea{min-height:88px;resize:vertical;}
 `;
 }
 
-function shellPage({ title, email, area, body, notice, error }) {
+function shellPage({ title, email, area, body, notice, error, scripts }) {
   const current = areaInfo(area).id;
   const nav = NAV.map((item) => (
     `<a href="${item.href}"${item.id === current ? ' aria-current="page"' : ''}>${escapeHtml(item.label)}</a>`
@@ -123,6 +123,7 @@ function shellPage({ title, email, area, body, notice, error }) {
   ${alert}
   ${body}
 </div>
+${typeof scripts === 'string' ? scripts : ''}
 </body>
 </html>`;
 }

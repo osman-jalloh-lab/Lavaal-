@@ -17,7 +17,12 @@ const MAX_PROPOSALS = 20;
 const MAX_INBOX = 50;
 const MAX_AUDIT = 50;
 const MAX_EVENTS = 80;
+const MAX_ROUTINES = 20;
+const MAX_RUNS = 10;
 const CHAT_ID = 'ops-shared';
+const ROUTINE_NEEDS = Object.freeze(['goal', 'tasks', 'notes']);
+const ROUTINE_RUN_STATUSES = Object.freeze(['ok', 'missing_input', 'unconfigured', 'helper_failed']);
+const SEED_ROUTINE_IDS = Object.freeze(['morning-brief', 'meeting-prep', 'weekly-review']);
 const INBOX_LABELS = Object.freeze(['needs_reply', 'task', 'reference', 'done']);
 const INBOX_LABEL_TEXT = Object.freeze({
   needs_reply: 'Needs reply',
@@ -38,7 +43,7 @@ const STATUS_LABELS = Object.freeze({
 let memory = emptyStore();
 
 function emptyStore() {
-  return { profiles: {}, goal: null, projects: [], tasks: [], notes: [], chats: [], inbox: [], mailAudit: [], events: [] };
+  return { profiles: {}, goal: null, projects: [], tasks: [], notes: [], chats: [], inbox: [], mailAudit: [], events: [], routines: [] };
 }
 
 function kvConfigured() {
@@ -337,6 +342,97 @@ function normalizeTime(value) {
   return /^\d{2}:\d{2}$/.test(raw) ? raw : '';
 }
 
+function seedRoutineDefs() {
+  return [
+    {
+      id: 'morning-brief',
+      name: 'Morning brief',
+      prompt: 'Write a short morning brief for LAVAALL founders. Use only the selected goal and tasks. List: (1) the current goal and its next step, (2) unfinished work, (3) one recommended first action today. Do not invent owners, prices, completions, or metrics. Do not send mail or schedule anything.',
+      contextNote: 'Select the current goal. Unfinished tasks are optional extra context.',
+      needs: ['goal'],
+    },
+    {
+      id: 'meeting-prep',
+      name: 'Meeting prep',
+      prompt: 'Prepare a meeting brief from the selected notes and goal. Summarize facts only, list open questions, and suggest an agenda. Do not invent customer commitments, prices, or legal positions. Drafts only — do not send mail.',
+      contextNote: 'Select at least one memory note about the meeting.',
+      needs: ['notes'],
+    },
+    {
+      id: 'weekly-review',
+      name: 'Weekly review',
+      prompt: 'Write a weekly review from the selected notes, goal, and tasks. What moved, what is stuck, and what should be the next step next week. Use only selected records. Do not invent metrics or completions. Do not send mail or schedule follow-ups.',
+      contextNote: 'Select notes from this week (goal and tasks optional).',
+      needs: ['notes'],
+    },
+  ];
+}
+
+function normalizeNeeds(value) {
+  const raw = Array.isArray(value) ? value : [];
+  return raw.map((item) => clean(item, 20)).filter((item) => ROUTINE_NEEDS.includes(item));
+}
+
+function normalizeRun(row) {
+  const status = ROUTINE_RUN_STATUSES.includes(row && row.status) ? row.status : '';
+  return {
+    id: clean(row && row.id, 40) || newId(),
+    at: Number.isFinite(row && row.at) ? row.at : Date.now(),
+    result: clean(row && row.result, 4000),
+    status,
+    contextSummary: clean(row && row.contextSummary, 400),
+    createdBy: clean(row && row.createdBy, 120),
+  };
+}
+
+function normalizeRoutine(row) {
+  const runs = Array.isArray(row && row.runs)
+    ? row.runs.map(normalizeRun).filter((item) => item.result || item.status).slice(0, MAX_RUNS)
+    : [];
+  const last = runs[0] || null;
+  return {
+    id: clean(row && row.id, 40) || newId(),
+    name: clean(row && row.name, 160),
+    prompt: clean(row && row.prompt, 2000),
+    contextNote: clean(row && row.contextNote, 400),
+    needs: normalizeNeeds(row && row.needs),
+    lastRunAt: Number.isFinite(row && row.lastRunAt) && row.lastRunAt > 0 ? row.lastRunAt : (last ? last.at : 0),
+    lastRunResult: clean(row && row.lastRunResult, 4000) || (last ? last.result : ''),
+    lastRunStatus: ROUTINE_RUN_STATUSES.includes(row && row.lastRunStatus)
+      ? row.lastRunStatus
+      : (last ? last.status : ''),
+    lastRunBy: clean(row && row.lastRunBy, 120) || (last ? last.createdBy : ''),
+    createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
+    updatedAt: Number.isFinite(row && row.updatedAt) ? row.updatedAt : Date.now(),
+    runs,
+  };
+}
+
+function withSeededRoutines(list) {
+  const existing = Array.isArray(list)
+    ? list.map(normalizeRoutine).filter((row) => row.name && row.prompt)
+    : [];
+  const byId = new Map(existing.map((row) => [row.id, row]));
+  seedRoutineDefs().forEach((seed) => {
+    if (!byId.has(seed.id)) existing.push(normalizeRoutine(seed));
+  });
+  return existing.slice(0, MAX_ROUTINES);
+}
+
+function listRoutines(storeData) {
+  return ((storeData && storeData.routines) || []).slice().sort((a, b) => {
+    const ai = SEED_ROUTINE_IDS.indexOf(a.id);
+    const bi = SEED_ROUTINE_IDS.indexOf(b.id);
+    if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    return String(a.name).localeCompare(String(b.name));
+  });
+}
+
+function getRoutine(storeData, id) {
+  const routineId = clean(id, 40);
+  return listRoutines(storeData).find((item) => item.id === routineId) || null;
+}
+
 function normalizeEvent(row) {
   const allDay = Boolean(row && (row.allDay === true || row.allDay === '1' || row.allDay === 'on'));
   const attendees = Array.isArray(row && row.attendees)
@@ -431,6 +527,7 @@ function normalizeStore(raw) {
     events: Array.isArray(src.events)
       ? src.events.map(normalizeEvent).filter((row) => row.title && row.date).slice(0, MAX_EVENTS)
       : [],
+    routines: withSeededRoutines(src.routines),
   };
 }
 
@@ -949,6 +1046,62 @@ async function updateEvent(id, patch) {
   });
 }
 
+async function updateRoutine(id, patch) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const routineId = clean(id, 40);
+    const index = storeData.routines.findIndex((row) => row.id === routineId);
+    if (index === -1) return { error: 'routine_not_found' };
+    const current = storeData.routines[index];
+    const next = normalizeRoutine({
+      id: current.id,
+      name: patch && patch.name == null ? current.name : patch.name,
+      prompt: patch && patch.prompt == null ? current.prompt : patch.prompt,
+      contextNote: patch && patch.contextNote == null ? current.contextNote : patch.contextNote,
+      needs: current.needs,
+      lastRunAt: current.lastRunAt,
+      lastRunResult: current.lastRunResult,
+      lastRunStatus: current.lastRunStatus,
+      lastRunBy: current.lastRunBy,
+      createdAt: current.createdAt,
+      runs: current.runs,
+      updatedAt: Date.now(),
+    });
+    if (!next.name || !next.prompt) return { error: 'invalid_routine' };
+    storeData.routines[index] = next;
+    await writeStore(storeData);
+    return { ok: true, routine: next };
+  });
+}
+
+async function recordRoutineRun(id, fields) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const routineId = clean(id, 40);
+    const index = storeData.routines.findIndex((row) => row.id === routineId);
+    if (index === -1) return { error: 'routine_not_found' };
+    const current = storeData.routines[index];
+    const run = normalizeRun({
+      result: fields && fields.result,
+      status: fields && fields.status,
+      contextSummary: fields && fields.contextSummary,
+      createdBy: fields && fields.createdBy,
+      at: Date.now(),
+    });
+    const next = normalizeRoutine(Object.assign({}, current, {
+      lastRunAt: run.at,
+      lastRunResult: run.result,
+      lastRunStatus: run.status,
+      lastRunBy: run.createdBy,
+      runs: [run].concat(current.runs || []).slice(0, MAX_RUNS),
+      updatedAt: Date.now(),
+    }));
+    storeData.routines[index] = next;
+    await writeStore(storeData);
+    return { ok: true, routine: next, run };
+  });
+}
+
 async function deleteEvent(id) {
   return mutate(async () => {
     const storeData = await readStore();
@@ -971,6 +1124,7 @@ module.exports = {
   STATUS_LABELS,
   STORE_KEY,
   CHAT_ID,
+  SEED_ROUTINE_IDS,
   INBOX_LABELS,
   INBOX_LABEL_TEXT,
   PROPOSAL_KINDS,
@@ -1002,7 +1156,10 @@ module.exports = {
   dismissChatProposal,
   emptyStore,
   getProfile,
+  getRoutine,
   getSharedChat,
+  listRoutines,
+  recordRoutineRun,
   isDurable,
   kvConfigured,
   nextActionFrom,
@@ -1020,6 +1177,7 @@ module.exports = {
   storeMode,
   unfinishedTasks,
   updateNote,
+  updateRoutine,
   updateTask,
   writeStore,
 };

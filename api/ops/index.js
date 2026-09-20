@@ -1,9 +1,10 @@
-// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks, memory, chat, inbox, calendar.
+// api/ops/index.js — private /ops gate through calendar and saved routines.
 // Session required. Public catalog routes are unchanged.
 
 const { loginPage } = require('./_html');
-const { NAV, areaInfo, dashboardPage, stubPage } = require('./_shell');
-const { calendarPage, chatPage, inboxPage, memoryPage, profilePage, tasksPage } = require('./_pages');
+const { NAV, dashboardPage } = require('./_shell');
+const { calendarPage, chatPage, inboxPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
+const { copyRoutinePrompt, runRoutine, updateRoutine } = require('./_routines');
 const {
   describeCalendarSetup,
   refreshGoogleAgenda,
@@ -31,6 +32,7 @@ const {
   getSharedChat,
   isDurable,
   listEvents,
+  listRoutines,
   readStore,
   saveGoal,
   saveProfile,
@@ -75,7 +77,7 @@ function knownArea(area) {
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops') return value;
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/routines' || value === '/ops') return value;
   if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
   return '/ops';
 }
@@ -101,6 +103,7 @@ async function payload(session, area, search) {
       inboxAudit: store.mailAudit || [],
       calendarSetup: describeCalendarSetup(),
       events: listEvents(store),
+      routines: listRoutines(store),
     };
   } catch {
     const store = emptyStore();
@@ -120,6 +123,7 @@ async function payload(session, area, search) {
       inboxAudit: [],
       calendarSetup: describeCalendarSetup(),
       events: [],
+      routines: [],
       storeError: 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
     };
   }
@@ -160,12 +164,7 @@ async function renderArea(req, res, session, extra) {
     case 'calendar':
       return sendHtml(res, 200, calendarPage(pageOpts));
     case 'routines':
-      return sendHtml(res, 200, stubPage({
-        email: session.email,
-        area: areaInfo(area).id,
-        notice: extra && extra.notice,
-        error: extra && extra.error,
-      }));
+      return sendHtml(res, 200, routinesPage(pageOpts));
     default:
       return sendHtml(res, 200, dashboardPage(pageOpts));
   }
@@ -203,7 +202,14 @@ function writeStatus(error) {
     case 'external_attendee':
       return 400;
     case 'event_not_found':
+    case 'routine_not_found':
       return 404;
+    case 'invalid_routine':
+    case 'missing_input':
+    case 'unconfigured':
+      return 400;
+    case 'helper_failed':
+      return 503;
     default: {
       return 400;
     }
@@ -228,9 +234,21 @@ async function finishWrite(req, res, session, body, result, notice) {
                   ? 'Enter a title, date, and valid start/end times (or mark the event all-day).'
                   : result.error === 'calendar_reconnect'
                     ? 'Google Calendar OAuth failed. Reconnect the refresh token. Manual events still work.'
-                    : notice.error;
+                    : result.error === 'missing_input'
+                      ? (result.message || 'Select the notes or goal this routine needs.')
+                      : result.error === 'unconfigured'
+                        ? (result.message || 'No Anthropic or OpenAI key. Run was not invented.')
+                        : result.error === 'helper_failed'
+                          ? (result.message || 'The helper failed. No invented result.')
+                          : result.error === 'invalid_routine'
+                            ? 'Enter a routine name and prompt.'
+                            : notice.error;
     return wantsJson(req)
-      ? json(res, writeStatus(result.error), { error: result.error })
+      ? json(res, writeStatus(result.error), {
+        error: result.error,
+        message: result.message || undefined,
+        missing: result.missing || undefined,
+      })
       : renderArea(req, res, session, { error: message });
   }
   const data = await payload(session, resolveArea(req));
@@ -365,6 +383,30 @@ async function handleWrite(req, res, session) {
       return finishWrite(req, res, session, body, await removeCalendarEvent(body.id), { error: 'Could not delete that event.' });
     case 'refresh-calendar':
       return finishWrite(req, res, session, body, await refreshGoogleAgenda(), { error: 'Could not refresh the shared calendar.' });
+    case 'update-routine':
+      return finishWrite(req, res, session, body, await updateRoutine(body.id, {
+        name: body.name,
+        prompt: body.prompt,
+        contextNote: body.contextNote,
+      }), { error: 'Could not update that routine.' });
+    case 'copy-prompt': {
+      const copied = await copyRoutinePrompt(body.id);
+      if (copied.ok && !wantsJson(req)) {
+        return renderArea(req, res, session, { notice: 'Prompt is in the box — select it and copy.' });
+      }
+      return finishWrite(req, res, session, body, copied, { error: 'Could not copy that prompt.' });
+    }
+    case 'run-routine':
+      return finishWrite(req, res, session, body, await runRoutine(body.id, {
+        selection: {
+          useGoal: body.useGoal,
+          taskId: body.taskId,
+          noteId: body.noteId,
+          taskIds: body.taskIds,
+          noteIds: body.noteIds,
+        },
+        createdBy: session.email,
+      }), { error: 'Could not run that routine.' });
     default:
       return wantsJson(req)
         ? json(res, 400, { error: 'unknown_action' })

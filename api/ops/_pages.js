@@ -11,6 +11,7 @@ const {
   listEvents,
   listInboxItems,
   listMailAudit,
+  listRoutines,
   notesSelectableForChat,
   pendingProposals,
   searchNotes,
@@ -570,4 +571,112 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
   });
 }
 
-module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage };
+function formatRunAt(ms) {
+  if (!ms) return '';
+  return `${new Date(ms).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+}
+
+function runStatusLabel(status) {
+  switch (status) {
+    case 'ok':
+      return 'Saved';
+    case 'missing_input':
+      return 'Missing inputs';
+    case 'unconfigured':
+      return 'Helper not connected';
+    case 'helper_failed':
+      return 'Helper failed';
+    default: {
+      const _never = status;
+      void _never;
+      return status || 'No run yet';
+    }
+  }
+}
+
+function routinesPage({ email, store, snapshot, notice, error, chatSetup }) {
+  const setup = chatSetup || { modelConfigured: false, anthropic: false, openai: false, lead: 'lavaall-ceo' };
+  const routines = listRoutines(store);
+  const notes = notesSelectableForChat(store);
+  const setupCard = setup.modelConfigured
+    ? `<p>Helper connected (${setup.anthropic ? 'Anthropic' : ''}${setup.anthropic && setup.openai ? ' + ' : ''}${setup.openai ? 'OpenAI' : ''}). Run is manual and drafts only — no mail, no schedule.</p>`
+    : '<p class="empty">No Anthropic or OpenAI key on this project. You can still edit and copy prompts. Run will show a clear helper-not-connected error — no invented result.</p>';
+
+  const cards = routines.map((routine) => {
+    const last = routine.lastRunAt
+      ? `<p><span class="tag">${escapeHtml(runStatusLabel(routine.lastRunStatus))}</span>Last run ${escapeHtml(formatRunAt(routine.lastRunAt))}</p>
+         <p>${escapeHtml(routine.lastRunResult)}</p>`
+      : '<p class="empty">No run yet. Copy the prompt or run it manually with the context it needs.</p>';
+    const history = routine.runs.length
+      ? `<ul class="list">${routine.runs.slice(0, 5).map((run) => (
+        `<li><span class="tag">${escapeHtml(runStatusLabel(run.status))}</span>${escapeHtml(formatRunAt(run.at))}${run.contextSummary ? ` · ${escapeHtml(run.contextSummary)}` : ''}<p>${escapeHtml(run.result)}</p></li>`
+      )).join('')}</ul>`
+      : '';
+    return `
+      <section class="card" style="margin-top:14px">
+        <div class="kicker">Routine</div>
+        <h2>${escapeHtml(routine.name)}</h2>
+        <p>${escapeHtml(routine.contextNote)}</p>
+        <form method="POST" action="/ops/routines" class="task-row">
+          <input type="hidden" name="action" value="update-routine"/>
+          <input type="hidden" name="id" value="${escapeHtml(routine.id)}"/>
+          <input type="hidden" name="returnTo" value="/ops/routines"/>
+          <label for="routine-name-${escapeHtml(routine.id)}">Name</label>
+          <input id="routine-name-${escapeHtml(routine.id)}" name="name" required maxlength="160" value="${escapeHtml(routine.name)}"/>
+          <label for="routine-prompt-${escapeHtml(routine.id)}">Prompt</label>
+          <textarea id="routine-prompt-${escapeHtml(routine.id)}" name="prompt" required maxlength="2000">${escapeHtml(routine.prompt)}</textarea>
+          <label for="routine-note-${escapeHtml(routine.id)}">Needed context</label>
+          <input id="routine-note-${escapeHtml(routine.id)}" name="contextNote" maxlength="400" value="${escapeHtml(routine.contextNote)}"/>
+          <button class="btn btn-sm" type="submit">Save routine</button>
+        </form>
+        <p><button class="btn btn-sm" type="button" data-copy-target="#routine-prompt-${escapeHtml(routine.id)}">Copy prompt</button> The prompt box above is also selectable if clipboard is blocked.</p>
+        <form method="POST" action="/ops/routines">
+          <input type="hidden" name="action" value="run-routine"/>
+          <input type="hidden" name="id" value="${escapeHtml(routine.id)}"/>
+          <input type="hidden" name="returnTo" value="/ops/routines"/>
+          <fieldset class="ctx">
+            <legend>Context for this run</legend>
+            ${store.goal
+              ? `<label class="check"><input type="checkbox" name="useGoal" value="1" checked/> Goal — ${escapeHtml(store.goal.title)}</label>`
+              : '<p class="empty">No current goal saved.</p>'}
+            <label for="run-task-${escapeHtml(routine.id)}">Task (optional)</label>
+            <select id="run-task-${escapeHtml(routine.id)}" name="taskId">
+              ${option('', 'No task', true)}
+              ${(store.tasks || []).map((task) => option(task.id, task.title, false)).join('')}
+            </select>
+            <label for="run-note-${escapeHtml(routine.id)}">Note</label>
+            <select id="run-note-${escapeHtml(routine.id)}" name="noteId">
+              ${option('', 'No note', true)}
+              ${notes.map((note) => option(note.id, note.title, false)).join('')}
+            </select>
+          </fieldset>
+          <button class="btn" type="submit">Run</button>
+        </form>
+        <div class="kicker" style="margin-top:16px">Last result</div>
+        ${last}
+        ${history}
+      </section>`;
+  }).join('');
+
+  return shellPage({
+    title: 'LAVAALL OS — Saved routines',
+    email,
+    area: 'routines',
+    notice,
+    error,
+    scripts: '<script src="/assets/js/ops-copy.js" defer></script>',
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <h1>Saved routines</h1>
+      <p>Reusable prompts. Edit, copy, or run manually. No background schedules and no auto-sends in v1.</p>
+      <section class="card">
+        <div class="kicker">Helper</div>
+        <h2>Run status</h2>
+        ${setupCard}
+      </section>
+      ${cards}
+    `,
+  });
+}
+
+module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage, routinesPage };
