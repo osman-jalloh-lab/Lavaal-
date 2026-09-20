@@ -1,7 +1,9 @@
 // Additive /ops Office — agent desks / presence. Preview only.
 // Approved camera PNGs (untouched) live in /assets/ops/office/cameras/*.png.
-// Phone/iPad cards crop those same photos with object-fit. Researchy is a
-// labeled placeholder — no sixth robot. Underscore prefix: not a Vercel function.
+// Phone/iPad cards crop those same photos with object-fit. Researchy uses a
+// pixel crop of the Operations specialist from side.png (03-side.png) — not
+// lead.png, not an invented sixth robot. Talk stays off. Underscore prefix:
+// not a Vercel function.
 
 const { escapeHtml } = require('./_lib');
 const { persistenceBanner, shellPage } = require('./_shell');
@@ -79,6 +81,13 @@ const CARD_CAMERA = Object.freeze({
   lifecycle: 'front-right',
 });
 
+// Pixel crop of the Operations specialist in 03-side.png / side.png (1672x941 → 175,255,505,575).
+const RESEARCHY_PORTRAIT = Object.freeze({
+  photo: '/assets/ops/office/cameras/researchy.png',
+  source: '03-side.png',
+  camera: 'side',
+});
+
 function cameraById(id) {
   return OFFICE_CAMERAS.find((item) => item.id === id) || null;
 }
@@ -145,8 +154,8 @@ const OFFICE_AGENTS = Object.freeze([
     id: 'researchy',
     name: 'Researchy',
     talk: '',
-    photo: '',
-    objectPosition: '',
+    photo: RESEARCHY_PORTRAIT.photo,
+    objectPosition: '50% 38%',
     short: 'Researchy',
     placeholder: true,
   },
@@ -201,11 +210,10 @@ function officeStyles() {
 .office-card-visual img{width:100%;height:200px;object-fit:cover;display:block;}
 .office-photo-fallback{position:absolute;inset:0;display:flex;align-items:flex-end;padding:14px;color:var(--ink);font-weight:700;}
 .office-photo-fallback[hidden]{display:none;}
-.office-card.is-placeholder .office-card-visual{align-items:center;justify-content:center;display:flex;border-bottom:1px dashed var(--line);background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 10px,var(--surface-2) 10px,var(--surface-2) 20px);}
 .office-card-body{padding:14px 16px 16px;}
 .office-card-body h2{font-size:18px;margin-bottom:8px;}
 .office-card .btn{width:auto;margin-top:8px;padding:10px 16px;}
-.office-placeholder-label{font-size:13px;font-weight:700;color:var(--muted);text-align:center;max-width:16rem;}
+.office-placeholder-label{font-size:13px;font-weight:700;color:var(--muted);text-align:left;}
 .office-selected{margin-top:12px;font-size:14px;color:var(--muted);}
 @media (min-width:768px){.office-cards{grid-template-columns:1fr 1fr;}}
 @media (min-width:768px) and (orientation:landscape){.office-cards{grid-template-columns:1fr 1fr 1fr;}}
@@ -253,23 +261,17 @@ function fallbackPanel(agent) {
 
 function agentCards() {
   return OFFICE_AGENTS.map((agent) => {
-    if (agent.placeholder) {
-      return `<article class="office-card is-placeholder" data-agent="${escapeHtml(agent.id)}">
-        <div class="office-card-visual"><p class="office-placeholder-label">Researchy — visual placeholder. No robot portrait.</p></div>
-        <div class="office-card-body">
-          <h2>${escapeHtml(agent.name)}</h2>
-          <p>Only five approved desk portraits exist. This seat is labeled, not cloned.</p>
-        </div>
-      </article>`;
-    }
+    const talk = agent.talk
+      ? `<a class="btn" href="${escapeHtml(agent.talk)}">Talk</a>`
+      : '';
     return `<article class="office-card" data-agent="${escapeHtml(agent.id)}">
       <div class="office-card-visual">
         ${fallbackPanel(agent)}
-        <img data-office-photo src="${escapeHtml(agent.photo)}" alt="${escapeHtml(agent.name)}" width="640" height="320" style="object-position:${escapeHtml(agent.objectPosition)}"/>
+        <img data-office-photo src="${escapeHtml(agent.photo)}" alt="${escapeHtml(agent.name)}" width="640" height="320" style="object-position:${escapeHtml(agent.objectPosition || '50% 40%')}"/>
       </div>
       <div class="office-card-body">
         <h2>${escapeHtml(agent.name)}</h2>
-        <a class="btn" href="${escapeHtml(agent.talk)}">Talk</a>
+        ${talk}
       </div>
     </article>`;
   }).join('');
@@ -277,8 +279,8 @@ function agentCards() {
 
 function rosterButtons() {
   return OFFICE_AGENTS.map((agent) => {
-    if (agent.placeholder) {
-      return `<p class="office-placeholder-label" data-agent="researchy">Researchy — visual placeholder</p>`;
+    if (!agent.talk) {
+      return `<p class="office-placeholder-label" data-agent="${escapeHtml(agent.id)}">${escapeHtml(agent.name)}</p>`;
     }
     return `<div class="office-roster-row">
       <button type="button" data-agent="${escapeHtml(agent.id)}">${escapeHtml(agent.name)}</button>
@@ -351,6 +353,7 @@ module.exports = {
   OFFICE_AGENTS,
   OFFICE_CAMERAS,
   OFFICE_HOTSPOTS,
+  RESEARCHY_PORTRAIT,
   TALK_AGENT_IDS,
   cropPosition,
   isTalkAgent,

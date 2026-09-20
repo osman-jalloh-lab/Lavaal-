@@ -1,4 +1,4 @@
-// Additive Office — desks, cameras, Researchy placeholder, Talk → existing chat.
+// Additive Office — desks, cameras, Researchy crop from side.png, Talk → existing chat.
 const fs = require('fs');
 const path = require('path');
 const { assertPublicLogin } = require('./_public-login');
@@ -74,13 +74,14 @@ async function run() {
     NAV.map((item) => item.id).join(',').startsWith('dashboard,office,profile')
     && NAV.some((item) => item.id === 'office' && item.href === '/ops/office' && item.label === 'Office'));
 
-  check('exact desk names and Researchy placeholder are the only six seats',
+  check('exact desk names and Researchy no-Talk seat are the only six seats',
     office.OFFICE_AGENTS.map((agent) => agent.name).join('|') === NAMES.join('|')
     && office.OFFICE_AGENTS.filter((agent) => agent.placeholder).map((agent) => agent.id).join(',') === 'researchy'
-    && office.OFFICE_AGENTS.filter((agent) => agent.photo).length === 5);
+    && office.OFFICE_AGENTS.filter((agent) => agent.photo).length === 6);
 
   check('Talk maps to existing per-agent chat routes',
     TALK_IDS.every((id) => office.talkHref(id) === `/ops/chat?agent=${id}`)
+    && office.talkHref('lavaall-ceo') === '/ops/chat?agent=lavaall-ceo'
     && office.talkHref('researchy') === '');
 
   check('camera files map from the approved PNG names',
@@ -133,17 +134,31 @@ async function run() {
     check('desktop cameras use the approved photo files',
       CAMERA_FILES.every((file) => html.includes(`src="/assets/ops/office/cameras/${file}"`))
       && html.includes('data-camera-photo="wide"'));
-    check('Researchy is a labeled visual placeholder with no Talk and no invented robot',
-      html.includes('Researchy — visual placeholder')
-      && html.includes('No robot portrait')
-      && !html.includes('/assets/ops/office/researchy.png')
-      && !html.includes('/assets/ops/office/cameras/researchy.png')
+    check('Researchy shows a cropped specialist portrait with no Talk',
+      html.includes('src="/assets/ops/office/cameras/researchy.png"')
+      && html.includes('alt="Researchy"')
+      && html.includes('>Researchy<')
+      && !html.includes('No robot portrait')
+      && !html.includes('visual placeholder')
       && !html.includes('href="/ops/chat?agent=researchy"'));
-    check('office does not invent online dots or a sixth robot file',
+    check('office does not invent online dots or a Researchy Talk route',
       !/\bonline\b/i.test(html)
       && !html.includes('is-online')
       && html.includes('data-agent="researchy"')
-      && office.OFFICE_AGENTS.length === 6);
+      && office.OFFICE_AGENTS.length === 6
+      && office.talkHref('lavaall-ceo') === '/ops/chat?agent=lavaall-ceo');
+    {
+      const portrait = path.join(__dirname, '../assets/ops/office/cameras/researchy.png');
+      const lead = path.join(__dirname, '../assets/ops/office/cameras/lead.png');
+      const buf = fs.readFileSync(portrait);
+      check('Researchy PNG is a real crop from side.png, not lead.png',
+        office.RESEARCHY_PORTRAIT.source === '03-side.png'
+        && office.RESEARCHY_PORTRAIT.camera === 'side'
+        && office.RESEARCHY_PORTRAIT.photo === '/assets/ops/office/cameras/researchy.png'
+        && buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+        && buf.length > 50000
+        && buf.length !== fs.statSync(lead).size);
+    }
     check('Chat tab stays council while Talk uses the existing chat route',
       html.includes('href="/ops/chat"')
       && html.includes('href="/ops/chat?agent=sales"')
