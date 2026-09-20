@@ -30,7 +30,7 @@ function profilePage({ email, store, snapshot, notice, error }) {
   const profile = getProfile(store, email) || { role: '', timezone: '', writingPreferences: '' };
   const goal = store.goal || { title: '', definitionOfDone: '', nextStep: '', targetDate: '' };
   return shellPage({
-    title: 'LAVAALL OS — Profile & goals',
+    title: 'LAVAALL OS — You',
     email,
     area: 'profile',
     notice,
@@ -207,8 +207,7 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Memory</h1>
-      <p class="lead">Short notes on who we talk to, so the next message is not blank. AI notes require review before save.</p>
-      <p class="empty">Manual notes save right away.</p>
+      <p class="lead">Short notes on who we talk to, so the next message is not blank. Manual notes save right away; AI notes require review before save.</p>
       <div class="grid forms">
         <section class="card">
           <div class="kicker">Capture</div>
@@ -306,7 +305,7 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
     : '<p class="empty">No pending drafts. Chat cannot write the store until you confirm a proposal.</p>';
 
   return shellPage({
-    title: 'LAVAALL OS — Contextual chat',
+    title: 'LAVAALL OS — Chat',
     email,
     area: 'chat',
     notice,
@@ -314,7 +313,7 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Chat</h1>
-      <p class="lead">Ask about the goal, a task, or a note. Chat does not send mail or change records until you confirm. Contextual chat stays the front door.</p>
+      <p class="lead">Ask about the goal, a task, or a note. Chat does not send mail or change records until you confirm.</p>
       <div class="grid forms">
         <section class="card">
           <div class="kicker">Ready?</div>
@@ -660,7 +659,7 @@ function routinesPage({ email, store, snapshot, notice, error, chatSetup }) {
   }).join('');
 
   return shellPage({
-    title: 'LAVAALL OS — Saved routines',
+    title: 'LAVAALL OS — Routines',
     email,
     area: 'routines',
     notice,

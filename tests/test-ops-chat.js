@@ -65,7 +65,7 @@ async function run() {
     await ops(authed({ json: false, url: '/ops/chat', query: { area: 'chat' } }), html);
     const page = String(html.raw);
     check('chat page is real, not a ticket stub',
-      page.includes('Contextual chat') && page.includes('Send') && !page.includes('coming in ticket 05'));
+      page.includes('<h1>Chat</h1>') && page.includes('Send') && !page.includes('coming in ticket 05'));
     check('chat HTML never includes API keys or secret names as values',
       !/sk-ant|sk-proj|re_[A-Za-z0-9]|ANTHROPIC_API_KEY=|OPENAI_API_KEY=/.test(page));
     check('unconfigured setup copy is honest',

@@ -222,7 +222,7 @@ function dashboardPage({ email, snapshot, notice, error }) {
        ${snapshot.goal.definitionOfDone ? `<p>Done when: ${escapeHtml(snapshot.goal.definitionOfDone)}</p>` : ''}
        ${snapshot.goal.nextStep ? `<p>Next step: ${escapeHtml(snapshot.goal.nextStep)}</p>` : ''}
        ${snapshot.goal.targetDate ? `<p>Target: ${escapeHtml(snapshot.goal.targetDate)}</p>` : ''}`
-    : '<p class="empty">No current goal saved yet. Add one under Profile &amp; goals.</p>';
+    : '<p class="empty">No current goal saved yet. Add one under You.</p>';
 
   const tasks = snapshot.unfinished.length
     ? `<ul class="list">${snapshot.unfinished.map((task) => (
