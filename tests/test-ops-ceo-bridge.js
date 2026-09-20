@@ -269,7 +269,7 @@ async function run() {
       desk.ok === true && desk.usedModel === false && desk.ceoBridge === true && fetchCalls === 0);
 
     const sales = await chat.sendChatTurn({
-      question: 'What is the next step?',
+      question: 'Draft a note about the catalog tone.',
       selection: {},
       createdBy: ALLOWED,
       agentId: 'sales',
