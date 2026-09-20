@@ -166,6 +166,24 @@ async function run() {
     check('Office CEO Talk still opens the lavaall-ceo chat route',
       html.includes('href="/ops/chat?agent=lavaall-ceo"')
       && html.includes('CEO Talk waits on the real LAVAALL CEO'));
+    check('desktop Office is full-bleed at laptop width, not a 1100px phone frame',
+      html.includes('class="ops-app is-office"')
+      && html.includes('id="office-hero"')
+      && html.includes('min-width:1200px')
+      && html.includes('.ops-app.is-office .ops-wrap{width:100%;max-width:none;margin:0;}')
+      && html.includes('.office-hero{display:block;position:relative;width:100%;}')
+      && html.includes('.office-stage{width:100%;border:0;border-radius:0;min-height:0;}')
+      && !html.includes('grid-template-columns:minmax(0,1fr) 280px')
+      && !html.includes('min-width:1024px'));
+    check('dashboard content sits below the office scene',
+      html.includes('id="office-dash"')
+      && html.indexOf('id="office-hero"') < html.indexOf('id="office-dash"')
+      && html.includes('<h2>Goal</h2>')
+      && html.includes('<h2>Unfinished tasks</h2>')
+      && html.includes('id="add-task"')
+      && html.includes('id="add-note"')
+      && html.includes('name="returnTo" value="/ops/office"')
+      && html.includes('.office-dash{display:block;margin-top:8px;}'));
   }
 
   {

@@ -66,7 +66,7 @@ Every tab: **2–3 plain sentences**. What it is. What to do. No snobby admin ja
 |---|---|
 | Dashboard | What we are finishing, and the next thing to do. |
 | You | Your role, and the one company goal. |
-| Office | Who sits where. Talk opens that desk. CEO Talk waits on the real LAVAALL CEO. |
+| Office | Who sits where. Talk opens that desk. CEO Talk waits on the real LAVAALL CEO. Desktop ≥1200px: full-bleed scene, Dashboard below. Phone/iPad stay cards. |
 | Chat | Ask about the goal, a task, or a note. Confirm before anything is sent or saved. CEO desk uses the bridge, not the helper. |
 | Memory | Short notes on who we talk to. |
 | Inbox | Mail people sent us. Write a reply, then Confirm send. |
@@ -96,3 +96,4 @@ Every tab: **2–3 plain sentences**. What it is. What to do. No snobby admin ja
 - Pages / copy: `api/ops/_pages.js`
 - Kits behavior: `assets/js/ops-kits.js` (unchanged)
 - Map graph: `api/ops/_map.js` + `assets/js/ops-map.js`
+- Office desktop full-bleed: `api/ops/_office.js` (no Growth Option I full-bleed pattern in-repo; uses Option I tokens and breaks `.ops-wrap` at 1200px)

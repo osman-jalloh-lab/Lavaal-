@@ -229,6 +229,7 @@ function shellPage({ title, email, area, body, notice, error, scripts }) {
     : notice
       ? `<p class="ok" role="status">${escapeHtml(notice)}</p>`
       : '';
+  const officeDesktop = current === 'office';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -243,7 +244,7 @@ function shellPage({ title, email, area, body, notice, error, scripts }) {
 <style>${shellStyles()}</style>
 </head>
 <body>
-<div class="ops-app">
+<div class="ops-app${officeDesktop ? ' is-office' : ''}">
   <aside class="ops-side">
     <div>
       <div class="ops-side-kicker">Internal</div>
@@ -275,44 +276,40 @@ function persistenceBanner(durable) {
   return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Goals, tasks, notes, inbox, calendar, routines, kits, and CEO Talk may reset on a cold start until KV is on.</p>';
 }
 
-function dashboardPage({ email, snapshot, notice, error }) {
-  const goal = snapshot.goal
-    ? `<p><strong>${escapeHtml(snapshot.goal.title)}</strong></p>
-       ${snapshot.goal.definitionOfDone ? `<p>Done when: ${escapeHtml(snapshot.goal.definitionOfDone)}</p>` : ''}
-       ${snapshot.goal.nextStep ? `<p>Next step: ${escapeHtml(snapshot.goal.nextStep)}</p>` : ''}
-       ${snapshot.goal.targetDate ? `<p>Target: ${escapeHtml(snapshot.goal.targetDate)}</p>` : ''}`
+function dashboardSections({ snapshot, returnTo }) {
+  const data = snapshot || {};
+  const back = returnTo === '/ops/office' ? '/ops/office' : '/ops';
+  const goal = data.goal
+    ? `<p><strong>${escapeHtml(data.goal.title)}</strong></p>
+       ${data.goal.definitionOfDone ? `<p>Done when: ${escapeHtml(data.goal.definitionOfDone)}</p>` : ''}
+       ${data.goal.nextStep ? `<p>Next step: ${escapeHtml(data.goal.nextStep)}</p>` : ''}
+       ${data.goal.targetDate ? `<p>Target: ${escapeHtml(data.goal.targetDate)}</p>` : ''}`
     : '<p class="empty">No current goal saved yet. Add one under You.</p>';
 
-  const tasks = snapshot.unfinished.length
-    ? `<ul class="list">${snapshot.unfinished.map((task) => (
+  const unfinished = Array.isArray(data.unfinished) ? data.unfinished : [];
+  const tasks = unfinished.length
+    ? `<ul class="list">${unfinished.map((task) => (
       `<li><span class="tag">${escapeHtml(task.status === 'doing' ? 'Doing' : 'To do')}</span>${escapeHtml(task.title)}${task.nextAction ? ` — ${escapeHtml(task.nextAction)}` : ''}${task.due ? ` · due ${escapeHtml(task.due)}` : ''}</li>`
     )).join('')}</ul>`
     : '<p class="empty">No unfinished tasks. Add one below.</p>';
 
-  const next = snapshot.nextAction
-    ? `<p><strong>${escapeHtml(snapshot.nextAction.detail)}</strong></p><p>${escapeHtml(snapshot.nextAction.title)}</p>`
+  const next = data.nextAction
+    ? `<p><strong>${escapeHtml(data.nextAction.detail)}</strong></p><p>${escapeHtml(data.nextAction.title)}</p>`
     : '<p class="empty">No next action yet. Add a task with an optional next step.</p>';
 
-  const notes = snapshot.notes.length
-    ? `<ul class="list">${snapshot.notes.map((note) => (
+  const recent = Array.isArray(data.notes) ? data.notes : [];
+  const notes = recent.length
+    ? `<ul class="list">${recent.map((note) => (
       `<li><strong>${escapeHtml(note.title)}</strong>${note.body ? ` — ${escapeHtml(note.body)}` : ''}${note.source ? ` · ${escapeHtml(note.source)}` : ''}</li>`
     )).join('')}</ul>`
     : '<p class="empty">No notes yet. Add one below or open Memory.</p>';
 
-  const emptyLead = snapshot.empty
+  const emptyLead = data.empty
     ? '<p class="empty">Nothing saved yet. Add a task or a note below.</p>'
     : '';
+  const returnField = back === '/ops' ? '' : `<input type="hidden" name="returnTo" value="${escapeHtml(back)}"/>`;
 
-  return shellPage({
-    title: 'LAVAALL OS — Dashboard',
-    email,
-    area: 'dashboard',
-    notice,
-    error,
-    body: `
-      ${persistenceBanner(snapshot.durable)}
-      <h1>Dashboard</h1>
-      <p class="lead">What we are finishing, and the next thing to do. Add a task or a note below.</p>
+  return `
       ${emptyLead}
       <div class="grid two">
         <section class="card"><div class="kicker">Now</div><h2>Goal</h2>${goal}</section>
@@ -326,6 +323,7 @@ function dashboardPage({ email, snapshot, notice, error }) {
           <h2>Add a task</h2>
           <form method="POST" action="/ops">
             <input type="hidden" name="action" value="add-task"/>
+            ${returnField}
             <label for="task-title">What to do</label>
             <input id="task-title" name="title" required maxlength="160" placeholder="Follow up on SL quote pack"/>
             <label for="task-next">Next step (optional)</label>
@@ -338,6 +336,7 @@ function dashboardPage({ email, snapshot, notice, error }) {
           <h2>Add a note</h2>
           <form method="POST" action="/ops">
             <input type="hidden" name="action" value="add-note"/>
+            ${returnField}
             <label for="note-title">Note title</label>
             <input id="note-title" name="title" required maxlength="160" placeholder="Supplier call"/>
             <label for="note-body">Body (optional)</label>
@@ -348,6 +347,21 @@ function dashboardPage({ email, snapshot, notice, error }) {
           </form>
         </section>
       </div>
+    `;
+}
+
+function dashboardPage({ email, snapshot, notice, error }) {
+  return shellPage({
+    title: 'LAVAALL OS — Dashboard',
+    email,
+    area: 'dashboard',
+    notice,
+    error,
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <h1>Dashboard</h1>
+      <p class="lead">What we are finishing, and the next thing to do. Add a task or a note below.</p>
+      ${dashboardSections({ snapshot, returnTo: '/ops' })}
     `,
   });
 }
@@ -376,6 +390,7 @@ module.exports = {
   NAV,
   areaInfo,
   dashboardPage,
+  dashboardSections,
   opsThemeVars,
   persistenceBanner,
   shellPage,

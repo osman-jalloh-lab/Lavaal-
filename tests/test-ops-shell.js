@@ -89,6 +89,10 @@ async function run() {
     check('Option I canvas is warm cream not dark navy', html.includes('--canvas:#EDE7E0') && html.includes('--surface:#F3EEE7') && html.includes('--side:#E6DFD7') && !html.includes('#0B1424') && !html.includes('#121C2E'));
     check('Option I accents are LAVAALL cyan and emerald', html.includes('--sky:#2EC4FF') && html.includes('--emerald:#10B981') && html.includes('--sky-deep:#0891B2'));
     check('shell uses a light sidebar workspace', html.includes('class="ops-side"') && html.includes('class="ops-nav"') && html.includes('aria-label="LAVAALL OS"'));
+    check('dashboard home is not the Office full-bleed scene',
+      html.includes('<h1>Dashboard</h1>')
+      && !html.includes('class="ops-app is-office"')
+      && !html.includes('id="office-hero"'));
   }
 
   {

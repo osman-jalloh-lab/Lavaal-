@@ -1,4 +1,8 @@
 // Additive /ops Office — agent desks / presence. Preview only.
+// Desktop ≥1200px: full-bleed camera scene (no 1100px letterbox, no side-by-side
+// roster column). Dashboard goal/unfinished/capture scroll below. Phone stays
+// one card per row; iPad 2-up / landscape 3-up. No Growth Option I full-bleed
+// pattern existed in-repo — tokens stay Option I cream.
 // Approved camera PNGs (untouched) live in /assets/ops/office/cameras/*.png.
 // Phone/iPad cards crop those same photos with object-fit. Researchy uses a
 // pixel crop of the Operations specialist from side.png (03-side.png) — not
@@ -6,7 +10,7 @@
 // not a Vercel function.
 
 const { escapeHtml } = require('./_lib');
-const { persistenceBanner, shellPage } = require('./_shell');
+const { dashboardSections, persistenceBanner, shellPage } = require('./_shell');
 
 const TALK_AGENT_IDS = Object.freeze(['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle']);
 
@@ -186,18 +190,17 @@ function pctBox(spot) {
 function officeStyles() {
   return `
 .office-lead{color:var(--muted);font-size:16px;line-height:1.5;max-width:40rem;margin:0 0 16px;}
-.office-cameras{display:none;flex-wrap:wrap;gap:8px;margin:0 0 14px;}
+.office-hero{display:none;}
+.office-cameras{display:flex;flex-wrap:wrap;gap:8px;}
 .office-cameras button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;}
 .office-cameras button.is-on{background:#E6F7FF;color:var(--sky-deep);border-color:transparent;}
-.office-desk-layout{display:grid;gap:14px;}
-.office-stage-wrap{display:none;}
-.office-stage{position:relative;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:var(--surface);min-height:280px;}
+.office-stage{position:relative;overflow:hidden;background:var(--surface-2);}
 .office-stage svg,.office-stage img.office-camera-photo{display:block;width:100%;height:auto;}
 .office-camera-photo{position:relative;z-index:0;}
 .office-hotspots{position:absolute;inset:0;z-index:1;}
 .office-hotspot{position:absolute;border:2px solid transparent;border-radius:14px;cursor:pointer;background:transparent;padding:0;}
 .office-hotspot:hover,.office-hotspot.is-on{border-color:var(--sky-deep);background:rgba(46,196,255,.12);}
-.office-roster{display:none;}
+.office-roster{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;box-shadow:0 10px 28px rgba(28,20,16,.08);}
 .office-roster h2{font-size:18px;margin-bottom:10px;}
 .office-roster-row{margin-top:8px;}
 .office-roster button,.office-roster a.btn{display:block;width:100%;text-align:left;}
@@ -214,15 +217,22 @@ function officeStyles() {
 .office-card-body h2{font-size:18px;margin-bottom:8px;}
 .office-card .btn{width:auto;margin-top:8px;padding:10px 16px;}
 .office-placeholder-label{font-size:13px;font-weight:700;color:var(--muted);text-align:left;}
-.office-selected{margin-top:12px;font-size:14px;color:var(--muted);}
+.office-selected{margin:0;font-size:14px;color:var(--ink);font-weight:600;}
+.office-dash{display:none;}
 @media (min-width:768px){.office-cards{grid-template-columns:1fr 1fr;}}
 @media (min-width:768px) and (orientation:landscape){.office-cards{grid-template-columns:1fr 1fr 1fr;}}
-@media (min-width:1024px){
-  .office-cameras{display:flex;}
-  .office-desk-layout{grid-template-columns:minmax(0,1fr) 280px;align-items:start;}
-  .office-stage-wrap{display:block;}
-  .office-roster{display:block;}
+@media (min-width:1200px){
+  .ops-app.is-office .ops-main{padding:0 0 48px;}
+  .ops-app.is-office .ops-wrap{width:100%;max-width:none;margin:0;}
+  .office-hero{display:block;position:relative;width:100%;}
+  .office-stage-wrap{display:block;width:100%;}
+  .office-stage{width:100%;border:0;border-radius:0;min-height:0;}
+  .office-cameras{position:absolute;top:16px;left:16px;z-index:2;}
+  .office-roster{display:block;position:absolute;top:16px;right:16px;z-index:2;width:240px;max-height:calc(100% - 32px);overflow:auto;background:rgba(243,238,231,.94);}
+  .office-selected{position:absolute;left:16px;bottom:16px;z-index:2;padding:8px 12px;border-radius:999px;background:rgba(243,238,231,.94);border:1px solid var(--line);}
   .office-cards{display:none;}
+  .office-rest{width:min(1100px,calc(100% - 48px));margin:0 auto;padding:22px 24px 0;}
+  .office-dash{display:block;margin-top:8px;}
 }
 `;
 }
@@ -321,29 +331,37 @@ function officePage({ email, snapshot, notice, error }) {
 <script type="application/json" id="office-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
 <script src="/assets/js/ops-office.js?v=cameras" defer></script>`,
     body: `
-      ${persistenceBanner(snapshot.durable)}
-      <h1>Office</h1>
-      <p class="office-lead">Who sits where. Talk opens that desk’s chat. CEO Talk waits on the real LAVAALL CEO. Chat without an agent is still everyone.</p>
-      <div class="office-cameras" id="office-cameras" role="group" aria-label="Cameras">
-        ${OFFICE_CAMERAS.map((camera, index) => (
-          `<button type="button" data-camera="${escapeHtml(camera.id)}"${index === 0 ? ' class="is-on"' : ''}>${escapeHtml(camera.label)}</button>`
-        )).join('')}
-      </div>
-      <div class="office-desk-layout">
+      <div class="office-hero" id="office-hero">
+        <div class="office-cameras" id="office-cameras" role="group" aria-label="Cameras">
+          ${OFFICE_CAMERAS.map((camera, index) => (
+            `<button type="button" data-camera="${escapeHtml(camera.id)}"${index === 0 ? ' class="is-on"' : ''}>${escapeHtml(camera.label)}</button>`
+          )).join('')}
+        </div>
         <div class="office-stage-wrap">
           <div class="office-stage" id="office-stage">
             ${cameraLayers}
             <div class="office-hotspots" id="office-hotspots"></div>
           </div>
-          <p class="office-selected" id="office-selected">Tap a desk or a name.</p>
         </div>
+        <p class="office-selected" id="office-selected">Tap a desk or a name.</p>
         <aside class="office-roster" id="office-roster">
           <div class="kicker">Agents</div>
           <h2>Roster</h2>
           ${rosterButtons()}
         </aside>
       </div>
-      <div class="office-cards" id="office-cards">${agentCards()}</div>
+      <div class="office-rest">
+        ${persistenceBanner(snapshot.durable)}
+        <h1>Office</h1>
+        <p class="office-lead">Who sits where. Talk opens that desk’s chat. CEO Talk waits on the real LAVAALL CEO. Chat without an agent is still everyone.</p>
+        <div class="office-cards" id="office-cards">${agentCards()}</div>
+        <section class="office-dash" id="office-dash">
+          <div class="kicker">Below the room</div>
+          <h2>Dashboard</h2>
+          <p class="office-lead">Goal, unfinished work, and a place to capture the next thing.</p>
+          ${dashboardSections({ snapshot, returnTo: '/ops/office' })}
+        </section>
+      </div>
     `,
   });
 }
