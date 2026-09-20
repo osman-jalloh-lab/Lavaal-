@@ -22,7 +22,7 @@ function layout({ title, body }) {
 ${opsThemeVars()}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{min-height:100%;}
-body{font-family:'Bricolage Grotesque',sans-serif;background:radial-gradient(900px 520px at 8% -12%,var(--blush),transparent 52%),radial-gradient(700px 420px at 110% 0%,rgba(0,194,255,.12),transparent 48%),var(--canvas);color:var(--text);display:flex;align-items:center;justify-content:center;padding:28px 16px;}
+body{font-family:'Bricolage Grotesque',sans-serif;background:radial-gradient(900px 520px at 8% -12%,var(--blush),transparent 52%),radial-gradient(700px 420px at 110% 0%,rgba(46,196,255,.12),transparent 48%),var(--canvas);color:var(--text);display:flex;align-items:center;justify-content:center;padding:28px 16px;}
 .card{width:min(440px,100%);background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:32px 28px 28px;box-shadow:0 16px 40px rgba(28,20,16,.06);}
 .kicker{display:inline-flex;align-items:center;gap:8px;color:var(--sky-deep);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--emerald);box-shadow:0 0 0 4px var(--emerald-wash);}
@@ -63,7 +63,7 @@ function loginPage({ error, sent, previewLoginUrl } = {}) {
     body: `
       <div class="kicker"><span class="dot" aria-hidden="true"></span> Internal</div>
       <h1>LAVAALL OS</h1>
-      <p>Private operating floor. Enter an authorized work email to receive a one-time sign-in link.</p>
+      <p>Private work floor for Osman and Hamid. Enter an authorized work email to get a one-time sign-in link.</p>
       ${alert}
       <form method="POST" action="/api/ops/auth">
         <input type="hidden" name="action" value="request"/>

@@ -134,7 +134,7 @@ async function run() {
     check('/ops without a session returns the login page (401)', res.statusCode === 401);
     check('/ops login HTML does not include allowlisted emails', !String(res.raw).toLowerCase().includes('osmanjalloh104@gmail.com') && !String(res.raw).toLowerCase().includes('abdulhbah55@gmail.com'));
     check('/ops login HTML has no public signup CTA', !/sign up|create account|register/i.test(String(res.raw)));
-    check('/ops login HTML is Option I cream workspace', String(res.raw).includes('--canvas:#F3EEE8') && String(res.raw).includes('--surface:#F9F4EF') && String(res.raw).includes('#00C2FF') && String(res.raw).includes('--emerald:#0B8F6A') && !String(res.raw).includes('#0B1424'));
+    check('/ops login HTML is Option I cream workspace', String(res.raw).includes('--canvas:#EDE7E0') && String(res.raw).includes('--surface:#F3EEE7') && String(res.raw).includes('#2EC4FF') && String(res.raw).includes('--emerald:#10B981') && !String(res.raw).includes('#0B1424'));
   }
 
   {

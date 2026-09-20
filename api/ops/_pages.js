@@ -37,8 +37,8 @@ function profilePage({ email, store, snapshot, notice, error }) {
     error,
     body: `
       ${persistenceBanner(snapshot.durable)}
-      <h1>Profile &amp; goals</h1>
-      <p>Your working profile and the single current company goal. Nothing is pre-filled.</p>
+      <h1>You</h1>
+      <p class="lead">Your role, and the one thing we are finishing.</p>
       <div class="grid forms">
         <section class="card">
           <div class="kicker">You</div>
@@ -118,60 +118,58 @@ function tasksPage({ email, store, snapshot, notice, error }) {
     : '';
 
   return shellPage({
-    title: 'LAVAALL OS — Projects & tasks',
+    title: 'LAVAALL OS — Tasks',
     email,
     area: 'tasks',
     notice,
     error,
     body: `
       ${persistenceBanner(snapshot.durable)}
-      <h1>Projects &amp; tasks</h1>
-      <p>Shared work list. Status is To do, Doing, or Done. No invented owners or deadlines.</p>
-      <div class="grid forms">
-        <section class="card">
-          <div class="kicker">Projects</div>
-          <h2>Add a project</h2>
-          ${projects}
-          <form method="POST" action="/ops/tasks">
-            <input type="hidden" name="action" value="add-project"/>
-            <input type="hidden" name="returnTo" value="/ops/tasks"/>
-            <label for="project-name">Name</label>
-            <input id="project-name" name="name" required maxlength="160" placeholder="Catalog image pack"/>
-            <label for="project-finish">Finish line</label>
-            <input id="project-finish" name="finishLine" maxlength="240" placeholder="What done looks like"/>
-            <button class="btn" type="submit">Save project</button>
-          </form>
-        </section>
-        <section class="card">
-          <div class="kicker">Tasks</div>
-          <h2>Add a task</h2>
-          ${store.tasks.length ? '' : '<p class="empty">No tasks yet.</p>'}
-          <form method="POST" action="/ops/tasks">
-            <input type="hidden" name="action" value="add-task"/>
-            <input type="hidden" name="returnTo" value="/ops/tasks"/>
-            <label for="task-title-page">Title</label>
-            <input id="task-title-page" name="title" required maxlength="160"/>
-            <label for="task-status">Status</label>
-            <select id="task-status" name="status">
-              ${option('todo', 'To do', true)}
-              ${option('doing', 'Doing', false)}
-              ${option('done', 'Done', false)}
-            </select>
-            <label for="task-next-page">Next action (optional)</label>
-            <input id="task-next-page" name="nextAction" maxlength="200"/>
-            <label for="task-due">Due (optional)</label>
-            <input id="task-due" name="due" type="date"/>
-            <label for="task-project">Project (optional)</label>
-            <select id="task-project" name="projectId">${projectOptions}</select>
-            <button class="btn" type="submit">Save task</button>
-          </form>
-        </section>
-      </div>
+      <h1>Tasks</h1>
+      <p class="lead">Write what to do next. A project is only a folder if you need one.</p>
+      <section class="card">
+        <div class="kicker">Work</div>
+        <h2>Add a task</h2>
+        ${store.tasks.length ? '' : '<p class="empty">No tasks yet.</p>'}
+        <form method="POST" action="/ops/tasks">
+          <input type="hidden" name="action" value="add-task"/>
+          <input type="hidden" name="returnTo" value="/ops/tasks"/>
+          <label for="task-title-page">What to do</label>
+          <input id="task-title-page" name="title" required maxlength="160"/>
+          <label for="task-status">Status</label>
+          <select id="task-status" name="status">
+            ${option('todo', 'To do', true)}
+            ${option('doing', 'Doing', false)}
+            ${option('done', 'Done', false)}
+          </select>
+          <label for="task-next-page">Next step (optional)</label>
+          <input id="task-next-page" name="nextAction" maxlength="200"/>
+          <label for="task-due">Due (optional)</label>
+          <input id="task-due" name="due" type="date"/>
+          <label for="task-project">Folder (optional)</label>
+          <select id="task-project" name="projectId">${projectOptions}</select>
+          <button class="btn" type="submit">Save task</button>
+        </form>
+      </section>
       <section class="card" style="margin-top:14px">
-        <div class="kicker">Open and done</div>
+        <div class="kicker">List</div>
         <h2>All tasks</h2>
         ${tasks ? `<ul class="list">${tasks}</ul>` : '<p class="empty">No tasks yet.</p>'}
       </section>
+      <details class="soft">
+        <summary>Optional folders</summary>
+        <p>Use a folder only if several tasks belong together.</p>
+        ${projects}
+        <form method="POST" action="/ops/tasks">
+          <input type="hidden" name="action" value="add-project"/>
+          <input type="hidden" name="returnTo" value="/ops/tasks"/>
+          <label for="project-name">Folder name</label>
+          <input id="project-name" name="name" required maxlength="160" placeholder="Catalog image pack"/>
+          <label for="project-finish">Done when</label>
+          <input id="project-finish" name="finishLine" maxlength="240" placeholder="What done looks like"/>
+          <button class="btn" type="submit">Save project</button>
+        </form>
+      </details>
     `,
   });
 }
@@ -186,9 +184,9 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
             <input type="hidden" name="action" value="update-note"/>
             <input type="hidden" name="id" value="${escapeHtml(note.id)}"/>
             <input type="hidden" name="returnTo" value="/ops/memory"/>
-            <label>Title <input name="title" required maxlength="160" value="${escapeHtml(note.title)}"/></label>
-            <label>Body <textarea name="body" maxlength="4000">${escapeHtml(note.body)}</textarea></label>
-            <label>Source (optional) <input name="source" maxlength="240" value="${escapeHtml(note.source)}"/></label>
+            <label>Who <input name="title" required maxlength="160" value="${escapeHtml(note.title)}"/></label>
+            <label>What to remember <textarea name="body" maxlength="4000">${escapeHtml(note.body)}</textarea></label>
+            <label>Where you heard it <input name="source" maxlength="240" value="${escapeHtml(note.source)}"/></label>
             <button class="btn btn-sm" type="submit">Save changes</button>
           </form>
           <form method="POST" action="/ops/memory">
@@ -209,8 +207,8 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Memory</h1>
-      <p>Short facts, preferences, and lessons. Search, edit, or delete. Deleted notes leave search and cannot be selected for future chat.</p>
-      <p class="empty">AI-proposed memories (ticket 05) will require review before save. Manual notes save immediately.</p>
+      <p class="lead">Short notes on who we talk to, so the next message is not blank. AI notes require review before save.</p>
+      <p class="empty">Manual notes save right away.</p>
       <div class="grid forms">
         <section class="card">
           <div class="kicker">Capture</div>
@@ -218,11 +216,11 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
           <form method="POST" action="/ops/memory">
             <input type="hidden" name="action" value="add-note"/>
             <input type="hidden" name="returnTo" value="/ops/memory"/>
-            <label for="mem-title">Title</label>
+            <label for="mem-title">Who</label>
             <input id="mem-title" name="title" required maxlength="160" placeholder="SL quote preference"/>
-            <label for="mem-body">Body</label>
+            <label for="mem-body">What to remember</label>
             <textarea id="mem-body" name="body" maxlength="4000" placeholder="Fact, preference, or lesson — no invented metrics."></textarea>
-            <label for="mem-source">Source (optional)</label>
+            <label for="mem-source">Where you heard it</label>
             <input id="mem-source" name="source" maxlength="240" placeholder="Call, email, or page"/>
             <button class="btn" type="submit">Save note</button>
           </form>
@@ -231,7 +229,7 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
           <div class="kicker">Find</div>
           <h2>Search</h2>
           <form method="GET" action="/ops/memory">
-            <label for="mem-q">Text</label>
+            <label for="mem-q">Find a person or note</label>
             <input id="mem-q" name="q" maxlength="200" value="${escapeHtml(query)}" placeholder="Preference, supplier, lesson"/>
             <button class="btn" type="submit">Search</button>
           </form>
@@ -239,7 +237,7 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
         </section>
       </div>
       <section class="card" style="margin-top:14px">
-        <div class="kicker">Library</div>
+        <div class="kicker">People</div>
         <h2>Notes</h2>
         ${list ? `<ul class="list">${list}</ul>` : '<p class="empty">No notes match. Save one or clear search.</p>'}
       </section>
@@ -255,14 +253,14 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
   const goal = store.goal;
   const setupCard = setup.modelConfigured
     ? `<p>Helper connected (${setup.anthropic ? 'Anthropic' : ''}${setup.anthropic && setup.openai ? ' + ' : ''}${setup.openai ? 'OpenAI' : ''}). Lead stays ${escapeHtml(setup.lead)}. Drafts only — nothing is sent or written without confirm.</p>`
-    : '<p class="empty">No Anthropic or OpenAI key on this project. Asking a stored next step still reads the selected record. Anything else shows this setup message — no invented reply. Slack stays secondary.</p>';
+    : '<p class="empty">No Anthropic or OpenAI key on this project. Ask a saved next step and it still reads the record. Anything else shows this message — no invented reply.</p>';
 
   const contextPick = `
     <fieldset class="ctx">
       <legend>Context sent with the next message</legend>
       ${goal
         ? `<label class="check"><input type="checkbox" name="useGoal" value="1" checked/> Goal — ${escapeHtml(goal.title)}${goal.nextStep ? ` · next step: ${escapeHtml(goal.nextStep)}` : ''}</label>`
-        : '<p class="empty">No current goal. Save one under Profile &amp; goals.</p>'}
+        : '<p class="empty">No current goal. Save one under You.</p>'}
       <label for="chat-task">Task (optional)</label>
       <select id="chat-task" name="taskId">
         ${option('', 'No task', true)}
@@ -273,7 +271,7 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
         ${option('', 'No note', true)}
         ${notes.map((note) => option(note.id, note.title, false)).join('')}
       </select>
-      <p>Checked goal and chosen task/note are attached before send. Deleted notes are not listed.</p>
+      <p>Tick the goal and pick a task or note to send with the question.</p>
     </fieldset>`;
 
   const thread = chat.messages.length
@@ -315,22 +313,22 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
     error,
     body: `
       ${persistenceBanner(snapshot.durable)}
-      <h1>Contextual chat</h1>
-      <p>Front door for LAVAALL OS. lavaall-ceo stays lead. Helpers never auto-send mail, auto-deploy, or mutate records.</p>
+      <h1>Chat</h1>
+      <p class="lead">Ask about the goal, a task, or a note. Chat does not send mail or change records until you confirm. Contextual chat stays the front door.</p>
       <div class="grid forms">
         <section class="card">
-          <div class="kicker">Setup</div>
-          <h2>Helper status</h2>
+          <div class="kicker">Ready?</div>
+          <h2>Helper</h2>
           ${setupCard}
         </section>
         <section class="card">
-          <div class="kicker">Drafts</div>
-          <h2>Proposed writes</h2>
+          <div class="kicker">Waiting</div>
+          <h2>Drafts to confirm</h2>
           ${proposalList}
         </section>
       </div>
       <section class="card" style="margin-top:14px">
-        <div class="kicker">Thread</div>
+        <div class="kicker">Talk</div>
         <h2>Conversation</h2>
         ${thread}
         <form method="POST" action="/ops/chat">
@@ -358,7 +356,10 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
          <input type="hidden" name="returnTo" value="/ops/inbox"/>
          <button class="btn btn-sm" type="submit">Refresh live mail</button>
        </form>`
-    : `<p class="empty">Live support@ not connected. Paste a snapshot below — it is never marked as live mail. To list and confirm-send from support@lavaall.com, set OPS_GMAIL_* on a refresh token for that mailbox (scopes gmail.readonly + gmail.send). If only a personal Gmail token is on Preview, keep using paste.</p>`;
+    : `<p class="empty">Live support@ not connected. Paste a snapshot below — it is never marked as live mail.</p>
+       <details class="soft"><summary>Connect live mail later</summary>
+       <p>To list and confirm-send from support@lavaall.com, set OPS_GMAIL_* on a refresh token for that mailbox (scopes gmail.readonly + gmail.send). If only a personal Gmail token is on Preview, keep using paste.</p>
+       </details>`;
 
   const rows = items.length
     ? `<ul class="list">${items.map((item) => (
@@ -392,7 +393,7 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
           <button class="btn" type="submit">Save draft</button>
         </form>
         ${open.sentMessageId
-          ? `<p class="ok">Already sent (id ${escapeHtml(open.sentMessageId)}). Confirm send is idempotent.</p>`
+          ? `<p class="ok">Already sent (id ${escapeHtml(open.sentMessageId)}). Sending again does nothing extra.</p>`
           : `<form method="POST" action="/ops/inbox">
               <input type="hidden" name="action" value="ready-inbox-send"/>
               <input type="hidden" name="id" value="${escapeHtml(open.id)}"/>
@@ -407,7 +408,7 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
                   <input type="hidden" name="returnTo" value="/ops/inbox?thread=${escapeHtml(open.id)}"/>
                   <button class="btn" type="submit">Confirm send</button>
                 </form>`
-              : '<p>Save a draft, then Ready to send, then Confirm send. Nothing goes out before Confirm send.</p>'}`}
+              : '<p>Write the reply, click Ready to send, then Confirm send. The mail does not go out before Confirm send.</p>'}`}
       </section>`
     : '';
 
@@ -426,17 +427,18 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Inbox</h1>
-      <p>support@lavaall.com triage. Either founder may confirm-send. Chat cannot send mail.</p>
-      <div class="grid forms">
+      <p class="lead">Mail people sent us. Write a reply, then Confirm send. Nothing goes out before that.</p>
+      <section class="card">
+        <div class="kicker">Mail</div>
+        <h2>What came in</h2>
+        ${rows}
+      </section>
+      ${openCard}
+      <div class="grid forms" style="margin-top:14px">
         <section class="card">
-          <div class="kicker">Mailbox</div>
-          <h2>Live support@</h2>
-          ${setupCard}
-        </section>
-        <section class="card">
-          <div class="kicker">Manual</div>
+          <div class="kicker">Add</div>
           <h2>Paste a snapshot</h2>
-          <p>Marked as a paste snapshot, not live mail.</p>
+          <p>A copy of a message, not live mail. Use this until support@ is connected.</p>
           <form method="POST" action="/ops/inbox">
             <input type="hidden" name="action" value="paste-inbox"/>
             <input type="hidden" name="returnTo" value="/ops/inbox"/>
@@ -444,23 +446,22 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
             <input id="paste-from" name="from" maxlength="240" placeholder="customer@example.com"/>
             <label for="paste-subject">Subject</label>
             <input id="paste-subject" name="subject" required maxlength="200"/>
-            <label for="paste-body">Body</label>
+            <label for="paste-body">Message</label>
             <textarea id="paste-body" name="body" maxlength="4000"></textarea>
             <button class="btn" type="submit">Save snapshot</button>
           </form>
         </section>
+        <section class="card">
+          <div class="kicker">Live</div>
+          <h2>support@ mailbox</h2>
+          ${setupCard}
+        </section>
       </div>
-      <section class="card" style="margin-top:14px">
-        <div class="kicker">Queue</div>
-        <h2>Threads</h2>
-        ${rows}
-      </section>
-      ${openCard}
-      <section class="card" style="margin-top:14px">
-        <div class="kicker">Audit</div>
+      <details class="soft">
+        <summary>Sent log</summary>
         <h2>Confirm-send log</h2>
         ${auditList}
-      </section>
+      </details>
     `,
   });
 }
@@ -469,14 +470,14 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
   const setup = calendarSetup || { googleConnected: false, calendarIdSet: false, oauthSet: false };
   const events = listEvents(store);
   const setupCard = setup.googleConnected
-    ? `<p>Shared LAVAALL calendar is connected. Refresh pulls events from that calendar only — never Osman’s primary. Creates stay internal-attendee only.</p>
+    ? `<p>Google is connected. Refresh to pull the shared calendar — never Osman’s personal one.</p>
        <form method="POST" action="/ops/calendar">
          <input type="hidden" name="action" value="refresh-calendar"/>
          <input type="hidden" name="returnTo" value="/ops/calendar"/>
          <button class="btn btn-sm" type="submit">Refresh Google agenda</button>
        </form>`
-    : `<p class="empty">Google Calendar is not connected. The manual agenda below still works and is stored in KV. No Google events are invented.</p>
-       <p>To sync a <strong>shared</strong> LAVAALL calendar (not a personal primary calendar):</p>
+    : `<p class="empty">Google Calendar is not connected. Add events below. No Google events are invented.</p>
+       <p>Use a shared LAVAALL calendar, not a personal primary calendar.</p>
        <ol class="list">
          <li>Create a Google Calendar, share it with both founders, and copy its calendar id (not <code>primary</code>).</li>
          <li>Set <code>OPS_GOOGLE_CALENDAR_ID</code> on Vercel Preview.</li>
@@ -494,12 +495,11 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
       return `
         <li>
           ${event.overlaps ? '<span class="tag overlap">Overlaps</span>' : ''}
-          ${event.allDay ? '<span class="tag">All day</span>' : '<span class="tag">Timed</span>'}
-          ${event.googleEventId ? '<span class="tag">Google</span>' : '<span class="tag">Manual</span>'}
           <strong>${escapeHtml(event.title)}</strong>
           <p>${when}${event.attendees.length ? ` · ${escapeHtml(event.attendees.join(', '))}` : ''}</p>
-          ${event.notes ? `<p>${escapeHtml(event.notes)}</p>` : ''}
-          ${event.overlaps ? '<p class="err" role="status">This timed event overlaps another on the same day.</p>' : ''}
+          ${event.overlaps ? '<p class="err" role="status">This overlaps another event the same day.</p>' : ''}
+          <details>
+            <summary>Edit</summary>
           <form method="POST" action="/ops/calendar" class="task-row">
             <input type="hidden" name="action" value="update-event"/>
             <input type="hidden" name="id" value="${escapeHtml(event.id)}"/>
@@ -510,7 +510,7 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
             <label>Start <input name="start" type="time" value="${escapeHtml(event.start)}"/></label>
             <label>End <input name="end" type="time" value="${escapeHtml(event.end)}"/></label>
             <label>Timezone <input name="timezone" maxlength="80" value="${escapeHtml(event.timezone)}"/></label>
-            <label>Internal attendees <input name="attendees" maxlength="400" value="${escapeHtml(event.attendees.join(', '))}"/></label>
+            <label>Who is invited (Osman, Hamid, @lavaall.com) <input name="attendees" maxlength="400" value="${escapeHtml(event.attendees.join(', '))}"/></label>
             <label>Notes <textarea name="notes" maxlength="800">${escapeHtml(event.notes)}</textarea></label>
             <button class="btn btn-sm" type="submit">Save changes</button>
           </form>
@@ -520,6 +520,7 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
             <input type="hidden" name="returnTo" value="/ops/calendar"/>
             <button class="btn btn-sm btn-danger" type="submit">Delete</button>
           </form>
+          </details>
         </li>`;
     }).join('')}</ul>`
     : '<p class="empty">No events yet. Add a timed or all-day event — nothing is pulled from Google until the shared calendar is connected.</p>';
@@ -533,43 +534,40 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Calendar</h1>
-      <p>Shared LAVAALL agenda. Internal attendees only (Osman, Abdulhamid, @lavaall.com). Customer invites stay out of v1.</p>
-      <div class="grid forms">
-        <section class="card">
-          <div class="kicker">Google</div>
-          <h2>Shared calendar</h2>
-          ${setupCard}
-        </section>
-        <section class="card">
-          <div class="kicker">Manual</div>
-          <h2>Add an event</h2>
-          <form method="POST" action="/ops/calendar">
-            <input type="hidden" name="action" value="save-event"/>
-            <input type="hidden" name="returnTo" value="/ops/calendar"/>
-            <label for="cal-title">Title</label>
-            <input id="cal-title" name="title" required maxlength="160" placeholder="Founder sync"/>
-            <label for="cal-date">Date</label>
-            <input id="cal-date" name="date" type="date" required/>
-            <label class="check" for="cal-allday"><input id="cal-allday" type="checkbox" name="allDay" value="1"/> All day</label>
-            <label for="cal-start">Start</label>
-            <input id="cal-start" name="start" type="time"/>
-            <label for="cal-end">End</label>
-            <input id="cal-end" name="end" type="time"/>
-            <label for="cal-tz">Timezone</label>
-            <input id="cal-tz" name="timezone" maxlength="80" value="Africa/Freetown"/>
-            <label for="cal-attendees">Internal attendees (optional)</label>
-            <input id="cal-attendees" name="attendees" maxlength="400" placeholder="osmanjalloh104@gmail.com, ops@lavaall.com"/>
-            <label for="cal-notes">Notes</label>
-            <textarea id="cal-notes" name="notes" maxlength="800"></textarea>
-            <button class="btn" type="submit">Save event</button>
-          </form>
-        </section>
-      </div>
-      <section class="card" style="margin-top:14px">
-        <div class="kicker">Agenda</div>
-        <h2>Events</h2>
+      <p class="lead">What is next. Add a meeting if you need one. Only Osman, Hamid, and @lavaall.com.</p>
+      <section class="card">
+        <div class="kicker">Next</div>
+        <h2>Coming up</h2>
         ${rows}
       </section>
+      <section class="card" style="margin-top:14px">
+        <div class="kicker">New</div>
+        <h2>Add an event</h2>
+        <form method="POST" action="/ops/calendar">
+          <input type="hidden" name="action" value="save-event"/>
+          <input type="hidden" name="returnTo" value="/ops/calendar"/>
+          <label for="cal-title">Name</label>
+          <input id="cal-title" name="title" required maxlength="160" placeholder="Founder sync"/>
+          <label for="cal-date">Date</label>
+          <input id="cal-date" name="date" type="date" required/>
+          <label class="check" for="cal-allday"><input id="cal-allday" type="checkbox" name="allDay" value="1"/> All day</label>
+          <label for="cal-start">Start</label>
+          <input id="cal-start" name="start" type="time"/>
+          <label for="cal-end">End</label>
+          <input id="cal-end" name="end" type="time"/>
+          <label for="cal-tz">Timezone</label>
+          <input id="cal-tz" name="timezone" maxlength="80" value="Africa/Freetown"/>
+          <label for="cal-attendees">Who (optional)</label>
+          <input id="cal-attendees" name="attendees" maxlength="400" placeholder="osmanjalloh104@gmail.com, ops@lavaall.com"/>
+          <label for="cal-notes">Notes</label>
+          <textarea id="cal-notes" name="notes" maxlength="800"></textarea>
+          <button class="btn" type="submit">Save event</button>
+        </form>
+      </section>
+      <details class="soft">
+        <summary>Google Calendar</summary>
+        ${setupCard}
+      </details>
     `,
   });
 }
@@ -671,7 +669,7 @@ function routinesPage({ email, store, snapshot, notice, error, chatSetup }) {
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Saved routines</h1>
-      <p>Reusable prompts. Edit, copy, or run manually. No background schedules and no auto-sends in v1.</p>
+      <p class="lead">Saved questions you run yourself. Copy or run. No background schedules.</p>
       <section class="card">
         <div class="kicker">Helper</div>
         <h2>Run status</h2>
@@ -742,6 +740,7 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
         <div>
           <h1>Kits</h1>
           <p class="kits-sub">Sheet is source of truth</p>
+          <p class="lead">Everyone with a kit. Search by name or number. Change names in the Sheet — this list is read-only.</p>
         </div>
       </div>
       <div class="kits-banner">
