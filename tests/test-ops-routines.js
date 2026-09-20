@@ -1,6 +1,7 @@
 // Ticket 08 — Saved routines: seed, edit, copy, manual run, no schedules.
 const fs = require('fs');
 const path = require('path');
+const { assertPublicLogin } = require('./_public-login');
 
 const opsDir = path.join(__dirname, '../api/ops');
 const lib = require(path.join(opsDir, '_lib.js'));
@@ -196,7 +197,7 @@ async function run() {
 
   {
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-    check('public catalog is still ungated', home.includes('Enterprise IT Hardware') && !home.includes('href="/ops"'));
+    assertPublicLogin(check, home);
   }
 
   {

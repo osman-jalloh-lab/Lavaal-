@@ -1,6 +1,7 @@
 // Ticket 05 — contextual chat: context selection, no fake replies, no auto-send.
 const fs = require('fs');
 const path = require('path');
+const { assertPublicLogin } = require('./_public-login');
 
 const opsDir = path.join(__dirname, '../api/ops');
 const lib = require(path.join(opsDir, '_lib.js'));
@@ -199,7 +200,8 @@ async function run() {
 
   {
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-    check('public catalog still has no /ops chat link', !home.includes('href="/ops"') && home.includes('Enterprise IT Hardware'));
+    assertPublicLogin(check, home);
+    check('public catalog still has no /ops chat link', !home.includes('href="/ops/chat"'));
   }
 
   global.fetch = origFetch;

@@ -1,6 +1,7 @@
 // Tests for api/ops magic-link auth — mocks req/res/fetch so these run in plain node.
 const fs = require('fs');
 const path = require('path');
+const { assertPublicLogin } = require('./_public-login');
 
 const opsDir = path.join(__dirname, '../api/ops');
 const lib = require(path.join(opsDir, '_lib.js'));
@@ -419,7 +420,11 @@ async function run() {
 
   {
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-    check('public index.html is not login-gated and does not advertise /ops', home.includes('Enterprise IT Hardware') && !home.includes('href="/ops"') && !home.includes("href='/ops'"));
+    assertPublicLogin(check, home, 'index.html');
+    const privacy = fs.readFileSync(path.join(__dirname, '../privacy.html'), 'utf8');
+    assertPublicLogin(check, privacy, 'privacy.html');
+    const terms = fs.readFileSync(path.join(__dirname, '../terms.html'), 'utf8');
+    assertPublicLogin(check, terms, 'terms.html');
   }
 
   global.fetch = origFetch;
