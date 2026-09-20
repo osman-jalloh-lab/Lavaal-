@@ -222,10 +222,16 @@ function authed(extra) {
 }
 
 function apiReq(extra) {
-  const pathName = extra && extra.sync ? '/ops/api/kits/sync' : '/ops/api/kits';
+  const kind = extra && extra.status ? 'status' : extra && extra.sync ? 'sync' : 'list';
+  const pathName = kind === 'status'
+    ? '/ops/api/kits/status'
+    : kind === 'sync'
+      ? '/ops/api/kits/sync'
+      : '/ops/api/kits';
+  const area = kind === 'status' ? 'api/kits/status' : kind === 'sync' ? 'api/kits/sync' : 'api/kits';
   return authed(Object.assign({
     url: pathName,
-    query: { area: extra && extra.sync ? 'api/kits/sync' : 'api/kits' },
+    query: { area },
   }, extra));
 }
 
@@ -274,6 +280,8 @@ async function run() {
       && parsed.skipped.length === 1
       && parsed.rows[0].kit_number === 'KIT000TEST01'
       && parsed.rows[0].email === 'ada.example@example.test'
+      && parsed.rows[0].status_col === 4
+      && parsed.rows[0].sheet_row === 2
       && parsed.rows[1].date_added === '9/18/2026');
     check('fixture emails are synthetic only',
       parsed.rows.every((row) => row.email.endsWith('@example.test'))
@@ -504,11 +512,115 @@ async function run() {
       && String(html.raw).includes('data-email="ada.example@example.test"')
       && String(html.raw).includes('id="kit-drawer"')
       && String(html.raw).includes('id="kit-drawer-notes"'));
-    check('kit drawer is read-only with no edit fields',
+    check('kit drawer has deactivate, not name editors',
       Boolean(drawer)
-      && !/<(input|textarea|select)\b/i.test(drawer[0])
+      && !/<textarea\b/i.test(drawer[0])
+      && !/<select\b/i.test(drawer[0])
+      && !/name="person_name"|name="email"|name="notes"/i.test(drawer[0])
+      && drawer[0].includes('kit-status-form')
+      && drawer[0].includes('Deactivate')
       && drawer[0].includes('Open Sheet'));
     kits.resetSheetReader();
+  }
+
+  {
+    store.resetStore();
+    kits.setSheetReader(async () => kits.parseSheetValues(FIXTURE_VALUES));
+    await ops(apiReq({ json: true, method: 'POST', sync: true, body: { csrf: lib.createCsrfToken(ALLOWED) } }), mockRes());
+    kits.resetSheetReader();
+    kits.setSheetWriter(async () => ({ error: 'sheet_write_denied' }));
+    const csrf = lib.createCsrfToken(ALLOWED);
+    const deniedAgent = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/kits/status',
+      query: { area: 'api/kits/status' },
+      headers: { 'x-lavaall-agent': 'lavaall-ceo', authorization: 'Bearer simulated-agent-token' },
+      body: { csrf, kit_number: 'KIT000TEST01', status: 'Inactive' },
+    }), deniedAgent);
+    check('simulated agent cannot deactivate even with a founder cookie',
+      deniedAgent.statusCode === 403 && deniedAgent.body.error === 'agent_denied');
+    const noCsrf = mockRes();
+    await ops(apiReq({ json: true, method: 'POST', status: true, body: { kit_number: 'KIT000TEST01', status: 'Inactive' } }), noCsrf);
+    check('founder status without CSRF is 403', noCsrf.statusCode === 403 && noCsrf.body.error === 'csrf');
+    const unauth = mockRes();
+    await ops({
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      query: { area: 'api/kits/status' },
+      url: '/ops/api/kits/status',
+      body: { csrf, kit_number: 'KIT000TEST01', status: 'Inactive' },
+    }, unauth);
+    check('unauthenticated POST /ops/api/kits/status is 401', unauth.statusCode === 401 && unauth.body.error === 'sign_in_required');
+    const badStatus = mockRes();
+    await ops(apiReq({ json: true, method: 'POST', status: true, body: { csrf, kit_number: 'KIT000TEST01', status: 'Returned' } }), badStatus);
+    check('founder cannot set Returned from /ops', badStatus.statusCode === 400 && badStatus.body.error === 'invalid_status');
+    const deactivated = mockRes();
+    await ops(apiReq({
+      json: true,
+      method: 'POST',
+      status: true,
+      body: { csrf, kit_number: 'KIT000TEST01', status: 'Inactive' },
+    }), deactivated);
+    check('Sheet write failure still sets mirror Inactive',
+      deactivated.statusCode === 200
+      && deactivated.body.ok === true
+      && deactivated.body.sheetUpdated === false
+      && deactivated.body.kit
+      && deactivated.body.kit.status === 'Inactive'
+      && deactivated.body.kit.kit_number === 'KIT000TEST01');
+    check('founder banner says Sheet SoT was not updated',
+      String(deactivated.body.banner || '').includes('Sheet was not updated')
+      && String(deactivated.body.sheetWriteBanner || '').includes('write permission')
+      && deactivated.body.pendingSheetWrite
+      && deactivated.body.pendingSheetWrite.kit_number === 'KIT000TEST01'
+      && deactivated.body.pendingSheetWrite.status === 'Inactive');
+    const html = mockRes();
+    await ops(authed({ json: false, url: '/ops/kits', query: { area: 'kits' } }), html);
+    check('Kits page shows the Sheet-not-updated banner',
+      String(html.raw).includes('Sheet was not updated')
+      && /<p class="err" id="kits-sheet-banner" role="status">/.test(String(html.raw)));
+    kits.setSheetReader(async () => kits.parseSheetValues(FIXTURE_VALUES));
+    const refresh = mockRes();
+    await ops(apiReq({ json: true, method: 'POST', sync: true, body: { csrf: lib.createCsrfToken(ALLOWED) } }), refresh);
+    const ada = refresh.body.kits.find((row) => row.kit_number === 'KIT000TEST01');
+    check('Refresh restores Sheet SoT and clears the pending banner',
+      refresh.statusCode === 200
+      && ada && ada.status === 'Active'
+      && !refresh.body.pendingSheetWrite
+      && !refresh.body.sheetWriteBanner);
+    kits.resetSheetReader();
+    kits.setSheetWriter(async () => ({ ok: true }));
+    const written = mockRes();
+    await ops(apiReq({
+      json: true,
+      method: 'POST',
+      status: true,
+      body: { csrf: lib.createCsrfToken(ALLOWED), kit_number: 'KIT000TEST01', status: 'Inactive' },
+    }), written);
+    check('Sheet write success updates mirror without a diverge banner',
+      written.statusCode === 200
+      && written.body.sheetUpdated === true
+      && written.body.kit.status === 'Inactive'
+      && !written.body.banner
+      && !written.body.sheetWriteBanner
+      && !written.body.pendingSheetWrite);
+    kits.resetSheetWriter();
+    kits.setSheetWriter(async () => ({ error: 'sheet_write_denied' }));
+    const reactivated = mockRes();
+    await ops(apiReq({
+      json: true,
+      method: 'POST',
+      status: true,
+      body: { csrf: lib.createCsrfToken(ALLOWED), kit_number: 'KIT000TEST01', status: 'Active' },
+    }), reactivated);
+    check('founder can reactivate when Sheet write is unavailable',
+      reactivated.statusCode === 200
+      && reactivated.body.kit.status === 'Active'
+      && reactivated.body.sheetUpdated === false
+      && String(reactivated.body.banner || '').includes('Sheet was not updated'));
+    kits.resetSheetWriter();
   }
 
   {

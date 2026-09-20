@@ -325,7 +325,11 @@ function genericRequestMessage() {
 }
 
 function genericSignInFailure() {
-  return 'Could not sign in with that email.';
+  return 'That email isn’t allowed.';
+}
+
+function genericRateLimitMessage() {
+  return 'Please wait a moment and try again.';
 }
 
 function genericLinkFailure() {
@@ -547,6 +551,7 @@ module.exports = {
   genericLinkFailure,
   genericRequestMessage,
   genericSignInFailure,
+  genericRateLimitMessage,
   instantLoginEnabled,
   getSecret,
   gmailConfigured,

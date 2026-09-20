@@ -16,6 +16,7 @@ const {
   genericLinkFailure,
   genericRequestMessage,
   genericSignInFailure,
+  genericRateLimitMessage,
   instantLoginEnabled,
   isAllowlisted,
   looksLikeAgentRequest,
@@ -66,7 +67,7 @@ async function handleRequest(req, res) {
 
   const ip = clientIp(req);
   if (rateLimited(`ip:${ip}`, 30_000)) {
-    return requestFailed(req, res, 429, 'rate_limited', 'Please wait a moment before requesting another link.');
+    return requestFailed(req, res, 429, 'rate_limited', genericRateLimitMessage());
   }
 
   const email = typeof body.email === 'string' ? body.email : '';

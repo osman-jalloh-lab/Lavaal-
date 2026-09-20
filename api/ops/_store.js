@@ -492,6 +492,9 @@ function normalizeKit(row) {
     date_added: normalizeDateAdded(row.date_added),
     notes: clean(row.notes, 2000),
     sheet_row: Number.isFinite(sheetRow) && sheetRow > 0 ? Math.floor(sheetRow) : null,
+    status_col: Number.isFinite(Number(row.status_col)) && Number(row.status_col) > 0
+      ? Math.floor(Number(row.status_col))
+      : null,
     synced_at: Number.isFinite(row.synced_at) ? row.synced_at : 0,
     updated_at: Number.isFinite(row.updated_at) ? row.updated_at : Date.now(),
   };
@@ -518,6 +521,19 @@ function searchKits(storeData, query) {
   });
 }
 
+function normalizePendingSheetWrite(row) {
+  if (!row || typeof row !== 'object') return null;
+  const kitNumber = clean(row.kit_number, 40).toUpperCase();
+  const status = normalizeKitStatus(row.status);
+  if (!kitNumber || (status !== 'Active' && status !== 'Inactive')) return null;
+  return {
+    kit_number: kitNumber,
+    status,
+    at: Number.isFinite(row.at) ? row.at : Date.now(),
+    reason: clean(row.reason, 80) || 'needs_permission',
+  };
+}
+
 function normalizeKitsMeta(row) {
   if (!row || typeof row !== 'object') return null;
   return {
@@ -526,6 +542,7 @@ function normalizeKitsMeta(row) {
     unknown: Number.isFinite(row.unknown) ? row.unknown : 0,
     skipped: Number.isFinite(row.skipped) ? row.skipped : 0,
     syncedBy: clean(row.syncedBy, 120),
+    pendingSheetWrite: normalizePendingSheetWrite(row.pendingSheetWrite),
   };
 }
 
@@ -569,6 +586,7 @@ async function applyKitsSync({ rows, syncedBy, now }) {
       unknown,
       skipped,
       syncedBy,
+      pendingSheetWrite: null,
     });
     await writeStore(storeData);
     return {
@@ -579,6 +597,31 @@ async function applyKitsSync({ rows, syncedBy, now }) {
       synced_at: new Date(syncedAt).toISOString(),
       kits: listKits(storeData),
     };
+  });
+}
+
+async function updateKitStatus(kitNumber, status, { pendingSheetWrite, updatedBy } = {}) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const number = clean(kitNumber, 40).toUpperCase();
+    const nextStatus = normalizeKitStatus(status);
+    if (nextStatus !== 'Active' && nextStatus !== 'Inactive') return { error: 'invalid_status' };
+    const index = (storeData.kits || []).findIndex((row) => row.kit_number === number);
+    if (index === -1) return { error: 'kit_not_found' };
+    const current = storeData.kits[index];
+    const next = normalizeKit(Object.assign({}, current, {
+      status: nextStatus,
+      updated_at: Date.now(),
+    }));
+    if (!next) return { error: 'kit_not_found' };
+    storeData.kits[index] = next;
+    const meta = storeData.kitsMeta || {};
+    storeData.kitsMeta = normalizeKitsMeta(Object.assign({}, meta, {
+      pendingSheetWrite: pendingSheetWrite === undefined ? meta.pendingSheetWrite : pendingSheetWrite,
+      syncedBy: updatedBy || meta.syncedBy,
+    }));
+    await writeStore(storeData);
+    return { ok: true, kit: next, pendingSheetWrite: storeData.kitsMeta && storeData.kitsMeta.pendingSheetWrite };
   });
 }
 
@@ -1286,6 +1329,7 @@ module.exports = {
   addEvent,
   addInboxItem,
   applyKitsSync,
+  updateKitStatus,
   addMailAudit,
   deleteEvent,
   getEvent,

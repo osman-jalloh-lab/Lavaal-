@@ -8,7 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const layout = document.getElementById('kits-layout');
   const loading = document.getElementById('kits-loading');
   const form = document.getElementById('kits-sync-form');
+  const statusForm = document.getElementById('kit-status-form');
   let status = '';
+  let openRow = null;
 
   function applyFilter() {
     const needle = search && search.value ? search.value.trim().toLowerCase() : '';
@@ -24,8 +26,51 @@ document.addEventListener('DOMContentLoaded', () => {
     if (empty && rows.length) empty.hidden = visible !== 0;
   }
 
+  function paintStatus(row, nextStatus) {
+    if (!row) return;
+    row.setAttribute('data-status', nextStatus);
+    const badge = row.querySelector('.kit-status');
+    if (badge) {
+      badge.className = 'kit-status is-' + String(nextStatus || 'unknown').toLowerCase();
+      badge.textContent = nextStatus || '';
+    }
+  }
+
+  function showSheetBanner(text) {
+    const banner = document.getElementById('kits-sheet-banner');
+    if (!banner) return;
+    if (text) banner.textContent = text;
+    banner.hidden = !text;
+  }
+
+  function bindStatusForm(row) {
+    const submit = document.getElementById('kit-status-submit');
+    const number = document.getElementById('kit-status-number');
+    const value = document.getElementById('kit-status-value');
+    const rowStatus = row ? row.getAttribute('data-status') || '' : '';
+    if (number) number.value = row ? row.getAttribute('data-kit') || '' : '';
+    if (rowStatus === 'Active') {
+      if (value) value.value = 'Inactive';
+      if (submit) {
+        submit.hidden = false;
+        submit.textContent = 'Deactivate';
+      }
+      return;
+    }
+    if (rowStatus === 'Inactive') {
+      if (value) value.value = 'Active';
+      if (submit) {
+        submit.hidden = false;
+        submit.textContent = 'Reactivate';
+      }
+      return;
+    }
+    if (submit) submit.hidden = true;
+  }
+
   function openDrawer(row) {
     if (!drawer || !row) return;
+    openRow = row;
     rows.forEach((item) => item.classList.toggle('is-open', item === row));
     drawer.hidden = false;
     if (layout) layout.classList.add('has-drawer');
@@ -41,13 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dateNode) dateNode.textContent = row.getAttribute('data-date') || '—';
     if (emailNode) emailNode.textContent = row.getAttribute('data-email') || '—';
     if (notesNode) notesNode.textContent = row.getAttribute('data-notes') || '—';
+    bindStatusForm(row);
   }
 
   function closeDrawer() {
     if (!drawer) return;
+    openRow = null;
     drawer.hidden = true;
     if (layout) layout.classList.remove('has-drawer');
     rows.forEach((row) => row.classList.remove('is-open'));
+    bindStatusForm(null);
   }
 
   if (search) search.addEventListener('input', applyFilter);
@@ -83,6 +131,48 @@ document.addEventListener('DOMContentLoaded', () => {
   if (form) {
     form.addEventListener('submit', () => {
       if (loading) loading.hidden = false;
+    });
+  }
+
+  if (statusForm) {
+    statusForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const csrf = statusForm.querySelector('[name="csrf"]');
+      const number = document.getElementById('kit-status-number');
+      const value = document.getElementById('kit-status-value');
+      const submit = document.getElementById('kit-status-submit');
+      if (submit) submit.disabled = true;
+      try {
+        const response = await fetch('/ops/api/kits/status', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            csrf: csrf ? csrf.value : '',
+            kit_number: number ? number.value : '',
+            status: value ? value.value : '',
+          }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload || !payload.ok || !payload.kit) {
+          window.location.reload();
+          return;
+        }
+        const row = rows.find((item) => (item.getAttribute('data-kit') || '') === payload.kit.kit_number) || openRow;
+        paintStatus(row, payload.kit.status);
+        const statusNode = document.getElementById('kit-drawer-status');
+        if (statusNode) statusNode.textContent = payload.kit.status;
+        bindStatusForm(row);
+        applyFilter();
+        showSheetBanner(payload.sheetWriteBanner || payload.banner || '');
+      } catch (err) {
+        window.location.reload();
+      } finally {
+        if (submit) submit.disabled = false;
+      }
     });
   }
 

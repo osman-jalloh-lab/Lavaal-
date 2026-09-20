@@ -68,6 +68,11 @@ function kitNodeId(kitNumber) {
   return `kit:${clean(kitNumber, 40).toUpperCase()}`;
 }
 
+function kitCanvasLabel(kitNumber) {
+  const value = clean(kitNumber, 40).toUpperCase();
+  return value.length > 6 ? value.slice(-6) : value;
+}
+
 function upsertPerson(people, name, patch) {
   const title = stripEmail(name, 160);
   const key = keyName(title);
@@ -119,7 +124,7 @@ function buildMapGraph(storeData) {
       id,
       type: 'kit',
       title: personName ? `${kitNumber} · ${personName}` : kitNumber,
-      label: kitNumber,
+      label: kitCanvasLabel(kitNumber),
       working: workingText(
         kit.notes,
         `${kit.status || 'Unknown'} in the registry. Open Kits for the person and status.`

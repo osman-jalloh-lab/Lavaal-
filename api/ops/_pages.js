@@ -21,6 +21,7 @@ const {
   statusLabel,
 } = require('./_store');
 const { buildMapGraph } = require('./_map');
+const { SHEET_WRITE_BANNER } = require('./_kits');
 const { persistenceBanner, shellPage } = require('./_shell');
 
 function option(value, label, selected) {
@@ -689,6 +690,7 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
   const kits = listKits(store);
   const setup = kitsSetup || { sheetConfigured: false, sheetUrl: '' };
   const syncedAt = lastKitsSync(store);
+  const pending = store && store.kitsMeta ? store.kitsMeta.pendingSheetWrite : null;
   const openHref = setup.sheetUrl || '';
   const token = csrf || '';
   const rows = kits.map((kit) => {
@@ -740,9 +742,10 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
         <div>
           <h1>Kits</h1>
           <p class="kits-sub">Sheet is source of truth</p>
-          <p class="lead">Everyone with a kit. Search by name or number. Change names in the Sheet — this list is read-only.</p>
+          <p class="lead">Everyone with a kit. Search by name or number. Change names in the Sheet. You can deactivate a kit here.</p>
         </div>
       </div>
+      <p class="err" id="kits-sheet-banner" role="status"${pending ? '' : ' hidden'}>${escapeHtml(SHEET_WRITE_BANNER)}</p>
       <div class="kits-banner">
         <span>Sheet is SoT · last sync ${escapeHtml(formatKitsSync(syncedAt))}</span>
         <form method="POST" action="/ops/api/kits/sync" id="kits-sync-form">
@@ -766,7 +769,7 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
             <div class="kits-skel"></div>
           </div>
           ${table}
-          <p class="kits-foot"><span id="kits-count">${kits.length} kits</span><span>read-only</span></p>
+          <p class="kits-foot"><span id="kits-count">${kits.length} kits</span><span>Sheet is SoT</span></p>
         </section>
         <aside class="kit-drawer" id="kit-drawer" hidden>
           <div class="kit-drawer-top">
@@ -782,6 +785,13 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
             <dt>Notes</dt><dd id="kit-drawer-notes"></dd>
           </dl>
           <p>${sheetLink}</p>
+          <form method="POST" action="/ops/api/kits/status" id="kit-status-form" class="kit-status-form">
+            <input type="hidden" name="csrf" value="${escapeHtml(token)}"/>
+            <input type="hidden" name="returnTo" value="/ops/kits"/>
+            <input type="hidden" name="kit_number" id="kit-status-number" value=""/>
+            <input type="hidden" name="status" id="kit-status-value" value="Inactive"/>
+            <button class="btn btn-sm" type="submit" id="kit-status-submit" hidden>Deactivate</button>
+          </form>
         </aside>
       </div>
     `,

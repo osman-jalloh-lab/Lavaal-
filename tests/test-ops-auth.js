@@ -190,8 +190,12 @@ async function run() {
     check('unknown email cannot get an instant session',
       res.statusCode === 401
       && res.body && res.body.error === 'sign_in_failed'
+      && res.body.message === 'That email isn’t allowed.'
       && !res.headers['Set-Cookie']
-      && !/allowlist|unknown account/i.test(JSON.stringify(res.body)));
+      && !/allowlist|unknown account|requesting another|sign-in link|magic/i.test(JSON.stringify(res.body)));
+    check('deny copy is plain and does not mention a link',
+      lib.genericSignInFailure() === 'That email isn’t allowed.'
+      && !/link|magic|requesting/i.test(lib.genericSignInFailure()));
   }
 
   {
@@ -203,7 +207,11 @@ async function run() {
       body: { action: 'request', email: ALLOWED },
     }), res);
     check('agent cannot use instant login',
-      res.statusCode === 403 && res.body.error === 'agent_denied' && !res.headers['Set-Cookie']);
+      res.statusCode === 403
+      && res.body.error === 'agent_denied'
+      && res.body.message === 'That email isn’t allowed.'
+      && !res.headers['Set-Cookie']
+      && !/requesting another|sign-in link|magic/i.test(JSON.stringify(res.body)));
   }
 
   {

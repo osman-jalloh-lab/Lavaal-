@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const capNote = document.getElementById('map-cap');
   const placeholder = 'Tap a bubble. You’ll see what it is, what we’re working on, and a link to the real Kits, Memory, or Tasks record.';
   const typeLabel = { kit: 'Kit', person: 'Person', task: 'Task', decision: 'Decision' };
-  const radius = { kit: 20, person: 18, task: 18, decision: 26 };
+  const radius = { kit: 13, person: 11, task: 11, decision: 15 };
   const drifts = ['float-a', 'float-b', 'float-c'];
   const ns = 'http://www.w3.org/2000/svg';
   let graph = { nodes: [], edges: [] };
@@ -40,16 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const decisions = nodes.filter((node) => node.type === 'decision');
     const others = nodes.filter((node) => node.type !== 'decision');
     decisions.forEach((node, index) => {
-      const spread = (index - (decisions.length - 1) / 2) * 52;
-      node.x = clamp(cx + spread, 36, width - 36);
+      const spread = (index - (decisions.length - 1) / 2) * 40;
+      node.x = clamp(cx + spread, 28, width - 28);
       node.y = cy;
     });
     others.forEach((node, index) => {
       const angle = (index * 2.399963) % (Math.PI * 2);
-      const rad = 48 + Math.sqrt(index + 1) * 26;
-      const wobble = node.type === 'kit' ? 0 : node.type === 'person' ? 8 : -6;
-      node.x = clamp(cx + Math.cos(angle) * rad, 28, width - 28);
-      node.y = clamp(cy + Math.sin(angle) * (rad * 0.82) + wobble, 28, height - 28);
+      const rad = 36 + Math.sqrt(index + 1) * 20;
+      const wobble = node.type === 'kit' ? 0 : node.type === 'person' ? 6 : -4;
+      node.x = clamp(cx + Math.cos(angle) * rad, 22, width - 22);
+      node.y = clamp(cy + Math.sin(angle) * (rad * 0.78) + wobble, 22, height - 22);
     });
     if (nodes.length === 1) {
       nodes[0].x = cx;
@@ -114,6 +114,15 @@ document.addEventListener('DOMContentLoaded', () => {
     card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  function relatedIds(id) {
+    const ids = new Set([id]);
+    (graph.edges || []).forEach((edge) => {
+      if (edge.from === id) ids.add(edge.to);
+      if (edge.to === id) ids.add(edge.from);
+    });
+    return ids;
+  }
+
   function draw() {
     if (!svg) return;
     const shown = visibleNodes();
@@ -122,12 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     const edges = (graph.edges || []).filter((edge) => shownIds.has(edge.from) && shownIds.has(edge.to));
     const byId = new Map(shown.map((node) => [node.id, node]));
+    const related = selectedId ? relatedIds(selectedId) : null;
     edges.forEach((edge) => {
       const a = byId.get(edge.from);
       const b = byId.get(edge.to);
       if (!a || !b) return;
+      const on = Boolean(selectedId && (edge.from === selectedId || edge.to === selectedId));
       svg.appendChild(svgEl('line', {
-        class: 'map-edge',
+        class: `map-edge${on ? ' is-on' : ''}`,
         x1: a.x,
         y1: a.y,
         x2: b.x,
@@ -138,8 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
     shown.forEach((node, index) => {
       const hay = String(node.search || `${node.title} ${node.label}`).toLowerCase();
       const hit = !needle || hay.indexOf(needle) !== -1;
+      const isOn = selectedId === node.id;
+      const isRelated = Boolean(related && !isOn && related.has(node.id));
+      const isIdle = Boolean(selectedId && !isOn && !isRelated);
       const group = svgEl('g', {
-        class: `map-node map-${node.type} ${drifts[index % drifts.length]}${selectedId === node.id ? ' is-on' : ''}${needle && hit ? ' is-hit' : ''}${needle && !hit ? ' is-dim' : ''}`,
+        class: `map-node map-${node.type} ${drifts[index % drifts.length]}${isOn ? ' is-on' : ''}${isRelated ? ' is-related' : ''}${isIdle ? ' is-idle' : ''}${needle && hit ? ' is-hit' : ''}${needle && !hit ? ' is-dim' : ''}`,
         'data-id': node.id,
         tabindex: '0',
         role: 'button',
@@ -148,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
       group.appendChild(svgEl('circle', {
         cx: node.x,
         cy: node.y,
-        r: radius[node.type] || 18,
+        r: radius[node.type] || 11,
       }));
       const text = svgEl('text', {
         x: node.x,

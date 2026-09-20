@@ -101,6 +101,7 @@ function parseSheetValues(values) {
     });
     const kitNumber = String(raw.kit_number || '').trim().toUpperCase();
     const personName = String(raw.person_name || '').trim();
+    const statusCol = headers.indexOf('status') + 1;
     if (!kitNumber || !personName) {
       skipped.push({ sheet_row: sheetRow, kit_number: kitNumber });
       return;
@@ -113,6 +114,7 @@ function parseSheetValues(values) {
       date_added: raw.date_added || '',
       notes: raw.notes || '',
       sheet_row: sheetRow,
+      status_col: statusCol > 0 ? statusCol : null,
     });
   });
   return { rows: parsed, skipped };

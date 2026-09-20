@@ -143,6 +143,7 @@ textarea{min-height:88px;resize:vertical;}
 .kit-drawer dt{color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);}
 .kit-drawer dd{color:var(--text);margin:4px 0 0;word-break:break-word;font-size:13px;}
 .kit-drawer .btn{width:auto;}
+.kit-status-form{margin-top:16px;}
 .map-lead{color:var(--muted);margin:.35rem 0 12px;max-width:36rem;font-size:15px;}
 .map-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
 .map-chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--line);}
@@ -164,17 +165,19 @@ textarea{min-height:88px;resize:vertical;}
 @media(min-width:900px){.map-stage{min-height:420px;}}
 .map-stage svg{width:100%;height:340px;display:block;}
 @media(min-width:900px){.map-stage svg{height:420px;}}
-.map-edge{stroke:#D1D5DB;stroke-width:1.5;}
+.map-edge{stroke:#E5E0D8;stroke-width:1.15;opacity:.62;}
+.map-edge.is-on{stroke:var(--sky-deep);stroke-width:1.85;opacity:.95;}
 .map-node{cursor:pointer;}
-.map-node circle{stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 4px 10px rgba(28,25,23,.1));}
-.map-node text{font-size:11px;font-weight:650;fill:var(--text);pointer-events:none;}
+.map-node circle{stroke:#fff;stroke-width:2;filter:drop-shadow(0 3px 8px rgba(28,25,23,.08));}
+.map-node text{font-size:9px;font-weight:650;fill:var(--text);pointer-events:none;}
 .map-kit circle{fill:var(--sky);}
 .map-person circle{fill:var(--emerald);}
 .map-task circle{fill:#F59E0B;}
 .map-decision circle{fill:#8B5CF6;}
-.map-node.is-on circle{stroke:var(--sky-deep);stroke-width:3;}
-.map-node.is-hit circle{stroke:var(--sky-deep);stroke-width:3;}
-.map-node.is-dim{opacity:.28;}
+.map-node.is-on circle{stroke:var(--sky-deep);stroke-width:2.6;}
+.map-node.is-related circle{stroke:var(--sky-deep);stroke-width:2.2;}
+.map-node.is-hit circle{stroke:var(--sky-deep);stroke-width:2.4;}
+.map-node.is-dim,.map-node.is-idle{opacity:.32;}
 @keyframes mapDriftA{0%,100%{transform:translate(0,0)}50%{transform:translate(4px,-5px)}}
 @keyframes mapDriftB{0%,100%{transform:translate(0,0)}50%{transform:translate(-5px,3px)}}
 @keyframes mapDriftC{0%,100%{transform:translate(0,0)}50%{transform:translate(3px,4px)}}

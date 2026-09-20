@@ -9,6 +9,7 @@ const {
   hydrateKitsIfEmpty,
   kitsGuard,
   kitsListPayload,
+  setKitStatus,
   syncKitsFromSheet,
   verifyKitsCsrf,
 } = require('./_kits');
@@ -253,7 +254,10 @@ function writeStatus(error) {
       return 503;
     case 'sheet_unconfigured':
     case 'invalid_csrf':
+    case 'invalid_status':
       return 400;
+    case 'kit_not_found':
+      return 404;
     case 'agent_denied':
     case 'forbidden':
     case 'csrf':
@@ -474,6 +478,7 @@ function kitsApiKind(req) {
   const area = String(firstQueryValue(req, 'area') || '');
   const pathOnly = String(req.url || '').split('?')[0].replace(/\/+$/, '');
   const hay = `${area} ${pathOnly}`.toLowerCase();
+  if (hay.includes('api/kits/status')) return 'status';
   if (hay.includes('api/kits/sync')) return 'sync';
   if (/(^|[\s/])api\/kits$/.test(hay) || area === 'api/kits') return 'list';
   return '';
@@ -533,7 +538,41 @@ async function handleKitsApi(req, res) {
   const kitsReq = { method: 'GET', headers: req.headers, query: { area: 'kits' }, url: '/ops/kits' };
   if (!verifyKitsCsrf(access.session, req, body)) {
     if (wantsJson(req)) json(res, 403, { error: 'csrf' });
-    else await renderArea(kitsReq, res, access.session, { error: 'Refresh was rejected. Reload Kits and try again.' });
+    else await renderArea(kitsReq, res, access.session, {
+      error: kind === 'status'
+        ? 'Status change was rejected. Reload Kits and try again.'
+        : 'Refresh was rejected. Reload Kits and try again.',
+    });
+    return true;
+  }
+  if (kind === 'status') {
+    const result = await setKitStatus({
+      kitNumber: body.kit_number || body.kit || '',
+      status: body.status,
+      updatedBy: access.session.email,
+    });
+    if (result.error) {
+      const message = result.error === 'kit_not_found'
+        ? 'That kit is not in the mirror.'
+        : result.error === 'invalid_status'
+          ? 'Status can only be Active or Inactive here.'
+          : result.error === 'store_unavailable'
+            ? "Couldn't update kit status."
+            : 'Could not update that kit.';
+      if (wantsJson(req)) json(res, writeStatus(result.error), { error: result.error });
+      else await renderArea(kitsReq, res, access.session, { error: message });
+      return true;
+    }
+    if (wantsJson(req)) {
+      try {
+        const store = await readStore();
+        json(res, 200, Object.assign({ ok: true }, result, kitsListPayload(store, access.session, {})));
+      } catch {
+        json(res, 200, Object.assign({ ok: true }, result));
+      }
+      return true;
+    }
+    redirect(res, safeReturnTo(body.returnTo || '/ops/kits'));
     return true;
   }
   const result = await syncKitsFromSheet({ syncedBy: access.session.email });

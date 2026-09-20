@@ -1,7 +1,7 @@
 // Ticket 10 — Kit Registry → private /ops mirror via Google Drive export.
-// Sheet remains source of truth. /ops is read-only. Agents default-deny.
-// Drive CSV/XLSX only — no Sheets API, no spreadsheets.readonly.
-// Underscore prefix: not a Vercel function. No npm. Never log emails.
+// Sheet remains source of truth. Status deactivate may try a Sheet write; if
+// the token is drive.readonly, the mirror updates and a banner says so.
+// Agents default-deny. Underscore prefix: not a Vercel function. No npm. Never log emails.
 
 const { refreshGmailAccessToken } = require('./_gmail');
 const {
@@ -15,8 +15,10 @@ const {
   KIT_STATUSES,
   lastKitsSync,
   listKits,
+  normalizeKitStatus,
   readStore,
   searchKits,
+  updateKitStatus,
 } = require('./_store');
 const {
   createCsrfToken,
@@ -36,8 +38,11 @@ const CSV_MIME = 'text/csv';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const PREVIEW_KIT_REGISTRY_FILE_ID = '155IRHtVgDcAVXeeW6EU8X4fw7eOpjX4pgSejR92Ch_4';
 const HYDRATE_COOLDOWN_MS = 15000;
+const SHEET_WRITE_BANNER = 'Updated here. The Sheet was not updated — this needs a broader Sheets or Drive write permission. Refresh will take the Sheet’s status until then.';
+const SHEETS_VALUES_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 let sheetReader = fetchDriveRows;
+let sheetWriter = writeSheetStatusCell;
 let lastHydrateAttempt = 0;
 
 function sheetId() {
@@ -185,9 +190,117 @@ function setSheetReader(fn) {
   sheetReader = typeof fn === 'function' ? fn : fetchDriveRows;
 }
 
+function resetSheetWriter() {
+  sheetWriter = writeSheetStatusCell;
+}
+
 function resetSheetReader() {
   sheetReader = fetchDriveRows;
   lastHydrateAttempt = 0;
+  resetSheetWriter();
+}
+
+function setSheetWriter(fn) {
+  sheetWriter = typeof fn === 'function' ? fn : writeSheetStatusCell;
+}
+
+function a1Column(index) {
+  let n = Math.floor(Number(index) || 0);
+  if (n < 1) return '';
+  let out = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    out = String.fromCharCode(65 + rem) + out;
+    n = Math.floor((n - 1) / 26);
+  }
+  return out;
+}
+
+function statusA1(kit) {
+  if (!kit) return '';
+  const col = a1Column(kit.status_col);
+  const row = Number(kit.sheet_row);
+  if (!col || !Number.isFinite(row) || row < 2) return '';
+  const cell = `${col}${Math.floor(row)}`;
+  const tab = sheetTab();
+  if (!tab) return cell;
+  return `'${String(tab).replace(/'/g, "''")}'!${cell}`;
+}
+
+async function writeSheetStatusCell({ kit, status } = {}) {
+  const id = sheetId();
+  const range = statusA1(kit);
+  const nextStatus = normalizeKitStatus(status);
+  if (!id || !range || (nextStatus !== 'Active' && nextStatus !== 'Inactive')) {
+    return { error: 'sheet_write_unavailable' };
+  }
+  if (!driveOAuthConfigured()) return { error: 'sheet_write_unavailable' };
+  try {
+    const response = await withKitsRefreshToken(async () => {
+      const accessToken = await refreshGmailAccessToken();
+      const url = `${SHEETS_VALUES_API}/${encodeURIComponent(id)}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+      return fetch(url, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ values: [[nextStatus]] }),
+      });
+    });
+    if (!response) return { error: 'sheet_write_failed' };
+    if (response.status === 401 || response.status === 403) return { error: 'sheet_write_denied' };
+    if (!response.ok) return { error: 'sheet_write_failed' };
+    return { ok: true };
+  } catch {
+    return { error: 'sheet_write_failed' };
+  }
+}
+
+async function setKitStatus({ kitNumber, status, updatedBy } = {}) {
+  const nextStatus = normalizeKitStatus(status);
+  if (nextStatus !== 'Active' && nextStatus !== 'Inactive') return { error: 'invalid_status' };
+  let storeData;
+  try {
+    storeData = await readStore();
+  } catch {
+    return { error: 'store_unavailable' };
+  }
+  const number = String(kitNumber || '').trim().toUpperCase();
+  const kit = listKits(storeData).find((row) => row.kit_number === number);
+  if (!kit) return { error: 'kit_not_found' };
+
+  let sheetResult = { error: 'sheet_write_unavailable' };
+  try {
+    sheetResult = await sheetWriter({ kit, status: nextStatus });
+  } catch {
+    sheetResult = { error: 'sheet_write_failed' };
+  }
+  const sheetUpdated = Boolean(sheetResult && sheetResult.ok);
+  const pending = sheetUpdated
+    ? null
+    : {
+      kit_number: kit.kit_number,
+      status: nextStatus,
+      at: Date.now(),
+      reason: (sheetResult && sheetResult.error) || 'needs_permission',
+    };
+  const updated = await updateKitStatus(kit.kit_number, nextStatus, {
+    pendingSheetWrite: pending,
+    updatedBy,
+  });
+  if (updated.error) return updated;
+  logKits(sheetUpdated ? 'status_sheet_ok' : 'status_mirror_only', {
+    founder: Boolean(updatedBy),
+    via: 'drive',
+  });
+  return {
+    ok: true,
+    kit: updated.kit,
+    sheetUpdated,
+    pendingSheetWrite: updated.pendingSheetWrite || null,
+    banner: sheetUpdated ? '' : SHEET_WRITE_BANNER,
+  };
 }
 
 async function syncKitsFromSheet({ syncedBy, now } = {}) {
@@ -258,6 +371,7 @@ function csrfFrom(req, body) {
 function kitsListPayload(storeData, session, query) {
   const meta = storeData && storeData.kitsMeta ? storeData.kitsMeta : null;
   const syncedAt = lastKitsSync(storeData);
+  const pending = meta ? meta.pendingSheetWrite : null;
   return {
     kits: searchKits(storeData, query),
     allKits: listKits(storeData),
@@ -266,9 +380,12 @@ function kitsListPayload(storeData, session, query) {
     synced_at: syncedAt ? new Date(syncedAt).toISOString() : '',
     upserted: meta ? meta.upserted : 0,
     unknown: meta ? meta.unknown : 0,
+    pendingSheetWrite: pending || null,
+    sheetWriteBanner: pending ? SHEET_WRITE_BANNER : '',
     setup: describeKitsSetup(),
     csrf: session && session.email ? createCsrfToken(session.email) : '',
     readOnly: true,
+    canSetStatus: true,
   };
 }
 
@@ -280,6 +397,7 @@ module.exports = {
   DRIVE_READONLY_SCOPE,
   KIT_STATUSES,
   PREVIEW_KIT_REGISTRY_FILE_ID,
+  SHEET_WRITE_BANNER,
   csrfFrom,
   describeKitsSetup,
   fetchDriveRows,
@@ -291,10 +409,14 @@ module.exports = {
   parseSheetValues,
   parseXlsxToValues,
   resetSheetReader,
+  resetSheetWriter,
+  setKitStatus,
   setSheetReader,
+  setSheetWriter,
   sheetConfigured,
   sheetId,
   sheetUrl,
   syncKitsFromSheet,
   verifyKitsCsrf,
+  writeSheetStatusCell,
 };

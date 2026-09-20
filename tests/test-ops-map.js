@@ -154,6 +154,10 @@ async function run() {
       && graph.nodes.every((node) => !/@/.test(JSON.stringify(node.label) + JSON.stringify(node.title) + JSON.stringify(node.working))));
     check('kit open links point at Kits, not a fake record',
       adaKit.href === '/ops/kits?kit=KIT000TEST01' && adaKit.linkLabel === 'Open in Kits');
+    check('kit canvas labels use the last 6 characters',
+      adaKit.label === 'TEST01'
+      && benKit.label === 'TEST02'
+      && String(adaKit.title).includes('KIT000TEST01'));
   }
 
   {
@@ -311,6 +315,8 @@ async function run() {
       && html.includes('--surface:#F3EEE7')
       && html.includes('prefers-reduced-motion:reduce')
       && html.includes('ops-map.js')
+      && html.includes('.map-node.is-related')
+      && html.includes('.map-edge.is-on')
       && !html.includes('#0B1424'));
     check('empty Map invents no demo bubbles',
       !html.includes('KIT00384515')
@@ -359,6 +365,14 @@ async function run() {
       !/autoplay/i.test(client)
       && client.includes('sound.checked = false')
       && client.includes("fetch('/ops/api/map'"));
+    check('map client uses smaller bubbles, related highlight, and reduced-motion',
+      client.includes('kit: 13')
+      && client.includes('person: 11')
+      && client.includes('task: 11')
+      && client.includes('decision: 15')
+      && client.includes('is-related')
+      && client.includes('is-idle')
+      && client.includes('map-edge'));
   }
 
   store.resetStore();
