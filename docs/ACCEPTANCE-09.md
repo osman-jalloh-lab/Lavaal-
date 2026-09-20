@@ -49,17 +49,18 @@ Ticket 09 also requires **founder L3 approve before production deploy**. That ga
 
 | Suite | Result |
 |---|---|
-| `node tests/test-ops-auth.js` | 40/40 |
-| `node tests/test-ops-shell.js` | 23/23 |
+| `node tests/test-ops-auth.js` | 54/54 |
+| `node tests/test-ops-shell.js` | 27/27 |
 | `node tests/test-ops-store.js` | 18/18 |
 | `node tests/test-ops-memory.js` | 20/20 |
-| `node tests/test-ops-chat.js` | 19/19 |
-| `node tests/test-ops-inbox.js` | 16/16 |
-| `node tests/test-ops-calendar.js` | 21/21 |
-| `node tests/test-ops-routines.js` | 15/15 |
+| `node tests/test-ops-chat.js` | 24/24 |
+| `node tests/test-ops-inbox.js` | 20/20 |
+| `node tests/test-ops-calendar.js` | 25/25 |
+| `node tests/test-ops-routines.js` | 19/19 |
+| `node tests/test-ops-kits.js` | 39/39 |
 | `node tests/test-inquiry-and-schedule.js` | 60/60 |
 | `node tests/test-slack-handlers.js` | 111/111 |
-| **Total** | **343/343** |
+| **Total** | **417/417** |
 
 GitHub checks on PR #12 at this writing: Vercel Preview Comments success; Netlify header/redirect rules success. Netlify does **not** run Vercel `/api/ops` functions — use Vercel Preview for `/ops`.
 
