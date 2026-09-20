@@ -1,10 +1,18 @@
-// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks, memory, chat.
+// api/ops/index.js — private /ops gate, shell, dashboard, profile, tasks, memory, chat, inbox.
 // Session required. Public catalog routes are unchanged.
 
 const { loginPage } = require('./_html');
 const { NAV, areaInfo, dashboardPage, stubPage } = require('./_shell');
-const { chatPage, memoryPage, profilePage, tasksPage } = require('./_pages');
+const { chatPage, inboxPage, memoryPage, profilePage, tasksPage } = require('./_pages');
 const { describeChatSetup, sendChatTurn } = require('./_chat');
+const {
+  confirmInboxSend,
+  pasteSnapshot,
+  readyInboxSend,
+  refreshLiveInbox,
+  saveInboxDraft,
+} = require('./_inbox');
+const { describeGmailSetup } = require('./_gmail');
 const {
   addNote,
   addProject,
@@ -60,7 +68,8 @@ function knownArea(area) {
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops') return value;
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops') return value;
+  if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
   return '/ops';
 }
 
@@ -80,6 +89,9 @@ async function payload(session, area, search) {
       visibleNotes: searchNotes(store, query),
       chat: getSharedChat(store),
       chatSetup: describeChatSetup(),
+      inboxSetup: describeGmailSetup(),
+      inboxItems: store.inbox || [],
+      inboxAudit: store.mailAudit || [],
     };
   } catch {
     const store = emptyStore();
@@ -94,6 +106,9 @@ async function payload(session, area, search) {
       visibleNotes: [],
       chat: getSharedChat(store),
       chatSetup: describeChatSetup(),
+      inboxSetup: describeGmailSetup(),
+      inboxItems: [],
+      inboxAudit: [],
       storeError: 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).',
     };
   }
@@ -113,6 +128,8 @@ async function renderArea(req, res, session, extra) {
     error: (extra && extra.error) || data.storeError,
     search: data.search,
     chatSetup: data.chatSetup,
+    inboxSetup: data.inboxSetup,
+    openThread: firstQuery(queryOf(req), 'thread') || '',
   };
 
   switch (area) {
@@ -127,6 +144,7 @@ async function renderArea(req, res, session, extra) {
     case 'chat':
       return sendHtml(res, 200, chatPage(pageOpts));
     case 'inbox':
+      return sendHtml(res, 200, inboxPage(pageOpts));
     case 'calendar':
     case 'routines':
       return sendHtml(res, 200, stubPage({
@@ -158,7 +176,15 @@ function writeStatus(error) {
     case 'unknown_action':
       return 400;
     case 'proposal_not_found':
+    case 'inbox_not_found':
       return 404;
+    case 'invalid_inbox':
+    case 'invalid_draft':
+    case 'confirm_required':
+    case 'support_not_connected':
+      return 400;
+    case 'gmail_reconnect':
+      return 503;
     default: {
       return 400;
     }
@@ -171,7 +197,13 @@ async function finishWrite(req, res, session, body, result, notice) {
       ? 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).'
       : result.error === 'memory_review_required'
         ? 'Proposed memories need review before save.'
-        : notice.error;
+        : result.error === 'support_not_connected'
+          ? 'Live support@ is not connected. Paste still works; confirm-send needs a support@ refresh token.'
+          : result.error === 'confirm_required'
+            ? 'Save a draft and click Ready to send before Confirm send.'
+            : result.error === 'gmail_reconnect'
+              ? 'Gmail OAuth failed. Reconnect the support@ refresh token.'
+              : notice.error;
     return wantsJson(req)
       ? json(res, writeStatus(result.error), { error: result.error })
       : renderArea(req, res, session, { error: message });
@@ -259,6 +291,28 @@ async function handleWrite(req, res, session) {
       }), { error: 'Could not confirm that draft.' });
     case 'dismiss-proposal':
       return finishWrite(req, res, session, body, await dismissChatProposal(body.id), { error: 'Could not dismiss that draft.' });
+    case 'paste-inbox':
+      return finishWrite(req, res, session, body, await pasteSnapshot({
+        from: body.from,
+        subject: body.subject,
+        body: body.body,
+        createdBy: session.email,
+      }), { error: 'Enter a subject for the snapshot.' });
+    case 'save-inbox-draft':
+      return finishWrite(req, res, session, body, await saveInboxDraft(body.id, {
+        draft: body.draft,
+        label: body.label,
+        linkedTaskId: body.linkedTaskId,
+      }), { error: 'Could not save that draft.' });
+    case 'ready-inbox-send':
+      return finishWrite(req, res, session, body, await readyInboxSend(body.id), { error: 'Save a draft before Ready to send.' });
+    case 'confirm-inbox-send':
+      return finishWrite(req, res, session, body, await confirmInboxSend(body.id, {
+        token: body.token,
+        confirmedBy: session.email,
+      }), { error: 'Confirm send was rejected.' });
+    case 'refresh-inbox':
+      return finishWrite(req, res, session, body, await refreshLiveInbox(), { error: 'Could not refresh live mail.' });
     default:
       return wantsJson(req)
         ? json(res, 400, { error: 'unknown_action' })

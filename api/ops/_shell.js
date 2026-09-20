@@ -8,7 +8,7 @@ const NAV = Object.freeze([
   { id: 'profile', href: '/ops/profile', label: 'Profile & goals' },
   { id: 'chat', href: '/ops/chat', label: 'Contextual chat' },
   { id: 'memory', href: '/ops/memory', label: 'Memory' },
-  { id: 'inbox', href: '/ops/inbox', label: 'Inbox', ticket: '06' },
+  { id: 'inbox', href: '/ops/inbox', label: 'Inbox' },
   { id: 'calendar', href: '/ops/calendar', label: 'Calendar', ticket: '07' },
   { id: 'tasks', href: '/ops/tasks', label: 'Projects & tasks' },
   { id: 'routines', href: '/ops/routines', label: 'Saved routines', ticket: '08' },

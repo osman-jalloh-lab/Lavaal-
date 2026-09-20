@@ -3,8 +3,13 @@
 
 const { escapeHtml } = require('./_lib');
 const {
+  INBOX_LABELS,
+  getInboxItem,
   getProfile,
   getSharedChat,
+  inboxLabelText,
+  listInboxItems,
+  listMailAudit,
   notesSelectableForChat,
   pendingProposals,
   searchNotes,
@@ -336,4 +341,123 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup }) {
   });
 }
 
-module.exports = { profilePage, tasksPage, memoryPage, chatPage };
+function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThread }) {
+  const setup = inboxSetup || { gmailConfigured: false, supportConnected: false, supportMailbox: 'support@lavaall.com' };
+  const items = listInboxItems(store);
+  const audit = listMailAudit(store).slice(0, 8);
+  const open = openThread ? getInboxItem(store, openThread) : null;
+  const setupCard = setup.supportConnected
+    ? `<p>Live mailbox is ${escapeHtml(setup.supportMailbox)}. Refresh to list threads. Send still needs Confirm send.</p>
+       <form method="POST" action="/ops/inbox">
+         <input type="hidden" name="action" value="refresh-inbox"/>
+         <input type="hidden" name="returnTo" value="/ops/inbox"/>
+         <button class="btn btn-sm" type="submit">Refresh live mail</button>
+       </form>`
+    : `<p class="empty">Live support@ not connected. Paste a snapshot below — it is never marked as live mail. To list and confirm-send from support@lavaall.com, set OPS_GMAIL_* on a refresh token for that mailbox (scopes gmail.readonly + gmail.send). If only a personal Gmail token is on Preview, keep using paste.</p>`;
+
+  const rows = items.length
+    ? `<ul class="list">${items.map((item) => (
+      `<li>
+        <span class="tag">${item.live ? 'Live' : 'Paste snapshot'}</span>
+        <span class="tag">${escapeHtml(inboxLabelText(item.label))}</span>
+        ${item.sentMessageId ? '<span class="tag">Sent</span>' : ''}
+        <strong>${escapeHtml(item.subject)}</strong>
+        <p>${escapeHtml(item.from || 'Unknown sender')}${item.snippet ? ` — ${escapeHtml(item.snippet)}` : ''}</p>
+        <p><a href="/ops/inbox?thread=${escapeHtml(item.id)}">Open</a></p>
+      </li>`
+    )).join('')}</ul>`
+    : '<p class="empty">No snapshots or live threads yet. Paste one below.</p>';
+
+  const labelOptions = INBOX_LABELS.map((value) => option(value, inboxLabelText(value), open && open.label === value)).join('');
+
+  const openCard = open
+    ? `<section class="card" style="margin-top:14px">
+        <div class="kicker">${open.live ? 'Live thread' : 'Paste snapshot — not live mail'}</div>
+        <h2>${escapeHtml(open.subject)}</h2>
+        <p>From ${escapeHtml(open.from || 'unknown')}</p>
+        <p>${escapeHtml(open.body || open.snippet || '')}</p>
+        <form method="POST" action="/ops/inbox">
+          <input type="hidden" name="action" value="save-inbox-draft"/>
+          <input type="hidden" name="id" value="${escapeHtml(open.id)}"/>
+          <input type="hidden" name="returnTo" value="/ops/inbox?thread=${escapeHtml(open.id)}"/>
+          <label for="inbox-label">Label</label>
+          <select id="inbox-label" name="label">${labelOptions}</select>
+          <label for="inbox-draft">Draft reply</label>
+          <textarea id="inbox-draft" name="draft" maxlength="4000">${escapeHtml(open.draft)}</textarea>
+          <button class="btn" type="submit">Save draft</button>
+        </form>
+        ${open.sentMessageId
+          ? `<p class="ok">Already sent (id ${escapeHtml(open.sentMessageId)}). Confirm send is idempotent.</p>`
+          : `<form method="POST" action="/ops/inbox">
+              <input type="hidden" name="action" value="ready-inbox-send"/>
+              <input type="hidden" name="id" value="${escapeHtml(open.id)}"/>
+              <input type="hidden" name="returnTo" value="/ops/inbox?thread=${escapeHtml(open.id)}"/>
+              <button class="btn btn-sm" type="submit">Ready to send</button>
+            </form>
+            ${open.pendingConfirm && open.confirmToken
+              ? `<form method="POST" action="/ops/inbox">
+                  <input type="hidden" name="action" value="confirm-inbox-send"/>
+                  <input type="hidden" name="id" value="${escapeHtml(open.id)}"/>
+                  <input type="hidden" name="token" value="${escapeHtml(open.confirmToken)}"/>
+                  <input type="hidden" name="returnTo" value="/ops/inbox?thread=${escapeHtml(open.id)}"/>
+                  <button class="btn" type="submit">Confirm send</button>
+                </form>`
+              : '<p>Save a draft, then Ready to send, then Confirm send. Nothing goes out before Confirm send.</p>'}`}
+      </section>`
+    : '';
+
+  const auditList = audit.length
+    ? `<ul class="list">${audit.map((entry) => (
+      `<li>${escapeHtml(entry.email)} · ${escapeHtml(entry.subject || '')} · message ${escapeHtml(entry.messageId || 'pending')}</li>`
+    )).join('')}</ul>`
+    : '<p class="empty">No confirm-send audit yet.</p>';
+
+  return shellPage({
+    title: 'LAVAALL OS — Inbox',
+    email,
+    area: 'inbox',
+    notice,
+    error,
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <h1>Inbox</h1>
+      <p>support@lavaall.com triage. Either founder may confirm-send. Chat cannot send mail.</p>
+      <div class="grid forms">
+        <section class="card">
+          <div class="kicker">Mailbox</div>
+          <h2>Live support@</h2>
+          ${setupCard}
+        </section>
+        <section class="card">
+          <div class="kicker">Manual</div>
+          <h2>Paste a snapshot</h2>
+          <p>Marked as a paste snapshot, not live mail.</p>
+          <form method="POST" action="/ops/inbox">
+            <input type="hidden" name="action" value="paste-inbox"/>
+            <input type="hidden" name="returnTo" value="/ops/inbox"/>
+            <label for="paste-from">From</label>
+            <input id="paste-from" name="from" maxlength="240" placeholder="customer@example.com"/>
+            <label for="paste-subject">Subject</label>
+            <input id="paste-subject" name="subject" required maxlength="200"/>
+            <label for="paste-body">Body</label>
+            <textarea id="paste-body" name="body" maxlength="4000"></textarea>
+            <button class="btn" type="submit">Save snapshot</button>
+          </form>
+        </section>
+      </div>
+      <section class="card" style="margin-top:14px">
+        <div class="kicker">Queue</div>
+        <h2>Threads</h2>
+        ${rows}
+      </section>
+      ${openCard}
+      <section class="card" style="margin-top:14px">
+        <div class="kicker">Audit</div>
+        <h2>Confirm-send log</h2>
+        ${auditList}
+      </section>
+    `,
+  });
+}
+
+module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage };

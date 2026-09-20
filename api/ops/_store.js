@@ -14,7 +14,16 @@ const MAX_NOTES = 100;
 const MAX_PROJECTS = 50;
 const MAX_MESSAGES = 40;
 const MAX_PROPOSALS = 20;
+const MAX_INBOX = 50;
+const MAX_AUDIT = 50;
 const CHAT_ID = 'ops-shared';
+const INBOX_LABELS = Object.freeze(['needs_reply', 'task', 'reference', 'done']);
+const INBOX_LABEL_TEXT = Object.freeze({
+  needs_reply: 'Needs reply',
+  task: 'Task',
+  reference: 'Reference',
+  done: 'Done',
+});
 const PROPOSAL_KINDS = Object.freeze(['save-goal', 'add-task', 'add-note', 'update-task']);
 const PROPOSAL_STATUSES = Object.freeze(['pending', 'confirmed', 'dismissed']);
 const MESSAGE_ROLES = Object.freeze(['user', 'assistant', 'system']);
@@ -28,7 +37,7 @@ const STATUS_LABELS = Object.freeze({
 let memory = emptyStore();
 
 function emptyStore() {
-  return { profiles: {}, goal: null, projects: [], tasks: [], notes: [], chats: [] };
+  return { profiles: {}, goal: null, projects: [], tasks: [], notes: [], chats: [], inbox: [], mailAudit: [] };
 }
 
 function kvConfigured() {
@@ -264,6 +273,64 @@ function resolveChatContext(storeData, selection) {
   };
 }
 
+function normalizeInboxLabel(value) {
+  return INBOX_LABELS.includes(value) ? value : 'needs_reply';
+}
+
+function inboxLabelText(label) {
+  return INBOX_LABEL_TEXT[normalizeInboxLabel(label)];
+}
+
+function normalizeInboxItem(row) {
+  const source = row && row.source === 'live' ? 'live' : 'paste';
+  return {
+    id: clean(row && row.id, 40) || newId(),
+    source,
+    live: source === 'live',
+    gmailThreadId: clean(row && row.gmailThreadId, 80),
+    gmailMessageId: clean(row && row.gmailMessageId, 80),
+    from: clean(row && row.from, 240),
+    to: clean(row && row.to, 240),
+    subject: clean(row && row.subject, 200),
+    body: clean(row && row.body, 4000),
+    snippet: clean(row && row.snippet, 280),
+    label: normalizeInboxLabel(row && row.label),
+    draft: clean(row && row.draft, 4000),
+    linkedTaskId: clean(row && row.linkedTaskId, 40),
+    pendingConfirm: Boolean(row && row.pendingConfirm),
+    confirmToken: clean(row && row.confirmToken, 40),
+    sentAt: Number.isFinite(row && row.sentAt) && row.sentAt > 0 ? row.sentAt : 0,
+    sentMessageId: clean(row && row.sentMessageId, 80),
+    createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
+    updatedAt: Number.isFinite(row && row.updatedAt) ? row.updatedAt : Date.now(),
+    createdBy: clean(row && row.createdBy, 120),
+  };
+}
+
+function normalizeAudit(row) {
+  return {
+    id: clean(row && row.id, 40) || newId(),
+    inboxId: clean(row && row.inboxId, 40),
+    email: normalizeEmail(row && row.email),
+    at: Number.isFinite(row && row.at) ? row.at : Date.now(),
+    messageId: clean(row && row.messageId, 80),
+    subject: clean(row && row.subject, 200),
+  };
+}
+
+function listInboxItems(storeData) {
+  return ((storeData && storeData.inbox) || []).slice().sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+function getInboxItem(storeData, id) {
+  const itemId = clean(id, 40);
+  return listInboxItems(storeData).find((item) => item.id === itemId) || null;
+}
+
+function listMailAudit(storeData) {
+  return ((storeData && storeData.mailAudit) || []).slice().sort((a, b) => b.at - a.at);
+}
+
 function normalizeProfiles(raw) {
   const out = {};
   if (!raw || typeof raw !== 'object') return out;
@@ -293,6 +360,12 @@ function normalizeStore(raw) {
       : [],
     chats: Array.isArray(src.chats)
       ? src.chats.map(normalizeChat).slice(0, 1)
+      : [],
+    inbox: Array.isArray(src.inbox)
+      ? src.inbox.map(normalizeInboxItem).filter((row) => row.subject).slice(0, MAX_INBOX)
+      : [],
+    mailAudit: Array.isArray(src.mailAudit)
+      ? src.mailAudit.map(normalizeAudit).filter((row) => row.email).slice(0, MAX_AUDIT)
       : [],
   };
 }
@@ -702,6 +775,83 @@ async function confirmChatProposal(id, { approvedBy }) {
   return { ok: true, applied, proposal: Object.assign({}, proposal, { status: 'confirmed' }) };
 }
 
+async function addInboxItem(fields) {
+  return mutate(async () => {
+    const item = normalizeInboxItem(Object.assign({}, fields, { createdAt: Date.now(), updatedAt: Date.now() }));
+    if (!item.subject) return { error: 'invalid_inbox' };
+    const storeData = await readStore();
+    storeData.inbox = [item].concat(storeData.inbox).slice(0, MAX_INBOX);
+    await writeStore(storeData);
+    return { ok: true, item };
+  });
+}
+
+async function updateInboxItem(id, patch) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const itemId = clean(id, 40);
+    const index = storeData.inbox.findIndex((row) => row.id === itemId);
+    if (index === -1) return { error: 'inbox_not_found' };
+    const current = storeData.inbox[index];
+    const next = normalizeInboxItem(Object.assign({}, current, patch, {
+      id: current.id,
+      source: current.source,
+      createdAt: current.createdAt,
+      createdBy: current.createdBy,
+      updatedAt: Date.now(),
+    }));
+    if (!next.subject) return { error: 'invalid_inbox' };
+    storeData.inbox[index] = next;
+    await writeStore(storeData);
+    return { ok: true, item: next };
+  });
+}
+
+async function upsertLiveInboxItem(fields) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const threadId = clean(fields && fields.gmailThreadId, 80);
+    if (!threadId) return { error: 'invalid_inbox' };
+    const index = storeData.inbox.findIndex((row) => row.gmailThreadId === threadId && row.source === 'live');
+    if (index === -1) {
+      const item = normalizeInboxItem(Object.assign({}, fields, {
+        source: 'live',
+        live: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }));
+      if (!item.subject) return { error: 'invalid_inbox' };
+      storeData.inbox = [item].concat(storeData.inbox).slice(0, MAX_INBOX);
+      await writeStore(storeData);
+      return { ok: true, item };
+    }
+    const current = storeData.inbox[index];
+    const next = normalizeInboxItem(Object.assign({}, current, {
+      from: fields.from || current.from,
+      to: fields.to || current.to,
+      subject: fields.subject || current.subject,
+      body: fields.body || current.body,
+      snippet: fields.snippet || current.snippet,
+      gmailMessageId: fields.gmailMessageId || current.gmailMessageId,
+      updatedAt: Date.now(),
+    }));
+    storeData.inbox[index] = next;
+    await writeStore(storeData);
+    return { ok: true, item: next };
+  });
+}
+
+async function addMailAudit(fields) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const entry = normalizeAudit(Object.assign({}, fields, { at: Date.now() }));
+    if (!entry.email) return { error: 'invalid_audit' };
+    storeData.mailAudit = [entry].concat(storeData.mailAudit).slice(0, MAX_AUDIT);
+    await writeStore(storeData);
+    return { ok: true, audit: entry };
+  });
+}
+
 function resetStore(seed) {
   memory = normalizeStore(seed || emptyStore());
 }
@@ -711,7 +861,17 @@ module.exports = {
   STATUS_LABELS,
   STORE_KEY,
   CHAT_ID,
+  INBOX_LABELS,
+  INBOX_LABEL_TEXT,
   PROPOSAL_KINDS,
+  addInboxItem,
+  addMailAudit,
+  getInboxItem,
+  inboxLabelText,
+  listInboxItems,
+  listMailAudit,
+  updateInboxItem,
+  upsertLiveInboxItem,
   activeNotes,
   addChatProposals,
   addNote,

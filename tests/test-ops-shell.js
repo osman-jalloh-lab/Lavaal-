@@ -112,10 +112,10 @@ async function run() {
   {
     const res = mockRes();
     await ops(authed({ json: true, query: { area: 'inbox' }, url: '/ops/inbox' }), res);
-    check('inbox stub is authenticated and names ticket 06', res.statusCode === 200 && res.body.area === 'inbox');
+    check('inbox route is authenticated', res.statusCode === 200 && res.body.area === 'inbox');
     const html = mockRes();
     await ops(authed({ query: { area: 'inbox' }, url: '/ops/inbox' }), html);
-    check('inbox stub page says coming in ticket 06', String(html.raw).includes('coming in ticket 06') && String(html.raw).includes('Inbox'));
+    check('inbox page is real, not a ticket stub', String(html.raw).includes('Paste a snapshot') && !String(html.raw).includes('coming in ticket 06'));
   }
 
   {
