@@ -16,6 +16,7 @@ const SECRET = 'test-ops-auth-secret-32chars!!';
 const ALLOWED = 'osmanjalloh104@gmail.com';
 const DENIED = 'stranger@example.com';
 const REAL_EMAILS = ['osmanjalloh104@gmail.com', 'abdulhbah55@gmail.com'];
+const TEST_SHEET_ID = 'test-kit-registry-sheet-id';
 
 const FIXTURE_VALUES = [
   ['Kit Number', 'Name', 'Email', 'Status', 'Date Added', 'Notes'],
@@ -88,7 +89,7 @@ function noKitPii(text) {
 async function run() {
   const origFetch = global.fetch;
   process.env.OPS_AUTH_SECRET = SECRET;
-  process.env.KIT_REGISTRY_SHEET_ID = '155IRHtVgDcAVXeeW6EU8X4fw7eOpjX4pgSejR92Ch_4';
+  process.env.KIT_REGISTRY_SHEET_ID = TEST_SHEET_ID;
   process.env.OPS_GMAIL_CLIENT_ID = 'kits-client';
   process.env.OPS_GMAIL_CLIENT_SECRET = 'kits-secret';
   process.env.OPS_GMAIL_REFRESH_TOKEN = 'kits-refresh';
@@ -184,6 +185,10 @@ async function run() {
     await ops({ method: 'GET', headers: {}, query: { area: 'kits' }, url: '/ops/kits' }, page);
     check('logged-out /ops/kits is the login page', page.statusCode === 401 && String(page.raw).includes('Email me a sign-in link'));
     check('logged-out Kits HTML has no kit emails', noKitPii(page.raw) && !String(page.raw).includes('KIT000TEST01'));
+    check('logged-out /ops/kits shows no kit rows in DOM',
+      !String(page.raw).includes('kits-row')
+      && !String(page.raw).includes('id="kits-table"')
+      && !String(page.raw).includes('Ada Example'));
   }
 
   {
@@ -213,10 +218,10 @@ async function run() {
       && html.includes('Refresh')
       && !html.includes('coming in ticket 10'));
     check('Kits banner names last sync and Open Sheet',
-      html.includes('Source of truth: Kit Registry Sheet')
+      html.includes('Sheet is SoT')
       && html.includes('last sync never')
       && html.includes('Open Sheet')
-      && html.includes('docs.google.com/spreadsheets/d/155IRHtVgDcAVXeeW6EU8X4fw7eOpjX4pgSejR92Ch_4'));
+      && html.includes('docs.google.com/spreadsheets/d/' + TEST_SHEET_ID));
     check('Kits table columns are Kit Number, Name, Status, Date Added',
       html.includes('>Kit Number<')
       && html.includes('>Name<')
@@ -251,7 +256,14 @@ async function run() {
     kits.setSheetReader(async () => kits.parseSheetValues(FIXTURE_VALUES));
     const csrf = lib.createCsrfToken(ALLOWED);
     const sync = mockRes();
-    await ops(apiReq({ json: true, method: 'POST', sync: true, body: { csrf } }), sync);
+    const logs = [];
+    const origLog = console.log;
+    console.log = (line) => { logs.push(String(line)); };
+    try {
+      await ops(apiReq({ json: true, method: 'POST', sync: true, body: { csrf } }), sync);
+    } finally {
+      console.log = origLog;
+    }
     check('founder sync upserts synthetic rows and skips malformed',
       sync.statusCode === 200
       && sync.body.ok === true
@@ -261,6 +273,22 @@ async function run() {
       && sync.body.kits.some((row) => row.kit_number === 'KIT000TEST02' && row.date_added === '2026-09-18'));
     check('sync response includes last sync and does not invent a third kit',
       Boolean(sync.body.synced_at) && !sync.body.kits.some((row) => row.person_name === 'Missing Number'));
+    check('sync logs omit kit and founder emails',
+      logs.some((line) => line.includes('OpsKits') && line.includes('sync_ok'))
+      && logs.every((line) => !line.includes('@example.test') && !line.includes(ALLOWED)));
+    check('GET /ops/api/kits is date_added DESC',
+      sync.body.kits[0].date_added >= sync.body.kits[1].date_added
+      && sync.body.kits[0].kit_number === 'KIT000TEST01');
+    check('mirror rows keep schema fields',
+      sync.body.kits.every((row) => (
+        row.kit_number
+        && row.person_name
+        && Object.prototype.hasOwnProperty.call(row, 'email')
+        && ['Active', 'Inactive', 'Returned', 'Lost', 'Unknown'].includes(row.status)
+        && Object.prototype.hasOwnProperty.call(row, 'sheet_row')
+        && Object.prototype.hasOwnProperty.call(row, 'synced_at')
+        && Object.prototype.hasOwnProperty.call(row, 'updated_at')
+      )));
 
     const list = mockRes();
     await ops(apiReq({ json: true, query: { area: 'api/kits', q: 'ada', status: 'Active' } }), list);
@@ -273,6 +301,7 @@ async function run() {
     const html = mockRes();
     await ops(authed({ json: false, url: '/ops/kits', query: { area: 'kits' } }), html);
     const cells = tableCells(html.raw);
+    const drawer = String(html.raw).match(/<aside class="kit-drawer"[\s\S]*?<\/aside>/);
     check('list columns hide email; drawer data keeps it',
       cells.includes('KIT000TEST01')
       && cells.includes('Ada Example')
@@ -280,6 +309,10 @@ async function run() {
       && String(html.raw).includes('data-email="ada.example@example.test"')
       && String(html.raw).includes('id="kit-drawer"')
       && String(html.raw).includes('id="kit-drawer-notes"'));
+    check('kit drawer is read-only with no edit fields',
+      Boolean(drawer)
+      && !/<(input|textarea|select)\b/i.test(drawer[0])
+      && drawer[0].includes('Open Sheet'));
     kits.resetSheetReader();
   }
 
@@ -369,7 +402,8 @@ async function run() {
   {
     const env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
     check('.env.example documents KIT_REGISTRY_SHEET_ID by name',
-      env.includes('KIT_REGISTRY_SHEET_ID=') && env.includes('KIT_REGISTRY_REFRESH_TOKEN'));
+      /^KIT_REGISTRY_SHEET_ID=\s*$/m.test(env)
+      && env.includes('KIT_REGISTRY_REFRESH_TOKEN'));
   }
 
   kits.resetSheetReader();

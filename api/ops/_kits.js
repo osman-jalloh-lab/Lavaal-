@@ -185,7 +185,7 @@ async function syncKitsFromSheet({ syncedBy, now } = {}) {
     parsed = await sheetReader();
   } catch (err) {
     const code = err && err.message === 'sheet_unconfigured' ? 'sheet_unconfigured' : 'sheet_unavailable';
-    logKits(code, { email: syncedBy || '' });
+    logKits(code, { founder: Boolean(syncedBy) });
     return { error: code };
   }
   const incoming = parsed && Array.isArray(parsed.rows) ? parsed.rows : [];
@@ -196,7 +196,7 @@ async function syncKitsFromSheet({ syncedBy, now } = {}) {
   const result = await applyKitsSync({ rows: incoming, syncedBy, now });
   if (result.error) return result;
   logKits('sync_ok', {
-    email: syncedBy || '',
+    founder: Boolean(syncedBy),
     upserted: result.upserted,
     unknown: result.unknown,
     skipped: result.skipped + skippedRows.length,

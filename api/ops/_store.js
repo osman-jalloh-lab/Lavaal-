@@ -491,7 +491,7 @@ function normalizeKit(row) {
     status: normalizeKitStatus(row.status),
     date_added: normalizeDateAdded(row.date_added),
     notes: clean(row.notes, 2000),
-    sheet_row: Number.isFinite(sheetRow) && sheetRow > 0 ? Math.floor(sheetRow) : 0,
+    sheet_row: Number.isFinite(sheetRow) && sheetRow > 0 ? Math.floor(sheetRow) : null,
     synced_at: Number.isFinite(row.synced_at) ? row.synced_at : 0,
     updated_at: Number.isFinite(row.updated_at) ? row.updated_at : Date.now(),
   };

@@ -30,15 +30,24 @@ document.addEventListener('DOMContentLoaded', () => {
     drawer.hidden = false;
     if (layout) layout.classList.add('has-drawer');
     const title = document.getElementById('kit-drawer-title');
+    const nameNode = document.getElementById('kit-drawer-name');
     const statusNode = document.getElementById('kit-drawer-status');
     const dateNode = document.getElementById('kit-drawer-date');
     const emailNode = document.getElementById('kit-drawer-email');
     const notesNode = document.getElementById('kit-drawer-notes');
     if (title) title.textContent = row.getAttribute('data-kit') || '';
+    if (nameNode) nameNode.textContent = row.getAttribute('data-name') || '';
     if (statusNode) statusNode.textContent = row.getAttribute('data-status') || '';
     if (dateNode) dateNode.textContent = row.getAttribute('data-date') || '—';
     if (emailNode) emailNode.textContent = row.getAttribute('data-email') || '—';
     if (notesNode) notesNode.textContent = row.getAttribute('data-notes') || '—';
+  }
+
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.hidden = true;
+    if (layout) layout.classList.remove('has-drawer');
+    rows.forEach((row) => row.classList.remove('is-open'));
   }
 
   if (search) search.addEventListener('input', applyFilter);
@@ -64,11 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  const closer = document.getElementById('kit-drawer-close');
+  if (closer) closer.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape' || !drawer) return;
-    drawer.hidden = true;
-    if (layout) layout.classList.remove('has-drawer');
-    rows.forEach((row) => row.classList.remove('is-open'));
+    if (event.key !== 'Escape') return;
+    closeDrawer();
   });
 
   if (form) {

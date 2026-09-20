@@ -694,11 +694,11 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
   const openHref = setup.sheetUrl || '';
   const token = csrf || '';
   const rows = kits.map((kit) => {
-    const active = kit.status === 'Active' ? ' is-active' : '';
-    return `<tr class="kits-row" tabindex="0" data-kit="${escapeHtml(kit.kit_number)}" data-status="${escapeHtml(kit.status)}" data-search="${escapeHtml(`${kit.kit_number} ${kit.person_name}`.toLowerCase())}" data-email="${escapeHtml(kit.email)}" data-notes="${escapeHtml(kit.notes)}" data-date="${escapeHtml(kit.date_added)}">
+    const statusClass = ` is-${String(kit.status || 'unknown').toLowerCase()}`;
+    return `<tr class="kits-row" tabindex="0" data-kit="${escapeHtml(kit.kit_number)}" data-name="${escapeHtml(kit.person_name)}" data-status="${escapeHtml(kit.status)}" data-search="${escapeHtml(`${kit.kit_number} ${kit.person_name}`.toLowerCase())}" data-email="${escapeHtml(kit.email)}" data-notes="${escapeHtml(kit.notes)}" data-date="${escapeHtml(kit.date_added)}">
       <td class="kit-no">${escapeHtml(kit.kit_number)}</td>
       <td>${escapeHtml(kit.person_name)}</td>
-      <td><span class="kit-status${active}">${escapeHtml(kit.status)}</span></td>
+      <td><span class="kit-status${statusClass}">${escapeHtml(kit.status)}</span></td>
       <td>${escapeHtml(kit.date_added || '—')}</td>
     </tr>`;
   }).join('');
@@ -743,14 +743,14 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
           <h1>Kits</h1>
           <p class="kits-sub">Sheet is source of truth</p>
         </div>
+      </div>
+      <div class="kits-banner">
+        <span>Sheet is SoT · last sync ${escapeHtml(formatKitsSync(syncedAt))}</span>
         <form method="POST" action="/ops/api/kits/sync" id="kits-sync-form">
           <input type="hidden" name="csrf" value="${escapeHtml(token)}"/>
           <input type="hidden" name="returnTo" value="/ops/kits"/>
           <button class="btn btn-sm" type="submit">Refresh</button>
         </form>
-      </div>
-      <div class="kits-banner">
-        <span>Source of truth: Kit Registry Sheet · last sync ${escapeHtml(formatKitsSync(syncedAt))}</span>
         ${sheetLink}
       </div>
       ${setupHint}
@@ -770,8 +770,12 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
           <p class="kits-foot"><span id="kits-count">${kits.length} kits</span><span>read-only</span></p>
         </section>
         <aside class="kit-drawer" id="kit-drawer" hidden>
-          <div class="kicker">Kit detail</div>
+          <div class="kit-drawer-top">
+            <div class="kicker">Kit detail</div>
+            <button type="button" class="kit-drawer-close" id="kit-drawer-close" aria-label="Close kit detail">&times;</button>
+          </div>
           <h2 id="kit-drawer-title">Select a row</h2>
+          <p class="kit-drawer-name" id="kit-drawer-name"></p>
           <dl>
             <dt>Status</dt><dd id="kit-drawer-status"></dd>
             <dt>Date added</dt><dd id="kit-drawer-date"></dd>
