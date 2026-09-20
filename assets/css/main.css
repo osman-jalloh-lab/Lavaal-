@@ -23,8 +23,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:cen
 .lb.on{background:var(--sun);color:var(--ink);}
 .nav-cta{padding:9px 22px;background:var(--ink);color:var(--white);border:2px solid var(--ink);border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Bricolage Grotesque',sans-serif;transition:all .2s;text-decoration:none;}
 .nav-cta:hover{background:var(--sun);color:var(--ink);}
-.nav-login{font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;font-family:'Bricolage Grotesque',sans-serif;white-space:nowrap;}
-.nav-login:hover{color:var(--ink);}
+.nav-links a.nav-login{color:var(--muted);}
+.nav-links a.nav-login:hover{color:var(--ink);}
 /* HAMBURGER BUTTON */
 .nav-hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;width:40px;height:40px;background:none;border:2px solid var(--ink);border-radius:8px;cursor:pointer;padding:0;gap:5px;transition:background .2s;}
 .nav-hamburger:hover{background:var(--sun);}
@@ -43,9 +43,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:cen
 .nav-mobile-drawer .drawer-cta{display:block;margin:20px 6%;padding:13px 22px;background:var(--ink);color:var(--white);border-radius:100px;font-size:15px;font-weight:600;text-decoration:none;text-align:center;font-family:'Bricolage Grotesque',sans-serif;transition:background .2s,color .2s;}
 .nav-mobile-drawer .drawer-cta:hover{background:var(--sun);color:var(--ink);}
 .nav-mobile-drawer .drawer-cta:focus-visible{outline:3px solid var(--sky);outline-offset:2px;}
-.nav-mobile-drawer .drawer-login{display:block;margin:0 6% 20px;padding:0;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;text-align:center;font-family:'Bricolage Grotesque',sans-serif;}
-.nav-mobile-drawer .drawer-login:hover{color:var(--ink);background:none;}
-.nav-mobile-drawer .drawer-login:focus-visible{outline:3px solid var(--sky);outline-offset:2px;}
+.nav-mobile-drawer ul li a.drawer-login{font-weight:500;color:var(--muted);}
+.nav-mobile-drawer ul li a.drawer-login:hover{color:var(--ink);}
 /* HERO */
 .hero{min-height:100vh;background:var(--sky);border-bottom:3px solid var(--ink);display:flex;align-items:center;padding:120px 6% 80px;position:relative;overflow:hidden;}
 .ring{position:absolute;border-radius:50%;border:2px solid rgba(0,0,0,.07);animation:expandRing 4s ease-out infinite;pointer-events:none;}
@@ -405,7 +404,6 @@ nav{padding:0 4%;height:64px;}
 .logo{font-size:18px;}
 .logo-img{height:54px;}
 .nav-cta{padding:7px 14px;font-size:12px;}
-.nav-login{font-size:12px;}
 .lang-wrap{transform:scale(.85);}
 h1{font-size:36px;letter-spacing:-1px;line-height:1.05;margin-bottom:16px;}
 .hero{padding:90px 5% 50px;}
