@@ -47,25 +47,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const submit = document.getElementById('kit-status-submit');
     const number = document.getElementById('kit-status-number');
     const value = document.getElementById('kit-status-value');
-    const rowStatus = row ? row.getAttribute('data-status') || '' : '';
+    const rowStatus = row ? String(row.getAttribute('data-status') || '').trim().toLowerCase() : '';
     if (number) number.value = row ? row.getAttribute('data-kit') || '' : '';
-    if (rowStatus === 'Active') {
-      if (value) value.value = 'Inactive';
-      if (submit) {
-        submit.hidden = false;
-        submit.textContent = 'Deactivate';
-      }
-      return;
-    }
-    if (rowStatus === 'Inactive') {
+    if (!submit) return;
+    submit.hidden = false;
+    submit.removeAttribute('hidden');
+    if (rowStatus === 'inactive') {
       if (value) value.value = 'Active';
-      if (submit) {
-        submit.hidden = false;
-        submit.textContent = 'Reactivate';
-      }
+      submit.textContent = 'Reactivate';
       return;
     }
-    if (submit) submit.hidden = true;
+    if (value) value.value = 'Inactive';
+    submit.textContent = 'Deactivate';
   }
 
   function openDrawer(row) {

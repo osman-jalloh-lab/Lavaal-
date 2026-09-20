@@ -512,14 +512,17 @@ async function run() {
       && String(html.raw).includes('data-email="ada.example@example.test"')
       && String(html.raw).includes('id="kit-drawer"')
       && String(html.raw).includes('id="kit-drawer-notes"'));
-    check('kit drawer has deactivate, not name editors',
+    check('kit drawer shows Deactivate on open without a hidden toggle',
       Boolean(drawer)
       && !/<textarea\b/i.test(drawer[0])
       && !/<select\b/i.test(drawer[0])
       && !/name="person_name"|name="email"|name="notes"/i.test(drawer[0])
       && drawer[0].includes('kit-status-form')
-      && drawer[0].includes('Deactivate')
+      && /<button class="btn" type="submit" id="kit-status-submit">Deactivate<\/button>/.test(drawer[0])
+      && !/id="kit-status-submit"[^>]*\bhidden\b/.test(drawer[0])
       && drawer[0].includes('Open Sheet'));
+    check('kits script is cache-busted so Deactivate JS is not stuck on an old asset',
+      String(html.raw).includes('/assets/js/ops-kits.js?v=deactivate'));
     kits.resetSheetReader();
   }
 
@@ -767,6 +770,7 @@ async function run() {
   {
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
     const catalog = fs.readFileSync(path.join(__dirname, '../assets/js/catalog-data.js'), 'utf8');
+    const client = fs.readFileSync(path.join(__dirname, '../assets/js/ops-kits.js'), 'utf8');
     assertPublicLogin(check, home);
     check('public catalog HTML has no kit mirror API or synthetic kit emails',
       !home.includes('/ops/api/kits')
@@ -775,6 +779,10 @@ async function run() {
       && home.includes('Enterprise IT Hardware'));
     check('public catalog data is unchanged by kits mirror',
       !catalog.includes('/ops/api/kits') && !catalog.includes('KIT000TEST01'));
+    check('kits client keeps Deactivate visible for Active kits',
+      client.includes("submit.removeAttribute('hidden')")
+      && client.includes("submit.textContent = 'Deactivate'")
+      && !/submit\.hidden = true/.test(client));
   }
 
   {

@@ -735,7 +735,7 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
     area: 'kits',
     notice,
     error,
-    scripts: '<script src="/assets/js/ops-kits.js" defer></script>',
+    scripts: '<script src="/assets/js/ops-kits.js?v=deactivate" defer></script>',
     body: `
       ${persistenceBanner(snapshot.durable)}
       <div class="kits-head">
@@ -779,19 +779,22 @@ function kitsPage({ email, store, snapshot, notice, error, csrf, kitsSetup }) {
           <h2 id="kit-drawer-title">Select a row</h2>
           <p class="kit-drawer-name" id="kit-drawer-name"></p>
           <dl>
-            <dt>Status</dt><dd id="kit-drawer-status"></dd>
-            <dt>Date added</dt><dd id="kit-drawer-date"></dd>
-            <dt>Email</dt><dd id="kit-drawer-email"></dd>
-            <dt>Notes</dt><dd id="kit-drawer-notes"></dd>
+            <dt>Status</dt>
+            <dd id="kit-drawer-status"></dd>
           </dl>
-          <p>${sheetLink}</p>
           <form method="POST" action="/ops/api/kits/status" id="kit-status-form" class="kit-status-form">
             <input type="hidden" name="csrf" value="${escapeHtml(token)}"/>
             <input type="hidden" name="returnTo" value="/ops/kits"/>
             <input type="hidden" name="kit_number" id="kit-status-number" value=""/>
             <input type="hidden" name="status" id="kit-status-value" value="Inactive"/>
-            <button class="btn btn-sm" type="submit" id="kit-status-submit" hidden>Deactivate</button>
+            <button class="btn" type="submit" id="kit-status-submit">Deactivate</button>
           </form>
+          <dl>
+            <dt>Date added</dt><dd id="kit-drawer-date"></dd>
+            <dt>Email</dt><dd id="kit-drawer-email"></dd>
+            <dt>Notes</dt><dd id="kit-drawer-notes"></dd>
+          </dl>
+          <p>${sheetLink}</p>
         </aside>
       </div>
     `,

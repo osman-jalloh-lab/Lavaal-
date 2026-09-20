@@ -143,7 +143,8 @@ textarea{min-height:88px;resize:vertical;}
 .kit-drawer dt{color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);}
 .kit-drawer dd{color:var(--text);margin:4px 0 0;word-break:break-word;font-size:13px;}
 .kit-drawer .btn{width:auto;}
-.kit-status-form{margin-top:16px;}
+.kit-drawer .kit-status-form{margin:12px 0 4px;}
+.kit-drawer .kit-status-form .btn{display:block;width:100%;margin-top:0;padding:12px 16px;}
 .map-lead{color:var(--muted);margin:.35rem 0 12px;max-width:36rem;font-size:15px;}
 .map-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
 .map-chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--line);}
