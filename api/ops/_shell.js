@@ -130,7 +130,7 @@ ${typeof scripts === 'string' ? scripts : ''}
 
 function persistenceBanner(durable) {
   if (durable) return '';
-  return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Profile, goals, tasks, and memory are ready; they may reset on a cold start until KV is on.</p>';
+  return '<p class="banner">Demo store — not durable until Vercel KV is bound (KV_REST_API_URL + KV_REST_API_TOKEN). Goals, tasks, notes, inbox, calendar, and routines may reset on a cold start until KV is on.</p>';
 }
 
 function dashboardPage({ email, snapshot, notice, error }) {
