@@ -46,12 +46,12 @@ function assertPublicLogin(check, html, label) {
     && /class="flegal"[\s\S]*href="\/ops"/.test(html));
   check(prefix + 'desktop Login sits in the quiet nav-link row',
     /href="\/ops"[^>]*class="nav-login"|class="nav-login"[^>]*href="\/ops"/.test(navLinks)
-    && navOrder.join('|') === 'Services|Products|Coverage|Login|Contact'
+    && navOrder.join('|') === 'Services|Products|Coverage|Contact|Login'
     && !/href="\/ops"/.test(navRight)
     && !/\bnav-cta\b/.test(navLinks));
   check(prefix + 'mobile Login sits with drawer links, not as a second CTA',
     /class="drawer-login"[^>]*href="\/ops"|href="\/ops"[^>]*class="drawer-login"/.test(drawer)
-    && drawerOrder.join('|') === 'Services|Products|Coverage|Login|Contact|Request Quote'
+    && drawerOrder.join('|') === 'Services|Products|Coverage|Contact|Login|Request Quote'
     && drawer.indexOf('drawer-login') < drawer.indexOf('drawer-cta'));
   check(prefix + 'Request Quote remains the primary nav CTA',
     quoteCtas.length > 0
