@@ -507,6 +507,130 @@ async function run() {
   }
 
   {
+    store.resetStore();
+    ceo.resetCeoBridge();
+    desks.resetDeskTalk();
+    const sharedThread = 'researchy-2ccd9aac6cff1126';
+    const createdA = await store.addTask({
+      title: 'Assign 1 — Starlink Liberia',
+      nextAction: 'Researchy working',
+      status: 'doing',
+      createdBy: ALLOWED,
+      ownerAgentId: 'researchy',
+      childThreadId: sharedThread,
+      childCorrelationId: 'corr-starlink-a',
+      assignStatus: 'assigned',
+      brief: 'Starlink Liberia',
+    });
+    const createdB = await store.addTask({
+      title: 'Assign 2 — Cisco Guinea',
+      nextAction: 'Researchy working',
+      status: 'doing',
+      createdBy: ALLOWED,
+      ownerAgentId: 'researchy',
+      childThreadId: sharedThread,
+      childCorrelationId: 'corr-cisco-b',
+      assignStatus: 'assigned',
+      brief: 'Cisco Guinea',
+    });
+    const taskA = createdA.task;
+    const taskB = createdB.task;
+    await store.enqueueResearchyPending({
+      threadId: sharedThread,
+      founderEmail: ALLOWED,
+      taskId: taskA.id,
+      messageId: taskA.childCorrelationId,
+      correlationId: taskA.childCorrelationId,
+      text: 'Starlink Liberia brief',
+    });
+    await store.enqueueResearchyPending({
+      threadId: sharedThread,
+      founderEmail: ALLOWED,
+      taskId: taskB.id,
+      messageId: taskB.childCorrelationId,
+      correlationId: taskB.childCorrelationId,
+      text: 'Cisco Guinea brief',
+    });
+
+    const replyA = await assign.postResearchyReply({
+      threadId: sharedThread,
+      correlationId: taskA.childCorrelationId,
+      text: 'Starlink coverage looks quote-first.',
+    });
+    const afterA = await store.readStore();
+    const savedA = afterA.tasks.find((row) => row.id === taskA.id);
+    const savedB = afterA.tasks.find((row) => row.id === taskB.id);
+    const leftover = store.listResearchyPending(afterA);
+    check('shared Researchy thread: A correlation updates A only',
+      replyA.ok === true
+      && replyA.error !== 'assign_not_found'
+      && replyA.task
+      && replyA.task.id === taskA.id
+      && savedA.assignStatus === 'ready_for_review'
+      && /Starlink/i.test(savedA.result)
+      && savedB.assignStatus === 'assigned'
+      && !savedB.result
+      && leftover.length === 1
+      && leftover[0].taskId === taskB.id);
+
+    const guess = await assign.postResearchyReply({
+      threadId: sharedThread,
+      text: 'Should not attach to Cisco Guinea.',
+    });
+    const afterGuess = await store.readStore();
+    const stillA = afterGuess.tasks.find((row) => row.id === taskA.id);
+    const stillB = afterGuess.tasks.find((row) => row.id === taskB.id);
+    check('shared Researchy thread: threadId-only reply does not attach to B',
+      guess.error === 'assign_not_found'
+      && stillB.assignStatus === 'assigned'
+      && !stillB.result
+      && stillA.assignStatus === 'ready_for_review');
+
+    const wrongPending = await assign.postResearchyReply({
+      threadId: sharedThread,
+      pendingId: 'not-a-real-pending',
+      text: 'Wrong pending must not steal leftover B.',
+    });
+    const afterWrong = await store.readStore();
+    check('shared Researchy thread: unknown pending does not fall back to leftover B',
+      wrongPending.error === 'assign_not_found'
+      && afterWrong.tasks.find((row) => row.id === taskB.id).assignStatus === 'assigned'
+      && !afterWrong.tasks.find((row) => row.id === taskB.id).result
+      && store.listResearchyPending(afterWrong).length === 1
+      && store.listResearchyPending(afterWrong)[0].taskId === taskB.id);
+
+    const progressSkip = await assign.noteDeskProgress({
+      agentId: 'researchy',
+      threadId: sharedThread,
+      resultText: 'Desk progress without correlation',
+      waiting: false,
+    });
+    check('noteDeskProgress skips when only shared threadId is present',
+      progressSkip.ok === true
+      && progressSkip.skipped === true
+      && (await store.readStore()).tasks.find((row) => row.id === taskB.id).assignStatus === 'assigned');
+
+    const progressB = await assign.noteDeskProgress({
+      agentId: 'researchy',
+      threadId: sharedThread,
+      correlationId: taskB.childCorrelationId,
+      resultText: 'Cisco Guinea findings only.',
+      waiting: false,
+    });
+    const afterProgress = await store.readStore();
+    const progressedB = afterProgress.tasks.find((row) => row.id === taskB.id);
+    const progressedA = afterProgress.tasks.find((row) => row.id === taskA.id);
+    check('noteDeskProgress with B correlation updates B only',
+      progressB.ok === true
+      && progressB.task
+      && progressB.task.id === taskB.id
+      && progressedB.assignStatus === 'ready_for_review'
+      && /Cisco Guinea/i.test(progressedB.result)
+      && progressedA.assignStatus === 'ready_for_review'
+      && /Starlink/i.test(progressedA.result));
+  }
+
+  {
     const src = fs.readFileSync(path.join(opsDir, '_assign.js'), 'utf8');
     const vercel = fs.readFileSync(path.join(__dirname, '../vercel.json'), 'utf8');
     const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
@@ -547,7 +671,18 @@ async function run() {
       && note.includes('Specialist done is not task done')
       && note.includes('/ops/api/desk-talk/researchy/pending')
       && note.includes('/ops/api/desk-talk/researchy/reply')
-      && note.includes('Assign N'));
+      && note.includes('Assign N')
+      && note.includes('https://www.lavaall.com/ops/api/desk-talk/researchy/pending')
+      && note.includes('https://www.lavaall.com/ops/api/desk-talk/researchy/reply')
+      && note.includes('Never attach a reply by desk threadId alone')
+      && note.includes('Preview branch URLs may 410')
+      && !note.includes('GET {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/pending')
+      && !note.includes('POST {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/reply'));
+    check('assign matcher does not fall through to shared childThreadId or leftover pending',
+      src.includes('function matchAssignTask(')
+      && !src.includes('listResearchyPending(storeData)[0]')
+      && !src.includes("row.childThreadId === threadId && row.assignStatus === 'assigned'")
+      && !src.includes('row.childThreadId === childId'));
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
     assertPublicLogin(check, home);
   }
