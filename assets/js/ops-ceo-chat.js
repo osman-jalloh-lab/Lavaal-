@@ -14,31 +14,63 @@ document.addEventListener('DOMContentLoaded', () => {
     lifecycle: 'LAVAALL Lifecycle & Klaviyo',
     researchy: 'Researchy',
   };
-  let graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '/ops/api/ceo-bridge/thread', postUrl: '/ops/api/ceo-bridge/message', waitingCopy: 'Waiting on CEO…', agentId: 'lavaall-ceo', agentName: 'LAVAALL CEO' };
+  let graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '', postUrl: '', waitingCopy: '', agentId: '', agentName: '' };
   let timer = 0;
   let inFlight = false;
 
   try {
-    graph = JSON.parse(dataNode && dataNode.textContent ? dataNode.textContent : '{}') || graph;
+    graph = Object.assign({}, graph, JSON.parse(dataNode && dataNode.textContent ? dataNode.textContent : '{}') || {});
   } catch (err) {
-    graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '/ops/api/ceo-bridge/thread', postUrl: '/ops/api/ceo-bridge/message', waitingCopy: 'Waiting on CEO…', agentId: 'lavaall-ceo', agentName: 'LAVAALL CEO' };
+    graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '', postUrl: '', waitingCopy: '', agentId: '', agentName: '' };
+  }
+
+  function agentFromLocation() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const query = params.get('agent') || params.get('agentId') || '';
+      const path = String(window.location.pathname || '');
+      const match = path.match(/\/ops\/chat\/([a-z0-9-]+)/i);
+      return (match && match[1]) || query || '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function normalizeTalkAgent(value) {
+    const raw = String(value || '').trim().toLowerCase();
+    if (raw === 'ceo') return 'lavaall-ceo';
+    return DESK_VOICE[raw] ? raw : '';
+  }
+
+  function currentAgentId() {
+    const fromInput = form && form.querySelector('[name="agentId"]');
+    return normalizeTalkAgent(graph.agentId || (fromInput && fromInput.value) || agentFromLocation());
   }
 
   function rememberDesk(payload) {
     if (!payload) return;
-    if (payload.agentId) graph.agentId = payload.agentId;
+    if (payload.agentId) graph.agentId = normalizeTalkAgent(payload.agentId) || graph.agentId;
     if (payload.agentName) graph.agentName = payload.agentName;
-    if (payload.thread && payload.thread.agentId) graph.agentId = payload.thread.agentId;
+    if (payload.thread && payload.thread.agentId) {
+      graph.agentId = normalizeTalkAgent(payload.thread.agentId) || graph.agentId;
+    }
   }
 
   function deskVoice() {
+    const id = currentAgentId();
+    if (graph.agentName && id && graph.agentId === id) return graph.agentName;
+    if (id && DESK_VOICE[id]) return DESK_VOICE[id];
     if (graph.agentName) return graph.agentName;
-    if (graph.agentId && DESK_VOICE[graph.agentId]) return DESK_VOICE[graph.agentId];
-    return 'LAVAALL CEO';
+    return 'LAVAALL desk';
+  }
+
+  function isCeoTalk() {
+    return currentAgentId() === 'lavaall-ceo';
   }
 
   function isDeskTalk() {
-    return Boolean(graph.agentId && graph.agentId !== 'lavaall-ceo');
+    const id = currentAgentId();
+    return Boolean(id && id !== 'lavaall-ceo');
   }
 
   function isTalkChromeNoise(text) {
@@ -55,11 +87,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function threadPollUrl(threadId) {
+    const agentId = currentAgentId();
     const id = encodeURIComponent(threadId || '');
-    if (isDeskTalk()) {
-      return '/ops/api/desk-talk/' + encodeURIComponent(graph.agentId) + '/thread?id=' + id;
+    if (agentId && agentId !== 'lavaall-ceo') {
+      return '/ops/desk-talk/' + encodeURIComponent(agentId) + '/thread' + (id ? '?id=' + id : '');
     }
-    return '/ops/api/ceo-bridge/thread?id=' + id;
+    if (agentId === 'lavaall-ceo') {
+      return '/ops/ceo-bridge/thread' + (id ? '?id=' + id : '');
+    }
+    return '';
+  }
+
+  function threadPostUrl() {
+    const agentId = currentAgentId();
+    if (agentId && agentId !== 'lavaall-ceo') return '/ops/desk-talk/' + encodeURIComponent(agentId) + '/message';
+    if (agentId === 'lavaall-ceo') return '/ops/ceo-bridge/message';
+    return '';
   }
 
   function escapeHtml(value) {
@@ -121,12 +164,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function pollUrl() {
-    const base = graph.pollUrl || '/ops/api/ceo-bridge/thread';
+    const base = threadPollUrl(graph.threadId);
+    if (!base) return '';
+    if (!isCeoTalk() && base.indexOf('ceo-bridge') !== -1) return '';
     return base + (base.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now();
   }
 
   function startPoll() {
     if (timer) return;
+    if (!pollUrl()) return;
     poll();
     timer = window.setInterval(poll, 2000);
   }
@@ -138,10 +184,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function poll() {
+    const url = pollUrl();
+    if (!url || (!isCeoTalk() && url.indexOf('ceo-bridge') !== -1)) return;
     if (inFlight) return;
     inFlight = true;
     try {
-      const response = await fetch(pollUrl(), {
+      const response = await fetch(url, {
         method: 'GET',
         cache: 'no-store',
         headers: { Accept: 'application/json', 'Cache-Control': 'no-store' },
@@ -164,18 +212,20 @@ document.addEventListener('DOMContentLoaded', () => {
       event.preventDefault();
       const text = box && box.value ? box.value.trim() : '';
       if (!text) return;
+      const postUrl = threadPostUrl() || graph.postUrl;
+      if (!postUrl || (!isCeoTalk() && postUrl.indexOf('ceo-bridge') !== -1)) return;
       const body = {
         csrf: graph.csrf || (form.querySelector('[name="csrf"]') && form.querySelector('[name="csrf"]').value) || '',
         threadId: graph.threadId || (threadIdInput && threadIdInput.value) || '',
         source: 'ops-office',
-        agentId: graph.agentId || '',
+        agentId: currentAgentId(),
         correlationId: (window.crypto && crypto.randomUUID)
           ? crypto.randomUUID().replace(/-/g, '').slice(0, 32)
           : String(Date.now()) + Math.random().toString(16).slice(2, 10),
         text,
       };
       try {
-        const response = await fetch(graph.postUrl || '/ops/api/ceo-bridge/message', {
+        const response = await fetch(postUrl, {
           method: 'POST',
           cache: 'no-store',
           headers: {

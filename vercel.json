@@ -27,6 +27,12 @@
   "rewrites": [
     { "source": "/ops", "destination": "/api/ops" },
     { "source": "/ops/", "destination": "/api/ops" },
+    { "source": "/ops/chat/:agent", "destination": "/api/ops?area=chat&agent=:agent" },
+    { "source": "/ops/chat", "destination": "/api/ops?area=chat" },
+    { "source": "/ops/desk-talk/:agent/:kind", "destination": "/api/ops?area=api/desk-talk/:agent/:kind&agent=:agent" },
+    { "source": "/ops/ceo-bridge/:kind", "destination": "/api/ops?area=api/ceo-bridge/:kind" },
+    { "source": "/ops/api/desk-talk/:agent/:kind", "destination": "/api/ops?area=api/desk-talk/:agent/:kind&agent=:agent" },
+    { "source": "/ops/api/ceo-bridge/:kind", "destination": "/api/ops?area=api/ceo-bridge/:kind" },
     { "source": "/ops/:path*", "destination": "/api/ops?area=:path*" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/schedule", "destination": "/index.html" }

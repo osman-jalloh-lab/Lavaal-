@@ -281,12 +281,12 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
   const messages = Array.isArray(thread.messages) ? thread.messages : [];
   const agentName = talkAgent && talkAgent.name ? talkAgent.name : 'LAVAALL desk';
   const waitText = isCeo ? WAITING_COPY : waitingCopy(talkAgent && talkAgent.id);
-  const postUrl = isCeo ? '/ops/api/ceo-bridge/message' : `/ops/api/desk-talk/${encodeURIComponent(talkAgent.id)}/message`;
+  const postUrl = isCeo ? '/ops/ceo-bridge/message' : `/ops/desk-talk/${encodeURIComponent(talkAgent.id)}/message`;
   const pollUrl = isCeo
-    ? (thread.id ? `/ops/api/ceo-bridge/thread?id=${encodeURIComponent(thread.id)}` : '/ops/api/ceo-bridge/thread')
+    ? (thread.id ? `/ops/ceo-bridge/thread?id=${encodeURIComponent(thread.id)}` : '/ops/ceo-bridge/thread')
     : (thread.id
-      ? `/ops/api/desk-talk/${encodeURIComponent(talkAgent.id)}/thread?id=${encodeURIComponent(thread.id)}`
-      : `/ops/api/desk-talk/${encodeURIComponent(talkAgent.id)}/thread`);
+      ? `/ops/desk-talk/${encodeURIComponent(talkAgent.id)}/thread?id=${encodeURIComponent(thread.id)}`
+      : `/ops/desk-talk/${encodeURIComponent(talkAgent.id)}/thread`);
   const list = messages.length
     ? `<ol class="thread" id="ceo-thread">${messages.map((item) => deskMessageBubble(item, agentName)).join('')}</ol>`
     : `<ol class="thread" id="ceo-thread"></ol><p class="empty" id="ceo-empty">No messages yet.</p>`;
@@ -307,7 +307,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     notice,
     error,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-ceo-chat.js?v=qa-voice" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=path-talk" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>${escapeHtml(agentName)}</h1>

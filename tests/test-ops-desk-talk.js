@@ -72,7 +72,7 @@ async function run() {
 
   check('office Talk ids are the six desks including Researchy',
     office.TALK_AGENT_IDS.join(',') === DESK_IDS.join(',')
-    && office.talkHref('researchy') === '/ops/chat?agent=researchy'
+    && office.talkHref('researchy') === '/ops/chat/researchy'
     && office.isTalkAgent('researchy') === true);
 
   {
@@ -97,15 +97,40 @@ async function run() {
         && !html.includes('xai_runtime')
         && !html.includes('grok_bot_bridge')
         && html.includes(`"agentName":${JSON.stringify(name)}`)
-        && html.includes('/assets/js/ops-ceo-chat.js?v=qa-voice')
+        && html.includes('/assets/js/ops-ceo-chat.js?v=path-talk')
         && !html.includes('This desk uses Office Talk')
         && !html.includes('not the Anthropic or OpenAI helper')
         && (id === 'lavaall-ceo'
-          ? html.includes('/ops/api/ceo-bridge/message')
-          : html.includes(`/ops/api/desk-talk/${id}/message`)
+          ? html.includes('/ops/ceo-bridge/message')
+          : html.includes(`/ops/desk-talk/${id}/message`)
+            && !html.includes('/ops/ceo-bridge/thread')
             && !html.includes('>LAVAALL CEO<')
             && !html.includes('"agentName":"LAVAALL CEO"')));
     }
+    const pathCeo = mockRes();
+    await ops(authed({
+      json: false,
+      url: '/ops/chat/lavaall-ceo',
+      query: { area: 'chat', agent: 'lavaall-ceo' },
+    }), pathCeo);
+    check('path /ops/chat/lavaall-ceo opens CEO Talk',
+      pathCeo.statusCode === 200
+      && String(pathCeo.raw).includes('<h1>LAVAALL CEO</h1>')
+      && String(pathCeo.raw).includes('/ops/ceo-bridge/message')
+      && !String(pathCeo.raw).includes('<h2>Helper</h2>'));
+    const alias = mockRes();
+    await ops(authed({
+      json: false,
+      url: '/ops/chat?agent=ceo',
+      query: { area: 'chat', agent: 'ceo' },
+    }), alias);
+    check('agent=ceo is lavaall-ceo Talk, not the helper',
+      alias.statusCode === 200
+      && office.normalizeTalkAgentId('ceo') === 'lavaall-ceo'
+      && String(alias.raw).includes('<h1>LAVAALL CEO</h1>')
+      && String(alias.raw).includes('/ops/ceo-bridge/message')
+      && !String(alias.raw).includes('<h2>Helper</h2>')
+      && !String(alias.raw).includes('Helper connected'));
   }
 
   {
@@ -286,14 +311,15 @@ async function run() {
     const note = fs.readFileSync(path.join(__dirname, '../docs/OPS-CEO-BRIDGE.md'), 'utf8');
     check('docs list per-desk smoke for all six Talk agents',
       note.includes('Talk-ALL')
-      && DESK_IDS.every((id) => note.includes(`/ops/chat?agent=${id}`)));
+      && DESK_IDS.every((id) => note.includes(`/ops/chat/${id}`)));
     const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
     check('Talk JS keeps the desk voice and desk poll URL',
       chatJs.includes('function deskVoice()')
       && chatJs.includes('graph.agentName')
-      && chatJs.includes("'/ops/api/desk-talk/' + encodeURIComponent(graph.agentId) + '/thread")
+      && chatJs.includes("'/ops/desk-talk/' + encodeURIComponent(agentId) + '/thread")
       && chatJs.includes("last.role === 'assistant'")
       && chatJs.includes('isTalkChromeNoise')
+      && chatJs.includes("!isCeoTalk() && url.indexOf('ceo-bridge')")
       && !chatJs.includes("mine ? 'You' : 'LAVAALL CEO'"));
   }
 

@@ -4,7 +4,7 @@
 const { kitsDeniedPage, loginPage } = require('./_html');
 const { NAV, dashboardPage } = require('./_shell');
 const { calendarPage, chatPage, inboxPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
-const { isTalkAgent, officePage } = require('./_office');
+const { isTalkAgent, normalizeTalkAgentId, officePage } = require('./_office');
 const {
   describeKitsSetup,
   hydrateKitsIfEmpty,
@@ -77,6 +77,16 @@ function firstQuery(query, key) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function talkAgentFromReq(req) {
+  const query = queryOf(req);
+  const fromQuery = firstQuery(query, 'agent') || firstQuery(query, 'agentId') || '';
+  const area = String(firstQuery(query, 'area') || '');
+  const pathOnly = String(req.url || '').split('?')[0];
+  const fromArea = area.match(/(?:^|\/)chat\/([a-z0-9-]+)/i);
+  const fromPath = pathOnly.match(/\/(?:ops\/)?chat\/([a-z0-9-]+)/i);
+  return normalizeTalkAgentId(fromQuery || (fromArea && fromArea[1]) || (fromPath && fromPath[1]) || '');
+}
+
 function resolveArea(req) {
   const query = queryOf(req);
   const fromQuery = firstQuery(query, 'area');
@@ -94,7 +104,8 @@ function knownArea(area) {
 function safeReturnTo(value) {
   if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/map' || value === '/ops/routines' || value === '/ops/office' || value === '/ops') return value;
   if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
-  if (typeof value === 'string' && /^\/ops\/chat\?agent=(lavaall-ceo|sales|technical|growth|lifecycle|researchy)$/.test(value)) return value;
+  if (typeof value === 'string' && /^\/ops\/chat\/(lavaall-ceo|sales|technical|growth|lifecycle|researchy)$/.test(value)) return value;
+  if (typeof value === 'string' && /^\/ops\/chat\?agent=(lavaall-ceo|ceo|sales|technical|growth|lifecycle|researchy)$/.test(value)) return value;
   return '/ops';
 }
 
@@ -172,7 +183,7 @@ async function renderArea(req, res, session, extra) {
     kitsSetup: data.kitsSetup,
     csrf: (extra && extra.csrf) || createCsrfToken(session.email),
     openThread: firstQuery(queryOf(req), 'thread') || '',
-    agentId: firstQuery(queryOf(req), 'agent') || '',
+    agentId: talkAgentFromReq(req),
   };
 
   if (area === 'chat' && isTalkAgent(pageOpts.agentId)) {
@@ -400,7 +411,7 @@ async function handleWrite(req, res, session) {
     case 'send-chat':
       return finishWrite(req, res, session, body, await sendChatTurn({
         question: body.message,
-        agentId: body.agent || body.agentId || '',
+        agentId: normalizeTalkAgentId(body.agent || body.agentId || '') || body.agent || body.agentId || '',
         selection: {
           useGoal: body.useGoal,
           taskId: body.taskId,

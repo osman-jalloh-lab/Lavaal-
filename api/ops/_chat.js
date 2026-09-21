@@ -6,7 +6,7 @@
 
 const { classify, CEO_ID } = require('../slack/_router/classify');
 const { talkToDesk } = require('./_agent_thread');
-const { TALK_AGENT_IDS, isTalkAgent } = require('./_office');
+const { TALK_AGENT_IDS, normalizeTalkAgentId } = require('./_office');
 const {
   addChatProposals,
   appendChatTurn,
@@ -192,7 +192,7 @@ function trimQuestion(value) {
 }
 
 function pinTalkAgent(route, agentId) {
-  const id = String(agentId || '').trim();
+  const id = normalizeTalkAgentId(agentId) || String(agentId || '').trim();
   if (!TALK_AGENT_IDS.includes(id)) return route;
   const helpers = Array.isArray(route && route.helperAgents)
     ? route.helperAgents.filter((item) => item && item !== id)
@@ -207,8 +207,8 @@ function pinTalkAgent(route, agentId) {
 async function sendChatTurn({ question, selection, createdBy, agentId }) {
   const text = trimQuestion(question);
   if (!text) return { error: 'invalid_message' };
-  const talkId = String(agentId || '').trim();
-  if (isTalkAgent(talkId)) {
+  const talkId = normalizeTalkAgentId(agentId);
+  if (talkId) {
     const queued = await talkToDesk({
       agentId: talkId,
       text,

@@ -209,7 +209,7 @@ async function run() {
     check('Talk from Office opens desk Talk for that agent',
       html.includes('<h1>LAVAALL Sales &amp; Customer Success</h1>')
       && html.includes('name="agentId" value="sales"')
-      && html.includes('/ops/api/desk-talk/sales/message')
+      && html.includes('/ops/desk-talk/sales/message')
       && !html.includes('This desk uses Office Talk')
       && !html.includes('<div class="kicker">LAVAALL CEO</div>')
       && !html.includes('<h2>Helper</h2>')
@@ -225,7 +225,7 @@ async function run() {
     check('Researchy opens its own Talk pin',
       String(researchy.raw).includes('<h1>Researchy</h1>')
       && String(researchy.raw).includes('name="agentId" value="researchy"')
-      && String(researchy.raw).includes('/ops/api/desk-talk/researchy/message')
+      && String(researchy.raw).includes('/ops/desk-talk/researchy/message')
       && !String(researchy.raw).includes('Anthropic'));
     const sentTalk = mockRes();
     await ops(authed({
@@ -246,7 +246,7 @@ async function run() {
     check('CEO Talk uses the bridge and hides the Anthropic/OpenAI helper',
       ceoHtml.includes('<h1>LAVAALL CEO</h1>')
       && ceoHtml.includes('Waiting on CEO')
-      && ceoHtml.includes('/ops/api/ceo-bridge/message')
+      && ceoHtml.includes('/ops/ceo-bridge/message')
       && ceoHtml.includes('/assets/js/ops-ceo-chat.js')
       && !ceoHtml.includes('name="action" value="send-chat"')
       && !ceoHtml.includes('No Anthropic or OpenAI key')

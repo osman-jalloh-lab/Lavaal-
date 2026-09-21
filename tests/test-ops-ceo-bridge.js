@@ -311,9 +311,10 @@ async function run() {
     }), sales);
     check('sales Talk uses desk Talk, not the helper and not the CEO B2 form',
       String(sales.raw).includes('name="agentId" value="sales"')
-      && String(sales.raw).includes('/ops/api/desk-talk/sales/message')
+      && String(sales.raw).includes('/ops/desk-talk/sales/message')
       && !String(sales.raw).includes('<h2>Helper</h2>')
-      && !String(sales.raw).includes('/ops/api/ceo-bridge/message'));
+      && !String(sales.raw).includes('/ops/ceo-bridge/')
+      && !String(sales.raw).includes('/ops/api/ceo-bridge/'));
 
     const everyone = mockRes();
     await ops(authed({

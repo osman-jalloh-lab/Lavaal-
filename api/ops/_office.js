@@ -119,7 +119,7 @@ const OFFICE_AGENTS = Object.freeze([
   {
     id: 'lavaall-ceo',
     name: 'LAVAALL CEO',
-    talk: '/ops/chat?agent=lavaall-ceo',
+    talk: '/ops/chat/lavaall-ceo',
     photo: deskPhoto('lavaall-ceo'),
     objectPosition: cropPosition(CARD_CAMERA['lavaall-ceo'], 'lavaall-ceo'),
     short: 'CEO',
@@ -127,7 +127,7 @@ const OFFICE_AGENTS = Object.freeze([
   {
     id: 'sales',
     name: 'LAVAALL Sales & Customer Success',
-    talk: '/ops/chat?agent=sales',
+    talk: '/ops/chat/sales',
     photo: deskPhoto('sales'),
     objectPosition: cropPosition(CARD_CAMERA.sales, 'sales'),
     short: 'Sales',
@@ -135,7 +135,7 @@ const OFFICE_AGENTS = Object.freeze([
   {
     id: 'technical',
     name: 'LAVAALL Technical & QA',
-    talk: '/ops/chat?agent=technical',
+    talk: '/ops/chat/technical',
     photo: deskPhoto('technical'),
     objectPosition: cropPosition(CARD_CAMERA.technical, 'technical'),
     short: 'Technical',
@@ -143,7 +143,7 @@ const OFFICE_AGENTS = Object.freeze([
   {
     id: 'growth',
     name: 'LAVAALL Growth, UGC & Ads',
-    talk: '/ops/chat?agent=growth',
+    talk: '/ops/chat/growth',
     photo: deskPhoto('growth'),
     objectPosition: cropPosition(CARD_CAMERA.growth, 'growth'),
     short: 'Growth',
@@ -151,7 +151,7 @@ const OFFICE_AGENTS = Object.freeze([
   {
     id: 'lifecycle',
     name: 'LAVAALL Lifecycle & Klaviyo',
-    talk: '/ops/chat?agent=lifecycle',
+    talk: '/ops/chat/lifecycle',
     photo: deskPhoto('lifecycle'),
     objectPosition: cropPosition(CARD_CAMERA.lifecycle, 'lifecycle'),
     short: 'Lifecycle',
@@ -159,24 +159,31 @@ const OFFICE_AGENTS = Object.freeze([
   {
     id: 'researchy',
     name: 'Researchy',
-    talk: '/ops/chat?agent=researchy',
+    talk: '/ops/chat/researchy',
     photo: RESEARCHY_PORTRAIT.photo,
     objectPosition: '50% 38%',
     short: 'Researchy',
   },
 ]);
 
+function normalizeTalkAgentId(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'ceo') return 'lavaall-ceo';
+  return TALK_AGENT_IDS.includes(raw) ? raw : '';
+}
+
 function officeAgentById(id) {
-  return OFFICE_AGENTS.find((agent) => agent.id === id) || null;
+  const agentId = normalizeTalkAgentId(id);
+  return OFFICE_AGENTS.find((agent) => agent.id === agentId) || null;
 }
 
 function isTalkAgent(id) {
-  return TALK_AGENT_IDS.includes(String(id || ''));
+  return Boolean(normalizeTalkAgentId(id));
 }
 
 function talkHref(id) {
-  const agent = officeAgentById(id);
-  return agent && agent.talk ? agent.talk : '';
+  const agentId = normalizeTalkAgentId(id);
+  return agentId ? `/ops/chat/${agentId}` : '';
 }
 
 function pctBox(spot) {
@@ -383,6 +390,7 @@ module.exports = {
   TALK_AGENT_IDS,
   cropPosition,
   isTalkAgent,
+  normalizeTalkAgentId,
   officeAgentById,
   officePage,
   talkHref,

@@ -25,7 +25,7 @@ const {
 } = require('./_lib');
 const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
-const { TALK_AGENT_IDS, officeAgentById } = require('./_office');
+const { normalizeTalkAgentId, officeAgentById } = require('./_office');
 const { talkToCeo } = require('./_ceo_bridge');
 
 const CEO_DESK_ID = 'lavaall-ceo';
@@ -117,8 +117,7 @@ function storeMode() {
 }
 
 function normalizeAgentId(value) {
-  const id = clean(value, 40);
-  return TALK_AGENT_IDS.includes(id) ? id : '';
+  return normalizeTalkAgentId(clean(value, 40));
 }
 
 function deskName(agentId) {

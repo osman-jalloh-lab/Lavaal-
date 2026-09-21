@@ -54,7 +54,7 @@ Founder Talk uses the existing allowlist session + CSRF. Agents cannot enqueue a
 ### A. B2 BRIDGE-OK (no xAI, or explicit wake)
 
 1. Sign in on Preview `/ops`.
-2. Open **Office**. Desktop default camera is **Lead view**. Tap **Talk** on the LAVAALL CEO desk (or open `/ops/chat?agent=lavaall-ceo`).
+2. Open **Office**. Desktop default camera is **Lead view**. Tap **Talk** on the LAVAALL CEO desk (or open `/ops/chat/lavaall-ceo`).
 3. Confirm one CEO voice — desk name only, no helper card, no “xAI vs Grok” copy.
 4. With `XAI_API_KEY` **unset**, send a short message. The page shows **Waiting on CEO…**.
 5. Secret client `GET /ops/api/ceo-bridge/pending` sees that text.
@@ -112,12 +112,14 @@ All six Office Talk agents use a persistent KV thread + server xAI. `_xai.js` is
 
 | Desk | Talk route | KV key |
 |------|------------|--------|
-| LAVAALL CEO | `/ops/chat?agent=lavaall-ceo` | `ops:ceo:thread:{id}` (+ B2 wake inbox) |
-| Sales | `/ops/chat?agent=sales` | `ops:agent:thread:sales:{id}` |
-| Technical | `/ops/chat?agent=technical` | `ops:agent:thread:technical:{id}` |
-| Growth | `/ops/chat?agent=growth` | `ops:agent:thread:growth:{id}` |
-| Lifecycle | `/ops/chat?agent=lifecycle` | `ops:agent:thread:lifecycle:{id}` |
-| Researchy | `/ops/chat?agent=researchy` | `ops:agent:thread:researchy:{id}` |
+| LAVAALL CEO | `/ops/chat/lavaall-ceo` | `ops:ceo:thread:{id}` (+ B2 wake inbox) |
+| Sales | `/ops/chat/sales` | `ops:agent:thread:sales:{id}` |
+| Technical | `/ops/chat/technical` | `ops:agent:thread:technical:{id}` |
+| Growth | `/ops/chat/growth` | `ops:agent:thread:growth:{id}` |
+| Lifecycle | `/ops/chat/lifecycle` | `ops:agent:thread:lifecycle:{id}` |
+| Researchy | `/ops/chat/researchy` | `ops:agent:thread:researchy:{id}` |
+
+`?agent=` still works. `?agent=ceo` is `lavaall-ceo` — never the everyone helper.
 
 Non-CEO desks: xAI when `XAI_API_KEY` is set; otherwise **Waiting on {desk}…** — no invented reply, no B2 poll. UI shows the desk name only (no xAI / Grok labels).
 
@@ -127,10 +129,10 @@ Shared HTTP for non-CEO: `POST /ops/api/desk-talk/message`, `GET /ops/api/desk-t
 
 1. Sign in on Preview `/ops`. Open **Office**. Confirm **Researchy** has Talk (six Talk buttons).
 2. For **each** desk — CEO, Sales, Technical, Growth, Lifecycle, Researchy:
-   1. Tap Talk (or open `/ops/chat?agent={id}`).
+   1. Tap Talk (or open `/ops/chat/{id}`).
    2. Confirm the heading is that desk’s name — not “Chat”, not “Helper”, not xAI/Grok. No “This desk uses Office Talk” lead.
    3. Send a short message. With `XAI_API_KEY` set, one reply lands in that desk’s thread. The bubble kicker is **that desk**, never “LAVAALL CEO” on a non-CEO desk.
-   4. Network tab: desk Talk polls `/ops/api/desk-talk/{id}/thread` (200), not `/ops/api/ceo-bridge/thread` (that 403s for a desk thread id).
+   4. Network tab: desk Talk polls `/ops/desk-talk/{id}/thread` (200). Do not request `/ops/ceo-bridge/thread` or `/ops/api/ceo-bridge/thread` from a non-CEO desk.
    5. Open a **different** desk — threads must not mix.
 3. CEO-only: `@grok` / B2 pending / `POST /reply` still BRIDGE-OK. Sales pending must stay empty.
 4. Chat with **no** agent still uses the everyone / helper path.
