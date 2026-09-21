@@ -289,8 +289,15 @@ async function run() {
       createdBy: ALLOWED,
       agentId: 'sales',
     });
-    check('other agent chat routes still reach the helper when configured',
-      sales.usedModel === true && fetchCalls >= 1 && sales.route.leadAgent === 'sales');
+    check('sales Talk uses desk Talk and never calls the Anthropic helper',
+      sales.deskTalk === true && sales.usedModel === false && fetchCalls === 0 && sales.route.leadAgent === 'sales');
+    const everyone = await chat.sendChatTurn({
+      question: 'Draft a note about the catalog tone.',
+      selection: {},
+      createdBy: ALLOWED,
+    });
+    check('everyone chat still reaches the helper when configured',
+      everyone.usedModel === true && fetchCalls >= 1);
     delete process.env.ANTHROPIC_API_KEY;
     global.fetch = origFetch;
   }
@@ -302,10 +309,10 @@ async function run() {
       url: '/ops/chat?agent=sales',
       query: { area: 'chat', agent: 'sales' },
     }), sales);
-    check('sales Talk still uses the existing helper chat',
-      String(sales.raw).includes('name="action" value="send-chat"')
-      && String(sales.raw).includes('name="agent" value="sales"')
-      && String(sales.raw).includes('<h2>Helper</h2>')
+    check('sales Talk uses desk Talk, not the helper and not the CEO B2 form',
+      String(sales.raw).includes('name="agent" value="sales"')
+      && String(sales.raw).includes('/ops/api/desk-talk/message')
+      && !String(sales.raw).includes('<h2>Helper</h2>')
       && !String(sales.raw).includes('/ops/api/ceo-bridge/message'));
 
     const everyone = mockRes();

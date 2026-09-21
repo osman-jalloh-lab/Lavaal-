@@ -128,13 +128,21 @@ async function run() {
     });
     check('Talk pins the existing sales chat without a second system',
       pinned.ok && pinned.route.leadAgent === 'sales' && pinned.route.mode === 'agent');
-    const ignored = await chat.sendChatTurn({
+    const researchyPin = await chat.sendChatTurn({
       question: 'What is the next step?',
       selection: { useGoal: '1' },
       createdBy: ALLOWED,
       agentId: 'researchy',
     });
-    check('Researchy and unknown desks do not pin Talk',
+    check('Researchy Talk pins Researchy',
+      researchyPin.ok && researchyPin.route.leadAgent === 'researchy' && researchyPin.route.mode === 'agent');
+    const ignored = await chat.sendChatTurn({
+      question: 'What is the next step?',
+      selection: { useGoal: '1' },
+      createdBy: ALLOWED,
+      agentId: 'not-a-desk',
+    });
+    check('unknown desks do not pin Talk',
       ignored.ok && ignored.route.leadAgent === 'lavaall-ceo' && ignored.route.mode !== 'agent');
   }
 
@@ -198,21 +206,23 @@ async function run() {
       query: { area: 'chat', agent: 'sales' },
     }), talk);
     const html = String(talk.raw);
-    check('Talk from Office opens the existing chat pinned to that agent',
+    check('Talk from Office opens desk Talk for that agent',
       html.includes('<h1>Chat</h1>')
       && html.includes('Talking with LAVAALL Sales &amp; Customer Success')
       && html.includes('name="agent" value="sales"')
-      && html.includes('name="returnTo" value="/ops/chat?agent=sales"')
-      && html.includes('Open Chat with no agent to talk to everyone'));
+      && html.includes('/ops/api/desk-talk/message')
+      && html.includes('Open Chat with no agent to talk to everyone')
+      && !html.includes('<h2>Helper</h2>'));
     const researchy = mockRes();
     await ops(authed({
       json: false,
       url: '/ops/chat?agent=researchy',
       query: { area: 'chat', agent: 'researchy' },
     }), researchy);
-    check('Researchy cannot open a Talk pin',
-      String(researchy.raw).includes('This tab talks to everyone')
-      && !String(researchy.raw).includes('name="agent"'));
+    check('Researchy opens its own Talk pin',
+      String(researchy.raw).includes('Talking with Researchy')
+      && String(researchy.raw).includes('name="agent" value="researchy"')
+      && String(researchy.raw).includes('/ops/api/desk-talk/message'));
     const sentTalk = mockRes();
     await ops(authed({
       json: true,

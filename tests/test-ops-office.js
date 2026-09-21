@@ -21,7 +21,8 @@ const NAMES = [
   'Researchy',
 ];
 const CAMERAS = ['Wide', 'Front left', 'Front right', 'Side', 'Lead view'];
-const TALK_IDS = ['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle'];
+const TALK_IDS = ['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle', 'researchy'];
+const CAMERA_TALK_IDS = ['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle'];
 const CAMERA_FILES = ['wide.png', 'front-left.png', 'front-right.png', 'side.png', 'lead.png'];
 const CAMERA_SOURCES = '04-primary-wide.png,01-front-left.png,02-front-right.png,03-side.png,05-lead-view.png';
 
@@ -74,15 +75,15 @@ async function run() {
     NAV.map((item) => item.id).join(',').startsWith('dashboard,office,profile')
     && NAV.some((item) => item.id === 'office' && item.href === '/ops/office' && item.label === 'Office'));
 
-  check('exact desk names and Researchy no-Talk seat are the only six seats',
+  check('exact desk names are the only six seats and all six Talk',
     office.OFFICE_AGENTS.map((agent) => agent.name).join('|') === NAMES.join('|')
-    && office.OFFICE_AGENTS.filter((agent) => agent.placeholder).map((agent) => agent.id).join(',') === 'researchy'
+    && office.OFFICE_AGENTS.every((agent) => !agent.placeholder && agent.talk)
     && office.OFFICE_AGENTS.filter((agent) => agent.photo).length === 6);
 
-  check('Talk maps to existing per-agent chat routes',
+  check('Talk maps to existing per-agent chat routes including Researchy',
     TALK_IDS.every((id) => office.talkHref(id) === `/ops/chat?agent=${id}`)
     && office.talkHref('lavaall-ceo') === '/ops/chat?agent=lavaall-ceo'
-    && office.talkHref('researchy') === '');
+    && office.talkHref('researchy') === '/ops/chat?agent=researchy');
 
   check('camera files map from the approved PNG names',
     office.OFFICE_CAMERAS.map((item) => item.source).join(',') === CAMERA_SOURCES
@@ -95,7 +96,7 @@ async function run() {
       const spots = office.OFFICE_HOTSPOTS[camera.id] || [];
       const ids = spots.map((spot) => spot.id);
       return spots.length === 5
-        && ids.slice().sort().join(',') === TALK_IDS.slice().sort().join(',')
+        && ids.slice().sort().join(',') === CAMERA_TALK_IDS.slice().sort().join(',')
         && !ids.includes('researchy');
     })
     && JSON.stringify(office.OFFICE_HOTSPOTS.wide) !== JSON.stringify(office.OFFICE_HOTSPOTS.lead)
@@ -130,23 +131,23 @@ async function run() {
       && html.includes('grid-template-columns:1fr;')
       && html.includes('min-width:768px')
       && html.includes('orientation:landscape')
-      && (html.match(/class="btn"[^>]*>Talk<\/a>/g) || []).length >= 5);
+      && (html.match(/class="btn"[^>]*>Talk<\/a>/g) || []).length >= 6);
     check('desktop cameras use the approved photo files',
       CAMERA_FILES.every((file) => html.includes(`src="/assets/ops/office/cameras/${file}"`))
       && html.includes('data-camera-photo="wide"'));
-    check('Researchy shows a cropped specialist portrait with no Talk',
+    check('Researchy shows a cropped specialist portrait and Talk',
       html.includes('src="/assets/ops/office/cameras/researchy.png"')
       && html.includes('alt="Researchy"')
       && html.includes('>Researchy<')
       && !html.includes('No robot portrait')
       && !html.includes('visual placeholder')
-      && !html.includes('href="/ops/chat?agent=researchy"'));
-    check('office does not invent online dots or a Researchy Talk route',
+      && html.includes('href="/ops/chat?agent=researchy"'));
+    check('office does not invent online dots and Researchy Talk is on',
       !/\bonline\b/i.test(html)
       && !html.includes('is-online')
       && html.includes('data-agent="researchy"')
       && office.OFFICE_AGENTS.length === 6
-      && office.talkHref('lavaall-ceo') === '/ops/chat?agent=lavaall-ceo');
+      && office.talkHref('researchy') === '/ops/chat?agent=researchy');
     {
       const portrait = path.join(__dirname, '../assets/ops/office/cameras/researchy.png');
       const lead = path.join(__dirname, '../assets/ops/office/cameras/lead.png');
@@ -165,7 +166,7 @@ async function run() {
       && html.includes('Chat without an agent is still everyone'));
     check('Office CEO Talk still opens the lavaall-ceo chat route',
       html.includes('href="/ops/chat?agent=lavaall-ceo"')
-      && html.includes('CEO Talk waits on the real LAVAALL CEO'));
+      && html.includes('all six desks, including Researchy'));
     check('desktop Office is full-bleed at laptop width, not a 1100px phone frame',
       html.includes('class="ops-app is-office"')
       && html.includes('id="office-hero"')

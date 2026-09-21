@@ -5,8 +5,8 @@
 // Underscore prefix: not a Vercel function. No npm.
 
 const { classify, CEO_ID } = require('../slack/_router/classify');
-const { talkToCeo } = require('./_ceo_bridge');
-const { TALK_AGENT_IDS } = require('./_office');
+const { talkToDesk } = require('./_agent_thread');
+const { TALK_AGENT_IDS, isTalkAgent } = require('./_office');
 const {
   addChatProposals,
   appendChatTurn,
@@ -207,8 +207,10 @@ function pinTalkAgent(route, agentId) {
 async function sendChatTurn({ question, selection, createdBy, agentId }) {
   const text = trimQuestion(question);
   if (!text) return { error: 'invalid_message' };
-  if (String(agentId || '').trim() === CEO_ID) {
-    const queued = await talkToCeo({
+  const talkId = String(agentId || '').trim();
+  if (isTalkAgent(talkId)) {
+    const queued = await talkToDesk({
+      agentId: talkId,
       text,
       founderEmail: createdBy,
       source: 'ops-chat',
@@ -221,11 +223,12 @@ async function sendChatTurn({ question, selection, createdBy, agentId }) {
       usedModel: Boolean(queued.usedModel),
       grounded: false,
       provider: queued.provider || '',
-      ceoBridge: true,
+      ceoBridge: talkId === CEO_ID,
+      deskTalk: true,
       waiting: Boolean(queued.waiting),
-      context: { selected: false, summary: 'CEO Talk' },
+      context: { selected: false, summary: `${talkId} Talk` },
       route: {
-        leadAgent: CEO_ID,
+        leadAgent: talkId,
         helperAgents: [],
         verb: 'talk',
         risk: 'L2',

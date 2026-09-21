@@ -6,13 +6,13 @@
 // Approved camera PNGs (untouched) live in /assets/ops/office/cameras/*.png.
 // Phone/iPad cards crop those same photos with object-fit. Researchy uses a
 // pixel crop of the Operations specialist from side.png (03-side.png) — not
-// lead.png, not an invented sixth robot. Talk stays off. Underscore prefix:
+// lead.png, not an invented sixth robot. All six desks Talk. Underscore prefix:
 // not a Vercel function.
 
 const { escapeHtml } = require('./_lib');
 const { dashboardSections, persistenceBanner, shellPage } = require('./_shell');
 
-const TALK_AGENT_IDS = Object.freeze(['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle']);
+const TALK_AGENT_IDS = Object.freeze(['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle', 'researchy']);
 
 const DESK_FILLS = Object.freeze({
   'lavaall-ceo': '#D1FAE5',
@@ -20,6 +20,7 @@ const DESK_FILLS = Object.freeze({
   technical: '#E6F7FF',
   growth: '#FFF6E0',
   lifecycle: '#F3EFE8',
+  researchy: '#E8E4DC',
 });
 
 const OFFICE_CAMERAS = Object.freeze([
@@ -158,11 +159,10 @@ const OFFICE_AGENTS = Object.freeze([
   {
     id: 'researchy',
     name: 'Researchy',
-    talk: '',
+    talk: '/ops/chat?agent=researchy',
     photo: RESEARCHY_PORTRAIT.photo,
     objectPosition: '50% 38%',
     short: 'Researchy',
-    placeholder: true,
   },
 ]);
 
@@ -354,7 +354,7 @@ function officePage({ email, snapshot, notice, error }) {
       <div class="office-rest">
         ${persistenceBanner(snapshot.durable)}
         <h1>Office</h1>
-        <p class="office-lead">Who sits where. Talk opens that desk’s chat. CEO Talk waits on the real LAVAALL CEO. Chat without an agent is still everyone.</p>
+        <p class="office-lead">Who sits where. Talk opens that desk’s chat — all six desks, including Researchy. Chat without an agent is still everyone.</p>
         <div class="office-cards" id="office-cards">${agentCards()}</div>
         <section class="office-dash" id="office-dash">
           <div class="kicker">Below the room</div>

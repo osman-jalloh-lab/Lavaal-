@@ -23,6 +23,7 @@ const {
 const { buildMapGraph } = require('./_map');
 const { SHEET_WRITE_BANNER } = require('./_kits');
 const { SLACK_FALLBACK, WAITING_COPY, threadIsWaiting } = require('./_ceo_bridge');
+const { waitingCopy, threadIsWaiting: deskThreadIsWaiting } = require('./_agent_thread');
 const { isTalkAgent, officeAgentById } = require('./_office');
 const { persistenceBanner, shellPage } = require('./_shell');
 
@@ -248,30 +249,40 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
   });
 }
 
-function ceoMessageBubble(item) {
+function deskMessageBubble(item, agentName) {
   const mine = item.role === 'founder';
   return `<li class="bubble ${mine ? 'user' : 'assistant'}">
-        <div class="kicker">${mine ? 'You' : 'LAVAALL CEO'}</div>
+        <div class="kicker">${mine ? 'You' : escapeHtml(agentName)}</div>
         <p>${escapeHtml(item.text)}</p>
       </li>`;
 }
 
-function ceoChatPage({ email, snapshot, notice, error, csrf, ceoThread, talkAgent }) {
-  const thread = ceoThread && ceoThread.id
-    ? ceoThread
+function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAgent }) {
+  const isCeo = talkAgent && talkAgent.id === 'lavaall-ceo';
+  const thread = deskThread && deskThread.id
+    ? deskThread
     : { id: '', messages: [], status: 'answered', updatedAt: 0 };
-  const waiting = threadIsWaiting(thread);
+  const waiting = isCeo ? threadIsWaiting(thread) : deskThreadIsWaiting(thread);
   const messages = Array.isArray(thread.messages) ? thread.messages : [];
+  const agentName = talkAgent && talkAgent.name ? talkAgent.name : 'LAVAALL desk';
+  const waitText = isCeo ? WAITING_COPY : waitingCopy(talkAgent && talkAgent.id);
+  const postUrl = isCeo ? '/ops/api/ceo-bridge/message' : '/ops/api/desk-talk/message';
+  const pollUrl = isCeo
+    ? (thread.id ? `/ops/api/ceo-bridge/thread?id=${encodeURIComponent(thread.id)}` : '/ops/api/ceo-bridge/thread')
+    : (thread.id
+      ? `/ops/api/desk-talk/thread?agent=${encodeURIComponent(talkAgent.id)}&id=${encodeURIComponent(thread.id)}`
+      : `/ops/api/desk-talk/thread?agent=${encodeURIComponent(talkAgent.id)}`);
   const list = messages.length
-    ? `<ol class="thread" id="ceo-thread">${messages.map(ceoMessageBubble).join('')}</ol>`
-    : '<ol class="thread" id="ceo-thread"></ol><p class="empty" id="ceo-empty">No messages yet. Send one to the real LAVAALL CEO.</p>';
+    ? `<ol class="thread" id="ceo-thread">${messages.map((item) => deskMessageBubble(item, agentName)).join('')}</ol>`
+    : `<ol class="thread" id="ceo-thread"></ol><p class="empty" id="ceo-empty">No messages yet. Send one to ${escapeHtml(agentName)}.</p>`;
   const graph = {
     threadId: thread.id || '',
+    agentId: talkAgent.id,
     status: waiting ? 'pending' : 'answered',
     csrf: csrf || '',
-    pollUrl: thread.id ? `/ops/api/ceo-bridge/thread?id=${encodeURIComponent(thread.id)}` : '/ops/api/ceo-bridge/thread',
-    postUrl: '/ops/api/ceo-bridge/message',
-    waitingCopy: WAITING_COPY,
+    pollUrl,
+    postUrl,
+    waitingCopy: waitText,
   };
   return shellPage({
     title: 'LAVAALL OS — Chat',
@@ -280,34 +291,43 @@ function ceoChatPage({ email, snapshot, notice, error, csrf, ceoThread, talkAgen
     notice,
     error,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-ceo-chat.js?v=12e-poll" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=talk-all" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Chat</h1>
-      <p class="lead">Talking with ${escapeHtml(talkAgent.name)}. This desk uses the CEO Talk bridge — not the Anthropic or OpenAI helper. Open Chat with no agent to talk to everyone.</p>
+      <p class="lead">Talking with ${escapeHtml(agentName)}. This desk uses Office Talk — not the Anthropic or OpenAI helper. Open Chat with no agent to talk to everyone.</p>
       <section class="card">
         <div class="kicker">Desk</div>
-        <h2>LAVAALL CEO</h2>
-        <p id="ceo-waiting" class="empty"${waiting ? '' : ' hidden'}>${escapeHtml(WAITING_COPY)}</p>
+        <h2>${escapeHtml(agentName)}</h2>
+        <p id="ceo-waiting" class="empty"${waiting ? '' : ' hidden'}>${escapeHtml(waitText)}</p>
         ${list}
-        <form id="ceo-bridge-form" method="POST" action="/ops/api/ceo-bridge/message">
+        <form id="ceo-bridge-form" method="POST" action="${escapeHtml(postUrl)}">
           <input type="hidden" name="csrf" value="${escapeHtml(csrf || '')}"/>
           <input type="hidden" name="threadId" id="ceo-thread-id" value="${escapeHtml(thread.id || '')}"/>
+          <input type="hidden" name="agent" value="${escapeHtml(talkAgent.id)}"/>
           <input type="hidden" name="source" value="ops-office"/>
           <label for="ceo-message">Message</label>
-          <textarea id="ceo-message" name="text" required maxlength="2000" placeholder="Ask the LAVAALL CEO"></textarea>
+          <textarea id="ceo-message" name="text" required maxlength="2000" placeholder="Ask ${escapeHtml(agentName)}"></textarea>
           <button class="btn" type="submit">Send</button>
         </form>
-        <p class="empty">${escapeHtml(SLACK_FALLBACK)}</p>
+        ${isCeo ? `<p class="empty">${escapeHtml(SLACK_FALLBACK)}</p>` : ''}
       </section>
     `,
   });
 }
 
-function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, csrf, ceoThread }) {
+function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, csrf, ceoThread, deskThread }) {
   const talkAgent = isTalkAgent(agentId) ? officeAgentById(agentId) : null;
-  if (talkAgent && talkAgent.id === 'lavaall-ceo') {
-    return ceoChatPage({ email, snapshot, notice, error, csrf, ceoThread, talkAgent });
+  if (talkAgent) {
+    return deskChatPage({
+      email,
+      snapshot,
+      notice,
+      error,
+      csrf,
+      deskThread: talkAgent.id === 'lavaall-ceo' ? ceoThread : deskThread,
+      talkAgent,
+    });
   }
   const chat = getSharedChat(store);
   const setup = chatSetup || { modelConfigured: false, anthropic: false, openai: false, lead: 'lavaall-ceo' };

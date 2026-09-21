@@ -105,3 +105,31 @@ You are LAVAALL CEO. Poll the Preview CEO Talk bridge when woken (not limited to
 
 If pending or reply returns 401, stop — the secret is wrong. If 503, the store is down; retry later. Never invent a founder message.
 ```
+
+## Talk-ALL desks (this push)
+
+All six Office Talk agents use a persistent KV thread + server xAI. `_xai.js` is the only model adapter. Assign / parent-child / Slice 2 delegate is **out of scope**.
+
+| Desk | Talk route | KV key |
+|------|------------|--------|
+| LAVAALL CEO | `/ops/chat?agent=lavaall-ceo` | `ops:ceo:thread:{id}` (+ B2 wake inbox) |
+| Sales | `/ops/chat?agent=sales` | `ops:agent:thread:sales:{id}` |
+| Technical | `/ops/chat?agent=technical` | `ops:agent:thread:technical:{id}` |
+| Growth | `/ops/chat?agent=growth` | `ops:agent:thread:growth:{id}` |
+| Lifecycle | `/ops/chat?agent=lifecycle` | `ops:agent:thread:lifecycle:{id}` |
+| Researchy | `/ops/chat?agent=researchy` | `ops:agent:thread:researchy:{id}` |
+
+Non-CEO desks: xAI when `XAI_API_KEY` is set; otherwise **Waiting on {desk}…** — no invented reply, no B2 poll. UI shows the desk name only (no xAI / Grok labels).
+
+Shared HTTP for non-CEO: `POST /ops/api/desk-talk/message`, `GET /ops/api/desk-talk/thread?agent=`.
+
+### Per-desk Preview smoke
+
+1. Sign in on Preview `/ops`. Open **Office**. Confirm **Researchy** has Talk (six Talk buttons).
+2. For **each** desk — CEO, Sales, Technical, Growth, Lifecycle, Researchy:
+   1. Tap Talk (or open `/ops/chat?agent={id}`).
+   2. Confirm the heading is that desk’s name — not “Helper”, not xAI/Grok.
+   3. Send a short message. With `XAI_API_KEY` set, one reply lands in that desk’s thread. Refresh keeps the same messages.
+   4. Open a **different** desk — threads must not mix.
+3. CEO-only: `@grok` / B2 pending / `POST /reply` still BRIDGE-OK. Sales pending must stay empty.
+4. Chat with **no** agent still uses the everyone / helper path.

@@ -4,7 +4,7 @@
 const { kitsDeniedPage, loginPage } = require('./_html');
 const { NAV, dashboardPage } = require('./_shell');
 const { calendarPage, chatPage, inboxPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
-const { officePage } = require('./_office');
+const { isTalkAgent, officePage } = require('./_office');
 const {
   describeKitsSetup,
   hydrateKitsIfEmpty,
@@ -24,6 +24,7 @@ const {
 } = require('./_calendar');
 const { describeChatSetup, sendChatTurn } = require('./_chat');
 const { CEO_DESK_ID, getFounderThread, handleCeoBridge } = require('./_ceo_bridge');
+const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
 const {
   confirmInboxSend,
   pasteSnapshot,
@@ -93,7 +94,7 @@ function knownArea(area) {
 function safeReturnTo(value) {
   if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/map' || value === '/ops/routines' || value === '/ops/office' || value === '/ops') return value;
   if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
-  if (typeof value === 'string' && /^\/ops\/chat\?agent=(lavaall-ceo|sales|technical|growth|lifecycle)$/.test(value)) return value;
+  if (typeof value === 'string' && /^\/ops\/chat\?agent=(lavaall-ceo|sales|technical|growth|lifecycle|researchy)$/.test(value)) return value;
   return '/ops';
 }
 
@@ -174,12 +175,21 @@ async function renderArea(req, res, session, extra) {
     agentId: firstQuery(queryOf(req), 'agent') || '',
   };
 
-  if (area === 'chat' && String(pageOpts.agentId) === CEO_DESK_ID) {
-    const loaded = await getFounderThread(session.email);
-    if (loaded.error === 'store_unavailable') {
-      pageOpts.error = pageOpts.error || 'The CEO bridge store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).';
-    } else if (loaded.thread) {
-      pageOpts.ceoThread = loaded.thread;
+  if (area === 'chat' && isTalkAgent(pageOpts.agentId)) {
+    if (String(pageOpts.agentId) === CEO_DESK_ID) {
+      const loaded = await getFounderThread(session.email);
+      if (loaded.error === 'store_unavailable') {
+        pageOpts.error = pageOpts.error || 'The CEO bridge store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).';
+      } else if (loaded.thread) {
+        pageOpts.ceoThread = loaded.thread;
+      }
+    } else {
+      const loaded = await getFounderDeskThread(pageOpts.agentId, session.email);
+      if (loaded.error === 'store_unavailable') {
+        pageOpts.error = pageOpts.error || 'The desk Talk store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).';
+      } else if (loaded.thread) {
+        pageOpts.deskThread = loaded.thread;
+      }
     }
   }
 
@@ -630,6 +640,7 @@ async function handleMapApi(req, res) {
 
 async function ops(req, res) {
   if (await handleCeoBridge(req, res)) return;
+  if (await handleDeskTalk(req, res)) return;
   if (await handleKitsApi(req, res)) return;
   if (await handleMapApi(req, res)) return;
 
