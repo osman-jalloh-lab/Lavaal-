@@ -99,6 +99,13 @@ textarea{min-height:88px;resize:vertical;}
 .talk-actions{display:grid;gap:10px;margin-top:14px;}
 .talk-actions .btn{width:100%;margin-top:0;}
 .btn-assign{background:var(--emerald-wash);color:var(--ink);border:1px solid rgba(16,185,129,.45);}
+.btn-mic{width:auto;min-width:88px;margin-top:0;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);}
+.btn-mic[aria-pressed="true"]{background:#FDE8EA;border-color:rgba(225,29,72,.35);color:#BE123C;}
+#talk-mic-status{margin:8px 0 0;}
+@media (min-width:720px){
+  .talk-actions{grid-template-columns:auto 1fr;align-items:stretch;}
+  .talk-actions .btn-assign{grid-column:1 / -1;}
+}
 .task-row label{margin-top:8px;}
 .check{display:flex;align-items:flex-start;gap:8px;font-weight:500;}
 .check input{width:auto;margin-top:3px;}

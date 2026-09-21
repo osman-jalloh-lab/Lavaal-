@@ -97,7 +97,9 @@ async function run() {
         && !html.includes('xai_runtime')
         && !html.includes('grok_bot_bridge')
         && html.includes(`"agentName":${JSON.stringify(name)}`)
-        && html.includes('/assets/js/ops-ceo-chat.js?v=assign-fix')
+        && html.includes('/assets/js/ops-ceo-chat.js?v=talk-mic')
+        && html.includes('id="talk-mic"')
+        && html.includes('id="talk-mic-status"')
         && !html.includes('This desk uses Office Talk')
         && !html.includes('not the Anthropic or OpenAI helper')
         && (id === 'lavaall-ceo'
@@ -323,6 +325,12 @@ async function run() {
       && chatJs.includes("isDeskTalk() && url.indexOf('/ops/desk-talk/')")
       && !chatJs.includes('/ops/api/ceo-bridge')
       && !chatJs.includes("mine ? 'You' : 'LAVAALL CEO'"));
+    check('Talk JS binds browser SpeechRecognition into the compose box',
+      chatJs.includes('webkitSpeechRecognition')
+      && chatJs.includes('bindTalkMic')
+      && chatJs.includes('Microphone permission denied')
+      && !chatJs.includes('api.openai.com')
+      && !chatJs.includes('/stt'));
   }
 
   {

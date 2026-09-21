@@ -6,6 +6,7 @@ const { ALLOWLIST } = require('./_lib');
 const { refreshGmailAccessToken } = require('./_gmail');
 const {
   addEvent,
+  addInboxItem,
   deleteEvent,
   listEvents,
   readStore,
@@ -153,6 +154,45 @@ async function listGoogleEvents() {
   return Array.isArray(payload.items) ? payload.items : [];
 }
 
+function inviteDraftText(event) {
+  const when = event && event.allDay
+    ? `${event.date} · all day`
+    : `${event.date} · ${event.start || ''}–${event.end || ''} ${event.timezone || ''}`.trim();
+  return [
+    `You are invited: ${event && event.title ? event.title : 'LAVAALL event'}`,
+    when,
+    event && event.notes ? `Notes: ${event.notes}` : '',
+    'Internal LAVAALL calendar invite. Draft only — not sent until Confirm send.',
+  ].filter(Boolean).join('\n');
+}
+
+async function draftCalendarInvites(event, { createdBy } = {}) {
+  const attendees = event && Array.isArray(event.attendees) ? event.attendees : [];
+  const drafts = [];
+  for (const email of attendees) {
+    if (!isInternalAttendee(email)) continue;
+    const text = inviteDraftText(event);
+    const created = await addInboxItem({
+      source: 'paste',
+      from: email,
+      to: email,
+      subject: `Invite: ${event.title || 'LAVAALL event'}`.slice(0, 200),
+      body: text,
+      snippet: 'Calendar invite draft — confirm send required.',
+      draft: text,
+      label: 'needs_reply',
+      createdBy,
+    });
+    if (created.error) return created;
+    drafts.push(created.item);
+  }
+  return { ok: true, drafts, sent: false };
+}
+
+function wantsInviteDraft(value) {
+  return value === true || value === '1' || value === 'true' || value === 'on';
+}
+
 async function saveCalendarEvent(fields, { createdBy } = {}) {
   const guarded = guardAttendees(fields && fields.attendees);
   if (guarded.error) return guarded;
@@ -227,9 +267,11 @@ module.exports = {
   calendarId,
   calendarPayload,
   describeCalendarSetup,
+  draftCalendarInvites,
   guardAttendees,
   isInternalAttendee,
   refreshGoogleAgenda,
   removeCalendarEvent,
   saveCalendarEvent,
+  wantsInviteDraft,
 };

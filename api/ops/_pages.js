@@ -363,7 +363,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     error,
     head: talkGuard,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-ceo-chat.js?v=assign-fix" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=talk-mic" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>${escapeHtml(agentName)}</h1>
@@ -377,7 +377,9 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
           <input type="hidden" name="source" value="ops-office"/>
           <label for="ceo-message">Message</label>
           <textarea id="ceo-message" name="text" required maxlength="2000" placeholder="Message"></textarea>
+          <p id="talk-mic-status" class="empty" hidden></p>
           <div class="talk-actions">
+            <button type="button" class="btn btn-mic" id="talk-mic" aria-pressed="false">Mic</button>
             <button class="btn" type="submit">Send</button>
             ${assignControl}
           </div>
@@ -698,7 +700,10 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Calendar</h1>
-      <p class="lead">What is next. Add a meeting if you need one. Only Osman, Hamid, and @lavaall.com.</p>
+      <p class="lead">What is next. Add a meeting if you need one. Only Osman, Hamid, and @lavaall.com. Email invites stay drafts until Confirm send.</p>
+      ${setup.googleConnected
+        ? '<p class="ok">Shared Google Calendar is connected. New events save here and sync when Google is up.</p>'
+        : '<p class="empty">Google Calendar is not connected. Events still save on this page. Set a shared calendar id and OAuth to sync — never a personal primary calendar.</p>'}
       <section class="card">
         <div class="kicker">Next</div>
         <h2>Coming up</h2>
@@ -725,6 +730,7 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
           <input id="cal-attendees" name="attendees" maxlength="400" placeholder="osmanjalloh104@gmail.com, ops@lavaall.com"/>
           <label for="cal-notes">Notes</label>
           <textarea id="cal-notes" name="notes" maxlength="800"></textarea>
+          <label class="check" for="cal-draft-invite"><input id="cal-draft-invite" type="checkbox" name="draftInvite" value="1"/> Draft email invite (Confirm send required — nothing is sent)</label>
           <button class="btn" type="submit">Save event</button>
         </form>
       </section>

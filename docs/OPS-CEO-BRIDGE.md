@@ -14,7 +14,7 @@ Office CEO Talk and `/ops/chat?agent=lavaall-ceo` write founder turns into `ops:
 
 **Explicit wake** means a founder/bridge-intent message that should wake Grok Bot (`wake=true` / `explicitWake=true`, or text starting with `@grok` / `/wake`). Normal chat is owned by xAI when the key is set.
 
-Slice 2 **Assign** (CEO → Researchy child → Researchy Grok wake → results-only writeback) is in scope on this Preview PR. Voice, calendar invites, Office Lead View, and a full multi-assignee board stay out of scope.
+Slice 2 **Assign** (CEO → Researchy child → Researchy Grok wake → results-only writeback) is in scope on this Preview PR. Talk mic (browser SpeechRecognition) and `/ops/calendar` add-event + invite drafts are in scope. Office Lead View and a full multi-assignee board stay out of scope.
 
 ## KV schema
 

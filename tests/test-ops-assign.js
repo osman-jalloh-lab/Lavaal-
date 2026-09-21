@@ -103,6 +103,10 @@ async function run() {
     && !/^Assign \d+ — Please\b/i.test(assign.formatAssignTitle(1, 'Please go look for wholesale Apple'))
     && !/^Assign \d+ — go look\b/i.test(assign.formatAssignTitle(1, 'Please go look for wholesale Apple'))
     && /Apple/i.test(assign.formatAssignTitle(1, 'Please go look for wholesale Apple')));
+  check('into Cisco router Guinea drops the leftover preposition',
+    assign.formatAssignTitle(2, 'into Cisco router Guinea') === 'Assign 2 — Cisco router Guinea'
+    && assign.topicWords('look into Cisco router Guinea') === 'Cisco router Guinea'
+    && !/\binto\b/i.test(assign.formatAssignTitle(2, 'into Cisco router Guinea')));
 
   {
     const page = mockRes();
@@ -120,7 +124,8 @@ async function run() {
       && html.indexOf('id="ceo-assign-researchy"') > html.indexOf('ceo-bridge-form')
       && html.includes('/ops/ceo-assign/message')
       && html.includes('"assignUrl":"/ops/ceo-assign/message"')
-      && html.includes('/assets/js/ops-ceo-chat.js?v=assign-fix'));
+      && html.includes('/assets/js/ops-ceo-chat.js?v=talk-mic')
+      && html.includes('id="talk-mic"'));
 
     const researchy = mockRes();
     await ops(authed({

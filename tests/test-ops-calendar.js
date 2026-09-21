@@ -7,6 +7,7 @@ const opsDir = path.join(__dirname, '../api/ops');
 const lib = require(path.join(opsDir, '_lib.js'));
 const store = require(path.join(opsDir, '_store.js'));
 const calendar = require(path.join(opsDir, '_calendar.js'));
+const inbox = require(path.join(opsDir, '_inbox.js'));
 const ops = require(path.join(opsDir, 'index.js'));
 
 const SECRET = 'test-ops-auth-secret-32chars!!';
@@ -126,7 +127,14 @@ async function run() {
     await ops(authed({ json: false, url: '/ops/calendar', query: { area: 'calendar' } }), html);
     const page = String(html.raw);
     check('calendar page is real and names the manual path',
-      page.includes('Add an event') && page.includes('Google Calendar is not connected') && !page.includes('coming in ticket 07'));
+      page.includes('Add an event')
+      && page.includes('Google Calendar is not connected')
+      && page.includes('id="cal-title"')
+      && page.includes('id="cal-date"')
+      && page.includes('id="cal-allday"')
+      && page.includes('name="draftInvite"')
+      && page.includes('Confirm send required')
+      && !page.includes('coming in ticket 07'));
     check('unconfigured calendar does not invent Google events',
       page.includes('No events yet') && !/Shared standup|Founder offsite #/.test(page));
     check('calendar HTML does not leak OAuth secrets',
@@ -294,6 +302,78 @@ async function run() {
   }
 
   {
+    const viaAdd = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/calendar',
+      query: { area: 'calendar' },
+      body: {
+        action: 'save-event',
+        title: 'Founder huddle',
+        date: '2026-09-27',
+        start: '09:00',
+        end: '09:30',
+        timezone: 'Africa/Freetown',
+        attendees: OSMAN,
+        notes: 'Internal only',
+      },
+    }), viaAdd);
+    const afterAdd = await store.readStore();
+    check('HTTP add event saves to KV without a Google call when unconfigured',
+      viaAdd.statusCode === 200
+      && viaAdd.body.ok === true
+      && viaAdd.body.google === false
+      && afterAdd.events.some((row) => row.title === 'Founder huddle' && row.attendees.includes(OSMAN)));
+
+    let sendCalls = 0;
+    const origSend = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes('gmail') || String(url).includes('messages/send')) sendCalls += 1;
+      return { ok: false, status: 500, json: async () => ({}) };
+    };
+    const withInvite = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/calendar',
+      query: { area: 'calendar' },
+      body: {
+        action: 'save-event',
+        title: 'Cisco review',
+        date: '2026-09-28',
+        start: '14:00',
+        end: '15:00',
+        timezone: 'Africa/Freetown',
+        attendees: `${OSMAN}, ${ABDUL}`,
+        notes: 'Quote-first, no invented prices',
+        draftInvite: '1',
+      },
+    }), withInvite);
+    const afterInvite = await store.readStore();
+    const drafts = afterInvite.inbox.filter((row) => /^Invite: Cisco review/.test(row.subject));
+    check('invite path writes inbox drafts and does not auto-send',
+      withInvite.statusCode === 200
+      && withInvite.body.ok === true
+      && withInvite.body.invites
+      && withInvite.body.invites.sent === false
+      && drafts.length === 2
+      && drafts.every((row) => row.pendingConfirm === false && row.draft && !row.sentMessageId)
+      && sendCalls === 0);
+    const ready = await inbox.readyInboxSend(drafts[0].id);
+    const blocked = await inbox.confirmInboxSend(drafts[0].id, {
+      token: ready.item.confirmToken,
+      confirmedBy: OSMAN,
+    });
+    check('invite draft still requires the inbox confirm-send gate',
+      ready.ok
+      && ready.item.pendingConfirm === true
+      && blocked.error === 'support_not_connected'
+      && sendCalls === 0);
+    global.fetch = origSend;
+  }
+
+  {
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
     assertPublicLogin(check, home);
   }
@@ -302,6 +382,12 @@ async function run() {
     const gated = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'calendar' }, url: '/ops/calendar' }, gated);
     check('calendar still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Enter your work email'));
+    const calSrc = fs.readFileSync(path.join(opsDir, '_calendar.js'), 'utf8');
+    check('calendar invite helper never calls Gmail send',
+      calSrc.includes('draftCalendarInvites')
+      && calSrc.includes('sendUpdates=none')
+      && !calSrc.includes('sendGmail')
+      && !calSrc.includes('confirmInboxSend'));
   }
 
   global.fetch = origFetch;

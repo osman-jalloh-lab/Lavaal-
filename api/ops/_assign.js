@@ -85,7 +85,8 @@ const TOPIC_STOP = new Set([
   'just', 'can', 'you', 'we', 'i', 'me', 'us', 'my', 'it', 'its', 'as', 'is',
   'are', 'be', 'do', 'did', 'does', 'very', 'everything', 'brief', 'need',
   'want', 'help', 'try', 'quotes', 'quote', 'request', 'requests', 'enterprise',
-  'wholesale',
+  'wholesale', 'into', 'onto', 'toward', 'towards', 'across', 'among', 'via',
+  'per',
 ]);
 
 const TOPIC_NOUN_TAIL = /^(products?|docks?|hubs?|suppliers?|laptops?|computers?|monitors?|cables?|sourcing|research)$/i;

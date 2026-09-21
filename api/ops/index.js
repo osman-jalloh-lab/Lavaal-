@@ -18,9 +18,11 @@ const { mapGuard, mapListPayload } = require('./_map');
 const { copyRoutinePrompt, runRoutine, updateRoutine } = require('./_routines');
 const {
   describeCalendarSetup,
+  draftCalendarInvites,
   refreshGoogleAgenda,
   removeCalendarEvent,
   saveCalendarEvent,
+  wantsInviteDraft,
 } = require('./_calendar');
 const { describeChatSetup, sendChatTurn } = require('./_chat');
 const { CEO_DESK_ID, getFounderThread, handleCeoBridge } = require('./_ceo_bridge');
@@ -483,8 +485,8 @@ async function handleWrite(req, res, session) {
       }), { error: 'Confirm send was rejected.' });
     case 'refresh-inbox':
       return finishWrite(req, res, session, body, await refreshLiveInbox(), { error: 'Could not refresh live mail.' });
-    case 'save-event':
-      return finishWrite(req, res, session, body, await saveCalendarEvent({
+    case 'save-event': {
+      const saved = await saveCalendarEvent({
         title: body.title,
         date: body.date,
         start: body.start,
@@ -493,7 +495,21 @@ async function handleWrite(req, res, session) {
         allDay: body.allDay,
         attendees: body.attendees,
         notes: body.notes,
-      }, { createdBy: session.email }), { error: 'Enter a title, date, and valid times.' });
+      }, { createdBy: session.email });
+      if (saved.error || !wantsInviteDraft(body.draftInvite) || !saved.event) {
+        return finishWrite(req, res, session, body, saved, { error: 'Enter a title, date, and valid times.' });
+      }
+      const invites = await draftCalendarInvites(saved.event, { createdBy: session.email });
+      if (invites.error) {
+        return finishWrite(req, res, session, body, Object.assign({}, saved, {
+          inviteError: invites.error,
+          invites: { ok: false, drafts: [], sent: false },
+        }), { error: 'Event saved. Invite draft could not be created.' });
+      }
+      return finishWrite(req, res, session, body, Object.assign({}, saved, { invites }), {
+        error: 'Enter a title, date, and valid times.',
+      });
+    }
     case 'update-event':
       return finishWrite(req, res, session, body, await saveCalendarEvent({
         id: body.id,
