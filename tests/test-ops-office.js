@@ -122,6 +122,8 @@ async function run() {
       && html.includes('aria-label="Cameras"')
       && html.includes('id="office-roster"')
       && html.includes('src="/images/logo.png"')
+      && html.includes('class="ops-brand-logo"')
+      && html.includes('class="office-roster-logo"')
       && html.includes('alt="LAVAALL"')
       && !html.includes('>Agents<')
       && !html.includes('>Roster<')

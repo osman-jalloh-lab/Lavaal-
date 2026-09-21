@@ -56,6 +56,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 .ops-app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh;}
 .ops-side{display:flex;flex-direction:column;gap:18px;padding:22px 16px 18px;background:var(--side);border-right:1px solid var(--line);}
 .ops-side .brand{font-family:'Clash Display',sans-serif;font-size:22px;letter-spacing:-.03em;color:var(--ink);}
+.ops-brand-logo{display:block;height:28px;width:auto;max-width:168px;object-fit:contain;}
 .ops-side-kicker{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--sky-deep);}
 .ops-nav{display:flex;flex-direction:column;gap:4px;flex:1;}
 .ops-nav a{display:flex;align-items:center;padding:9px 12px;border-radius:12px;color:var(--text);font-size:13px;font-weight:600;background:transparent;border:1px solid transparent;}
@@ -248,7 +249,12 @@ function shellPage({ title, email, area, body, notice, error, scripts }) {
   <aside class="ops-side">
     <div>
       <div class="ops-side-kicker">Internal</div>
-      <div class="brand">LAVAALL OS</div>
+      <div class="brand">
+        <picture>
+          <source srcset="/images/logo.webp" type="image/webp"/>
+          <img class="ops-brand-logo" src="/images/logo.png" alt="LAVAALL" width="140" height="36"/>
+        </picture>
+      </div>
     </div>
     <nav class="ops-nav" aria-label="LAVAALL OS">${nav}</nav>
     <div class="ops-side-foot">

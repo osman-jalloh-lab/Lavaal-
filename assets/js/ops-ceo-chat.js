@@ -6,24 +6,58 @@ document.addEventListener('DOMContentLoaded', () => {
   const emptyNode = document.getElementById('ceo-empty');
   const threadIdInput = document.getElementById('ceo-thread-id');
   const box = document.getElementById('ceo-message');
-  let graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '/ops/api/ceo-bridge/thread', postUrl: '/ops/api/ceo-bridge/message', waitingCopy: 'Waiting on CEO…', agentName: 'LAVAALL CEO' };
+  const DESK_VOICE = {
+    'lavaall-ceo': 'LAVAALL CEO',
+    sales: 'LAVAALL Sales & Customer Success',
+    technical: 'LAVAALL Technical & QA',
+    growth: 'LAVAALL Growth, UGC & Ads',
+    lifecycle: 'LAVAALL Lifecycle & Klaviyo',
+    researchy: 'Researchy',
+  };
+  let graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '/ops/api/ceo-bridge/thread', postUrl: '/ops/api/ceo-bridge/message', waitingCopy: 'Waiting on CEO…', agentId: 'lavaall-ceo', agentName: 'LAVAALL CEO' };
   let timer = 0;
   let inFlight = false;
 
   try {
     graph = JSON.parse(dataNode && dataNode.textContent ? dataNode.textContent : '{}') || graph;
   } catch (err) {
-    graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '/ops/api/ceo-bridge/thread', postUrl: '/ops/api/ceo-bridge/message', waitingCopy: 'Waiting on CEO…', agentName: 'LAVAALL CEO' };
+    graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '/ops/api/ceo-bridge/thread', postUrl: '/ops/api/ceo-bridge/message', waitingCopy: 'Waiting on CEO…', agentId: 'lavaall-ceo', agentName: 'LAVAALL CEO' };
+  }
+
+  function rememberDesk(payload) {
+    if (!payload) return;
+    if (payload.agentId) graph.agentId = payload.agentId;
+    if (payload.agentName) graph.agentName = payload.agentName;
+    if (payload.thread && payload.thread.agentId) graph.agentId = payload.thread.agentId;
   }
 
   function deskVoice() {
-    return graph.agentName || 'LAVAALL CEO';
+    if (graph.agentName) return graph.agentName;
+    if (graph.agentId && DESK_VOICE[graph.agentId]) return DESK_VOICE[graph.agentId];
+    return 'LAVAALL CEO';
+  }
+
+  function isDeskTalk() {
+    return Boolean(graph.agentId && graph.agentId !== 'lavaall-ceo');
+  }
+
+  function isTalkChromeNoise(text) {
+    return /this desk uses office talk|not the anthropic or openai helper|open chat with no agent|answering through the \/ops talk bridge|\/ops talk bridge/i.test(String(text || ''));
+  }
+
+  function visibleTalkText(text) {
+    return String(text || '')
+      .split(/\n+/)
+      .map(function (line) { return line.trim(); })
+      .filter(function (line) { return line && !isTalkChromeNoise(line); })
+      .join('\n')
+      .trim();
   }
 
   function threadPollUrl(threadId) {
     const id = encodeURIComponent(threadId || '');
-    if (graph.agentId && graph.agentId !== 'lavaall-ceo') {
-      return '/ops/api/desk-talk/thread?agent=' + encodeURIComponent(graph.agentId) + '&id=' + id;
+    if (isDeskTalk()) {
+      return '/ops/api/desk-talk/' + encodeURIComponent(graph.agentId) + '/thread?id=' + id;
     }
     return '/ops/api/ceo-bridge/thread?id=' + id;
   }
@@ -55,9 +89,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = Array.isArray(messages) ? messages : [];
     threadNode.innerHTML = rows.map((item) => {
       const mine = item.role === 'founder';
+      const text = visibleTalkText(item && item.text);
+      if (!text) return '';
       return '<li class="bubble ' + (mine ? 'user' : 'assistant') + '">'
         + '<div class="kicker">' + (mine ? 'You' : escapeHtml(deskVoice())) + '</div>'
-        + '<p>' + escapeHtml(item.text || '') + '</p>'
+        + '<p>' + escapeHtml(text) + '</p>'
         + '</li>';
     }).join('');
     if (emptyNode) emptyNode.hidden = rows.length > 0;
@@ -114,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!response.ok) return;
       const payload = await response.json();
       if (payload && payload.csrf) graph.csrf = payload.csrf;
+      rememberDesk(payload);
       if (payload && payload.thread) applyThread(payload.thread, payload.waiting);
     } catch (err) {
       return;
@@ -157,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (csrfInput) csrfInput.value = payload.csrf;
         }
         if (box) box.value = '';
+        rememberDesk(payload);
         if (payload && payload.thread) applyThread(payload.thread, payload.waiting);
         else setWaiting(true);
         startPoll();

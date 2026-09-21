@@ -128,8 +128,9 @@ Shared HTTP for non-CEO: `POST /ops/api/desk-talk/message`, `GET /ops/api/desk-t
 1. Sign in on Preview `/ops`. Open **Office**. Confirm **Researchy** has Talk (six Talk buttons).
 2. For **each** desk — CEO, Sales, Technical, Growth, Lifecycle, Researchy:
    1. Tap Talk (or open `/ops/chat?agent={id}`).
-   2. Confirm the heading is that desk’s name — not “Helper”, not xAI/Grok.
-   3. Send a short message. With `XAI_API_KEY` set, one reply lands in that desk’s thread. Refresh keeps the same messages.
-   4. Open a **different** desk — threads must not mix.
+   2. Confirm the heading is that desk’s name — not “Chat”, not “Helper”, not xAI/Grok. No “This desk uses Office Talk” lead.
+   3. Send a short message. With `XAI_API_KEY` set, one reply lands in that desk’s thread. The bubble kicker is **that desk**, never “LAVAALL CEO” on a non-CEO desk.
+   4. Network tab: desk Talk polls `/ops/api/desk-talk/{id}/thread` (200), not `/ops/api/ceo-bridge/thread` (that 403s for a desk thread id).
+   5. Open a **different** desk — threads must not mix.
 3. CEO-only: `@grok` / B2 pending / `POST /reply` still BRIDGE-OK. Sales pending must stay empty.
 4. Chat with **no** agent still uses the everyone / helper path.

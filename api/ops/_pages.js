@@ -249,11 +249,26 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
   });
 }
 
+function isTalkChromeNoise(text) {
+  return /this desk uses office talk|not the anthropic or openai helper|open chat with no agent|answering through the \/ops talk bridge|\/ops talk bridge/i.test(String(text || ''));
+}
+
+function visibleTalkText(text) {
+  return String(text || '')
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => line && !isTalkChromeNoise(line))
+    .join('\n')
+    .trim();
+}
+
 function deskMessageBubble(item, agentName) {
   const mine = item.role === 'founder';
+  const text = visibleTalkText(item && item.text);
+  if (!text) return '';
   return `<li class="bubble ${mine ? 'user' : 'assistant'}">
         <div class="kicker">${mine ? 'You' : escapeHtml(agentName)}</div>
-        <p>${escapeHtml(item.text)}</p>
+        <p>${escapeHtml(text)}</p>
       </li>`;
 }
 
@@ -266,12 +281,12 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
   const messages = Array.isArray(thread.messages) ? thread.messages : [];
   const agentName = talkAgent && talkAgent.name ? talkAgent.name : 'LAVAALL desk';
   const waitText = isCeo ? WAITING_COPY : waitingCopy(talkAgent && talkAgent.id);
-  const postUrl = isCeo ? '/ops/api/ceo-bridge/message' : '/ops/api/desk-talk/message';
+  const postUrl = isCeo ? '/ops/api/ceo-bridge/message' : `/ops/api/desk-talk/${encodeURIComponent(talkAgent.id)}/message`;
   const pollUrl = isCeo
     ? (thread.id ? `/ops/api/ceo-bridge/thread?id=${encodeURIComponent(thread.id)}` : '/ops/api/ceo-bridge/thread')
     : (thread.id
-      ? `/ops/api/desk-talk/thread?agent=${encodeURIComponent(talkAgent.id)}&id=${encodeURIComponent(thread.id)}`
-      : `/ops/api/desk-talk/thread?agent=${encodeURIComponent(talkAgent.id)}`);
+      ? `/ops/api/desk-talk/${encodeURIComponent(talkAgent.id)}/thread?id=${encodeURIComponent(thread.id)}`
+      : `/ops/api/desk-talk/${encodeURIComponent(talkAgent.id)}/thread`);
   const list = messages.length
     ? `<ol class="thread" id="ceo-thread">${messages.map((item) => deskMessageBubble(item, agentName)).join('')}</ol>`
     : `<ol class="thread" id="ceo-thread"></ol><p class="empty" id="ceo-empty">No messages yet.</p>`;
@@ -292,7 +307,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     notice,
     error,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-ceo-chat.js?v=desk-voice" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=qa-voice" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>${escapeHtml(agentName)}</h1>
@@ -331,12 +346,10 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, c
   const notes = notesSelectableForChat(store);
   const drafts = pendingProposals(store);
   const goal = store.goal;
-  const returnTo = talkAgent ? talkAgent.talk : '/ops/chat';
-  const chatLead = talkAgent
-    ? `Talking with ${talkAgent.name}. Same chat as everyone else — pinned to this desk. Open Chat with no agent to talk to everyone.`
-    : 'Ask about the goal, a task, or a note. This tab talks to everyone. Chat does not send mail or change records until you confirm.';
+  const returnTo = '/ops/chat';
+  const chatLead = 'Ask about the goal, a task, or a note. This tab talks to everyone. Chat does not send mail or change records until you confirm.';
   const setupCard = setup.modelConfigured
-    ? `<p>Helper connected (${setup.anthropic ? 'Anthropic' : ''}${setup.anthropic && setup.openai ? ' + ' : ''}${setup.openai ? 'OpenAI' : ''}). Lead stays ${escapeHtml(talkAgent ? talkAgent.id : setup.lead)}. Drafts only — nothing is sent or written without confirm.</p>`
+    ? `<p>Helper connected (${setup.anthropic ? 'Anthropic' : ''}${setup.anthropic && setup.openai ? ' + ' : ''}${setup.openai ? 'OpenAI' : ''}). Lead stays ${escapeHtml(setup.lead)}. Drafts only — nothing is sent or written without confirm.</p>`
     : '<p class="empty">No Anthropic or OpenAI key on this project. Ask a saved next step and it still reads the record. Anything else shows this message — no invented reply.</p>';
 
   const contextPick = `

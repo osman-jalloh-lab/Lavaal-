@@ -97,10 +97,14 @@ async function run() {
         && !html.includes('xai_runtime')
         && !html.includes('grok_bot_bridge')
         && html.includes(`"agentName":${JSON.stringify(name)}`)
-        && html.includes('/assets/js/ops-ceo-chat.js?v=desk-voice')
+        && html.includes('/assets/js/ops-ceo-chat.js?v=qa-voice')
+        && !html.includes('This desk uses Office Talk')
+        && !html.includes('not the Anthropic or OpenAI helper')
         && (id === 'lavaall-ceo'
           ? html.includes('/ops/api/ceo-bridge/message')
-          : html.includes('/ops/api/desk-talk/message')));
+          : html.includes(`/ops/api/desk-talk/${id}/message`)
+            && !html.includes('>LAVAALL CEO<')
+            && !html.includes('"agentName":"LAVAALL CEO"')));
     }
   }
 
@@ -170,7 +174,24 @@ async function run() {
       check(`${id} refresh keeps the same thread`,
         refresh.statusCode === 200
         && refresh.headers['Cache-Control'] === 'no-store'
-        && refresh.body.thread.messages.length === sent.body.thread.messages.length);
+        && refresh.body.thread.messages.length === sent.body.thread.messages.length
+        && refresh.body.agentId === id
+        && refresh.body.agentName === office.officeAgentById(id).name);
+
+      const visible = mockRes();
+      await ops(authed({
+        json: false,
+        url: `/ops/chat?agent=${id}`,
+        query: { area: 'chat', agent: id },
+      }), visible);
+      const page = String(visible.raw);
+      const visibleName = office.officeAgentById(id).name.replace(/&/g, '&amp;');
+      check(`${id} visible history uses that desk voice, not LAVAALL CEO`,
+        page.includes(`<div class="kicker">${visibleName}</div>`)
+        && page.includes(`Draft from ${id}. No price invented.`)
+        && !page.includes('<div class="kicker">LAVAALL CEO</div>')
+        && !page.includes('This desk uses Office Talk')
+        && !page.includes('answering through the /ops Talk bridge'));
     }
 
     const salesId = threads.sales.id;
@@ -179,6 +200,28 @@ async function run() {
       salesId !== researchyId
       && salesId.startsWith('sales-')
       && researchyId.startsWith('researchy-'));
+
+    const pathPoll = mockRes();
+    await ops(authed({
+      json: true,
+      url: `/ops/api/desk-talk/sales/thread?id=${salesId}`,
+      query: { area: 'api/desk-talk/sales/thread', id: salesId },
+    }), pathPoll);
+    check('desk thread poll keeps auth when agent is in the path, not only query',
+      pathPoll.statusCode === 200
+      && pathPoll.body.ok === true
+      && pathPoll.body.agentId === 'sales'
+      && pathPoll.body.thread.id === salesId);
+
+    const ceoPoll = mockRes();
+    await ops(authed({
+      json: true,
+      url: `/ops/api/ceo-bridge/thread?id=${salesId}`,
+      query: { area: 'api/ceo-bridge/thread', id: salesId },
+    }), ceoPoll);
+    check('desk thread ids must not poll the CEO bridge',
+      ceoPoll.statusCode === 403
+      && ceoPoll.body.error === 'forbidden');
 
     const inspected = await desks.inspectDeskThread('sales', salesId);
     check('sales KV provenance is xAI-owned and not on the CEO key',
@@ -248,8 +291,9 @@ async function run() {
     check('Talk JS keeps the desk voice and desk poll URL',
       chatJs.includes('function deskVoice()')
       && chatJs.includes('graph.agentName')
-      && chatJs.includes('/ops/api/desk-talk/thread?agent=')
+      && chatJs.includes("'/ops/api/desk-talk/' + encodeURIComponent(graph.agentId) + '/thread")
       && chatJs.includes("last.role === 'assistant'")
+      && chatJs.includes('isTalkChromeNoise')
       && !chatJs.includes("mine ? 'You' : 'LAVAALL CEO'"));
   }
 

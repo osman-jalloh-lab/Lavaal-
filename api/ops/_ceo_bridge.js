@@ -763,6 +763,7 @@ function ceoSystemPrompt(context) {
     'Researchy-first on sourcing; Technical only when validation is needed.',
     'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, or completions.',
     'Drafts only. Talk is conversation — not Assign.',
+    'Never mention /ops, Talk bridges, helpers, Anthropic, OpenAI, or xAI.',
     formatCeoStoreContext(context),
   ].join('\n');
 }
@@ -942,6 +943,8 @@ async function handleMessage(req, res) {
       csrf: createCsrfToken(access.session.email),
       waiting: threadIsWaiting(result.thread),
       waitingCopy: WAITING_COPY,
+      agentId: 'lavaall-ceo',
+      agentName: 'LAVAALL CEO',
     }));
   }
   return redirect(res, '/ops/chat?agent=lavaall-ceo');
@@ -961,6 +964,8 @@ async function handleThread(req, res) {
     thread: loaded.thread,
     waiting: threadIsWaiting(loaded.thread),
     waitingCopy: WAITING_COPY,
+    agentId: 'lavaall-ceo',
+    agentName: 'LAVAALL CEO',
     csrf: createCsrfToken(access.session.email),
   });
 }

@@ -405,6 +405,7 @@ function deskSystemPrompt(agentId, context) {
     MARKETS_STUB,
     'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, or completions.',
     'Drafts only. Talk is conversation — not Assign.',
+    'Never mention /ops, Talk bridges, helpers, Anthropic, OpenAI, or xAI.',
     formatStoreContext(context),
   ].join('\n');
 }
@@ -730,9 +731,17 @@ function deskTalkKind(req) {
   const area = String(firstQuery(req, 'area') || '');
   const pathOnly = String(req.url || '').split('?')[0].replace(/\/+$/, '');
   const hay = `${area} ${pathOnly}`.toLowerCase();
-  if (hay.includes('api/desk-talk/message')) return 'message';
-  if (hay.includes('api/desk-talk/thread')) return 'thread';
+  if (!hay.includes('desk-talk')) return '';
+  if (hay.includes('message')) return 'message';
+  if (hay.includes('thread')) return 'thread';
   return '';
+}
+
+function agentFromPath(req) {
+  const area = String(firstQuery(req, 'area') || '');
+  const pathOnly = String(req.url || '').split('?')[0];
+  const match = `${area} ${pathOnly}`.match(/desk-talk\/([a-z0-9-]+)\/(?:thread|message)/i);
+  return match ? normalizeAgentId(match[1]) : '';
 }
 
 function writeStatus(error) {
@@ -796,7 +805,7 @@ async function handleMessage(req, res) {
   if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
   const body = readBody(req);
   // Use agentId, never body.agent — looksLikeAgentRequest treats body.agent as bot auth.
-  const agentId = normalizeAgentId(body.agentId || firstQuery(req, 'agent') || firstQuery(req, 'agentId'));
+  const agentId = normalizeAgentId(body.agentId || agentFromPath(req) || firstQuery(req, 'agent') || firstQuery(req, 'agentId'));
   if (!agentId || agentId === CEO_DESK_ID) return sendDeskError(req, res, 'invalid_agent', agentId);
   if (!readCsrfToken(csrfFrom(req, body), access.session.email)) {
     return sendDeskError(req, res, 'csrf', agentId);
@@ -815,6 +824,8 @@ async function handleMessage(req, res) {
       csrf: createCsrfToken(access.session.email),
       waiting: threadIsWaiting(result.thread),
       waitingCopy: waitingCopy(agentId),
+      agentId,
+      agentName: deskName(agentId),
     }));
   }
   return redirect(res, `/ops/chat?agent=${agentId}`);
@@ -824,7 +835,7 @@ async function handleThread(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'method_not_allowed' });
   const access = founderGuard(req);
   if (!access.session) return sendJson(res, access.status, { error: access.error });
-  const agentId = normalizeAgentId(firstQuery(req, 'agent') || firstQuery(req, 'agentId'));
+  const agentId = normalizeAgentId(agentFromPath(req) || firstQuery(req, 'agent') || firstQuery(req, 'agentId'));
   if (!agentId || agentId === CEO_DESK_ID) return sendDeskError(req, res, 'invalid_agent', agentId);
   const requested = clean(firstQuery(req, 'id') || firstQuery(req, 'threadId'), 40);
   const ownId = threadIdFor(agentId, access.session.email);
@@ -836,6 +847,8 @@ async function handleThread(req, res) {
     thread: loaded.thread,
     waiting: threadIsWaiting(loaded.thread),
     waitingCopy: waitingCopy(agentId),
+    agentId,
+    agentName: deskName(agentId),
     csrf: createCsrfToken(access.session.email),
   });
 }
