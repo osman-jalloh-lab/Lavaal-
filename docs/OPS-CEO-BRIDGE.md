@@ -1,6 +1,11 @@
-# LAVAALL OS — CEO Talk (Preview Slice 1 A–D)
+# LAVAALL OS — CEO Talk + Researchy Assign wake
 
-**Status:** Preview only. Prod HOLD. Do not merge to `main`. Do not production-deploy.  
+**Status:**
+- **Researchy Assign wake** is production. SoT host is `https://www.lavaall.com`. Poll `/ops/api/desk-talk/researchy/pending` and `…/reply` there. Vercel Preview branch URLs may **410** — do not use them as the Grok Bot origin.
+- CEO Talk Slice 1 B2 Grok poll remains Preview-oriented (**Prod HOLD** as a production CEO B2 poll). The `{PREVIEW_ORIGIN}` routine below is CEO B2 only, not Assign.
+
+Keep `OPS_CEO_BRIDGE_SECRET` in the bot env only — never in this note, git, or logs.
+
 **Path:** KV thread is the single source of truth. Server xAI completes into that thread when `XAI_API_KEY` is set. B2 pending is an **explicit-wake inbox only**. Slack `#laval` is a fallback note.
 
 Office CEO Talk and `/ops/chat?agent=lavaall-ceo` write founder turns into `ops:ceo:thread:{id}`. One logical LAVAALL CEO in the UI. Backend provenance is metadata only — do not show dual brains.
@@ -14,7 +19,7 @@ Office CEO Talk and `/ops/chat?agent=lavaall-ceo` write founder turns into `ops:
 
 **Explicit wake** means a founder/bridge-intent message that should wake Grok Bot (`wake=true` / `explicitWake=true`, or text starting with `@grok` / `/wake`). Normal chat is owned by xAI when the key is set.
 
-Slice 2 **Assign** (CEO → Researchy child → Researchy Grok wake → results-only writeback) is in scope on this Preview PR. Talk mic (browser SpeechRecognition) and `/ops/calendar` add-event + invite drafts are in scope. Office Lead View and a full multi-assignee board stay out of scope.
+Slice 2 **Assign** (CEO → Researchy child → Researchy Grok wake → results-only writeback) is live on production. Talk mic (browser SpeechRecognition) and `/ops/calendar` add-event + invite drafts are in scope. Office Lead View and a full multi-assignee board stay out of scope.
 
 ## KV schema
 
@@ -33,9 +38,9 @@ ops:ceo:pending = wake inbox only (not canonical)
 
 Public thread JSON for the UI strips provenance / owner (one LAVAALL CEO).
 
-## Founder env (Preview only)
+## Founder env (names only)
 
-Set on Vercel Preview (names only in git — see `.env.example`):
+Set on Vercel **production** (`https://www.lavaall.com`) for Researchy Assign wake. CEO B2 Preview still uses the same names on Preview. Names only in git — see `.env.example`. Never paste values.
 
 - **`XAI_API_KEY`** — server-only. When set, CEO Talk completes via `POST https://api.x.ai/v1/chat/completions` (`grok-4.3` default, override `OPS_CHAT_XAI_MODEL`).
 - **`OPS_CEO_BRIDGE_SECRET`** — 32+ random characters for Grok Bot pending/reply.
@@ -112,6 +117,8 @@ All six Office Talk agents use a persistent KV thread + server xAI. `_xai.js` is
 
 ## Slice 2 — Assign (CEO → Researchy Grok wake → results-only)
 
+**Production SoT host:** `https://www.lavaall.com`. Researchy Assign wake polls that origin only. Preview branch URLs may 410.
+
 KV tasks in `_store.js` are the SoT. `_assign.js` creates a **child task** owned by **Researchy**, linked to the parent CEO thread + `correlationId`.
 
 - **Title:** `Assign N — <topic ≤6 words>`. Full founder ask + locked LAVAALL context pack live on the task brief only.
@@ -124,15 +131,15 @@ HTTP:
 
 - Founder **Send** (`POST /ops/ceo-bridge/message`): CEO xAI answers using company context. Does **not** auto-assign Researchy. Generic strategy/leverage questions stay with CEO (may suggest Growth). Clear sourcing/research may route Assign → Researchy. Sales/Technical/Growth asks stay with CEO to answer or propose that specialist.
 - Founder **Assign to Researchy** and explicit NL (`POST /ops/ceo-assign/message`, also `/assign` or “assign to researchy” on the CEO message path)
-- Grok Bot: `GET /ops/api/desk-talk/researchy/pending` and `POST /ops/api/desk-talk/researchy/reply`  
-  Header: `Authorization: Bearer $OPS_CEO_BRIDGE_SECRET`
+- Grok Bot (production): `GET https://www.lavaall.com/ops/api/desk-talk/researchy/pending` and `POST https://www.lavaall.com/ops/api/desk-talk/researchy/reply`  
+  Header: `Authorization: Bearer $OPS_CEO_BRIDGE_SECRET` (env only — never paste the value here)
 
 ### Researchy Grok Bot routine prompt
 
-Jobs are not limited to weekday 09:00–17:00. Poll when the founder may be working. Poll origin is production `https://www.lavaall.com` (or `OPS_PUBLIC_URL` if the bot must target a non-prod host). Keep the secret in the bot’s env — never in this note.
+Jobs are not limited to weekday 09:00–17:00. Poll when the founder may be working. Production SoT origin is `https://www.lavaall.com`. Preview branch URLs may 410 — do not poll them. Keep the secret in the bot’s env — never in this note.
 
 ```
-You are Researchy for LAVAALL. Poll the production Researchy assign wake inbox when woken.
+You are Researchy for LAVAALL. Poll the production Researchy assign wake inbox on https://www.lavaall.com when woken. Do not use Vercel Preview hosts (they may 410).
 
 Locked company context (always apply, do not re-ask):
 - West Africa IT sourcing marketplace.
@@ -159,14 +166,16 @@ Locked company context (always apply, do not re-ask):
 If pending or reply returns 401, stop — the secret is wrong. If 503, the store is down; retry later. Never invent a founder assign.
 ```
 
-### Slice 2 Preview smoke (one redeploy)
+### Slice 2 production smoke
 
-1. Hard-refresh Preview. Office → CEO **Talk** (`/ops/chat/lavaall-ceo`). First paint must show **Send** and **Assign to Researchy**.
+Use `https://www.lavaall.com` (Preview branch URLs may 410).
+
+1. Hard-refresh `https://www.lavaall.com/ops`. Office → CEO **Talk** (`/ops/chat/lavaall-ceo`). First paint must show **Send** and **Assign to Researchy**.
 2. Type a generic strategy question (e.g. “how can we leverage LAVAALL better?”) and click **Send**. Network: `POST /ops/ceo-bridge/message` (200). CEO answers. **No** Assign task. **No** Researchy pending row.
 3. Type a long sourcing brief (more than 6 words). Click **Assign to Researchy**. CEO ack. Network: `POST /ops/ceo-assign/message` (200). **No** new row on `GET /ops/api/ceo-bridge/pending`.
 4. Open `/ops/tasks`. Title is `Assign N — <≤6 words>`, not the full brief. Status **Doing**. Detail shows full brief + West Africa / quote-first context pack.
-5. `GET /ops/api/desk-talk/researchy/pending` with the CEO bridge bearer lists that assign. Researchy Talk shows the packed brief and stays Waiting — no in-OS “OK Researchy” unless `OPS_ASSIGN_XAI_FALLBACK=1`.
-6. Researchy Grok Bot `POST /ops/api/desk-talk/researchy/reply` with findings. CEO Talk shows **Found:** bullets and **Based on that, recommend … (awaiting your OK)**. No methodology dump. Task becomes **Ready for review**, still Doing — not done.
+5. `GET https://www.lavaall.com/ops/api/desk-talk/researchy/pending` with the CEO bridge bearer lists that assign. Researchy Talk shows the packed brief and stays Waiting — no in-OS “OK Researchy” unless `OPS_ASSIGN_XAI_FALLBACK=1`.
+6. Researchy Grok Bot `POST https://www.lavaall.com/ops/api/desk-talk/researchy/reply` with findings (include `pendingId` / `correlationId` — never threadId alone). CEO Talk shows **Found:** bullets and **Based on that, recommend … (awaiting your OK)**. No methodology dump. Task becomes **Ready for review**, still Doing — not done.
 7. Repeat with NL: `assign to researchy: source USB-C hubs`. Title increments `Assign N`. Do not involve Technical unless you explicitly ask.
 
 | Desk | Talk route | KV key |

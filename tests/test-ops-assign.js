@@ -674,7 +674,10 @@ async function run() {
       && note.includes('Assign N')
       && note.includes('https://www.lavaall.com/ops/api/desk-talk/researchy/pending')
       && note.includes('https://www.lavaall.com/ops/api/desk-talk/researchy/reply')
-      && note.includes('Never attach a reply by desk threadId alone'));
+      && note.includes('Never attach a reply by desk threadId alone')
+      && note.includes('Preview branch URLs may 410')
+      && !note.includes('GET {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/pending')
+      && !note.includes('POST {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/reply'));
     check('assign matcher does not fall through to shared childThreadId or leftover pending',
       src.includes('function matchAssignTask(')
       && !src.includes('listResearchyPending(storeData)[0]')
