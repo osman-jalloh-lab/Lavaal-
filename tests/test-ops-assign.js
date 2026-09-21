@@ -73,7 +73,21 @@ async function run() {
     assign.looksLikeAssign({ text: '/assign find ThinkPad suppliers' }) === true
     && assign.looksLikeAssign({ text: 'Please assign this to researchy: source docks' }) === true
     && assign.looksLikeAssign({ assign: 'researchy', text: 'source docks' }) === true
-    && assign.looksLikeAssign({ text: 'What is the current goal?' }) === false);
+    && assign.looksLikeAssign({ text: 'What is the current goal?' }) === false
+    && assign.looksLikeAssign({ text: 'how can we leverage LAVAALL better?' }) === false);
+
+  check('Send routing keeps generic/leverage with CEO and Researchy for sourcing only',
+    assign.routeCeoSend({ text: 'how can we leverage LAVAALL better?' }).action === 'ceo'
+    && assign.routeCeoSend({ text: 'how can we leverage LAVAALL better?' }).suggest === 'growth'
+    && assign.routeCeoSend({ assign: 'researchy', text: 'how can we leverage LAVAALL better?' }).action === 'ceo'
+    && assign.looksLikeExplicitAssignText({ text: 'how can we leverage LAVAALL better?' }) === false
+    && assign.routeCeoSend({ text: 'What is the current goal?' }).action === 'ceo'
+    && assign.routeCeoSend({ text: 'source ThinkPad docks' }).action === 'assign-researchy'
+    && assign.routeCeoSend({ text: 'research USB-C hub suppliers' }).action === 'assign-researchy'
+    && assign.routeCeoSend({ text: 'source a customer quote in Freetown' }).action === 'ceo'
+    && assign.routeCeoSend({ text: 'the checkout bug on product pages' }).action === 'ceo'
+    && assign.routeCeoSend({ text: '/assign source USB-C hubs' }).action === 'assign-researchy'
+    && assign.routeCeoSend({ text: 'assign to researchy: source docks' }).reason === 'explicit');
 
   check('assign brief strips the command prefix',
     assign.parseAssignBrief('/assign find ThinkPad suppliers').brief === 'find ThinkPad suppliers'
@@ -120,11 +134,14 @@ async function run() {
       page.statusCode === 200
       && html.includes('Assign to Researchy')
       && html.includes('id="ceo-assign-researchy"')
-      && html.includes('<button class="btn" type="submit">Send</button>')
+      && html.includes('type="button"')
+      && html.includes('id="ceo-send"')
+      && html.includes('name="intent" value="send"')
+      && html.includes('<button class="btn" type="submit" name="intent" value="send" id="ceo-send" data-intent="send">Send</button>')
       && html.indexOf('id="ceo-assign-researchy"') > html.indexOf('ceo-bridge-form')
       && html.includes('/ops/ceo-assign/message')
       && html.includes('"assignUrl":"/ops/ceo-assign/message"')
-      && html.includes('/assets/js/ops-ceo-chat.js?v=talk-mic')
+      && html.includes('/assets/js/ops-ceo-chat.js?v=send-not-assign')
       && html.includes('id="talk-mic"'));
 
     const researchy = mockRes();
@@ -372,6 +389,123 @@ async function run() {
   }
 
   {
+    store.resetStore();
+    ceo.resetCeoBridge();
+    desks.resetDeskTalk();
+    process.env.XAI_API_KEY = 'test-xai-key-not-real';
+    let xaiCalls = 0;
+    global.fetch = async (url, opts) => {
+      xaiCalls += 1;
+      const body = opts && opts.body ? JSON.parse(opts.body) : {};
+      const system = body.messages && body.messages[0] ? String(body.messages[0].content) : '';
+      if (system.includes('You are LAVAALL CEO')) {
+        return {
+          ok: true,
+          json: async () => ({ choices: [{ message: { content: 'Use Growth for brand leverage. Do not invent spend.' } }] }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'Unexpected desk.' } }] }),
+      };
+    };
+
+    const leaked = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'how can we leverage LAVAALL better?',
+        assign: 'researchy',
+        assignee: 'researchy',
+        correlationId: 'send-not-assign-1',
+      },
+    }), leaked);
+    const leakedTasks = (await store.readStore()).tasks || [];
+    const leakedPending = store.listResearchyPending(await store.readStore());
+    const leakedCeo = (leaked.body.thread && leaked.body.thread.messages || []).filter((item) => item.role === 'ceo');
+    check('Send does not auto-assign Researchy even if assign=researchy leaked',
+      leaked.statusCode === 200
+      && leaked.body.ok === true
+      && leaked.body.assigned !== true
+      && !leaked.body.task
+      && leakedTasks.length === 0
+      && leakedPending.length === 0
+      && leakedCeo.length === 1
+      && leakedCeo[0].text.includes('Use Growth for brand leverage')
+      && xaiCalls === 1
+      && !leakedCeo.some((item) => /Assigned to Researchy/i.test(item.text)));
+
+    const cleanSend = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'how can we leverage LAVAALL better?',
+        correlationId: 'send-not-assign-2',
+      },
+    }), cleanSend);
+    check('plain CEO Send answers via xAI and creates no Researchy child',
+      cleanSend.statusCode === 200
+      && cleanSend.body.assigned !== true
+      && !cleanSend.body.task
+      && ((await store.readStore()).tasks || []).length === 0
+      && store.listResearchyPending(await store.readStore()).length === 0
+      && xaiCalls === 2);
+
+    const routed = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'source ThinkPad docks for Freetown quotes',
+        correlationId: 'send-route-researchy-1',
+      },
+    }), routed);
+    check('Send routes a clear sourcing ask to Researchy only',
+      routed.statusCode === 200
+      && routed.body.assigned === true
+      && routed.body.task
+      && routed.body.task.ownerAgentId === 'researchy'
+      && /^Assign 1 — /.test(routed.body.task.title)
+      && /ThinkPad/i.test(routed.body.task.title)
+      && store.listResearchyPending(await store.readStore()).length === 1);
+
+    const button = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/ceo-assign/message',
+      query: { area: 'api/ceo-assign/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'look into local UGC partners',
+        assign: 'researchy',
+        assignee: 'researchy',
+        correlationId: 'assign-button-intentional-1',
+      },
+    }), button);
+    check('Assign to Researchy button still creates an intentional child',
+      button.statusCode === 200
+      && button.body.assigned === true
+      && button.body.task
+      && button.body.task.ownerAgentId === 'researchy'
+      && /^Assign 2 — /.test(button.body.task.title));
+
+    delete process.env.XAI_API_KEY;
+    global.fetch = origFetch;
+  }
+
+  {
     const src = fs.readFileSync(path.join(opsDir, '_assign.js'), 'utf8');
     const vercel = fs.readFileSync(path.join(__dirname, '../vercel.json'), 'utf8');
     const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
@@ -392,14 +526,23 @@ async function run() {
     check('Talk JS routes Assign from CEO only and never lets non-CEO poll ceo-bridge',
       chatJs.includes('function assignPostUrl()')
       && chatJs.includes('function looksLikeAssignText(')
+      && chatJs.includes('function isSendSubmitter(')
+      && chatJs.includes('function isAssignSubmitter(')
+      && chatJs.includes('async function postTalk(')
       && chatJs.includes("postUrl.indexOf('ceo-assign')")
       && chatJs.includes("isDeskTalk() && url.indexOf('/ops/desk-talk/')")
       && chatJs.includes('/ceo-bridge/i.test(url) && !isCeoTalk()')
       && !chatJs.includes('/ops/api/ceo-bridge'));
+    check('vercel allows microphone on /ops and keeps it off elsewhere',
+      vercel.includes('microphone=(self)')
+      && vercel.includes('"source": "/ops(.*)"')
+      && /"source": "\/\(\.\*\)"[\s\S]*microphone=\(\)/.test(vercel));
     check('docs include Slice 2 assign smoke and Researchy Grok wake',
       note.includes('Slice 2')
       && note.includes('Assign to Researchy')
       && note.includes('/ops/ceo-assign/message')
+      && note.includes('Does **not** auto-assign Researchy')
+      && note.includes('how can we leverage LAVAALL better?')
       && note.includes('Specialist done is not task done')
       && note.includes('/ops/api/desk-talk/researchy/pending')
       && note.includes('/ops/api/desk-talk/researchy/reply')

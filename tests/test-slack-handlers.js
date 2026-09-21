@@ -418,6 +418,8 @@ async function run() {
   {
     const growth = classify({ text: 'social ugc for the phones category', source: 'slash_command' });
     check('social/ugc → growth lead', growth.leadAgent === 'growth' && growth.area === 'growth' && needsApproval(growth.risk) === false);
+    const leverage = classify({ text: 'how can we leverage LAVAALL better?', source: 'ops_ceo_send' });
+    check('leverage → growth area, CEO still answers on Send', leverage.area === 'growth' && leverage.leadAgent === 'growth');
   }
   {
     const researchCeo = classify({ text: 'research supplier lead times', source: 'slash_command' });

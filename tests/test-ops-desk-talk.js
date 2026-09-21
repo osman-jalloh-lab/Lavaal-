@@ -97,7 +97,7 @@ async function run() {
         && !html.includes('xai_runtime')
         && !html.includes('grok_bot_bridge')
         && html.includes(`"agentName":${JSON.stringify(name)}`)
-        && html.includes('/assets/js/ops-ceo-chat.js?v=talk-mic')
+        && html.includes('/assets/js/ops-ceo-chat.js?v=send-not-assign')
         && html.includes('id="talk-mic"')
         && html.includes('id="talk-mic-status"')
         && !html.includes('This desk uses Office Talk')

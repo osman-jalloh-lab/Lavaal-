@@ -94,7 +94,7 @@ const TECH_AREA_TOKENS = Object.freeze([
   'build', 'code', 'bug', 'deploy', 'technical', 'api', 'repo', 'ship', 'vercel',
 ]);
 const GROWTH_AREA_TOKENS = Object.freeze([
-  'creative', 'ads', 'ad', 'ugc', 'campaign', 'brand', 'growth', 'social',
+  'creative', 'ads', 'ad', 'ugc', 'campaign', 'brand', 'growth', 'social', 'leverage',
 ]);
 const LIFECYCLE_AREA_TOKENS = Object.freeze([
   'lifecycle', 'churn', 'onboard', 'retention', 'email', 'klaviyo', 'journey',
