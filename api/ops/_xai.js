@@ -7,7 +7,9 @@
 const XAI_URL = 'https://api.x.ai/v1/chat/completions';
 const DEFAULT_XAI_MODEL = 'grok-4.3';
 const DEFAULT_MAX_TOKENS = 600;
-const DEFAULT_TIMEOUT_MS = 8000;
+// 22s: grok-4.3 on cold Hobby is slower than 8s. Stay under the ops
+// function budget (vercel.json maxDuration 30; Hobby Fluid max 60).
+const DEFAULT_TIMEOUT_MS = 22000;
 
 function hasKey(name) {
   const value = process.env[name];
@@ -77,6 +79,7 @@ async function completeXai({ system, messages, maxTokens, timeoutMs }) {
 }
 
 module.exports = {
+  DEFAULT_TIMEOUT_MS,
   DEFAULT_XAI_MODEL,
   XAI_URL,
   completeXai,

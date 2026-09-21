@@ -43,6 +43,7 @@ const MAX_ANSWERED = 40;
 const MAX_TEXT = 2000;
 const SLACK_FALLBACK = 'If this bridge is down, Slack #laval is the backup — not the usual path.';
 const WAITING_COPY = 'Waiting on CEO…';
+const RUNTIME_UNAVAILABLE_COPY = "Couldn't reach the CEO runtime just now — try again in a moment.";
 
 let memory = emptyMemory();
 
@@ -746,6 +747,10 @@ async function appendCeoNotice({ threadId, text, provenance, correlationId, mark
       answeredIds,
     });
     await writeThread(thread);
+    if (mark) {
+      const pending = (await readPending()).filter((item) => item.threadId !== thread.id);
+      await writePending(pending);
+    }
     return {
       ok: true,
       replay: false,
@@ -828,27 +833,74 @@ function ceoMessagesForXai(thread) {
   })).slice(-20);
 }
 
-async function waitingFallback({ threadId, correlationId, wakeReason }) {
-  const current = await readThread(threadId);
-  const founder = current ? founderByCorrelation(current, correlationId) || lastFounderMessage(current) : null;
-  const pending = current && founder
-    ? await enqueuePendingWake({ thread: current, founder, wakeReason: wakeReason || 'xai_unavailable' })
-    : null;
+async function clearPendingForThread(threadId) {
+  return mutate(async () => {
+    const id = clean(threadId, 40);
+    const pending = (await readPending()).filter((item) => item.threadId !== id);
+    await writePending(pending);
+    return pending;
+  });
+}
+
+async function runtimeUnavailableNotice({ threadId, correlationId, explicitWake, wakeReason }) {
+  const notice = await appendCeoNotice({
+    threadId,
+    text: RUNTIME_UNAVAILABLE_COPY,
+    provenance: 'system',
+    correlationId,
+    markAnsweredFor: correlationId,
+  });
+  if (notice.error) {
+    return {
+      ok: false,
+      error: notice.error,
+      waiting: false,
+      usedModel: false,
+      provider: '',
+      reply: RUNTIME_UNAVAILABLE_COPY,
+      thread: publicThread(null),
+      pending: null,
+      correlationId,
+    };
+  }
+  // Normal chat never hangs on B2. Optional wake only when the founder
+  // explicitly asked and the Grok Bot secret is actually configured.
+  let pending = null;
+  if (explicitWake && bridgeSecretConfigured()) {
+    const current = await readThread(threadId);
+    const founder = current ? founderByCorrelation(current, correlationId) || lastFounderMessage(current) : null;
+    if (current && founder) {
+      pending = await enqueuePendingWake({
+        thread: current,
+        founder,
+        wakeReason: wakeReason || 'xai_unavailable',
+      });
+    }
+  } else {
+    await clearPendingForThread(threadId);
+  }
   return {
     ok: true,
-    waiting: true,
+    waiting: false,
     usedModel: false,
     provider: '',
-    reply: WAITING_COPY,
-    thread: publicThread(current || emptyThread('')),
+    reply: notice.notice || RUNTIME_UNAVAILABLE_COPY,
+    thread: notice.thread,
     pending,
     correlationId,
   };
 }
 
-async function completeXaiCeoReply({ threadId, correlationId }) {
+async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
   const claim = await claimResponseOwner({ threadId, correlationId, owner: 'xai_runtime' });
-  if (claim.error) return waitingFallback({ threadId, correlationId, wakeReason: 'xai_unavailable' });
+  if (claim.error) {
+    return runtimeUnavailableNotice({
+      threadId,
+      correlationId,
+      explicitWake,
+      wakeReason: 'xai_unavailable',
+    });
+  }
   if (!claim.claimed) {
     return {
       ok: true,
@@ -876,8 +928,12 @@ async function completeXaiCeoReply({ threadId, correlationId }) {
       text: result.text,
     });
   } catch {
-    await releaseResponseOwner({ threadId, correlationId, owner: 'xai_runtime' });
-    return waitingFallback({ threadId, correlationId, wakeReason: 'xai_unavailable' });
+    return runtimeUnavailableNotice({
+      threadId,
+      correlationId,
+      explicitWake,
+      wakeReason: 'xai_unavailable',
+    });
   }
 }
 
@@ -907,6 +963,7 @@ async function talkToCeo(input) {
   return completeXaiCeoReply({
     threadId: queued.thread.id,
     correlationId: queued.correlationId,
+    explicitWake,
   });
 }
 
@@ -1098,6 +1155,7 @@ Object.assign(module.exports, {
   SLACK_FALLBACK,
   THREAD_KEY_PREFIX,
   WAITING_COPY,
+  RUNTIME_UNAVAILABLE_COPY,
   appendCeoNotice,
   bridgeSecretConfigured,
   ceoBridgeKind,
