@@ -268,6 +268,63 @@ async function run() {
     check('non-CEO xAI turns are not added to the CEO B2 inbox',
       pending.ok === true && pending.pending.length === 0);
 
+    desks.resetDeskTalk();
+    global.fetch = async () => ({ ok: false, status: 503, json: async () => ({}) });
+    const salesFail = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/desk-talk/message',
+      query: { area: 'api/desk-talk/message', agent: 'sales' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        agentId: 'sales',
+        text: 'xAI is down at sales',
+        correlationId: 'corr-sales-fail-1',
+      },
+    }), salesFail);
+    const salesFailAssistants = (salesFail.body.thread.messages || []).filter((item) => item.role === 'assistant');
+    check('sales xAI failure answers with a runtime notice, not Waiting forever',
+      salesFail.statusCode === 200
+      && salesFail.body.waiting === false
+      && salesFail.body.usedModel === false
+      && salesFail.body.thread.status === 'answered'
+      && salesFailAssistants.length === 1
+      && salesFailAssistants[0].text === desks.runtimeUnavailableCopy('sales'));
+
+    const inspectedFail = await desks.inspectDeskThread('sales', salesFail.body.thread.id);
+    check('sales runtime notice is system provenance and marked answered',
+      inspectedFail.thread.status === 'answered'
+      && inspectedFail.thread.answeredIds.includes('corr-sales-fail-1')
+      && inspectedFail.thread.messages.find((item) => item.role === 'assistant').provenance === 'system');
+
+    desks.resetDeskTalk();
+    global.fetch = async () => {
+      const err = new Error('aborted');
+      err.name = 'AbortError';
+      throw err;
+    };
+    const salesTimeout = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/desk-talk/message',
+      query: { area: 'api/desk-talk/message', agent: 'sales' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        agentId: 'sales',
+        text: 'xAI timed out at sales',
+        correlationId: 'corr-sales-timeout-1',
+      },
+    }), salesTimeout);
+    check('sales xAI timeout answers the thread instead of staying pending',
+      salesTimeout.statusCode === 200
+      && salesTimeout.body.waiting === false
+      && salesTimeout.body.thread.status === 'answered'
+      && (salesTimeout.body.thread.messages || []).some((item) => (
+        item.role === 'assistant' && item.text === desks.runtimeUnavailableCopy('sales')
+      )));
+
     delete process.env.XAI_API_KEY;
     global.fetch = origFetch;
   }

@@ -79,7 +79,7 @@ Founder Talk uses the existing allowlist session + CSRF. Agents cannot enqueue a
 
 Open `/ops/chat` with no agent, and Talk on Sales/Technical/Growth/Lifecycle — those still use the existing helper chat. Sign out: unauthenticated POST to `/ops/api/ceo-bridge/message` is 403. A wrong bearer on pending/reply is 401.
 
-If KV is unbound, the page says the store is unavailable. If xAI fails or is unset, Waiting stays and B2 may pick up. No fake reply.
+If KV is unbound, the page says the store is unavailable. If xAI fails after a claimed turn, the same thread gets a system notice and is marked answered — it is not left Waiting. B2 pending is not queued for normal chat (production has no Grok Bot poll). If xAI is unset, Waiting stays and B2 may pick up on an explicit wake. No fake model reply.
 
 ## CEO routine prompt (not limited to 9–17 CT)
 

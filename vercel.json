@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/ops/index.js": {
+      "maxDuration": 30
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

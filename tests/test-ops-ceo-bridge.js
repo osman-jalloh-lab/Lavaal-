@@ -358,6 +358,7 @@ async function run() {
     check('env example names XAI_API_KEY only',
       envExample.includes('XAI_API_KEY=')
       && !/XAI_API_KEY=\S+/.test(envExample));
+    const xaiMod = require(path.join(opsDir, '_xai.js'));
     const xaiSrc = fs.readFileSync(path.join(opsDir, '_xai.js'), 'utf8');
     check('xAI stays in a small underscored adapter',
       fs.existsSync(path.join(opsDir, '_xai.js'))
@@ -365,6 +366,15 @@ async function run() {
       && xaiSrc.includes('https://api.x.ai/v1/chat/completions')
       && xaiSrc.includes('grok-4.3')
       && !xaiSrc.includes("require('./_ceo_bridge')"));
+    check('xAI CEO/desk timeout is 20–25s under the Hobby ops budget',
+      xaiMod.DEFAULT_TIMEOUT_MS >= 20000
+      && xaiMod.DEFAULT_TIMEOUT_MS <= 25000);
+    const vercel = JSON.parse(fs.readFileSync(path.join(__dirname, '../vercel.json'), 'utf8'));
+    check('ops function maxDuration is 30s so the xAI wait fits under Hobby',
+      vercel.functions
+      && vercel.functions['api/ops/index.js']
+      && vercel.functions['api/ops/index.js'].maxDuration === 30
+      && xaiMod.DEFAULT_TIMEOUT_MS < vercel.functions['api/ops/index.js'].maxDuration * 1000);
     const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
     check('CEO chat poll busts cache and clears waiting when a CEO reply lands',
       chatJs.includes("cache: 'no-store'")
@@ -539,11 +549,24 @@ async function run() {
       },
     }), failed);
     const failPending = await ceo.listPending();
-    check('xAI failure falls back to Waiting and B2 pending',
+    const failCeo = (failed.body.thread.messages || []).find((item) => item.role === 'ceo');
+    check('xAI failure answers the thread with a runtime notice, not Waiting',
       failed.statusCode === 200
-      && failed.body.waiting === true
-      && failed.body.thread.messages.every((item) => item.role !== 'ceo')
-      && failPending.pending.some((item) => item.correlationId === 'corr-fail-1'));
+      && failed.body.ok === true
+      && failed.body.waiting === false
+      && failed.body.usedModel === false
+      && failed.body.thread.status === 'answered'
+      && failCeo
+      && failCeo.text === ceo.RUNTIME_UNAVAILABLE_COPY
+      && failPending.pending.every((item) => item.correlationId !== 'corr-fail-1'));
+
+    const inspectedFail = await ceo.inspectCeoThread(failed.body.thread.id);
+    const internalFailCeo = inspectedFail.thread.messages.find((item) => item.role === 'ceo');
+    check('runtime notice is system provenance and the founder turn is answered',
+      inspectedFail.thread.status === 'answered'
+      && inspectedFail.thread.answeredIds.includes('corr-fail-1')
+      && internalFailCeo.provenance === 'system'
+      && internalFailCeo.correlationId === 'corr-fail-1');
 
     const recovered = mockRes();
     await ops(bridgeReq('reply', {
@@ -553,10 +576,64 @@ async function run() {
         pendingId: 'corr-fail-1',
       },
     }), recovered);
-    check('B2 can still reply after xAI is unavailable',
+    check('B2 does not append a second CEO turn after the runtime notice',
       recovered.statusCode === 200
-      && recovered.body.replay === false
-      && recovered.body.thread.messages.some((item) => item.role === 'ceo' && item.text === 'Bridge recovered the turn.'));
+      && recovered.body.replay === true
+      && recovered.body.thread.messages.filter((item) => item.role === 'ceo').length === 1
+      && !recovered.body.thread.messages.some((item) => item.text === 'Bridge recovered the turn.'));
+
+    ceo.resetCeoBridge();
+    global.fetch = async (_url, opts) => {
+      const err = new Error('aborted');
+      err.name = 'AbortError';
+      if (opts && opts.signal && typeof opts.signal.addEventListener === 'function') {
+        // Adapter still attaches an abort listener; no wait — simulate timeout now.
+      }
+      throw err;
+    };
+    const timedOut = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'xAI timed out',
+        correlationId: 'corr-timeout-1',
+      },
+    }), timedOut);
+    const timeoutPending = await ceo.listPending();
+    const timeoutCeo = (timedOut.body.thread.messages || []).find((item) => item.role === 'ceo');
+    check('xAI timeout answers the thread with a runtime notice, not stuck pending',
+      timedOut.statusCode === 200
+      && timedOut.body.waiting === false
+      && timedOut.body.thread.status === 'answered'
+      && timeoutCeo
+      && timeoutCeo.text === ceo.RUNTIME_UNAVAILABLE_COPY
+      && timeoutPending.pending.every((item) => item.correlationId !== 'corr-timeout-1'));
+
+    const xaiModTimeout = require(path.join(opsDir, '_xai.js'));
+    process.env.XAI_API_KEY = 'test-xai-key-not-real';
+    global.fetch = (url, opts) => new Promise((_, reject) => {
+      if (!opts || !opts.signal) {
+        reject(new Error('missing abort signal'));
+        return;
+      }
+      opts.signal.addEventListener('abort', () => {
+        const err = new Error('aborted');
+        err.name = 'AbortError';
+        reject(err);
+      });
+    });
+    const adapterTimeout = await xaiModTimeout.completeXai({
+      system: 'CEO',
+      messages: [{ role: 'user', content: 'ping' }],
+      timeoutMs: 20,
+    });
+    check('completeXai abort path returns helper_failed timeout',
+      adapterTimeout.error === 'helper_failed'
+      && adapterTimeout.status === 'timeout');
 
     delete process.env.XAI_API_KEY;
     global.fetch = origFetch;

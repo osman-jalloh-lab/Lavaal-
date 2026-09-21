@@ -132,6 +132,10 @@ function waitingCopy(agentId) {
   return `Waiting on ${deskName(agentId)}…`;
 }
 
+function runtimeUnavailableCopy(agentId) {
+  return `Couldn't reach the ${deskName(agentId)} runtime just now — try again in a moment.`;
+}
+
 function threadKey(agentId, id) {
   return `${THREAD_KEY_PREFIX}${normalizeAgentId(agentId)}:${clean(id, 40)}`;
 }
@@ -527,6 +531,97 @@ async function appendOwnedReply({ agentId, threadId, correlationId, owner, text 
   });
 }
 
+async function appendDeskNotice({ agentId, threadId, text, provenance, correlationId, markAnsweredFor }) {
+  return mutate(async () => {
+    const desk = normalizeAgentId(agentId);
+    const id = clean(threadId, 40);
+    const body = clean(text, MAX_TEXT);
+    if (!desk || !id) return { error: 'desk_thread_not_found' };
+    if (!body) return { error: 'invalid_message' };
+    const current = await readThread(desk, id);
+    if (!current) return { error: 'desk_thread_not_found' };
+    const noticeCorrelation = clean(correlationId, 40) || newId();
+    const existing = (current.messages || []).find((item) => (
+      item.role === 'assistant' && item.correlationId === noticeCorrelation && item.text === body
+    ));
+    if (existing) {
+      return {
+        ok: true,
+        replay: true,
+        waiting: false,
+        usedModel: false,
+        provider: '',
+        reply: existing.text,
+        thread: publicThread(current),
+        notice: existing.text,
+        correlationId: existing.correlationId,
+        agentId: current.agentId,
+      };
+    }
+    const allowed = PROVENANCE.includes(provenance) ? provenance : 'system';
+    const message = normalizeMessage({
+      role: 'assistant',
+      text: body,
+      at: Date.now(),
+      correlationId: noticeCorrelation,
+      provenance: allowed,
+    });
+    const mark = clean(markAnsweredFor, 40);
+    const founder = mark ? founderByCorrelation(current, mark) : null;
+    const answeredIds = mark
+      ? current.answeredIds.concat([mark, founder && founder.id]).filter(Boolean).slice(-MAX_ANSWERED)
+      : current.answeredIds;
+    const thread = normalizeThread({
+      id: current.id,
+      agentId: current.agentId,
+      founderEmail: current.founderEmail,
+      messages: current.messages.concat([message]),
+      status: 'answered',
+      updatedAt: Date.now(),
+      answeredIds,
+    }, current.founderEmail, current.agentId);
+    await writeThread(thread);
+    return {
+      ok: true,
+      replay: false,
+      waiting: false,
+      usedModel: false,
+      provider: '',
+      reply: message.text,
+      thread: publicThread(thread),
+      notice: message.text,
+      correlationId: message.correlationId,
+      agentId: thread.agentId,
+    };
+  });
+}
+
+async function runtimeUnavailableDeskNotice({ agentId, threadId, correlationId }) {
+  const copy = runtimeUnavailableCopy(agentId);
+  const notice = await appendDeskNotice({
+    agentId,
+    threadId,
+    text: copy,
+    provenance: 'system',
+    correlationId,
+    markAnsweredFor: correlationId,
+  });
+  if (notice.error) {
+    return {
+      ok: false,
+      error: notice.error,
+      waiting: false,
+      usedModel: false,
+      provider: '',
+      reply: copy,
+      thread: publicThread(null),
+      correlationId,
+      agentId,
+    };
+  }
+  return notice;
+}
+
 async function enqueueFounderMessage({ agentId, text, founderEmail, threadId, source, correlationId }) {
   return mutate(async () => {
     const desk = normalizeAgentId(agentId);
@@ -597,17 +692,7 @@ async function completeXaiDeskReply({ agentId, threadId, correlationId, maxToken
     owner: 'xai_runtime',
   });
   if (claim.error) {
-    const current = await readThread(agentId, threadId);
-    return {
-      ok: true,
-      waiting: true,
-      usedModel: false,
-      provider: '',
-      reply: waitingCopy(agentId),
-      thread: publicThread(current || emptyThread(agentId, '')),
-      correlationId,
-      agentId,
-    };
+    return runtimeUnavailableDeskNotice({ agentId, threadId, correlationId });
   }
   if (!claim.claimed) {
     return {
@@ -639,18 +724,7 @@ async function completeXaiDeskReply({ agentId, threadId, correlationId, maxToken
       text: result.text,
     });
   } catch {
-    await releaseResponseOwner({ agentId, threadId, correlationId, owner: 'xai_runtime' });
-    const current = await readThread(agentId, threadId);
-    return {
-      ok: true,
-      waiting: true,
-      usedModel: false,
-      provider: '',
-      reply: waitingCopy(agentId),
-      thread: publicThread(current || emptyThread(agentId, '')),
-      correlationId,
-      agentId,
-    };
+    return runtimeUnavailableDeskNotice({ agentId, threadId, correlationId });
   }
 }
 
@@ -915,9 +989,11 @@ Object.assign(module.exports, {
   storeMode,
   talkToDesk,
   appendOwnedReply,
+  appendDeskNotice,
   completeXaiDeskReply,
   threadIdFor,
   threadIsWaiting,
   threadKey,
   waitingCopy,
+  runtimeUnavailableCopy,
 });

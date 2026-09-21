@@ -361,7 +361,7 @@ async function assignToResearchy(input) {
       maxTokens: 280,
       timeoutMs: 5500,
     });
-    usedFallback = !completed.error && !completed.waiting && Boolean(completed.reply);
+    usedFallback = !completed.error && completed.usedModel === true && !completed.waiting && Boolean(completed.reply);
     if (usedFallback) {
       Object.assign(desk, completed);
     }
