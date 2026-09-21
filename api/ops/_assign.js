@@ -170,7 +170,7 @@ async function assignToResearchy(input) {
     });
   }
 
-  const desk = await desks.talkToDesk({
+  let desk = await desks.talkToDesk({
     agentId: RESEARCHY_ID,
     text: `Assigned from LAVAALL CEO. Task ${task.id}.\n${parsed.brief}`,
     founderEmail: who,
@@ -178,6 +178,15 @@ async function assignToResearchy(input) {
     source: 'ceo-assign',
     correlationId: task.childCorrelationId || undefined,
   });
+  if (desk && !desk.error && desk.waiting && desk.thread && desk.correlationId && xaiConfigured()) {
+    desk = await desks.completeXaiDeskReply({
+      agentId: RESEARCHY_ID,
+      threadId: desk.thread.id,
+      correlationId: desk.correlationId,
+      maxTokens: 280,
+      timeoutMs: 5500,
+    });
+  }
   if (desk.error) {
     return {
       ok: true,
@@ -260,24 +269,25 @@ async function onDeskThreadPoll({ agentId, founderEmail }) {
   const storeData = await readStore();
   const task = findAssignTask(storeData, (row) => (
     row.ownerAgentId === RESEARCHY_ID
-    && row.childThreadId === threadId
+    && row.createdBy === who
     && (row.assignStatus === 'assigned' || row.assignStatus === 'specialist_done')
+    && (row.childThreadId === threadId || !row.childThreadId)
   ));
-  if (!task) {
-    const loaded = await desks.getFounderDeskThread(desk, who);
-    return { ok: true, skipped: true, thread: loaded.thread };
-  }
   const inspected = await desks.inspectDeskThread(desk, threadId);
   const full = inspected.thread;
   const founder = lastByRole(full, 'founder');
+  const assignedWork = Boolean(founder && /Assigned from LAVAALL CEO/i.test(founder.text));
+  if (!task && !assignedWork) {
+    const loaded = await desks.getFounderDeskThread(desk, who);
+    return { ok: true, skipped: true, thread: loaded.thread };
+  }
   if (desks.threadIsWaiting(full) && founder && xaiConfigured()) {
-    await desks.talkToDesk({
+    await desks.completeXaiDeskReply({
       agentId: desk,
-      text: founder.text,
-      founderEmail: who,
       threadId,
       correlationId: founder.correlationId,
-      source: 'ceo-assign',
+      maxTokens: 280,
+      timeoutMs: 5500,
     });
   }
   const again = await desks.inspectDeskThread(desk, threadId);
@@ -285,7 +295,7 @@ async function onDeskThreadPoll({ agentId, founderEmail }) {
   await noteDeskProgress({
     agentId: desk,
     threadId,
-    correlationId: task.childCorrelationId || (founder && founder.correlationId),
+    correlationId: (task && task.childCorrelationId) || (founder && founder.correlationId),
     resultText: assistant ? assistant.text : '',
     waiting: desks.threadIsWaiting(again.thread),
   });

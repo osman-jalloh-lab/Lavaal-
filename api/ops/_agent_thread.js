@@ -589,7 +589,7 @@ async function enqueueFounderMessage({ agentId, text, founderEmail, threadId, so
   });
 }
 
-async function completeXaiDeskReply({ agentId, threadId, correlationId }) {
+async function completeXaiDeskReply({ agentId, threadId, correlationId, maxTokens, timeoutMs }) {
   const claim = await claimResponseOwner({
     agentId,
     threadId,
@@ -627,6 +627,8 @@ async function completeXaiDeskReply({ agentId, threadId, correlationId }) {
     const result = await completeXai({
       system: deskSystemPrompt(agentId, context),
       messages: deskMessagesForXai(claim.thread),
+      maxTokens: Number.isFinite(maxTokens) ? maxTokens : undefined,
+      timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : undefined,
     });
     if (result.error || !result.text) throw new Error('xai_failed');
     return await appendOwnedReply({
@@ -911,6 +913,7 @@ Object.assign(module.exports, {
   resetDeskTalk,
   storeMode,
   talkToDesk,
+  completeXaiDeskReply,
   threadIdFor,
   threadIsWaiting,
   threadKey,

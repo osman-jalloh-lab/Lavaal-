@@ -25,7 +25,7 @@ const {
 const { describeChatSetup, sendChatTurn } = require('./_chat');
 const { CEO_DESK_ID, getFounderThread, handleCeoBridge } = require('./_ceo_bridge');
 const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
-const { handleCeoAssign, synthesizeOpenAssigns } = require('./_assign');
+const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
 const {
   confirmInboxSend,
   pasteSnapshot,
@@ -197,11 +197,19 @@ async function renderArea(req, res, session, extra) {
         pageOpts.ceoThread = loaded.thread;
       }
     } else {
-      const loaded = await getFounderDeskThread(pageOpts.agentId, session.email);
-      if (loaded.error === 'store_unavailable') {
-        pageOpts.error = pageOpts.error || 'The desk Talk store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).';
-      } else if (loaded.thread) {
-        pageOpts.deskThread = loaded.thread;
+      const progressed = await onDeskThreadPoll({
+        agentId: pageOpts.agentId,
+        founderEmail: session.email,
+      });
+      if (progressed && progressed.thread) {
+        pageOpts.deskThread = progressed.thread;
+      } else {
+        const loaded = await getFounderDeskThread(pageOpts.agentId, session.email);
+        if (loaded.error === 'store_unavailable') {
+          pageOpts.error = pageOpts.error || 'The desk Talk store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).';
+        } else if (loaded.thread) {
+          pageOpts.deskThread = loaded.thread;
+        }
       }
     }
   }

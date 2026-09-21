@@ -97,7 +97,7 @@ async function run() {
         && !html.includes('xai_runtime')
         && !html.includes('grok_bot_bridge')
         && html.includes(`"agentName":${JSON.stringify(name)}`)
-        && html.includes('/assets/js/ops-ceo-chat.js?v=assign')
+        && html.includes('/assets/js/ops-ceo-chat.js?v=assign-fix')
         && !html.includes('This desk uses Office Talk')
         && !html.includes('not the Anthropic or OpenAI helper')
         && (id === 'lavaall-ceo'
@@ -319,7 +319,9 @@ async function run() {
       && chatJs.includes("'/ops/desk-talk/' + encodeURIComponent(agentId) + '/thread")
       && chatJs.includes("last.role === 'assistant'")
       && chatJs.includes('isTalkChromeNoise')
-      && chatJs.includes("!isCeoTalk() && url.indexOf('ceo-bridge')")
+      && chatJs.includes('/ceo-bridge/i.test(url) && !isCeoTalk()')
+      && chatJs.includes("isDeskTalk() && url.indexOf('/ops/desk-talk/')")
+      && !chatJs.includes('/ops/api/ceo-bridge')
       && !chatJs.includes("mine ? 'You' : 'LAVAALL CEO'"));
   }
 

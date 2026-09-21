@@ -94,9 +94,9 @@ textarea{min-height:88px;resize:vertical;}
 .btn:hover{filter:brightness(.97);}
 .btn-sm{width:auto;margin-top:10px;padding:8px 14px;}
 .btn-danger{background:transparent;color:var(--coral);border:1px solid rgba(225,29,72,.35);}
-.talk-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
-.talk-actions .btn{width:auto;flex:1;min-width:140px;margin-top:0;}
-.btn-assign{background:transparent;color:var(--ink);border:1px solid var(--line);}
+.talk-actions{display:grid;gap:10px;margin-top:14px;}
+.talk-actions .btn{width:100%;margin-top:0;}
+.btn-assign{background:var(--emerald-wash);color:var(--ink);border:1px solid rgba(16,185,129,.45);}
 .task-row label{margin-top:8px;}
 .check{display:flex;align-items:flex-start;gap:8px;font-weight:500;}
 .check input{width:auto;margin-top:3px;}
@@ -223,7 +223,7 @@ textarea{min-height:88px;resize:vertical;}
 `;
 }
 
-function shellPage({ title, email, area, body, notice, error, scripts }) {
+function shellPage({ title, email, area, body, notice, error, scripts, head }) {
   const current = areaInfo(area).id;
   const nav = NAV.map((item) => (
     `<a href="${item.href}"${item.id === current ? ' aria-current="page"' : ''}>${escapeHtml(item.label)}</a>`
@@ -241,6 +241,7 @@ function shellPage({ title, email, area, body, notice, error, scripts }) {
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>${escapeHtml(title)}</title>
 <meta name="robots" content="noindex,nofollow"/>
+${typeof head === 'string' ? head : ''}
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self';"/>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>

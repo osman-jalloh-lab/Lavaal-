@@ -87,13 +87,15 @@ async function run() {
       query: { area: 'chat', agent: 'lavaall-ceo' },
     }), page);
     const html = String(page.raw);
-    check('A) CEO Talk has Assign to Researchy control',
+    check('A) CEO Talk first paint has Assign to Researchy next to Send',
       page.statusCode === 200
       && html.includes('Assign to Researchy')
       && html.includes('id="ceo-assign-researchy"')
+      && html.includes('<button class="btn" type="submit">Send</button>')
+      && html.indexOf('id="ceo-assign-researchy"') > html.indexOf('ceo-bridge-form')
       && html.includes('/ops/ceo-assign/message')
       && html.includes('"assignUrl":"/ops/ceo-assign/message"')
-      && html.includes('/assets/js/ops-ceo-chat.js?v=assign'));
+      && html.includes('/assets/js/ops-ceo-chat.js?v=assign-fix'));
 
     const researchy = mockRes();
     await ops(authed({
@@ -107,6 +109,9 @@ async function run() {
       && !researchyHtml.includes('Assign to Researchy')
       && !researchyHtml.includes('/ops/ceo-assign/')
       && !researchyHtml.includes('/ops/ceo-bridge/thread')
+      && !researchyHtml.includes('/ops/api/ceo-bridge/')
+      && researchyHtml.includes('data-talk-agent="researchy"')
+      && researchyHtml.includes('desk Talk does not use ceo-bridge')
       && researchyHtml.includes('/ops/desk-talk/researchy/thread'));
   }
 
@@ -180,14 +185,17 @@ async function run() {
     const inspectedDesk = await desks.inspectDeskThread('researchy', task.childThreadId);
     const deskFounder = (inspectedDesk.thread.messages || []).find((item) => item.role === 'founder');
     const deskAssistant = (inspectedDesk.thread.messages || []).find((item) => item.role === 'assistant');
-    check('C) Researchy thread shows assigned work and a reply',
+    check('C) assign auto-runs Researchy reply without a second founder Talk click',
       inspectedDesk.thread.agentId === 'researchy'
       && deskFounder
       && /Assigned from LAVAALL CEO/.test(deskFounder.text)
       && /source ThinkPad docks/.test(deskFounder.text)
       && deskAssistant
       && deskAssistant.text.includes('Researchy draft')
-      && deskAssistant.provenance === 'xai_runtime');
+      && deskAssistant.provenance === 'xai_runtime'
+      && seen.researchy >= 1
+      && posted.body.deskReply
+      && posted.body.deskReply.includes('Researchy draft'));
 
     check('A/NL) CEO thread has the assign ack, not a raw specialist dump only',
       ceoMessages.some((item) => item.role === 'founder' && item.text.includes('source ThinkPad docks'))
@@ -297,11 +305,13 @@ async function run() {
       vercel.includes('/ops/ceo-assign/:kind')
       && vercel.includes('/ops/api/ceo-assign/:kind')
       && vercel.indexOf('/ops/ceo-assign/:kind') < vercel.indexOf('/ops/:path*'));
-    check('Talk JS routes Assign from CEO only and keeps desk poll isolated',
+    check('Talk JS routes Assign from CEO only and never lets non-CEO poll ceo-bridge',
       chatJs.includes('function assignPostUrl()')
       && chatJs.includes('function looksLikeAssignText(')
       && chatJs.includes("postUrl.indexOf('ceo-assign')")
-      && chatJs.includes("!isCeoTalk() && url.indexOf('ceo-bridge')"));
+      && chatJs.includes("isDeskTalk() && url.indexOf('/ops/desk-talk/')")
+      && chatJs.includes('/ceo-bridge/i.test(url) && !isCeoTalk()')
+      && !chatJs.includes('/ops/api/ceo-bridge'));
     check('docs include Slice 2 assign smoke',
       note.includes('Slice 2')
       && note.includes('Assign to Researchy')

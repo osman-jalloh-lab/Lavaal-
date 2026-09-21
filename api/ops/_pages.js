@@ -308,21 +308,38 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
   const assignControl = isCeo
     ? `<button class="btn btn-assign" type="submit" formaction="/ops/ceo-assign/message" name="assign" value="researchy" id="ceo-assign-researchy">Assign to Researchy</button>`
     : '';
+  const talkGuard = `<meta name="lavaall-talk-agent" content="${escapeHtml(talkAgent.id)}"/>
+<script>
+(function () {
+  var id = ${JSON.stringify(talkAgent.id)};
+  if (!id || id === 'lavaall-ceo') return;
+  var orig = window.fetch;
+  if (typeof orig !== 'function') return;
+  window.fetch = function (input, init) {
+    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (/ceo-bridge/i.test(String(url))) {
+      return Promise.reject(new TypeError('desk Talk does not use ceo-bridge'));
+    }
+    return orig.apply(this, arguments);
+  };
+})();
+</script>`;
   return shellPage({
     title: 'LAVAALL OS — Chat',
     email,
     area: 'chat',
     notice,
     error,
+    head: talkGuard,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-ceo-chat.js?v=assign" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=assign-fix" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>${escapeHtml(agentName)}</h1>
       <section class="card">
         <p id="ceo-waiting" class="empty"${waiting ? '' : ' hidden'}>${escapeHtml(waitText)}</p>
         ${list}
-        <form id="ceo-bridge-form" method="POST" action="${escapeHtml(postUrl)}">
+        <form id="ceo-bridge-form" method="POST" action="${escapeHtml(postUrl)}" data-talk-agent="${escapeHtml(talkAgent.id)}">
           <input type="hidden" name="csrf" value="${escapeHtml(csrf || '')}"/>
           <input type="hidden" name="threadId" id="ceo-thread-id" value="${escapeHtml(thread.id || '')}"/>
           <input type="hidden" name="agentId" value="${escapeHtml(talkAgent.id)}"/>

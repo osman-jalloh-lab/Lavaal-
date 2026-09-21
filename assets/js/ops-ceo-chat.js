@@ -43,8 +43,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function currentAgentId() {
+    const fromMeta = document.querySelector('meta[name="lavaall-talk-agent"]');
+    const fromForm = form && (form.getAttribute('data-talk-agent') || '');
     const fromInput = form && form.querySelector('[name="agentId"]');
-    return normalizeTalkAgent(graph.agentId || (fromInput && fromInput.value) || agentFromLocation());
+    return normalizeTalkAgent(
+      (fromMeta && fromMeta.getAttribute('content'))
+      || fromForm
+      || graph.agentId
+      || (fromInput && fromInput.value)
+      || agentFromLocation()
+    );
   }
 
   function rememberDesk(payload) {
@@ -89,13 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function threadPollUrl(threadId) {
     const agentId = currentAgentId();
     const id = encodeURIComponent(threadId || '');
-    if (agentId && agentId !== 'lavaall-ceo') {
+    if (!agentId || agentId !== 'lavaall-ceo') {
+      if (!agentId) return '';
       return '/ops/desk-talk/' + encodeURIComponent(agentId) + '/thread' + (id ? '?id=' + id : '');
     }
-    if (agentId === 'lavaall-ceo') {
-      return '/ops/ceo-bridge/thread' + (id ? '?id=' + id : '');
-    }
-    return '';
+    return '/ops/ceo-bridge/thread' + (id ? '?id=' + id : '');
   }
 
   function threadPostUrl() {
@@ -176,9 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function pollUrl() {
+    if (isDeskTalk() && String(graph.pollUrl || '').indexOf('ceo-bridge') !== -1) {
+      graph.pollUrl = threadPollUrl(graph.threadId);
+    }
     const base = threadPollUrl(graph.threadId);
     if (!base) return '';
-    if (!isCeoTalk() && base.indexOf('ceo-bridge') !== -1) return '';
+    if (!isCeoTalk() && /ceo-bridge/i.test(base)) return '';
+    if (isDeskTalk() && base.indexOf('/ops/desk-talk/') !== 0) return '';
     return base + (base.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now();
   }
 
@@ -197,7 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function poll() {
     const url = pollUrl();
-    if (!url || (!isCeoTalk() && url.indexOf('ceo-bridge') !== -1)) return;
+    if (!url || (/ceo-bridge/i.test(url) && !isCeoTalk())) return;
+    if (isDeskTalk() && url.indexOf('/ops/desk-talk/') === -1) return;
     if (inFlight) return;
     inFlight = true;
     try {

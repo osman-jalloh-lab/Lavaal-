@@ -118,10 +118,10 @@ HTTP: `POST /ops/ceo-assign/message` (also NL `/assign` or “assign to research
 
 ### Slice 2 Preview smoke (one redeploy)
 
-1. Sign in on Preview `/ops`. Office → CEO **Talk** (`/ops/chat/lavaall-ceo`). Confirm **Assign to Researchy** next to Send.
+1. Hard-refresh Preview. Office → CEO **Talk** (`/ops/chat/lavaall-ceo`). First paint must show **Assign to Researchy** under Send — no extra navigation.
 2. Type a sourcing brief. Click **Assign to Researchy** (or send `/assign find ThinkPad docks`). CEO thread shows an assign ack. Network: `POST /ops/ceo-assign/message` (200). **No** new row on `GET /ops/api/ceo-bridge/pending`.
 3. Open `/ops/tasks`. Child task: owner **researchy**, parent CEO thread id, status doing (not done), assign status assigned / specialist done / synthesized.
-4. Open Researchy Talk (`/ops/chat/researchy`). The assigned brief is in that thread. With `XAI_API_KEY` set, Researchy replies there. Network: only `/ops/desk-talk/researchy/thread` — zero `ceo-bridge`.
+4. Open Researchy Talk (`/ops/chat/researchy`). Assigned brief **and** a Researchy reply are already there — Waiting must clear. Do not send another Researchy message. Network: only `/ops/desk-talk/researchy/thread` (200). Zero `/ops/ceo-bridge/thread` and zero `/ops/api/ceo-bridge/thread`.
 5. Return to CEO Talk (or wait for the poll). CEO posts a **synthesis** (decision + unknowns), not a raw Researchy dump. Task assign status becomes **synthesized**; task status stays doing until you mark done.
 6. Repeat with NL only: `assign to researchy: source USB-C hubs` via Send. Same child + Researchy + synthesis path. Do not involve Technical unless you explicitly ask for validation.
 
