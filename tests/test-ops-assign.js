@@ -77,11 +77,32 @@ async function run() {
 
   check('assign brief strips the command prefix',
     assign.parseAssignBrief('/assign find ThinkPad suppliers').brief === 'find ThinkPad suppliers'
-    && assign.parseAssignBrief('assign to researchy: source docks').title === 'source docks');
+    && /thinkpad|docks|suppliers/i.test(assign.parseAssignBrief('assign to researchy: source docks').title)
+    && assign.parseAssignBrief('assign to researchy: source docks').title.split(/\s+/).length <= 6
+    && !/^source\b/i.test(assign.parseAssignBrief('assign to researchy: source docks').title));
   check('assign titles are Assign N — topic ≤6 words, not the full brief',
-    assign.formatAssignTitle(3, 'source Apple products for Freetown enterprise quotes now') === 'Assign 3 — source Apple products for Freetown enterprise'
-    && assign.topicWords('source Apple products for Freetown enterprise quotes now') === 'source Apple products for Freetown enterprise'
+    /^Assign 3 — /.test(assign.formatAssignTitle(3, 'source Apple products for Freetown enterprise quotes now'))
+    && /Apple/i.test(assign.formatAssignTitle(3, 'source Apple products for Freetown enterprise quotes now'))
+    && assign.formatAssignTitle(3, 'source Apple products for Freetown enterprise quotes now').split('—')[1].trim().split(/\s+/).length <= 6
     && !assign.formatAssignTitle(1, 'a very long founder brief about everything').includes('everything'));
+  {
+    const longTitle = assign.formatAssignTitle(1, 'Please go look for wholesale Apple products we can quote in Freetown for enterprise buyers this week');
+    check('long brief becomes a short noun-ish title',
+      longTitle === 'Assign 1 — Apple products' || longTitle === 'Assign 1 — Apple sourcing');
+  }
+  check('source Apple products title contains Apple and is ≤6 words after the dash', (() => {
+    const title = assign.formatAssignTitle(1, 'source Apple products');
+    const topic = title.split('—')[1] ? title.split('—')[1].trim() : '';
+    return /^Assign 1 — /.test(title)
+      && /Apple/i.test(topic)
+      && topic.split(/\s+/).length <= 6
+      && (topic === 'Apple products' || topic === 'Apple sourcing');
+  })());
+  check('assign topic does not start with Please or go look',
+    !/^(Please|go look)\b/i.test(assign.topicWords('Please go look for wholesale Apple'))
+    && !/^Assign \d+ — Please\b/i.test(assign.formatAssignTitle(1, 'Please go look for wholesale Apple'))
+    && !/^Assign \d+ — go look\b/i.test(assign.formatAssignTitle(1, 'Please go look for wholesale Apple'))
+    && /Apple/i.test(assign.formatAssignTitle(1, 'Please go look for wholesale Apple')));
 
   {
     const page = mockRes();
@@ -174,8 +195,9 @@ async function run() {
       && posted.body.assignee === 'researchy'
       && task
       && /^Assign 1 — /.test(task.title)
+      && /ThinkPad/i.test(task.title)
       && task.title.split('—')[1].trim().split(/\s+/).length <= 6
-      && !task.title.includes('assign to researchy')
+      && !/Please|go look|assign to researchy/i.test(task.title.split('—')[1])
       && task.ownerAgentId === 'researchy'
       && task.parentThreadId === posted.body.thread.id
       && task.parentCorrelationId === 'assign-corr-1'

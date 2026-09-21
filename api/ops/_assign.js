@@ -61,13 +61,80 @@ function looksLikeAssign(input) {
   return false;
 }
 
+const TOPIC_MAX = 6;
+
+const TOPIC_LEAD_FILLERS = [
+  { re: /^(please\s+)+/i, intent: false },
+  { re: /^(can|could|would|will)\s+you\s+(please\s+)?/i, intent: false },
+  { re: /^(i|we)\s+(need|want|would like)(\s+you\s+to)?\s+/i, intent: false },
+  { re: /^(help|ask)\s+me\s+(to\s+)?/i, intent: false },
+  { re: /^(go\s+)+look(?:ing)?\s+for\s+/i, intent: true },
+  { re: /^look(?:ing)?\s+for\s+/i, intent: true },
+  { re: /^(go\s+)+find\s+/i, intent: true },
+  { re: /^(go\s+)+/i, intent: false },
+  { re: /^(just\s+)+/i, intent: false },
+  { re: /^try\s+to\s+/i, intent: false },
+];
+
+const TOPIC_INTENT_LEAD = /^(source|sources|sourcing|find|finding|research|search|searching|locate|get|getting)\s+/i;
+
+const TOPIC_STOP = new Set([
+  'please', 'go', 'look', 'looking', 'for', 'the', 'a', 'an', 'some', 'any',
+  'our', 'your', 'their', 'this', 'that', 'those', 'these', 'to', 'of', 'in',
+  'on', 'at', 'with', 'from', 'about', 'and', 'or', 'now', 'then', 'also',
+  'just', 'can', 'you', 'we', 'i', 'me', 'us', 'my', 'it', 'its', 'as', 'is',
+  'are', 'be', 'do', 'did', 'does', 'very', 'everything', 'brief', 'need',
+  'want', 'help', 'try', 'quotes', 'quote', 'request', 'requests', 'enterprise',
+  'wholesale',
+]);
+
+const TOPIC_NOUN_TAIL = /^(products?|docks?|hubs?|suppliers?|laptops?|computers?|monitors?|cables?|sourcing|research)$/i;
+
 function topicWords(text) {
-  const words = String(text || '')
+  let work = String(text || '')
+    .replace(/^\/assign\b[:\s-]*/i, '')
+    .replace(/^assign(?:\s+this)?\s+to\s+researchy\b[:\s-]*/i, '')
+    .replace(/^assign\s+researchy\b[:\s-]*/i, '')
+    .trim();
+
+  let hadIntent = false;
+  for (let i = 0; i < 8; i += 1) {
+    let hit = false;
+    for (const row of TOPIC_LEAD_FILLERS) {
+      if (!row.re.test(work)) continue;
+      work = work.replace(row.re, '').trim();
+      if (row.intent) hadIntent = true;
+      hit = true;
+      break;
+    }
+    if (!hit) break;
+  }
+
+  const intentMatch = work.match(TOPIC_INTENT_LEAD);
+  if (intentMatch) {
+    hadIntent = true;
+    work = work.slice(intentMatch[0].length).trim();
+  }
+
+  const tokens = work
     .replace(/[^A-Za-z0-9\s-]/g, ' ')
     .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 6);
-  return words.join(' ') || 'research';
+    .filter(Boolean);
+  let kept = tokens.filter((word) => !TOPIC_STOP.has(word.toLowerCase()));
+  if (!kept.length) {
+    kept = tokens.filter((word) => word.toLowerCase() === 'wholesale');
+  }
+  if (!kept.length) return 'research';
+
+  const nounAt = kept.findIndex((word) => TOPIC_NOUN_TAIL.test(word));
+  if (nounAt >= 0) kept = kept.slice(0, nounAt + 1);
+  kept = kept.slice(0, TOPIC_MAX);
+
+  const hasNounTail = kept.some((word) => TOPIC_NOUN_TAIL.test(word));
+  if (hadIntent && !hasNounTail && kept.length < TOPIC_MAX) {
+    kept.push('sourcing');
+  }
+  return kept.slice(0, TOPIC_MAX).join(' ') || 'research';
 }
 
 function parseAssignBrief(text) {
