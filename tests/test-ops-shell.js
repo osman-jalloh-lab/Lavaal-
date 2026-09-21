@@ -59,8 +59,8 @@ async function run() {
   delete process.env.KV_REST_API_TOKEN;
   store.resetStore();
 
-  check('nav lists all eleven areas', NAV.length === 11
-    && NAV.map((item) => item.id).join(',') === 'dashboard,office,profile,chat,memory,inbox,calendar,kits,map,tasks,routines');
+  check('nav lists all twelve areas', NAV.length === 12
+    && NAV.map((item) => item.id).join(',') === 'dashboard,office,profile,chat,memory,issues,inbox,calendar,kits,map,tasks,routines');
 
   {
     const res = mockRes();
@@ -80,7 +80,7 @@ async function run() {
     await ops(authed(), res);
     const html = String(res.raw);
     check('logged-in /ops is the dashboard shell', res.statusCode === 200 && html.includes('Dashboard') && html.includes('signed in as') && html.includes(ALLOWED));
-    check('dashboard nav links all eleven areas', NAV.every((item) => html.includes(`href="${item.href}"`)));
+    check('dashboard nav links all twelve areas', NAV.every((item) => html.includes(`href="${item.href}"`)));
     check('home title stays Dashboard', html.includes('<h1>Dashboard</h1>') && !html.includes('<h1>Floor</h1>'));
     check('empty state copy is present', html.includes('Nothing saved yet') && html.includes('No current goal saved yet') && html.includes('No unfinished tasks'));
     check('add task and note are reachable from home', html.includes('id="add-task"') && html.includes('id="add-note"') && html.includes('Save task') && html.includes('Save note'));

@@ -3,7 +3,7 @@
 
 const { kitsDeniedPage, loginPage } = require('./_html');
 const { NAV, dashboardPage } = require('./_shell');
-const { calendarPage, chatPage, inboxPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
+const { calendarPage, chatPage, inboxPage, issuesPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
 const { isTalkAgent, normalizeTalkAgentId, officePage } = require('./_office');
 const {
   describeKitsSetup,
@@ -33,8 +33,9 @@ const {
   refreshLiveInbox,
   saveInboxDraft,
 } = require('./_inbox');
-const { describeGmailSetup } = require('./_gmail');
+const { describeGmailSetup, supportInboxConfigured } = require('./_gmail');
 const {
+  addIssue,
   addNote,
   addProject,
   addTask,
@@ -103,7 +104,7 @@ function knownArea(area) {
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/map' || value === '/ops/routines' || value === '/ops/office' || value === '/ops') return value;
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/issues' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/map' || value === '/ops/routines' || value === '/ops/office' || value === '/ops') return value;
   if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
   if (typeof value === 'string' && /^\/ops\/chat\/(lavaall-ceo|sales|technical|growth|lifecycle|researchy)$/.test(value)) return value;
   if (typeof value === 'string' && /^\/ops\/chat\?agent=(lavaall-ceo|ceo|sales|technical|growth|lifecycle|researchy)$/.test(value)) return value;
@@ -227,8 +228,22 @@ async function renderArea(req, res, session, extra) {
       return sendHtml(res, 200, memoryPage(pageOpts));
     case 'chat':
       return sendHtml(res, 200, chatPage(pageOpts));
-    case 'inbox':
+    case 'inbox': {
+      if (supportInboxConfigured()) {
+        const live = await refreshLiveInbox();
+        if (live && live.error === 'gmail_reconnect') {
+          pageOpts.error = pageOpts.error || 'Could not list support@ mail. Reconnect OPS_GMAIL_* on this Preview.';
+        }
+        try {
+          pageOpts.store = await readStore();
+        } catch {
+          pageOpts.store = pageOpts.store || emptyStore();
+        }
+      }
       return sendHtml(res, 200, inboxPage(pageOpts));
+    }
+    case 'issues':
+      return sendHtml(res, 200, issuesPage(pageOpts));
     case 'calendar':
       return sendHtml(res, 200, calendarPage(pageOpts));
     case 'kits': {
@@ -277,6 +292,7 @@ function writeStatus(error) {
     case 'proposal_not_found':
     case 'inbox_not_found':
       return 404;
+    case 'invalid_issue':
     case 'invalid_inbox':
     case 'invalid_draft':
     case 'confirm_required':
@@ -320,6 +336,8 @@ async function finishWrite(req, res, session, body, result, notice) {
       ? 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).'
       : result.error === 'memory_review_required'
         ? 'Proposed memories need review before save.'
+        : result.error === 'invalid_issue'
+          ? 'Enter a short issue title.'
         : result.error === 'support_not_connected'
           ? 'Live support@ is not connected. Paste still works; confirm-send needs a support@ refresh token.'
           : result.error === 'confirm_required'
@@ -437,6 +455,12 @@ async function handleWrite(req, res, session) {
       }), { error: 'Could not confirm that draft.' });
     case 'dismiss-proposal':
       return finishWrite(req, res, session, body, await dismissChatProposal(body.id), { error: 'Could not dismiss that draft.' });
+    case 'file-issue':
+      return finishWrite(req, res, session, body, await addIssue({
+        title: body.title,
+        body: body.body,
+        createdBy: session.email,
+      }), { error: 'Enter a short issue title.' });
     case 'paste-inbox':
       return finishWrite(req, res, session, body, await pasteSnapshot({
         from: body.from,

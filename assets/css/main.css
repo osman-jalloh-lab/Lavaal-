@@ -650,6 +650,13 @@ label .req{color:var(--coral);margin-left:2px;}
 .ct-email:hover{color:#036b8a;}
 .ct-email-sub{font-size:12px;font-weight:500;color:var(--muted);border-bottom-color:transparent;margin-top:6px;}
 .ct-email-sub:hover{color:var(--ink);}
+.ct-email-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:4px;}
+.ct-mail-app{display:inline-block;font-size:12px;font-weight:500;color:var(--muted);text-decoration:underline;}
+.ct-mail-app:hover{color:var(--ink);}
+.sched-confirm-facts{text-align:left;max-width:420px;margin:16px auto;padding:14px 16px;background:var(--offwhite);border:1px solid var(--ink);border-radius:10px;}
+.sched-confirm-facts dt{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:8px;}
+.sched-confirm-facts dt:first-child{margin-top:0;}
+.sched-confirm-facts dd{font-weight:700;margin:2px 0 0;}
 .ct-form-wrap{max-width:640px;margin:56px auto 0;padding:44px;background:var(--offwhite);border:2px solid var(--ink);border-radius:var(--r);}
 @media(max-width:900px){
   .ct-grid{grid-template-columns:repeat(2,1fr);}

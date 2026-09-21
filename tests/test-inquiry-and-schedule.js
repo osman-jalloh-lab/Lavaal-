@@ -114,6 +114,43 @@ async function run() {
     check('book rejects malformed date/time (400)', res.statusCode === 400);
   }
 
+  {
+    const store = require(path.join(__dirname, '../api/ops/_store.js'));
+    store.resetStore();
+    await store.savePendingBooking({
+      leadId: 'SCH-1',
+      firstName: 'Jean',
+      lastName: 'Kamara',
+      email: 'jean@example.com',
+      reason: 'sales-quotation',
+      method: 'email',
+      note: 'Need 5 ThinkPads',
+    });
+    global.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, meetLink: 'https://meet.google.com/test-meet' }),
+    });
+    const req = { method: 'POST', body: { action: 'book', leadId: 'SCH-1', token: 'tok', date: '2026-09-22', time: '10:00' } };
+    const res = mockRes();
+    await scheduleMod(req, res);
+    const data = await store.readStore();
+    const event = data.events[0];
+    const inbox = data.inbox[0];
+    check('book succeeds and returns who/when/what confirmation',
+      res.statusCode === 200
+      && res.body.ok === true
+      && res.body.confirmation
+      && res.body.confirmation.who.includes('Jean')
+      && res.body.confirmation.when.includes('2026-09-22')
+      && res.body.confirmation.what.includes('Sales'));
+    check('successful book writes /ops calendar mirror',
+      event && event.title.includes('Jean') && event.date === '2026-09-22' && event.start === '10:00' && event.notes.includes('Need 5 ThinkPads'));
+    check('successful book writes /ops inbox row with message context',
+      inbox && inbox.subject.includes('Scheduled call') && inbox.body.includes('Who:') && inbox.body.includes('ThinkPads') && !inbox.sentMessageId);
+    check('book does not send customer email', !inbox.sentMessageId && inbox.pendingConfirm !== true);
+  }
+
   // =========================================================================
   // FINAL SIMPLIFIED CONTACT RULES -- the 16 user-specified scenarios,
   // exercised directly against api/schedule.js's register validation.

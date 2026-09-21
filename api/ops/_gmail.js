@@ -158,12 +158,15 @@ async function listGmailThreads({ max } = {}) {
   const threads = Array.isArray(payload.threads) ? payload.threads.slice(0, limit) : [];
   const out = [];
   for (const thread of threads) {
-    const detail = await gmailRequest(`threads/${encodeURIComponent(thread.id)}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject`);
+    const detail = await gmailRequest(`threads/${encodeURIComponent(thread.id)}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`);
     if (!detail.ok) throw deliveryError('thread', detail.status);
     const data = await detail.json();
     const messages = Array.isArray(data.messages) ? data.messages : [];
     const last = messages[messages.length - 1] || {};
     const headers = last.payload && last.payload.headers ? last.payload.headers : [];
+    const unread = messages.some((msg) => Array.isArray(msg.labelIds) && msg.labelIds.includes('UNREAD'));
+    const parsedDate = Date.parse(headerFrom(headers, 'date'));
+    const receivedAt = Number(last.internalDate) || (Number.isFinite(parsedDate) ? parsedDate : 0);
     out.push({
       gmailThreadId: data.id || thread.id,
       gmailMessageId: last.id || '',
@@ -171,6 +174,8 @@ async function listGmailThreads({ max } = {}) {
       to: headerFrom(headers, 'to'),
       subject: headerFrom(headers, 'subject') || '(no subject)',
       snippet: data.snippet || last.snippet || '',
+      unread,
+      receivedAt,
     });
   }
   return out;

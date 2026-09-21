@@ -20,6 +20,8 @@ const MAX_EVENTS = 80;
 const MAX_ROUTINES = 20;
 const MAX_RUNS = 10;
 const MAX_KITS = 500;
+const MAX_ISSUES = 80;
+const MAX_PENDING_BOOKINGS = 40;
 const KIT_STATUSES = Object.freeze(['Active', 'Inactive', 'Returned', 'Lost', 'Unknown']);
 const CHAT_ID = 'ops-shared';
 const ROUTINE_NEEDS = Object.freeze(['goal', 'tasks', 'notes']);
@@ -66,6 +68,8 @@ function emptyStore() {
     routines: [],
     kits: [],
     kitsMeta: null,
+    issues: [],
+    pendingBookings: [],
   };
 }
 
@@ -354,9 +358,55 @@ function normalizeInboxItem(row) {
     confirmToken: clean(row && row.confirmToken, 40),
     sentAt: Number.isFinite(row && row.sentAt) && row.sentAt > 0 ? row.sentAt : 0,
     sentMessageId: clean(row && row.sentMessageId, 80),
+    unread: Boolean(row && (row.unread === true || row.unread === '1' || row.unread === 'true')),
+    receivedAt: Number.isFinite(row && row.receivedAt) && row.receivedAt > 0 ? row.receivedAt : 0,
     createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
     updatedAt: Number.isFinite(row && row.updatedAt) ? row.updatedAt : Date.now(),
     createdBy: clean(row && row.createdBy, 120),
+  };
+}
+
+function issueTitleKey(title) {
+  return clean(title, 160).toLowerCase().replace(/\s+/g, ' ');
+}
+
+function technicalPlanStub(title, count) {
+  const safeTitle = clean(title, 160) || 'this issue';
+  return `Technical plan stub: “${safeTitle}” has come up ${count} times. Confirm the failing surface, write a one-page fix plan, and do not invent a root cause. Do not paste raw logs into CEO Talk.`;
+}
+
+function normalizeIssue(row) {
+  const title = clean(row && row.title, 160);
+  const count = Number.isFinite(row && row.count) && row.count > 0 ? Math.min(Math.floor(row.count), 999) : 1;
+  return {
+    id: clean(row && row.id, 40) || newId(),
+    title,
+    titleKey: issueTitleKey(title),
+    body: clean(row && row.body, 2000),
+    count,
+    planStub: count >= 2 ? (clean(row && row.planStub, 400) || technicalPlanStub(title, count)) : '',
+    lastSeenAt: Number.isFinite(row && row.lastSeenAt) ? row.lastSeenAt : Date.now(),
+    createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
+    createdBy: clean(row && row.createdBy, 120),
+  };
+}
+
+function listIssues(storeData) {
+  return ((storeData && storeData.issues) || []).slice().sort((a, b) => b.lastSeenAt - a.lastSeenAt);
+}
+
+function normalizePendingBooking(row) {
+  return {
+    leadId: clean(row && row.leadId, 60),
+    firstName: clean(row && row.firstName, 60),
+    lastName: clean(row && row.lastName, 60),
+    email: clean(row && row.email, 100),
+    phone: clean(row && row.phone, 20),
+    company: clean(row && row.company, 100),
+    reason: clean(row && row.reason, 30),
+    method: clean(row && row.method, 20),
+    note: clean(row && row.note, 500),
+    createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
   };
 }
 
@@ -756,6 +806,12 @@ function normalizeStore(raw) {
       ? src.kits.map(normalizeKit).filter(Boolean).slice(0, MAX_KITS)
       : [],
     kitsMeta: normalizeKitsMeta(src.kitsMeta),
+    issues: Array.isArray(src.issues)
+      ? src.issues.map(normalizeIssue).filter((row) => row.title).slice(0, MAX_ISSUES)
+      : [],
+    pendingBookings: Array.isArray(src.pendingBookings)
+      ? src.pendingBookings.map(normalizePendingBooking).filter((row) => row.leadId).slice(0, MAX_PENDING_BOOKINGS)
+      : [],
   };
 }
 
@@ -1259,6 +1315,8 @@ async function upsertLiveInboxItem(fields) {
       body: fields.body || current.body,
       snippet: fields.snippet || current.snippet,
       gmailMessageId: fields.gmailMessageId || current.gmailMessageId,
+      unread: fields.unread == null ? current.unread : fields.unread,
+      receivedAt: fields.receivedAt || current.receivedAt,
       updatedAt: Date.now(),
     }));
     storeData.inbox[index] = next;
@@ -1380,6 +1438,58 @@ async function deleteEvent(id) {
   });
 }
 
+async function addIssue({ title, body, createdBy }) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const key = issueTitleKey(title);
+    if (!key) return { error: 'invalid_issue' };
+    const index = storeData.issues.findIndex((row) => row.titleKey === key);
+    const now = Date.now();
+    if (index === -1) {
+      const issue = normalizeIssue({ title, body, createdBy, count: 1, createdAt: now, lastSeenAt: now });
+      storeData.issues = [issue].concat(storeData.issues).slice(0, MAX_ISSUES);
+      await writeStore(storeData);
+      return { ok: true, issue, created: true };
+    }
+    const current = storeData.issues[index];
+    const next = normalizeIssue(Object.assign({}, current, {
+      count: current.count + 1,
+      body: body ? clean(body, 2000) : current.body,
+      lastSeenAt: now,
+      planStub: '',
+    }));
+    storeData.issues[index] = next;
+    await writeStore(storeData);
+    return { ok: true, issue: next, created: false };
+  });
+}
+
+async function savePendingBooking(fields) {
+  return mutate(async () => {
+    const booking = normalizePendingBooking(Object.assign({}, fields, { createdAt: Date.now() }));
+    if (!booking.leadId) return { error: 'invalid_booking' };
+    const storeData = await readStore();
+    storeData.pendingBookings = [booking]
+      .concat((storeData.pendingBookings || []).filter((row) => row.leadId !== booking.leadId))
+      .slice(0, MAX_PENDING_BOOKINGS);
+    await writeStore(storeData);
+    return { ok: true, booking };
+  });
+}
+
+async function takePendingBooking(leadId) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const id = clean(leadId, 60);
+    const index = (storeData.pendingBookings || []).findIndex((row) => row.leadId === id);
+    if (index === -1) return { ok: true, booking: null };
+    const booking = storeData.pendingBookings[index];
+    storeData.pendingBookings = storeData.pendingBookings.filter((row) => row.leadId !== id);
+    await writeStore(storeData);
+    return { ok: true, booking };
+  });
+}
+
 function resetStore(seed) {
   memory = normalizeStore(seed || emptyStore());
 }
@@ -1403,6 +1513,7 @@ module.exports = {
   PROPOSAL_KINDS,
   addEvent,
   addInboxItem,
+  addIssue,
   applyKitsSync,
   updateKitStatus,
   addMailAudit,
@@ -1438,6 +1549,7 @@ module.exports = {
   isDurable,
   kvConfigured,
   lastKitsSync,
+  listIssues,
   listKits,
   nextActionFrom,
   normalizeDateAdded,
@@ -1450,7 +1562,9 @@ module.exports = {
   resetStore,
   resolveChatContext,
   saveGoal,
+  savePendingBooking,
   saveProfile,
+  takePendingBooking,
   searchKits,
   searchNotes,
   selectableForChat,

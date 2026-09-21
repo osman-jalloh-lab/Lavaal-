@@ -10,6 +10,7 @@ const NAV = Object.freeze([
   { id: 'profile', href: '/ops/profile', label: 'You' },
   { id: 'chat', href: '/ops/chat', label: 'Chat' },
   { id: 'memory', href: '/ops/memory', label: 'Memory' },
+  { id: 'issues', href: '/ops/issues', label: 'Issues' },
   { id: 'inbox', href: '/ops/inbox', label: 'Inbox' },
   { id: 'calendar', href: '/ops/calendar', label: 'Calendar' },
   { id: 'kits', href: '/ops/kits', label: 'Kits' },
@@ -26,6 +27,7 @@ function areaInfo(area) {
     case 'profile':
     case 'chat':
     case 'memory':
+    case 'issues':
     case 'inbox':
     case 'calendar':
     case 'kits':

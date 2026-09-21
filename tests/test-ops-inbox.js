@@ -91,11 +91,14 @@ function installGmailFetch() {
           snippet: 'Need a ThinkPad quote',
           messages: [{
             id: 'gm-1',
+            internalDate: '1726891200000',
+            labelIds: ['UNREAD', 'INBOX'],
             payload: {
               headers: [
                 { name: 'From', value: 'Buyer <buyer@example.com>' },
                 { name: 'To', value: 'support@lavaall.com' },
                 { name: 'Subject', value: 'Quote for P14s' },
+                { name: 'Date', value: 'Sun, 21 Sep 2025 12:00:00 +0000' },
               ],
             },
           }],
@@ -207,7 +210,28 @@ async function run() {
     const data = await store.readStore();
     check('live list upserts a real Gmail thread when support@ is connected',
       refreshed.ok && refreshed.live === true && data.inbox.some((item) => item.live && item.subject === 'Quote for P14s'));
+    check('live thread keeps from, snippet, unread, and date',
+      data.inbox.some((item) => item.live && item.from.includes('buyer@example.com') && item.unread === true && item.receivedAt > 0 && item.snippet.includes('ThinkPad')));
     check('Gmail list used REST fetch, not a fake inbox', gmail.listCalls === 1);
+    const listed = mockRes();
+    await ops(authed({ json: false, url: '/ops/inbox', query: { area: 'inbox' } }), listed);
+    check('inbox page lists subject, from, snippet, date, and unread',
+      String(listed.raw).includes('Quote for P14s')
+      && String(listed.raw).includes('Buyer')
+      && String(listed.raw).includes('Need a ThinkPad quote')
+      && String(listed.raw).includes('Unread'));
+    global.fetch = origFetch;
+    clearGmailEnv();
+  }
+
+  {
+    store.resetStore();
+    setSupportEnv();
+    const gmail = installGmailFetch();
+    const page = mockRes();
+    await ops(authed({ json: false, url: '/ops/inbox', query: { area: 'inbox' } }), page);
+    check('GET /ops/inbox auto-refreshes live support@ when OAuth is set',
+      gmail.listCalls >= 1 && String(page.raw).includes('Quote for P14s') && !String(page.raw).includes('at Object.'));
     global.fetch = origFetch;
     clearGmailEnv();
   }

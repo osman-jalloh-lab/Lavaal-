@@ -68,8 +68,9 @@ Every tab: **2–3 plain sentences**. What it is. What to do. No snobby admin ja
 | You | Your role, and the one company goal. |
 | Office | Who sits where. Talk opens that desk. CEO Talk waits on the real LAVAALL CEO. Desktop ≥1200px: full-bleed scene, Dashboard below. Phone/iPad stay cards. |
 | Chat | Ask about the goal, a task, or a note. Confirm before anything is sent or saved. CEO desk uses the bridge, not the helper. |
-| Memory | Short notes on who we talk to. |
-| Inbox | Mail people sent us. Write a reply, then Confirm send. |
+| Memory | Short notes on who we talk to. Issue log lives here as a subsection and at `/ops/issues`. |
+| Issues | Founder complaints. Same title increments a count. After two reports, a Technical plan stub. Not dumped into CEO Talk. |
+| Inbox | Mail people sent us. Live support@ when `OPS_GMAIL_*` is set; otherwise a connect empty state. Write a reply, then Confirm send. |
 | Calendar | What is next. Add a meeting if you need one. |
 | Kits | Full kit list inside OS. Search. Read-only. Edits stay in the Sheet. |
 | Map | Kits, people, tasks, and decisions as bubbles. Tap a bubble, then open the real record. |

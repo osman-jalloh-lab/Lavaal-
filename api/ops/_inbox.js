@@ -136,6 +136,8 @@ async function refreshLiveInbox() {
         subject: thread.subject,
         body,
         snippet: thread.snippet,
+        unread: thread.unread,
+        receivedAt: thread.receivedAt,
       });
     }
     return { ok: true, live: true, count: threads.length, setup: describeGmailSetup() };

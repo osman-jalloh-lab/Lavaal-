@@ -12,6 +12,7 @@ const {
   lastKitsSync,
   listEvents,
   listInboxItems,
+  listIssues,
   listKits,
   listMailAudit,
   listRoutines,
@@ -249,8 +250,36 @@ function memoryPage({ email, store, snapshot, notice, error, search }) {
         <h2>Notes</h2>
         ${list ? `<ul class="list">${list}</ul>` : '<p class="empty">No notes match. Save one or clear search.</p>'}
       </section>
+      ${issuesMemoryCard(store)}
     `,
   });
+}
+
+function inboxWhen(item) {
+  const ts = (item && (item.receivedAt || item.updatedAt)) || 0;
+  if (!ts) return '';
+  try {
+    return new Date(ts).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+  } catch {
+    return '';
+  }
+}
+
+function issuesMemoryCard(store) {
+  const issues = listIssues(store).slice(0, 5);
+  const rows = issues.length
+    ? `<ul class="list">${issues.map((issue) => (
+      `<li><span class="tag">${issue.count}×</span> <strong>${escapeHtml(issue.title)}</strong>${issue.planStub ? `<p>${escapeHtml(issue.planStub)}</p>` : ''}</li>`
+    )).join('')}</ul>`
+    : '<p class="empty">No founder issues filed yet.</p>';
+  return `
+      <section class="card" style="margin-top:14px">
+        <div class="kicker">Issue log</div>
+        <h2>Repeating complaints</h2>
+        <p>File a short title. The same title increments a count. After two reports we suggest a Technical plan stub. Nothing here is pasted into CEO Talk.</p>
+        <p><a href="/ops/issues">Open the issue log</a></p>
+        ${rows}
+      </section>`;
 }
 
 function isTalkChromeNoise(text) {
@@ -476,25 +505,31 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
   const audit = listMailAudit(store).slice(0, 8);
   const open = openThread ? getInboxItem(store, openThread) : null;
   const setupCard = setup.supportConnected
-    ? `<p>Live mailbox is ${escapeHtml(setup.supportMailbox)}. Refresh to list threads. Send still needs Confirm send.</p>
+    ? `<p>Live mailbox is ${escapeHtml(setup.supportMailbox)}. Opening Inbox lists support@ threads. Send still needs Confirm send.</p>
        <form method="POST" action="/ops/inbox">
          <input type="hidden" name="action" value="refresh-inbox"/>
          <input type="hidden" name="returnTo" value="/ops/inbox"/>
          <button class="btn btn-sm" type="submit">Refresh live mail</button>
        </form>`
-    : `<p class="empty">Live support@ not connected. Paste a snapshot below — it is never marked as live mail.</p>
-       <details class="soft"><summary>Connect live mail later</summary>
-       <p>To list and confirm-send from support@lavaall.com, set OPS_GMAIL_* on a refresh token for that mailbox (scopes gmail.readonly + gmail.send). If only a personal Gmail token is on Preview, keep using paste.</p>
-       </details>`;
+    : `<p class="empty">Live support@ not connected.</p>
+       <p>To list mail from support@lavaall.com on this Preview:</p>
+       <ol class="list">
+         <li>Create a Google OAuth refresh token for <code>support@lavaall.com</code>.</li>
+         <li>Set <code>OPS_GMAIL_CLIENT_ID</code>, <code>OPS_GMAIL_CLIENT_SECRET</code>, <code>OPS_GMAIL_REFRESH_TOKEN</code>, and <code>OPS_GMAIL_FROM=support@lavaall.com</code>.</li>
+         <li>Scopes: <code>gmail.readonly</code> to list, <code>gmail.send</code> only for later Confirm send.</li>
+       </ol>
+       <p>Until then, paste a snapshot below — it is never marked as live mail. Nothing is sent to customers unless you click Confirm send.</p>`;
 
   const rows = items.length
     ? `<ul class="list">${items.map((item) => (
       `<li>
         <span class="tag">${item.live ? 'Live' : 'Paste snapshot'}</span>
         <span class="tag">${escapeHtml(inboxLabelText(item.label))}</span>
+        ${item.unread ? '<span class="tag">Unread</span>' : ''}
         ${item.sentMessageId ? '<span class="tag">Sent</span>' : ''}
         <strong>${escapeHtml(item.subject)}</strong>
         <p>${escapeHtml(item.from || 'Unknown sender')}${item.snippet ? ` — ${escapeHtml(item.snippet)}` : ''}</p>
+        <p>${inboxWhen(item) ? escapeHtml(inboxWhen(item)) : ''}${item.to ? ` · to ${escapeHtml(item.to)}` : ''}</p>
         <p><a href="/ops/inbox?thread=${escapeHtml(item.id)}">Open</a></p>
       </li>`
     )).join('')}</ul>`
@@ -506,7 +541,8 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
     ? `<section class="card" style="margin-top:14px">
         <div class="kicker">${open.live ? 'Live thread' : 'Paste snapshot — not live mail'}</div>
         <h2>${escapeHtml(open.subject)}</h2>
-        <p>From ${escapeHtml(open.from || 'unknown')}</p>
+        <p>From ${escapeHtml(open.from || 'unknown')}${open.to ? ` · to ${escapeHtml(open.to)}` : ''}</p>
+        <p>${open.unread ? '<span class="tag">Unread</span> ' : ''}${inboxWhen(open) ? escapeHtml(inboxWhen(open)) : ''}</p>
         <p>${escapeHtml(open.body || open.snippet || '')}</p>
         <form method="POST" action="/ops/inbox">
           <input type="hidden" name="action" value="save-inbox-draft"/>
@@ -980,4 +1016,52 @@ function mapPage({ email, store, snapshot, notice, error }) {
   });
 }
 
-module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage, routinesPage, kitsPage, mapPage };
+function issuesPage({ email, store, snapshot, notice, error }) {
+  const issues = listIssues(store);
+  const rows = issues.length
+    ? `<ul class="list">${issues.map((issue) => (
+      `<li>
+        <span class="tag">${issue.count}×</span>
+        ${issue.planStub ? '<span class="tag">Technical stub</span>' : ''}
+        <strong>${escapeHtml(issue.title)}</strong>
+        <p>${escapeHtml(issue.body || '')}</p>
+        ${issue.planStub ? `<p>${escapeHtml(issue.planStub)}</p>` : ''}
+      </li>`
+    )).join('')}</ul>`
+    : '<p class="empty">No founder issues filed yet. Use the same short title when it happens again.</p>';
+
+  return shellPage({
+    title: 'LAVAALL OS — Issues',
+    email,
+    area: 'issues',
+    notice,
+    error,
+    body: `
+      ${persistenceBanner(snapshot.durable)}
+      <h1>Issue log</h1>
+      <p class="lead">Founder complaints only. The same title increments a count. After two reports we suggest a Technical plan stub. Do not paste raw logs into CEO Talk.</p>
+      <div class="grid forms">
+        <section class="card">
+          <div class="kicker">File</div>
+          <h2>Add an issue</h2>
+          <form method="POST" action="/ops/issues">
+            <input type="hidden" name="action" value="file-issue"/>
+            <input type="hidden" name="returnTo" value="/ops/issues"/>
+            <label for="issue-title">Short title (used to count repeats)</label>
+            <input id="issue-title" name="title" required maxlength="160" placeholder="Inbox list empty"/>
+            <label for="issue-body">What happened</label>
+            <textarea id="issue-body" name="body" maxlength="2000" placeholder="Surface, what you clicked, what you expected. No stack traces."></textarea>
+            <button class="btn" type="submit">File issue</button>
+          </form>
+        </section>
+        <section class="card">
+          <div class="kicker">Log</div>
+          <h2>What we have seen</h2>
+          ${rows}
+        </section>
+      </div>
+    `,
+  });
+}
+
+module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage, routinesPage, kitsPage, mapPage, issuesPage };
