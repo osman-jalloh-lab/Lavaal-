@@ -82,12 +82,24 @@ function vercelEnv() {
   return String(process.env.VERCEL_ENV || '').trim().toLowerCase();
 }
 
-function instantLoginEnabled() {
-  if (vercelEnv() === 'production') return false;
-  const flag = String(process.env.OPS_PREVIEW_INSTANT_LOGIN || '').trim().toLowerCase();
+function envFlag(value) {
+  const flag = String(value || '').trim().toLowerCase();
   if (flag === '0' || flag === 'false' || flag === 'off') return false;
   if (flag === '1' || flag === 'true' || flag === 'on') return true;
-  return vercelEnv() === 'preview';
+  return null;
+}
+
+// Preview and Production default ON when OPS_AUTH_SECRET is set.
+// Allowlist + agent-deny still gate the session in auth.js.
+// Emergency fallback: OPS_INSTANT_LOGIN=0 (or OPS_PREVIEW_INSTANT_LOGIN=0) forces magic-link.
+function instantLoginEnabled() {
+  const explicit = envFlag(process.env.OPS_INSTANT_LOGIN);
+  if (explicit !== null) return explicit;
+  const legacy = envFlag(process.env.OPS_PREVIEW_INSTANT_LOGIN);
+  if (legacy !== null) return legacy;
+  const env = vercelEnv();
+  if (env === 'preview' || env === 'production') return authConfigured();
+  return false;
 }
 
 function describeDeliveryConfig() {

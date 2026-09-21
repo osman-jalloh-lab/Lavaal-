@@ -114,6 +114,7 @@ async function run() {
   process.env.OPS_AUTH_SECRET = SECRET;
   clearDeliveryEnv();
   delete process.env.OPS_PREVIEW_INSTANT_LOGIN;
+  delete process.env.OPS_INSTANT_LOGIN;
   delete process.env.VERCEL_ENV;
   process.env.OPS_MAGIC_LINK_WEBHOOK_URL = 'https://example.test/ops-mail';
   process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET = 'hook-secret';
@@ -217,17 +218,101 @@ async function run() {
   {
     clearDeliveryEnv();
     process.env.VERCEL_ENV = 'production';
-    process.env.OPS_PREVIEW_INSTANT_LOGIN = '1';
+    delete process.env.OPS_PREVIEW_INSTANT_LOGIN;
+    delete process.env.OPS_INSTANT_LOGIN;
     lib.resetAuthState();
+    check('production defaults to instant when auth is configured', lib.instantLoginEnabled() === true);
+    const fetchCalls = [];
+    global.fetch = async () => {
+      fetchCalls.push(true);
+      return { ok: true, status: 200 };
+    };
     const res = mockRes();
     await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.73' }, body: { action: 'request', email: ALLOWED } }), res);
-    check('production never uses instant login even if the flag is set',
-      res.statusCode === 503 && res.body && res.body.error === 'delivery_not_configured' && !res.headers['Set-Cookie']);
+    check('production allowlisted POST creates an instant session',
+      res.statusCode === 200
+      && res.body && res.body.ok === true
+      && res.body.via === 'instant'
+      && res.body.email === ALLOWED.toLowerCase()
+      && /HttpOnly/i.test(String(res.headers['Set-Cookie']))
+      && /SameSite=Lax/i.test(String(res.headers['Set-Cookie']))
+      && fetchCalls.length === 0);
+    const hamid = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.79' }, body: { action: 'request', email: ALLOWED_2 } }), hamid);
+    check('production second founder also gets instant session',
+      hamid.statusCode === 200
+      && hamid.body && hamid.body.ok === true
+      && hamid.body.via === 'instant'
+      && hamid.body.email === ALLOWED_2
+      && Boolean(hamid.headers['Set-Cookie']));
+    const denied = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.75' }, body: { action: 'request', email: DENIED } }), denied);
+    check('production still denies non-allowlisted emails without a cookie',
+      denied.statusCode === 401
+      && denied.body && denied.body.error === 'sign_in_failed'
+      && !denied.headers['Set-Cookie']);
+    const agent = mockRes();
+    await auth(jsonReq({
+      headers: { 'x-forwarded-for': '203.0.113.76', authorization: 'Bearer simulated-agent-token' },
+      body: { action: 'request', email: ALLOWED },
+    }), agent);
+    check('production still denies agent spoof of instant login',
+      agent.statusCode === 403
+      && agent.body.error === 'agent_denied'
+      && !agent.headers['Set-Cookie']);
+  }
+
+  {
+    clearDeliveryEnv();
+    process.env.VERCEL_ENV = 'production';
+    process.env.OPS_INSTANT_LOGIN = '0';
+    process.env.OPS_MAGIC_LINK_WEBHOOK_URL = 'https://example.test/ops-mail';
+    process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET = 'hook-secret';
+    check('OPS_INSTANT_LOGIN=0 disables instant on production', lib.instantLoginEnabled() === false);
+    const fetchCalls = [];
+    global.fetch = async (url, opts) => {
+      fetchCalls.push({ url, body: JSON.parse(opts.body) });
+      return { ok: true, status: 200 };
+    };
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.77' }, body: { action: 'request', email: ALLOWED } }), res);
+    check('production magic-link fallback sends mail when instant is off',
+      res.statusCode === 200
+      && res.body && res.body.accepted === true
+      && res.body.via !== 'instant'
+      && !res.headers['Set-Cookie']
+      && fetchCalls.length === 1
+      && fetchCalls[0].url === 'https://example.test/ops-mail');
+    delete process.env.OPS_INSTANT_LOGIN;
+  }
+
+  {
+    clearDeliveryEnv();
+    process.env.VERCEL_ENV = 'production';
+    process.env.OPS_INSTANT_LOGIN = '0';
+    process.env.RESEND_API_KEY = 're_primary';
+    process.env.OPS_FROM_EMAIL = 'LAVAALL OS <os@test.example>';
+    const fetchCalls = mockMailFetch(async (url) => {
+      if (url.includes('api.resend.com')) return { ok: true, status: 200, text: async () => '{}' };
+      return { ok: false, status: 500, text: async () => '{}' };
+    });
+    lib.resetAuthState();
+    const res = mockRes();
+    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.78' }, body: { action: 'request', email: ALLOWED } }), res);
+    check('production Resend magic-link works when instant is off',
+      res.statusCode === 200
+      && res.body && res.body.via === 'resend'
+      && fetchCalls.some((call) => call.url.includes('api.resend.com'))
+      && !res.headers['Set-Cookie']);
+    delete process.env.OPS_INSTANT_LOGIN;
+    delete process.env.VERCEL_ENV;
   }
 
   {
     delete process.env.VERCEL_ENV;
     delete process.env.OPS_PREVIEW_INSTANT_LOGIN;
+    delete process.env.OPS_INSTANT_LOGIN;
     clearDeliveryEnv();
     lib.resetAuthState();
     const res = mockRes();
@@ -511,8 +596,9 @@ async function run() {
 
   {
     const env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
-    check('.env.example documents Preview instant login and production hold',
-      env.includes('OPS_PREVIEW_INSTANT_LOGIN')
+    check('.env.example documents instant login on Preview and Production with env kill-switch',
+      env.includes('OPS_INSTANT_LOGIN')
+      && env.includes('OPS_PREVIEW_INSTANT_LOGIN')
       && env.includes('VERCEL_ENV=preview')
       && env.includes('VERCEL_ENV=production'));
   }
