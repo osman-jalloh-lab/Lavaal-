@@ -191,7 +191,8 @@ async function run() {
     check('camera switch redraws that camera’s hotspot map and keeps selection',
       src.includes('graph.hotspots[cameraId]')
       && src.includes('if (selectedId) setSelected(selectedId)')
-      && src.includes("setCamera('wide')"));
+      && src.includes("setCamera('lead')")
+      && office.DEFAULT_CAMERA_ID === 'lead');
   }
 
   {

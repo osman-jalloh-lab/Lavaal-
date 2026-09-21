@@ -1,6 +1,10 @@
-// Tickets 12b–12c — Preview B2 CEO Talk bridge (queue + signed CEO callback).
+// Tickets 12b–12c + Slice 1 A–D — CEO Talk: KV thread SoT + optional xAI complete.
+// KV (ops:ceo:thread:{id}) is the single source of truth for messages/provenance.
+// B2 pending (ops:ceo:pending) is a wake inbox only — never canonical.
+// Explicit wake = founder/bridge-intent that should wake Grok Bot (flag or
+// @grok / /wake prefix). Normal Office /ops/chat CEO Talk is owned by xAI
+// when XAI_API_KEY is set. Never both answer the same founder message.
 // Founder POST is allowlist session + CSRF. CEO poll/reply is bearer secret.
-// Store keys: ops:ceo:thread:{id}, ops:ceo:pending. KV, file, or memory.
 // Underscore prefix: not a Vercel function. No npm. Never log emails or secrets.
 
 const crypto = require('crypto');
@@ -23,12 +27,16 @@ const {
   timingSafeEqualString,
   wantsJson,
 } = require('./_lib');
+const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
+const { completeXai, xaiConfigured } = require('./_xai');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const PENDING_KEY = 'ops:ceo:pending';
 const THREAD_KEY_PREFIX = 'ops:ceo:thread:';
 const THREAD_ROLES = Object.freeze(['founder', 'ceo']);
 const THREAD_STATUSES = Object.freeze(['pending', 'answered']);
+const PROVENANCE = Object.freeze(['human', 'xai_runtime', 'grok_bot_bridge', 'system', 'tool']);
+const RESPONSE_OWNERS = Object.freeze(['pending', 'xai_runtime', 'grok_bot_bridge']);
 const MAX_MESSAGES = 40;
 const MAX_PENDING = 40;
 const MAX_ANSWERED = 40;
@@ -85,16 +93,35 @@ function normalizeStatus(value) {
   return THREAD_STATUSES.includes(value) ? value : 'answered';
 }
 
+function normalizeProvenance(value, role) {
+  if (PROVENANCE.includes(value)) return value;
+  if (role === 'founder') return 'human';
+  if (role === 'ceo') return 'system';
+  return 'system';
+}
+
+function normalizeResponseOwner(value) {
+  return RESPONSE_OWNERS.includes(value) ? value : 'pending';
+}
+
 function normalizeMessage(row) {
   const role = normalizeRole(row && row.role);
   const text = clean(row && row.text, MAX_TEXT);
   if (!role || !text) return null;
-  return {
-    id: clean(row && row.id, 40) || newId(),
+  const id = clean(row && row.id, 40) || newId();
+  const correlationId = clean(row && row.correlationId, 40) || id;
+  const message = {
+    id,
     role,
     text,
     at: Number.isFinite(row && row.at) ? row.at : Date.now(),
+    correlationId,
+    provenance: normalizeProvenance(row && row.provenance, role),
   };
+  if (role === 'founder') {
+    message.responseOwner = normalizeResponseOwner(row && row.responseOwner);
+  }
+  return message;
 }
 
 function normalizeAnsweredId(value) {
@@ -148,6 +175,40 @@ function publicThread(thread) {
   };
 }
 
+function lastCeoText(thread) {
+  const messages = thread && Array.isArray(thread.messages) ? thread.messages : [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i] && messages[i].role === 'ceo') return messages[i].text;
+  }
+  return '';
+}
+
+function founderByCorrelation(thread, correlationId) {
+  const id = clean(correlationId, 40);
+  if (!id || !thread) return null;
+  return (thread.messages || []).find((item) => (
+    item.role === 'founder' && (item.correlationId === id || item.id === id)
+  )) || null;
+}
+
+function hasCeoForCorrelation(thread, correlationId) {
+  const id = clean(correlationId, 40);
+  if (!id || !thread) return false;
+  return (thread.messages || []).some((item) => (
+    item.role === 'ceo' && (item.correlationId === id || item.id === id)
+  ));
+}
+
+function isExplicitWake(input) {
+  // Explicit wake: founder/bridge-intent that should wake Grok Bot vs normal
+  // chat that xAI owns. B2 pending is that wake inbox — not a second SoT.
+  if (!input) return false;
+  if (input.explicitWake === true || input.explicitWake === '1' || input.explicitWake === 'true') return true;
+  if (input.wake === true || input.wake === '1' || input.wake === 'true') return true;
+  const text = String(input.text || input.message || '');
+  return /^@grok\b/i.test(text) || /^\/wake\b/i.test(text);
+}
+
 function lastThreadMessage(thread) {
   const messages = thread && Array.isArray(thread.messages) ? thread.messages : [];
   return messages.length ? messages[messages.length - 1] : null;
@@ -171,13 +232,16 @@ function normalizePendingItem(row) {
   const text = clean(row && row.text, MAX_TEXT);
   const founderEmail = normalizeEmail(row && row.founderEmail);
   if (!threadId || !text || !founderEmail) return null;
+  const messageId = clean(row && row.messageId, 40) || newId();
   return {
     threadId,
     founderEmail,
-    messageId: clean(row && row.messageId, 40) || newId(),
+    messageId,
+    correlationId: clean(row && row.correlationId, 40) || messageId,
     text,
     at: Number.isFinite(row && row.at) ? row.at : Date.now(),
     status: 'pending',
+    wakeReason: clean(row && row.wakeReason, 40),
   };
 }
 
@@ -374,7 +438,17 @@ async function getFounderThread(email) {
   });
 }
 
-async function enqueueFounderMessage({ text, founderEmail, threadId, source }) {
+async function enqueueFounderMessage({
+  text,
+  founderEmail,
+  threadId,
+  source,
+  correlationId,
+  explicitWake,
+  wake,
+  enqueuePending,
+  wakeReason,
+}) {
   return mutate(async () => {
     const who = normalizeEmail(founderEmail);
     if (!who || !isAllowlisted(who)) return { error: 'forbidden' };
@@ -385,10 +459,30 @@ async function enqueueFounderMessage({ text, founderEmail, threadId, source }) {
     if (requested && requested !== threadIdFor(who)) return { error: 'forbidden' };
     const current = (await readThread(id)) || emptyThread(who);
     if (current.founderEmail && current.founderEmail !== who) return { error: 'forbidden' };
+    const reused = clean(correlationId, 40);
+    const existing = reused ? founderByCorrelation(current, reused) : null;
+    if (existing) {
+      const pending = await readPending();
+      return {
+        ok: true,
+        replay: true,
+        waiting: threadIsWaiting(current),
+        reply: lastCeoText(current) || WAITING_COPY,
+        usedModel: false,
+        source: clean(source, 40) || 'ops-office',
+        thread: publicThread(current),
+        pending: pending.find((item) => item.threadId === current.id) || null,
+        correlationId: existing.correlationId,
+        messageId: existing.id,
+      };
+    }
     const message = normalizeMessage({
       role: 'founder',
       text: body,
       at: Date.now(),
+      correlationId: reused,
+      provenance: 'human',
+      responseOwner: 'pending',
     });
     const thread = normalizeThread({
       id,
@@ -399,22 +493,31 @@ async function enqueueFounderMessage({ text, founderEmail, threadId, source }) {
       answeredIds: current.answeredIds,
     });
     await writeThread(thread);
-    const pending = upsertPending(await readPending(), {
-      threadId: thread.id,
-      founderEmail: who,
-      messageId: message.id,
-      text: message.text,
-      at: message.at,
-    });
-    await writePending(pending);
+    const shouldQueue = enqueuePending !== false;
+    let pending = await readPending();
+    if (shouldQueue) {
+      pending = upsertPending(pending, {
+        threadId: thread.id,
+        founderEmail: who,
+        messageId: message.id,
+        correlationId: message.correlationId,
+        text: message.text,
+        at: message.at,
+        wakeReason: clean(wakeReason, 40) || (isExplicitWake({ text: body, explicitWake, wake }) ? 'explicit' : 'xai_unavailable'),
+      });
+      await writePending(pending);
+    }
     return {
       ok: true,
+      replay: false,
       waiting: true,
       reply: WAITING_COPY,
       usedModel: false,
       source: clean(source, 40) || 'ops-office',
       thread: publicThread(thread),
       pending: pending.find((item) => item.threadId === thread.id) || null,
+      correlationId: message.correlationId,
+      messageId: message.id,
     };
   });
 }
@@ -426,7 +529,7 @@ async function listPending() {
   });
 }
 
-async function postCeoReply({ threadId, text, pendingId, messageId }) {
+async function postCeoReply({ threadId, text, pendingId, messageId, correlationId }) {
   return mutate(async () => {
     const id = clean(threadId, 40);
     const body = clean(text, MAX_TEXT);
@@ -434,26 +537,42 @@ async function postCeoReply({ threadId, text, pendingId, messageId }) {
     if (!body) return { error: 'invalid_message' };
     const current = await readThread(id);
     if (!current) return { error: 'ceo_thread_not_found' };
-    const replayId = clean(pendingId, 40) || clean(messageId, 40);
-    if (replayId && current.answeredIds.includes(replayId)) {
+    const replayId = clean(pendingId, 40) || clean(messageId, 40) || clean(correlationId, 40);
+    const founder = founderByCorrelation(current, replayId) || lastFounderMessage(current);
+    const ownedBy = founder && founder.responseOwner ? founder.responseOwner : '';
+    if (
+      (replayId && current.answeredIds.includes(replayId))
+      || (founder && hasCeoForCorrelation(current, founder.correlationId))
+      || ownedBy === 'xai_runtime'
+    ) {
+      const open = await readPending();
+      const pending = open.filter((item) => item.threadId !== current.id);
+      if (pending.length !== open.length) await writePending(pending);
       return { ok: true, replay: true, thread: publicThread(current) };
     }
     const open = (await readPending()).find((item) => item.threadId === id);
     if (!open && current.status === 'answered') {
       return { ok: true, replay: true, thread: publicThread(current) };
     }
+    const claimId = (founder && founder.correlationId) || replayId;
+    const claimed = applyOwner(current, claimId, 'grok_bot_bridge');
+    if (!claimed.ok) {
+      return { ok: true, replay: true, thread: publicThread(current) };
+    }
     const message = normalizeMessage({
       role: 'ceo',
       text: body,
       at: Date.now(),
+      correlationId: claimId,
+      provenance: 'grok_bot_bridge',
     });
-    const answeredIds = replayId
-      ? current.answeredIds.concat([replayId]).slice(-MAX_ANSWERED)
+    const answeredIds = claimId
+      ? current.answeredIds.concat([claimId]).slice(-MAX_ANSWERED)
       : current.answeredIds;
     const thread = normalizeThread({
       id: current.id,
       founderEmail: current.founderEmail,
-      messages: current.messages.concat([message]),
+      messages: claimed.thread.messages.concat([message]),
       status: 'answered',
       updatedAt: Date.now(),
       answeredIds,
@@ -462,6 +581,286 @@ async function postCeoReply({ threadId, text, pendingId, messageId }) {
     const pending = (await readPending()).filter((item) => item.threadId !== thread.id);
     await writePending(pending);
     return { ok: true, replay: false, thread: publicThread(thread) };
+  });
+}
+
+function lastFounderMessage(thread) {
+  const messages = thread && Array.isArray(thread.messages) ? thread.messages : [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i] && messages[i].role === 'founder') return messages[i];
+  }
+  return null;
+}
+
+function applyOwner(thread, correlationId, owner) {
+  const founder = founderByCorrelation(thread, correlationId) || lastFounderMessage(thread);
+  if (!founder) return { ok: false, owner: '', thread };
+  if (founder.responseOwner && founder.responseOwner !== 'pending' && founder.responseOwner !== owner) {
+    return { ok: false, owner: founder.responseOwner, thread };
+  }
+  founder.responseOwner = owner;
+  return { ok: true, owner, thread };
+}
+
+async function claimResponseOwner({ threadId, correlationId, owner }) {
+  return mutate(async () => {
+    const current = await readThread(threadId);
+    if (!current) return { error: 'ceo_thread_not_found' };
+    if (hasCeoForCorrelation(current, correlationId)) {
+      const founder = founderByCorrelation(current, correlationId);
+      return {
+        ok: true,
+        claimed: false,
+        replay: true,
+        owner: (founder && founder.responseOwner) || owner,
+        thread: current,
+      };
+    }
+    const result = applyOwner(current, correlationId, owner);
+    if (!result.ok) {
+      return { ok: true, claimed: false, replay: true, owner: result.owner, thread: current };
+    }
+    await writeThread(result.thread);
+    return { ok: true, claimed: true, replay: false, owner, thread: result.thread };
+  });
+}
+
+async function releaseResponseOwner({ threadId, correlationId, owner }) {
+  return mutate(async () => {
+    const current = await readThread(threadId);
+    if (!current) return { error: 'ceo_thread_not_found' };
+    if (hasCeoForCorrelation(current, correlationId)) return { ok: true, released: false, thread: current };
+    const founder = founderByCorrelation(current, correlationId);
+    if (!founder || founder.responseOwner !== owner) return { ok: true, released: false, thread: current };
+    founder.responseOwner = 'pending';
+    await writeThread(current);
+    return { ok: true, released: true, thread: current };
+  });
+}
+
+async function appendOwnedCeoReply({ threadId, correlationId, owner, text }) {
+  return mutate(async () => {
+    const current = await readThread(threadId);
+    if (!current) return { error: 'ceo_thread_not_found' };
+    const founder = founderByCorrelation(current, correlationId);
+    if (!founder) return { error: 'ceo_thread_not_found' };
+    if (hasCeoForCorrelation(current, correlationId) || current.answeredIds.includes(correlationId) || current.answeredIds.includes(founder.id)) {
+      return {
+        ok: true,
+        replay: true,
+        waiting: false,
+        usedModel: founder.responseOwner === 'xai_runtime',
+        provider: founder.responseOwner === 'xai_runtime' ? 'xai' : '',
+        reply: lastCeoText(current) || WAITING_COPY,
+        thread: publicThread(current),
+        pending: null,
+        correlationId,
+      };
+    }
+    if (founder.responseOwner && founder.responseOwner !== 'pending' && founder.responseOwner !== owner) {
+      return {
+        ok: true,
+        replay: true,
+        waiting: threadIsWaiting(current),
+        usedModel: false,
+        provider: '',
+        reply: lastCeoText(current) || WAITING_COPY,
+        thread: publicThread(current),
+        pending: null,
+        correlationId,
+      };
+    }
+    founder.responseOwner = owner;
+    const message = normalizeMessage({
+      role: 'ceo',
+      text,
+      at: Date.now(),
+      correlationId: founder.correlationId,
+      provenance: owner,
+    });
+    const thread = normalizeThread({
+      id: current.id,
+      founderEmail: current.founderEmail,
+      messages: current.messages.concat([message]),
+      status: 'answered',
+      updatedAt: Date.now(),
+      answeredIds: current.answeredIds.concat([founder.correlationId, founder.id]).filter(Boolean).slice(-MAX_ANSWERED),
+    });
+    await writeThread(thread);
+    const pending = (await readPending()).filter((item) => item.threadId !== thread.id);
+    await writePending(pending);
+    return {
+      ok: true,
+      replay: false,
+      waiting: false,
+      usedModel: owner === 'xai_runtime',
+      provider: owner === 'xai_runtime' ? 'xai' : '',
+      reply: message.text,
+      thread: publicThread(thread),
+      pending: null,
+      correlationId: founder.correlationId,
+    };
+  });
+}
+
+async function enqueuePendingWake({ thread, founder, wakeReason }) {
+  return mutate(async () => {
+    const pending = upsertPending(await readPending(), {
+      threadId: thread.id,
+      founderEmail: thread.founderEmail,
+      messageId: founder.id,
+      correlationId: founder.correlationId,
+      text: founder.text,
+      at: founder.at,
+      wakeReason: clean(wakeReason, 40) || 'xai_unavailable',
+    });
+    await writePending(pending);
+    return pending.find((item) => item.threadId === thread.id) || null;
+  });
+}
+
+function formatCeoStoreContext(data) {
+  const lines = ['Trusted LAVAALL OS records (KV). Use only these facts:'];
+  const goal = data && data.goal ? data.goal : null;
+  const tasks = data && Array.isArray(data.tasks) ? data.tasks : [];
+  const notes = data && Array.isArray(data.notes) ? data.notes : [];
+  if (!goal && !tasks.length && !notes.length) {
+    lines.push('None loaded. Do not invent goals, tasks, notes, prices, SKUs, or legal positions.');
+    return lines.join('\n');
+  }
+  if (goal) {
+    lines.push(`Goal: ${goal.title}`);
+    if (goal.definitionOfDone) lines.push(`Definition of done: ${goal.definitionOfDone}`);
+    if (goal.nextStep) lines.push(`Next step: ${goal.nextStep}`);
+    if (goal.targetDate) lines.push(`Target date: ${goal.targetDate}`);
+  }
+  tasks.forEach((task) => {
+    lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
+    if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
+  });
+  notes.forEach((note) => {
+    lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
+  });
+  return lines.join('\n');
+}
+
+async function loadCeoTrustedContext() {
+  try {
+    const data = await readStore();
+    return {
+      goal: data && data.goal ? data.goal : null,
+      tasks: unfinishedTasks(data || {}).slice(0, 12),
+      notes: notesSelectableForChat(data || {}).slice(0, 8),
+    };
+  } catch {
+    return { goal: null, tasks: [], notes: [] };
+  }
+}
+
+function ceoSystemPrompt(context) {
+  return [
+    'You are LAVAALL CEO. One voice in the Office. Never mention xAI, Grok, helpers, models, or a second brain.',
+    'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, completions, or metrics.',
+    'Drafts only. Never send mail, never deploy, never spend, never claim a store write happened.',
+    'Talk is conversation only — not Assign. Do not create assignment or delegation objects.',
+    'Researchy-first on sourcing: prefer Researchy for supplier/research work; Technical only when validation is needed. Assign routing is later Slice 2 — do not build it here.',
+    formatCeoStoreContext(context),
+  ].join('\n');
+}
+
+function ceoMessagesForXai(thread) {
+  return (thread && Array.isArray(thread.messages) ? thread.messages : []).map((item) => ({
+    role: item.role === 'ceo' ? 'assistant' : 'user',
+    content: item.text,
+  })).slice(-20);
+}
+
+async function waitingFallback({ threadId, correlationId, wakeReason }) {
+  const current = await readThread(threadId);
+  const founder = current ? founderByCorrelation(current, correlationId) || lastFounderMessage(current) : null;
+  const pending = current && founder
+    ? await enqueuePendingWake({ thread: current, founder, wakeReason: wakeReason || 'xai_unavailable' })
+    : null;
+  return {
+    ok: true,
+    waiting: true,
+    usedModel: false,
+    provider: '',
+    reply: WAITING_COPY,
+    thread: publicThread(current || emptyThread('')),
+    pending,
+    correlationId,
+  };
+}
+
+async function completeXaiCeoReply({ threadId, correlationId }) {
+  const claim = await claimResponseOwner({ threadId, correlationId, owner: 'xai_runtime' });
+  if (claim.error) return waitingFallback({ threadId, correlationId, wakeReason: 'xai_unavailable' });
+  if (!claim.claimed) {
+    return {
+      ok: true,
+      replay: true,
+      waiting: threadIsWaiting(claim.thread) && !hasCeoForCorrelation(claim.thread, correlationId),
+      usedModel: claim.owner === 'xai_runtime' && hasCeoForCorrelation(claim.thread, correlationId),
+      provider: claim.owner === 'xai_runtime' ? 'xai' : '',
+      reply: lastCeoText(claim.thread) || WAITING_COPY,
+      thread: publicThread(claim.thread),
+      pending: null,
+      correlationId,
+    };
+  }
+  try {
+    const context = await loadCeoTrustedContext();
+    const result = await completeXai({
+      system: ceoSystemPrompt(context),
+      messages: ceoMessagesForXai(claim.thread),
+    });
+    if (result.error || !result.text) throw new Error('xai_failed');
+    return await appendOwnedCeoReply({
+      threadId,
+      correlationId,
+      owner: 'xai_runtime',
+      text: result.text,
+    });
+  } catch {
+    await releaseResponseOwner({ threadId, correlationId, owner: 'xai_runtime' });
+    return waitingFallback({ threadId, correlationId, wakeReason: 'xai_unavailable' });
+  }
+}
+
+async function talkToCeo(input) {
+  const explicitWake = isExplicitWake(input);
+  const tryXai = xaiConfigured() && !explicitWake;
+  const queued = await enqueueFounderMessage(Object.assign({}, input, {
+    explicitWake,
+    enqueuePending: !tryXai,
+    wakeReason: explicitWake ? 'explicit' : (xaiConfigured() ? '' : 'xai_unavailable'),
+  }));
+  if (queued.error) return queued;
+  if (queued.replay && (!tryXai || !threadIsWaiting(queued.thread))) {
+    return Object.assign({}, queued, {
+      waiting: threadIsWaiting(queued.thread),
+      reply: lastCeoText(queued.thread) || queued.reply || WAITING_COPY,
+    });
+  }
+  if (!tryXai) {
+    return Object.assign({}, queued, {
+      waiting: true,
+      reply: WAITING_COPY,
+      usedModel: false,
+      provider: '',
+    });
+  }
+  return completeXaiCeoReply({
+    threadId: queued.thread.id,
+    correlationId: queued.correlationId,
+  });
+}
+
+async function inspectCeoThread(id) {
+  return mutate(async () => {
+    const thread = await readThread(id);
+    return { ok: true, thread: thread || null };
   });
 }
 
@@ -529,11 +928,14 @@ async function handleMessage(req, res) {
   if (!verifyFounderCsrf(access.session, req, body)) {
     return sendBridgeError(req, res, 'csrf');
   }
-  const result = await enqueueFounderMessage({
+  const result = await talkToCeo({
     text: body.text || body.message,
     founderEmail: access.session.email,
     threadId: body.threadId || body.id,
     source: body.source || 'ops-office',
+    correlationId: body.correlationId,
+    explicitWake: body.explicitWake || body.wake,
+    wake: body.wake,
   });
   if (result.error) return sendBridgeError(req, res, result.error);
   if (wantsJson(req)) {
@@ -584,6 +986,7 @@ async function handleReply(req, res) {
     text: body.text || body.message || body.reply,
     pendingId: body.pendingId,
     messageId: body.messageId,
+    correlationId: body.correlationId,
   });
   if (result.error) return sendBridgeError(req, res, result.error);
   return sendJson(res, 200, {
@@ -633,20 +1036,27 @@ function resetCeoBridge(seed) {
 module.exports = {
   CEO_DESK_ID,
   PENDING_KEY,
+  PROVENANCE,
+  RESPONSE_OWNERS,
   SLACK_FALLBACK,
   THREAD_KEY_PREFIX,
   WAITING_COPY,
   bridgeSecretConfigured,
   ceoBridgeKind,
+  ceoSystemPrompt,
+  claimResponseOwner,
   emptyThread,
   enqueueFounderMessage,
   getFounderThread,
   handleCeoBridge,
+  inspectCeoThread,
+  isExplicitWake,
   listPending,
   postCeoReply,
   publicThread,
   resetCeoBridge,
   storeMode,
+  talkToCeo,
   threadIdFor,
   threadIsWaiting,
   threadKey,

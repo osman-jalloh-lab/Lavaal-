@@ -22,7 +22,7 @@ const {
 } = require('./_store');
 const { buildMapGraph } = require('./_map');
 const { SHEET_WRITE_BANNER } = require('./_kits');
-const { SLACK_FALLBACK, WAITING_COPY } = require('./_ceo_bridge');
+const { SLACK_FALLBACK, WAITING_COPY, threadIsWaiting } = require('./_ceo_bridge');
 const { isTalkAgent, officeAgentById } = require('./_office');
 const { persistenceBanner, shellPage } = require('./_shell');
 
@@ -260,14 +260,14 @@ function ceoChatPage({ email, snapshot, notice, error, csrf, ceoThread, talkAgen
   const thread = ceoThread && ceoThread.id
     ? ceoThread
     : { id: '', messages: [], status: 'answered', updatedAt: 0 };
-  const waiting = thread.status === 'pending';
+  const waiting = threadIsWaiting(thread);
   const messages = Array.isArray(thread.messages) ? thread.messages : [];
   const list = messages.length
     ? `<ol class="thread" id="ceo-thread">${messages.map(ceoMessageBubble).join('')}</ol>`
     : '<ol class="thread" id="ceo-thread"></ol><p class="empty" id="ceo-empty">No messages yet. Send one to the real LAVAALL CEO.</p>';
   const graph = {
     threadId: thread.id || '',
-    status: thread.status || 'answered',
+    status: waiting ? 'pending' : 'answered',
     csrf: csrf || '',
     pollUrl: thread.id ? `/ops/api/ceo-bridge/thread?id=${encodeURIComponent(thread.id)}` : '/ops/api/ceo-bridge/thread',
     postUrl: '/ops/api/ceo-bridge/message',

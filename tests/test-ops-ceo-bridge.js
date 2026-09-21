@@ -80,6 +80,7 @@ async function run() {
   process.env.OPS_CEO_BRIDGE_SECRET = BRIDGE_SECRET;
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.OPENAI_API_KEY;
+  delete process.env.XAI_API_KEY;
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
   store.resetStore();
@@ -338,12 +339,24 @@ async function run() {
       envExample.includes('OPS_CEO_BRIDGE_SECRET=')
       && !/OPS_CEO_BRIDGE_SECRET=\S+/.test(envExample));
     const note = fs.readFileSync(path.join(__dirname, '../docs/OPS-CEO-BRIDGE.md'), 'utf8');
-    check('OS note has smoke steps, weekday routine prompt, and prod HOLD',
+    check('OS note has smoke steps, xAI + B2 ownership, extended poll, and prod HOLD',
       note.includes('Preview smoke')
-      && note.includes('weekday daytime')
+      && note.includes('XAI_API_KEY')
+      && note.includes('explicit wake')
+      && note.includes('not limited to 9')
       && note.includes('GET {PREVIEW_ORIGIN}/ops/api/ceo-bridge/pending')
       && note.includes('POST {PREVIEW_ORIGIN}/ops/api/ceo-bridge/reply')
       && note.includes('Prod HOLD'));
+    check('env example names XAI_API_KEY only',
+      envExample.includes('XAI_API_KEY=')
+      && !/XAI_API_KEY=\S+/.test(envExample));
+    const xaiSrc = fs.readFileSync(path.join(opsDir, '_xai.js'), 'utf8');
+    check('xAI stays in a small underscored adapter',
+      fs.existsSync(path.join(opsDir, '_xai.js'))
+      && !fs.existsSync(path.join(opsDir, 'xai.js'))
+      && xaiSrc.includes('https://api.x.ai/v1/chat/completions')
+      && xaiSrc.includes('grok-4.3')
+      && !xaiSrc.includes("require('./_ceo_bridge')"));
     const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
     check('CEO chat poll busts cache and clears waiting when a CEO reply lands',
       chatJs.includes("cache: 'no-store'")
@@ -352,6 +365,193 @@ async function run() {
       && chatJs.includes('poll();')
       && chatJs.includes('setInterval(poll, 2000)')
       && chatJs.includes('applyThread(payload.thread, payload.waiting)'));
+  }
+
+  {
+    ceo.resetCeoBridge();
+    store.resetStore();
+    await store.saveGoal({
+      title: 'Ship Preview Slice 1',
+      definitionOfDone: 'CEO Talk writes into KV',
+      nextStep: 'Keep Researchy first on sourcing',
+    });
+    process.env.XAI_API_KEY = 'test-xai-key-not-real';
+    let xaiCalls = 0;
+    let lastXaiBody = null;
+    global.fetch = async (url, opts) => {
+      xaiCalls += 1;
+      lastXaiBody = opts && opts.body ? JSON.parse(opts.body) : null;
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'Preview draft from CEO. No deploy.' } }] }),
+      };
+    };
+
+    const first = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'Need a Preview status',
+        correlationId: 'corr-xai-1',
+      },
+    }), first);
+    const ceoNotes = (first.body.thread.messages || []).filter((item) => item.role === 'ceo');
+    const founderNotes = (first.body.thread.messages || []).filter((item) => item.role === 'founder');
+    check('xAI writes one CEO reply into the same KV thread',
+      first.statusCode === 200
+      && first.body.ok === true
+      && first.body.waiting === false
+      && first.body.thread.status === 'answered'
+      && founderNotes.length === 1
+      && ceoNotes.length === 1
+      && ceoNotes[0].text === 'Preview draft from CEO. No deploy.'
+      && !Object.prototype.hasOwnProperty.call(ceoNotes[0], 'provenance')
+      && xaiCalls === 1
+      && lastXaiBody
+      && lastXaiBody.model === 'grok-4.3'
+      && String(lastXaiBody.messages[0].content).includes('Researchy-first')
+      && String(lastXaiBody.messages[0].content).includes('Do not invent prices'));
+
+    const pendingAfterXai = await ceo.listPending();
+    check('normal xAI chat is not left on the B2 wake inbox',
+      pendingAfterXai.ok === true && pendingAfterXai.pending.every((item) => item.threadId !== first.body.thread.id));
+
+    const refreshA = mockRes();
+    await ops(authed({
+      json: true,
+      url: `/ops/api/ceo-bridge/thread?id=${first.body.thread.id}`,
+      query: { area: 'api/ceo-bridge/thread', id: first.body.thread.id },
+    }), refreshA);
+    const refreshB = mockRes();
+    await ops(authed({
+      json: true,
+      url: `/ops/api/ceo-bridge/thread?id=${first.body.thread.id}`,
+      query: { area: 'api/ceo-bridge/thread', id: first.body.thread.id },
+    }), refreshB);
+    check('refresh does not add another turn',
+      refreshA.statusCode === 200
+      && refreshA.body.waiting === false
+      && refreshA.body.thread.messages.length === first.body.thread.messages.length
+      && refreshB.body.thread.messages.length === refreshA.body.thread.messages.length
+      && xaiCalls === 1);
+
+    const retry = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'Need a Preview status',
+        correlationId: 'corr-xai-1',
+      },
+    }), retry);
+    check('HTTP retry of the same correlationId does not duplicate',
+      retry.statusCode === 200
+      && retry.body.thread.messages.filter((item) => item.role === 'founder').length === 1
+      && retry.body.thread.messages.filter((item) => item.role === 'ceo').length === 1
+      && xaiCalls === 1);
+
+    const bridgeAfter = mockRes();
+    await ops(bridgeReq('reply', {
+      body: {
+        threadId: first.body.thread.id,
+        text: 'Second brain must not append.',
+        pendingId: 'corr-xai-1',
+      },
+    }), bridgeAfter);
+    check('B2 reply is a replay when xAI already owned that founder message',
+      bridgeAfter.statusCode === 200
+      && bridgeAfter.body.replay === true
+      && bridgeAfter.body.thread.messages.filter((item) => item.role === 'ceo').length === 1
+      && !bridgeAfter.body.thread.messages.some((item) => item.text === 'Second brain must not append.'));
+
+    const inspected = await ceo.inspectCeoThread(first.body.thread.id);
+    const internalFounder = inspected.thread.messages.find((item) => item.role === 'founder');
+    const internalCeo = inspected.thread.messages.find((item) => item.role === 'ceo');
+    check('KV provenance records xAI ownership and correlation',
+      internalFounder.provenance === 'human'
+      && internalFounder.responseOwner === 'xai_runtime'
+      && internalFounder.correlationId === 'corr-xai-1'
+      && internalCeo.provenance === 'xai_runtime'
+      && internalCeo.correlationId === 'corr-xai-1');
+
+    const page = mockRes();
+    await ops(authed({
+      json: false,
+      url: '/ops/chat?agent=lavaall-ceo',
+      query: { area: 'chat', agent: 'lavaall-ceo' },
+    }), page);
+    check('UI stays one LAVAALL CEO with no dual-brain labels',
+      String(page.raw).includes('LAVAALL CEO')
+      && String(page.raw).includes('Preview draft from CEO. No deploy.')
+      && !String(page.raw).includes('xai_runtime')
+      && !String(page.raw).includes('grok_bot_bridge')
+      && !String(page.raw).includes('second brain'));
+
+    ceo.resetCeoBridge();
+    const wake = mockRes();
+    const xaiBeforeWake = xaiCalls;
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: '@grok check the queue',
+        correlationId: 'corr-wake-1',
+      },
+    }), wake);
+    const wakePending = await ceo.listPending();
+    check('explicit wake skips xAI and stays on the B2 inbox',
+      wake.statusCode === 200
+      && wake.body.waiting === true
+      && xaiCalls === xaiBeforeWake
+      && wakePending.pending.some((item) => item.correlationId === 'corr-wake-1')
+      && ceo.isExplicitWake({ text: '@grok check the queue' }) === true);
+
+    ceo.resetCeoBridge();
+    global.fetch = async () => ({ ok: false, status: 503, json: async () => ({}) });
+    const failed = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'xAI is down',
+        correlationId: 'corr-fail-1',
+      },
+    }), failed);
+    const failPending = await ceo.listPending();
+    check('xAI failure falls back to Waiting and B2 pending',
+      failed.statusCode === 200
+      && failed.body.waiting === true
+      && failed.body.thread.messages.every((item) => item.role !== 'ceo')
+      && failPending.pending.some((item) => item.correlationId === 'corr-fail-1'));
+
+    const recovered = mockRes();
+    await ops(bridgeReq('reply', {
+      body: {
+        threadId: failed.body.thread.id,
+        text: 'Bridge recovered the turn.',
+        pendingId: 'corr-fail-1',
+      },
+    }), recovered);
+    check('B2 can still reply after xAI is unavailable',
+      recovered.statusCode === 200
+      && recovered.body.replay === false
+      && recovered.body.thread.messages.some((item) => item.role === 'ceo' && item.text === 'Bridge recovered the turn.'));
+
+    delete process.env.XAI_API_KEY;
+    global.fetch = origFetch;
   }
 
   {

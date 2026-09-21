@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const selected = document.getElementById('office-selected');
   const roster = document.getElementById('office-roster');
   let graph = { agents: [], cameras: [], hotspots: {} };
-  let cameraId = 'wide';
+  let cameraId = 'lead';
   let selectedId = '';
 
   try {
@@ -137,5 +137,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  setCamera('wide');
+  setCamera('lead');
 });

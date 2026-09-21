@@ -29,6 +29,7 @@ const OFFICE_CAMERAS = Object.freeze([
   { id: 'side', label: 'Side', photo: '/assets/ops/office/cameras/side.png', source: '03-side.png' },
   { id: 'lead', label: 'Lead view', photo: '/assets/ops/office/cameras/lead.png', source: '05-lead-view.png' },
 ]);
+const DEFAULT_CAMERA_ID = 'lead';
 
 // Percent of the camera frame. Each camera has its own map. Researchy has no hit target.
 const OFFICE_HOTSPOTS = Object.freeze({
@@ -318,7 +319,7 @@ function officePage({ email, snapshot, notice, error }) {
     hotspots: OFFICE_HOTSPOTS,
   };
   const cameraLayers = OFFICE_CAMERAS.map((camera) => (
-    `<img class="office-camera-photo" data-camera-photo="${escapeHtml(camera.id)}" src="${escapeHtml(camera.photo)}" alt="Office ${escapeHtml(camera.label)}" width="1280" height="720"${camera.id === 'wide' ? '' : ' hidden'}/>
+    `<img class="office-camera-photo" data-camera-photo="${escapeHtml(camera.id)}" src="${escapeHtml(camera.photo)}" alt="Office ${escapeHtml(camera.label)}" width="1280" height="720"${camera.id === DEFAULT_CAMERA_ID ? '' : ' hidden'}/>
      <div class="office-camera-art" data-camera-art="${escapeHtml(camera.id)}" hidden>${cameraArt(camera.id)}</div>`
   )).join('');
   return shellPage({
@@ -333,8 +334,8 @@ function officePage({ email, snapshot, notice, error }) {
     body: `
       <div class="office-hero" id="office-hero">
         <div class="office-cameras" id="office-cameras" role="group" aria-label="Cameras">
-          ${OFFICE_CAMERAS.map((camera, index) => (
-            `<button type="button" data-camera="${escapeHtml(camera.id)}"${index === 0 ? ' class="is-on"' : ''}>${escapeHtml(camera.label)}</button>`
+          ${OFFICE_CAMERAS.map((camera) => (
+            `<button type="button" data-camera="${escapeHtml(camera.id)}"${camera.id === DEFAULT_CAMERA_ID ? ' class="is-on"' : ''}>${escapeHtml(camera.label)}</button>`
           )).join('')}
         </div>
         <div class="office-stage-wrap">
@@ -368,6 +369,7 @@ function officePage({ email, snapshot, notice, error }) {
 
 module.exports = {
   CARD_CAMERA,
+  DEFAULT_CAMERA_ID,
   OFFICE_AGENTS,
   OFFICE_CAMERAS,
   OFFICE_HOTSPOTS,

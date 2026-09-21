@@ -57,6 +57,7 @@ async function run() {
   process.env.OPS_AUTH_SECRET = SECRET;
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.OPENAI_API_KEY;
+  delete process.env.XAI_API_KEY;
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
   store.resetStore();
@@ -282,6 +283,32 @@ async function run() {
       && !seenUrl.includes('api.openai.com')
       && ceoTurn.reply.includes('Waiting on CEO'));
     delete process.env.ANTHROPIC_API_KEY;
+    process.env.XAI_API_KEY = 'test-xai-key-not-real';
+    let xaiUrl = '';
+    global.fetch = async (url) => {
+      xaiUrl = String(url);
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'Ship the Preview draft. No deploy.' } }] }),
+      };
+    };
+    ceoBridge.resetCeoBridge();
+    const xaiTurn = await chat.sendChatTurn({
+      question: 'What should LAVAALL CEO do this week?',
+      selection: {},
+      createdBy: ALLOWED,
+      agentId: 'lavaall-ceo',
+    });
+    check('lavaall-ceo Talk completes via xAI into the CEO KV thread',
+      xaiTurn.ok === true
+      && xaiTurn.usedModel === true
+      && xaiTurn.waiting === false
+      && xaiTurn.provider === 'xai'
+      && xaiTurn.reply === 'Ship the Preview draft. No deploy.'
+      && xaiUrl.includes('api.x.ai/v1/chat/completions')
+      && !xaiUrl.includes('api.anthropic.com')
+      && xaiTurn.thread.messages.filter((item) => item.role === 'ceo').length === 1);
+    delete process.env.XAI_API_KEY;
     global.fetch = origFetch;
   }
 

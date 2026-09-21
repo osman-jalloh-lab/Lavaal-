@@ -5,7 +5,7 @@
 // Underscore prefix: not a Vercel function. No npm.
 
 const { classify, CEO_ID } = require('../slack/_router/classify');
-const { enqueueFounderMessage } = require('./_ceo_bridge');
+const { talkToCeo } = require('./_ceo_bridge');
 const { TALK_AGENT_IDS } = require('./_office');
 const {
   addChatProposals,
@@ -208,7 +208,7 @@ async function sendChatTurn({ question, selection, createdBy, agentId }) {
   const text = trimQuestion(question);
   if (!text) return { error: 'invalid_message' };
   if (String(agentId || '').trim() === CEO_ID) {
-    const queued = await enqueueFounderMessage({
+    const queued = await talkToCeo({
       text,
       founderEmail: createdBy,
       source: 'ops-chat',
@@ -218,12 +218,12 @@ async function sendChatTurn({ question, selection, createdBy, agentId }) {
       ok: true,
       reply: queued.reply,
       setup: false,
-      usedModel: false,
+      usedModel: Boolean(queued.usedModel),
       grounded: false,
-      provider: '',
+      provider: queued.provider || '',
       ceoBridge: true,
-      waiting: true,
-      context: { selected: false, summary: 'CEO Talk bridge' },
+      waiting: Boolean(queued.waiting),
+      context: { selected: false, summary: 'CEO Talk' },
       route: {
         leadAgent: CEO_ID,
         helperAgents: [],
