@@ -14,14 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
     lifecycle: 'LAVAALL Lifecycle & Klaviyo',
     researchy: 'Researchy',
   };
-  let graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '', postUrl: '', waitingCopy: '', agentId: '', agentName: '' };
+  let graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '', postUrl: '', assignUrl: '', waitingCopy: '', agentId: '', agentName: '' };
   let timer = 0;
   let inFlight = false;
 
   try {
     graph = Object.assign({}, graph, JSON.parse(dataNode && dataNode.textContent ? dataNode.textContent : '{}') || {});
   } catch (err) {
-    graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '', postUrl: '', waitingCopy: '', agentId: '', agentName: '' };
+    graph = { threadId: '', status: 'answered', csrf: '', pollUrl: '', postUrl: '', assignUrl: '', waitingCopy: '', agentId: '', agentName: '' };
   }
 
   function agentFromLocation() {
@@ -103,6 +103,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (agentId && agentId !== 'lavaall-ceo') return '/ops/desk-talk/' + encodeURIComponent(agentId) + '/message';
     if (agentId === 'lavaall-ceo') return '/ops/ceo-bridge/message';
     return '';
+  }
+
+  function assignPostUrl() {
+    if (!isCeoTalk()) return '';
+    return graph.assignUrl || '/ops/ceo-assign/message';
+  }
+
+  function looksLikeAssignText(text) {
+    const raw = String(text || '');
+    return /^\/assign\b/i.test(raw)
+      || /\bassign(?:\s+this)?\s+to\s+researchy\b/i.test(raw)
+      || /\bassign\s+researchy\b/i.test(raw);
   }
 
   function escapeHtml(value) {
@@ -212,18 +224,25 @@ document.addEventListener('DOMContentLoaded', () => {
       event.preventDefault();
       const text = box && box.value ? box.value.trim() : '';
       if (!text) return;
-      const postUrl = threadPostUrl() || graph.postUrl;
-      if (!postUrl || (!isCeoTalk() && postUrl.indexOf('ceo-bridge') !== -1)) return;
+      const submitter = event.submitter;
+      const assignClick = Boolean(submitter && (submitter.id === 'ceo-assign-researchy' || submitter.name === 'assign' || submitter.getAttribute('data-assign') === 'researchy'));
+      const shouldAssign = isCeoTalk() && (assignClick || looksLikeAssignText(text));
+      const postUrl = shouldAssign ? assignPostUrl() : (threadPostUrl() || graph.postUrl);
+      if (!postUrl || (!isCeoTalk() && (postUrl.indexOf('ceo-bridge') !== -1 || postUrl.indexOf('ceo-assign') !== -1))) return;
       const body = {
         csrf: graph.csrf || (form.querySelector('[name="csrf"]') && form.querySelector('[name="csrf"]').value) || '',
         threadId: graph.threadId || (threadIdInput && threadIdInput.value) || '',
-        source: 'ops-office',
+        source: shouldAssign ? 'ceo-assign' : 'ops-office',
         agentId: currentAgentId(),
         correlationId: (window.crypto && crypto.randomUUID)
           ? crypto.randomUUID().replace(/-/g, '').slice(0, 32)
           : String(Date.now()) + Math.random().toString(16).slice(2, 10),
         text,
       };
+      if (shouldAssign) {
+        body.assign = 'researchy';
+        body.assignee = 'researchy';
+      }
       try {
         const response = await fetch(postUrl, {
           method: 'POST',

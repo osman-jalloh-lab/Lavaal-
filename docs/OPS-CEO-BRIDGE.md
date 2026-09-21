@@ -14,7 +14,7 @@ Office CEO Talk and `/ops/chat?agent=lavaall-ceo` write founder turns into `ops:
 
 **Explicit wake** means a founder/bridge-intent message that should wake Grok Bot (`wake=true` / `explicitWake=true`, or text starting with `@grok` / `/wake`). Normal chat is owned by xAI when the key is set.
 
-Assign, Researchy jobs, Memory markets, voice, Calendar, and Inbox are **out of scope** for this slice. System prompt is Researchy-first for later Slice 2 — Talk ≠ Assign.
+Slice 2 **Assign** (CEO → Researchy child → CEO synthesize) is in scope on this Preview PR. Voice, calendar invites, inbox polish, Office Lead View, a full multi-assignee board, and waking Grok Bot via B2 for Assign stay out of scope.
 
 ## KV schema
 
@@ -108,7 +108,22 @@ If pending or reply returns 401, stop — the secret is wrong. If 503, the store
 
 ## Talk-ALL desks (this push)
 
-All six Office Talk agents use a persistent KV thread + server xAI. `_xai.js` is the only model adapter. Assign / parent-child / Slice 2 delegate is **out of scope**.
+All six Office Talk agents use a persistent KV thread + server xAI. `_xai.js` is the only model adapter.
+
+## Slice 2 — Assign (CEO → Researchy → synthesize)
+
+KV tasks in `_store.js` are the SoT. `_assign.js` creates a **child task** owned by **Researchy**, linked to the parent CEO thread + `correlationId`. Researchy runs through existing desk-talk / xAI (`ops:agent:thread:researchy:{id}`) — **never** ceo-bridge. CEO posts a tool ack, then synthesizes the specialist result into the parent CEO thread (`provenance: tool` then `xai_runtime`). Specialist done is not task done until CEO synthesizes. Research/sourcing → Researchy first. Technical is not auto-involved.
+
+HTTP: `POST /ops/ceo-assign/message` (also NL `/assign` or “assign to researchy” on the CEO message path). B2 pending is **not** woken (`enqueuePending: false`).
+
+### Slice 2 Preview smoke (one redeploy)
+
+1. Sign in on Preview `/ops`. Office → CEO **Talk** (`/ops/chat/lavaall-ceo`). Confirm **Assign to Researchy** next to Send.
+2. Type a sourcing brief. Click **Assign to Researchy** (or send `/assign find ThinkPad docks`). CEO thread shows an assign ack. Network: `POST /ops/ceo-assign/message` (200). **No** new row on `GET /ops/api/ceo-bridge/pending`.
+3. Open `/ops/tasks`. Child task: owner **researchy**, parent CEO thread id, status doing (not done), assign status assigned / specialist done / synthesized.
+4. Open Researchy Talk (`/ops/chat/researchy`). The assigned brief is in that thread. With `XAI_API_KEY` set, Researchy replies there. Network: only `/ops/desk-talk/researchy/thread` — zero `ceo-bridge`.
+5. Return to CEO Talk (or wait for the poll). CEO posts a **synthesis** (decision + unknowns), not a raw Researchy dump. Task assign status becomes **synthesized**; task status stays doing until you mark done.
+6. Repeat with NL only: `assign to researchy: source USB-C hubs` via Send. Same child + Researchy + synthesis path. Do not involve Technical unless you explicitly ask for validation.
 
 | Desk | Talk route | KV key |
 |------|------------|--------|

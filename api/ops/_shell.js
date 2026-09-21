@@ -94,6 +94,9 @@ textarea{min-height:88px;resize:vertical;}
 .btn:hover{filter:brightness(.97);}
 .btn-sm{width:auto;margin-top:10px;padding:8px 14px;}
 .btn-danger{background:transparent;color:var(--coral);border:1px solid rgba(225,29,72,.35);}
+.talk-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+.talk-actions .btn{width:auto;flex:1;min-width:140px;margin-top:0;}
+.btn-assign{background:transparent;color:var(--ink);border:1px solid var(--line);}
 .task-row label{margin-top:8px;}
 .check{display:flex;align-items:flex-start;gap:8px;font-weight:500;}
 .check input{width:auto;margin-top:3px;}

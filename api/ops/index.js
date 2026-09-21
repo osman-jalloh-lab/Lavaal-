@@ -25,6 +25,7 @@ const {
 const { describeChatSetup, sendChatTurn } = require('./_chat');
 const { CEO_DESK_ID, getFounderThread, handleCeoBridge } = require('./_ceo_bridge');
 const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
+const { handleCeoAssign, synthesizeOpenAssigns } = require('./_assign');
 const {
   confirmInboxSend,
   pasteSnapshot,
@@ -188,6 +189,7 @@ async function renderArea(req, res, session, extra) {
 
   if (area === 'chat' && isTalkAgent(pageOpts.agentId)) {
     if (String(pageOpts.agentId) === CEO_DESK_ID) {
+      await synthesizeOpenAssigns({ founderEmail: session.email });
       const loaded = await getFounderThread(session.email);
       if (loaded.error === 'store_unavailable') {
         pageOpts.error = pageOpts.error || 'The CEO bridge store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).';
@@ -650,6 +652,7 @@ async function handleMapApi(req, res) {
 }
 
 async function ops(req, res) {
+  if (await handleCeoAssign(req, res)) return;
   if (await handleCeoBridge(req, res)) return;
   if (await handleDeskTalk(req, res)) return;
   if (await handleKitsApi(req, res)) return;

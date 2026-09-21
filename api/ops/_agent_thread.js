@@ -1,7 +1,7 @@
 // Talk-ALL desks — persistent KV threads + server xAI (Slice 1 reuse).
 // _xai.js stays the only model adapter. B2 explicit-wake stays CEO-only
 // (see _ceo_bridge.js). Other desks: xAI when XAI_API_KEY is set, else Waiting.
-// KV SoT: ops:agent:thread:{agentId}:{id}. Never invent prices. Talk ≠ Assign.
+// KV SoT: ops:agent:thread:{agentId}:{id}. Never invent prices. CEO Assign lives in _assign.js.
 // Underscore prefix: not a Vercel function. No npm. Never log emails or secrets.
 
 const crypto = require('crypto');
@@ -26,7 +26,8 @@ const {
 const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { normalizeTalkAgentId, officeAgentById } = require('./_office');
-const { talkToCeo } = require('./_ceo_bridge');
+const ceoBridge = require('./_ceo_bridge');
+const assign = require('./_assign');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const THREAD_KEY_PREFIX = 'ops:agent:thread:';
@@ -403,7 +404,7 @@ function deskSystemPrompt(agentId, context) {
     desk.lines.join(' '),
     MARKETS_STUB,
     'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, or completions.',
-    'Drafts only. Talk is conversation — not Assign.',
+    'Drafts only. Assigned research from LAVAALL CEO posts here.',
     'Never mention /ops, Talk bridges, helpers, Anthropic, OpenAI, or xAI.',
     formatStoreContext(context),
   ].join('\n');
@@ -655,7 +656,7 @@ async function talkToDesk(input) {
   const desk = normalizeAgentId(input && input.agentId);
   if (!desk) return { error: 'invalid_agent' };
   if (desk === CEO_DESK_ID) {
-    return talkToCeo(input);
+    return ceoBridge.talkToCeo(input);
   }
   const tryXai = xaiConfigured();
   const queued = await enqueueFounderMessage(Object.assign({}, input, { agentId: desk }));
@@ -818,6 +819,13 @@ async function handleMessage(req, res) {
     correlationId: body.correlationId,
   });
   if (result.error) return sendDeskError(req, res, result.error, agentId);
+  await assign.noteDeskProgress({
+    agentId,
+    threadId: result.thread && result.thread.id,
+    correlationId: result.correlationId,
+    resultText: result.waiting ? '' : result.reply,
+    waiting: result.waiting,
+  });
   if (wantsJson(req)) {
     return sendJson(res, 200, Object.assign({ ok: true }, result, {
       csrf: createCsrfToken(access.session.email),
@@ -841,10 +849,15 @@ async function handleThread(req, res) {
   if (requested && requested !== ownId) return sendJson(res, 403, { error: 'forbidden' });
   const loaded = await getFounderDeskThread(agentId, access.session.email);
   if (loaded.error) return sendDeskError(req, res, loaded.error, agentId);
+  const progressed = await assign.onDeskThreadPoll({
+    agentId,
+    founderEmail: access.session.email,
+  });
+  const thread = (progressed && progressed.thread) || loaded.thread;
   return sendJson(res, 200, {
     ok: true,
-    thread: loaded.thread,
-    waiting: threadIsWaiting(loaded.thread),
+    thread,
+    waiting: threadIsWaiting(thread),
     waitingCopy: waitingCopy(agentId),
     agentId,
     agentName: deskName(agentId),
@@ -881,7 +894,7 @@ function resetDeskTalk(seed) {
   memory = next;
 }
 
-module.exports = {
+Object.assign(module.exports, {
   CEO_DESK_ID,
   DESK_PROMPTS,
   MARKETS_STUB,
@@ -902,4 +915,4 @@ module.exports = {
   threadIsWaiting,
   threadKey,
   waitingCopy,
-};
+});

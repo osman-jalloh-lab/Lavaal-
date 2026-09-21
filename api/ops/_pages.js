@@ -18,6 +18,7 @@ const {
   notesSelectableForChat,
   pendingProposals,
   searchNotes,
+  assignStatusLabel,
   statusLabel,
 } = require('./_store');
 const { buildMapGraph } = require('./_map');
@@ -107,7 +108,10 @@ function tasksPage({ email, store, snapshot, notice, error }) {
             <input type="hidden" name="returnTo" value="/ops/tasks"/>
             <p><strong>${escapeHtml(task.title)}</strong>
               ${projectName(task.projectId) ? ` · ${escapeHtml(projectName(task.projectId))}` : ''}
-              ${task.due ? ` · due ${escapeHtml(task.due)}` : ''}</p>
+              ${task.due ? ` · due ${escapeHtml(task.due)}` : ''}
+              ${task.ownerAgentId ? ` · owner ${escapeHtml(task.ownerAgentId)}` : ''}
+              ${task.assignStatus ? ` · ${escapeHtml(assignStatusLabel(task.assignStatus) || task.assignStatus)}` : ''}
+              ${task.parentThreadId ? ` · parent ${escapeHtml(task.parentThreadId)}` : ''}</p>
             <label>
               Status
               <select name="status">
@@ -298,8 +302,12 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     csrf: csrf || '',
     pollUrl,
     postUrl,
+    assignUrl: isCeo ? '/ops/ceo-assign/message' : '',
     waitingCopy: waitText,
   };
+  const assignControl = isCeo
+    ? `<button class="btn btn-assign" type="submit" formaction="/ops/ceo-assign/message" name="assign" value="researchy" id="ceo-assign-researchy">Assign to Researchy</button>`
+    : '';
   return shellPage({
     title: 'LAVAALL OS — Chat',
     email,
@@ -307,7 +315,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     notice,
     error,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-ceo-chat.js?v=path-talk" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=assign" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>${escapeHtml(agentName)}</h1>
@@ -321,7 +329,10 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
           <input type="hidden" name="source" value="ops-office"/>
           <label for="ceo-message">Message</label>
           <textarea id="ceo-message" name="text" required maxlength="2000" placeholder="Message"></textarea>
-          <button class="btn" type="submit">Send</button>
+          <div class="talk-actions">
+            <button class="btn" type="submit">Send</button>
+            ${assignControl}
+          </div>
         </form>
       </section>
     `,

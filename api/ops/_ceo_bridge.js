@@ -703,6 +703,59 @@ async function appendOwnedCeoReply({ threadId, correlationId, owner, text }) {
   });
 }
 
+async function appendCeoNotice({ threadId, text, provenance, correlationId, markAnsweredFor }) {
+  return mutate(async () => {
+    const id = clean(threadId, 40);
+    const body = clean(text, MAX_TEXT);
+    if (!id) return { error: 'ceo_thread_not_found' };
+    if (!body) return { error: 'invalid_message' };
+    const current = await readThread(id);
+    if (!current) return { error: 'ceo_thread_not_found' };
+    const noticeCorrelation = clean(correlationId, 40) || newId();
+    const existing = (current.messages || []).find((item) => (
+      item.role === 'ceo' && item.correlationId === noticeCorrelation && item.text === body
+    ));
+    if (existing) {
+      return {
+        ok: true,
+        replay: true,
+        thread: publicThread(current),
+        notice: existing.text,
+        correlationId: existing.correlationId,
+      };
+    }
+    const allowed = PROVENANCE.includes(provenance) ? provenance : 'system';
+    const message = normalizeMessage({
+      role: 'ceo',
+      text: body,
+      at: Date.now(),
+      correlationId: noticeCorrelation,
+      provenance: allowed,
+    });
+    const mark = clean(markAnsweredFor, 40);
+    const founder = mark ? founderByCorrelation(current, mark) : null;
+    const answeredIds = mark
+      ? current.answeredIds.concat([mark, founder && founder.id]).filter(Boolean).slice(-MAX_ANSWERED)
+      : current.answeredIds;
+    const thread = normalizeThread({
+      id: current.id,
+      founderEmail: current.founderEmail,
+      messages: current.messages.concat([message]),
+      status: 'answered',
+      updatedAt: Date.now(),
+      answeredIds,
+    });
+    await writeThread(thread);
+    return {
+      ok: true,
+      replay: false,
+      thread: publicThread(thread),
+      notice: message.text,
+      correlationId: message.correlationId,
+    };
+  });
+}
+
 async function enqueuePendingWake({ thread, founder, wakeReason }) {
   return mutate(async () => {
     const pending = upsertPending(await readPending(), {
@@ -762,7 +815,7 @@ function ceoSystemPrompt(context) {
     'You are LAVAALL CEO.',
     'Researchy-first on sourcing; Technical only when validation is needed.',
     'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, or completions.',
-    'Drafts only. Talk is conversation — not Assign.',
+    'Drafts only. Assign research and sourcing to Researchy first. Technical only when the founder asks for validation.',
     'Never mention /ops, Talk bridges, helpers, Anthropic, OpenAI, or xAI.',
     formatCeoStoreContext(context),
   ].join('\n');
@@ -1037,7 +1090,7 @@ function resetCeoBridge(seed) {
   memory = next;
 }
 
-module.exports = {
+Object.assign(module.exports, {
   CEO_DESK_ID,
   PENDING_KEY,
   PROVENANCE,
@@ -1045,6 +1098,7 @@ module.exports = {
   SLACK_FALLBACK,
   THREAD_KEY_PREFIX,
   WAITING_COPY,
+  appendCeoNotice,
   bridgeSecretConfigured,
   ceoBridgeKind,
   ceoSystemPrompt,
@@ -1065,4 +1119,4 @@ module.exports = {
   threadIsWaiting,
   threadKey,
   verifyBridgeSecret,
-};
+});

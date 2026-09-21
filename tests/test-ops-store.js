@@ -110,7 +110,30 @@ async function run() {
     const snap = store.dashboardSnapshot(await store.readStore());
     const data = await store.readStore();
     check('three tasks with one done leave two unfinished', data.tasks.length === 3 && snap.unfinished.length === 2 && data.tasks.filter((row) => row.status === 'done').length === 1);
-    check('new tasks do not invent due dates or owners', one.task.due === '' && !one.task.owner && one.task.createdBy === ALLOWED);
+    check('new tasks do not invent due dates or owners', one.task.due === '' && !one.task.owner && one.task.ownerAgentId === '' && one.task.createdBy === ALLOWED);
+    const child = await store.addTask({
+      title: 'Source ThinkPads',
+      status: 'doing',
+      createdBy: ALLOWED,
+      ownerAgentId: 'researchy',
+      parentThreadId: 'ceo-parent-1',
+      parentCorrelationId: 'corr-parent-1',
+      assignStatus: 'assigned',
+      brief: 'Find quote-first suppliers',
+    });
+    const rejectedOwner = await store.addTask({
+      title: 'Do not auto-route Technical',
+      createdBy: ALLOWED,
+      ownerAgentId: 'technical',
+    });
+    check('store tasks keep Researchy assign parent links and drop other owners',
+      child.task.ownerAgentId === 'researchy'
+      && child.task.parentThreadId === 'ceo-parent-1'
+      && child.task.parentCorrelationId === 'corr-parent-1'
+      && child.task.assignStatus === 'assigned'
+      && child.task.brief === 'Find quote-first suppliers'
+      && child.task.status === 'doing'
+      && rejectedOwner.task.ownerAgentId === '');
     check('dashboard next action matches an unfinished task', snap.nextAction && snap.unfinished.some((row) => row.id === snap.nextAction.taskId));
   }
 

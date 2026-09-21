@@ -41,6 +41,14 @@ const STATUS_LABELS = Object.freeze({
   doing: 'Doing',
   done: 'Done',
 });
+const ASSIGN_STATUSES = Object.freeze(['assigned', 'specialist_done', 'synthesizing', 'synthesized']);
+const ASSIGN_STATUS_LABELS = Object.freeze({
+  assigned: 'Assigned',
+  specialist_done: 'Specialist done',
+  synthesizing: 'Synthesizing',
+  synthesized: 'Synthesized',
+});
+const OWNER_AGENT_IDS = Object.freeze(['researchy']);
 
 let memory = emptyStore();
 
@@ -111,6 +119,20 @@ function statusLabel(status) {
   return STATUS_LABELS[normalizeStatus(status)];
 }
 
+function normalizeAssignStatus(value) {
+  return ASSIGN_STATUSES.includes(value) ? value : '';
+}
+
+function assignStatusLabel(status) {
+  const key = normalizeAssignStatus(status);
+  return key ? ASSIGN_STATUS_LABELS[key] : '';
+}
+
+function normalizeOwnerAgentId(value) {
+  const raw = clean(value, 40).toLowerCase();
+  return OWNER_AGENT_IDS.includes(raw) ? raw : '';
+}
+
 function normalizeProfile(row) {
   if (!row || typeof row !== 'object') return null;
   return {
@@ -158,6 +180,16 @@ function normalizeTask(row, projectIds) {
     createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
     updatedAt: Number.isFinite(row && row.updatedAt) ? row.updatedAt : Date.now(),
     createdBy: clean(row && row.createdBy, 120),
+    ownerAgentId: normalizeOwnerAgentId(row && row.ownerAgentId),
+    parentTaskId: clean(row && row.parentTaskId, 40),
+    parentThreadId: clean(row && row.parentThreadId, 40),
+    parentCorrelationId: clean(row && row.parentCorrelationId, 40),
+    childThreadId: clean(row && row.childThreadId, 40),
+    childCorrelationId: clean(row && row.childCorrelationId, 40),
+    assignStatus: normalizeAssignStatus(row && row.assignStatus),
+    brief: clean(row && row.brief, 2000),
+    result: clean(row && row.result, 4000),
+    synthesis: clean(row && row.synthesis, 4000),
   };
 }
 
@@ -887,7 +919,24 @@ async function addProject({ name, finishLine, createdBy }) {
   });
 }
 
-async function addTask({ title, nextAction, status, due, projectId, createdBy }) {
+async function addTask({
+  title,
+  nextAction,
+  status,
+  due,
+  projectId,
+  createdBy,
+  ownerAgentId,
+  parentTaskId,
+  parentThreadId,
+  parentCorrelationId,
+  childThreadId,
+  childCorrelationId,
+  assignStatus,
+  brief,
+  result,
+  synthesis,
+}) {
   return mutate(async () => {
     const storeData = await readStore();
     const task = normalizeTask({
@@ -897,6 +946,16 @@ async function addTask({ title, nextAction, status, due, projectId, createdBy })
       due,
       projectId,
       createdBy,
+      ownerAgentId,
+      parentTaskId,
+      parentThreadId,
+      parentCorrelationId,
+      childThreadId,
+      childCorrelationId,
+      assignStatus,
+      brief,
+      result,
+      synthesis,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }, new Set(storeData.projects.map((row) => row.id)));
@@ -923,6 +982,16 @@ async function updateTask(id, patch) {
       projectId: patch.projectId == null ? current.projectId : patch.projectId,
       createdAt: current.createdAt,
       createdBy: current.createdBy,
+      ownerAgentId: patch.ownerAgentId == null ? current.ownerAgentId : patch.ownerAgentId,
+      parentTaskId: patch.parentTaskId == null ? current.parentTaskId : patch.parentTaskId,
+      parentThreadId: patch.parentThreadId == null ? current.parentThreadId : patch.parentThreadId,
+      parentCorrelationId: patch.parentCorrelationId == null ? current.parentCorrelationId : patch.parentCorrelationId,
+      childThreadId: patch.childThreadId == null ? current.childThreadId : patch.childThreadId,
+      childCorrelationId: patch.childCorrelationId == null ? current.childCorrelationId : patch.childCorrelationId,
+      assignStatus: patch.assignStatus == null ? current.assignStatus : patch.assignStatus,
+      brief: patch.brief == null ? current.brief : patch.brief,
+      result: patch.result == null ? current.result : patch.result,
+      synthesis: patch.synthesis == null ? current.synthesis : patch.synthesis,
       updatedAt: Date.now(),
     }, new Set(storeData.projects.map((row) => row.id)));
     if (!next.title) return { error: 'invalid_task' };
@@ -1318,6 +1387,12 @@ function resetStore(seed) {
 module.exports = {
   STATUSES,
   STATUS_LABELS,
+  ASSIGN_STATUSES,
+  ASSIGN_STATUS_LABELS,
+  OWNER_AGENT_IDS,
+  assignStatusLabel,
+  normalizeAssignStatus,
+  normalizeOwnerAgentId,
   STORE_KEY,
   CHAT_ID,
   KIT_STATUSES,

@@ -97,7 +97,7 @@ async function run() {
         && !html.includes('xai_runtime')
         && !html.includes('grok_bot_bridge')
         && html.includes(`"agentName":${JSON.stringify(name)}`)
-        && html.includes('/assets/js/ops-ceo-chat.js?v=path-talk')
+        && html.includes('/assets/js/ops-ceo-chat.js?v=assign')
         && !html.includes('This desk uses Office Talk')
         && !html.includes('not the Anthropic or OpenAI helper')
         && (id === 'lavaall-ceo'
@@ -260,7 +260,7 @@ async function run() {
       prompt.includes('Researchy')
       && prompt.includes(desks.MARKETS_STUB)
       && prompt.includes('Do not invent prices')
-      && prompt.includes('not Assign'));
+      && prompt.includes('Assigned research from LAVAALL CEO'));
 
     const pending = await ceo.listPending();
     check('non-CEO xAI turns are not added to the CEO B2 inbox',
