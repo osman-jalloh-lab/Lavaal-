@@ -32,7 +32,7 @@ const OFFICE_CAMERAS = Object.freeze([
 ]);
 const DEFAULT_CAMERA_ID = 'lead';
 
-// Percent of the camera frame. Each camera has its own map. Researchy has no hit target.
+// Percent of the camera frame. Each camera has its own map, including Researchy.
 const OFFICE_HOTSPOTS = Object.freeze({
   wide: [
     { id: 'sales', left: 6, top: 38, width: 18, height: 30 },
@@ -40,6 +40,7 @@ const OFFICE_HOTSPOTS = Object.freeze({
     { id: 'lavaall-ceo', left: 40, top: 34, width: 20, height: 34 },
     { id: 'technical', left: 74, top: 36, width: 18, height: 30 },
     { id: 'lifecycle', left: 72, top: 68, width: 18, height: 22 },
+    { id: 'researchy', left: 43, top: 72, width: 14, height: 16 },
   ],
   'front-left': [
     { id: 'sales', left: 18, top: 28, width: 28, height: 42 },
@@ -47,6 +48,7 @@ const OFFICE_HOTSPOTS = Object.freeze({
     { id: 'lavaall-ceo', left: 52, top: 30, width: 22, height: 36 },
     { id: 'technical', left: 76, top: 40, width: 16, height: 24 },
     { id: 'lifecycle', left: 70, top: 70, width: 18, height: 20 },
+    { id: 'researchy', left: 42, top: 72, width: 16, height: 16 },
   ],
   'front-right': [
     { id: 'technical', left: 52, top: 26, width: 30, height: 42 },
@@ -54,6 +56,7 @@ const OFFICE_HOTSPOTS = Object.freeze({
     { id: 'lavaall-ceo', left: 28, top: 30, width: 22, height: 36 },
     { id: 'sales', left: 6, top: 40, width: 16, height: 24 },
     { id: 'growth', left: 8, top: 70, width: 18, height: 20 },
+    { id: 'researchy', left: 40, top: 70, width: 16, height: 16 },
   ],
   side: [
     { id: 'sales', left: 8, top: 30, width: 22, height: 36 },
@@ -61,6 +64,7 @@ const OFFICE_HOTSPOTS = Object.freeze({
     { id: 'technical', left: 62, top: 30, width: 22, height: 36 },
     { id: 'growth', left: 18, top: 68, width: 20, height: 22 },
     { id: 'lifecycle', left: 58, top: 68, width: 20, height: 22 },
+    { id: 'researchy', left: 40, top: 72, width: 16, height: 16 },
   ],
   lead: [
     { id: 'lavaall-ceo', left: 32, top: 22, width: 36, height: 48 },
@@ -68,6 +72,7 @@ const OFFICE_HOTSPOTS = Object.freeze({
     { id: 'technical', left: 76, top: 40, width: 18, height: 28 },
     { id: 'growth', left: 14, top: 72, width: 20, height: 18 },
     { id: 'lifecycle', left: 66, top: 72, width: 20, height: 18 },
+    { id: 'researchy', left: 40, top: 74, width: 20, height: 14 },
   ],
 });
 
@@ -77,6 +82,15 @@ const RESEARCHY_SEATS = Object.freeze({
   'front-right': { left: 40, top: 70, width: 16, height: 16 },
   side: { left: 40, top: 72, width: 16, height: 16 },
   lead: { left: 40, top: 74, width: 20, height: 14 },
+});
+
+// Covers the baked-in “AI AGENTS” wall sign. Not over desk faces.
+const OFFICE_WORDMARK = Object.freeze({
+  wide: { left: 37, top: 5, width: 26, height: 17 },
+  'front-left': { left: 34, top: 3, width: 28, height: 16 },
+  'front-right': { left: 36, top: 4, width: 26, height: 16 },
+  side: { left: 36, top: 4, width: 26, height: 16 },
+  lead: { left: 35, top: 1, width: 30, height: 17 },
 });
 
 const CARD_CAMERA = Object.freeze({
@@ -207,7 +221,10 @@ function officeStyles() {
 .office-camera-photo{position:relative;z-index:0;}
 .office-hotspots{position:absolute;inset:0;z-index:1;}
 .office-hotspot{position:absolute;border:2px solid transparent;border-radius:14px;cursor:pointer;background:transparent;padding:0;}
-.office-hotspot:hover,.office-hotspot.is-on{border-color:var(--sky-deep);background:rgba(46,196,255,.12);}
+.office-hotspot-label{position:absolute;left:6px;bottom:6px;font-size:11px;font-weight:700;color:#1C1917;background:rgba(243,238,231,.92);padding:2px 8px;border-radius:999px;pointer-events:none;}
+.office-wordmark{display:none;}
+.office-wordmark-name{font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-.03em;color:#1C1917;font-size:clamp(18px,2.1vw,32px);line-height:1;}
+.office-wordmark-mark{width:8px;height:8px;border-radius:50%;background:#2EC4FF;flex-shrink:0;}
 .office-roster{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;box-shadow:0 10px 28px rgba(28,20,16,.08);}
 .office-roster-brand{margin:0 0 12px;}
 .office-roster-logo{display:block;height:36px;width:auto;max-width:100%;object-fit:contain;}
@@ -238,6 +255,7 @@ function officeStyles() {
   .office-stage-wrap{display:block;width:100%;}
   .office-stage{width:100%;border:0;border-radius:0;min-height:0;}
   .office-cameras{position:absolute;top:16px;left:16px;z-index:2;}
+  .office-wordmark{display:flex;position:absolute;z-index:2;align-items:center;justify-content:center;gap:8px;pointer-events:none;background:rgba(243,238,231,.92);border-radius:12px;padding:6px 14px;}
   .office-roster{display:block;position:absolute;top:16px;right:16px;z-index:2;width:240px;max-height:calc(100% - 32px);overflow:auto;background:rgba(243,238,231,.94);}
   .office-selected{position:absolute;left:16px;bottom:16px;z-index:2;padding:8px 12px;border-radius:999px;background:rgba(243,238,231,.94);border:1px solid var(--line);}
   .office-cards{display:none;}
@@ -257,20 +275,11 @@ function cameraArt(cameraId) {
     return `<rect x="${box.x.toFixed(1)}" y="${box.y.toFixed(1)}" width="${box.w.toFixed(1)}" height="${box.h.toFixed(1)}" rx="12" fill="${fill}" stroke="#CFC7BC"/>
       <text x="${(box.x + 10).toFixed(1)}" y="${(box.y + 22).toFixed(1)}" fill="#141414" font-size="13" font-family="Bricolage Grotesque,sans-serif" font-weight="700">${escapeHtml(agent ? agent.short : spot.id)}</text>`;
   }).join('');
-  const seat = RESEARCHY_SEATS[cameraId];
-  const researchy = seat
-    ? (() => {
-      const box = pctBox(seat);
-      return `<rect x="${box.x.toFixed(1)}" y="${box.y.toFixed(1)}" width="${box.w.toFixed(1)}" height="${box.h.toFixed(1)}" rx="10" fill="none" stroke="#78716C" stroke-dasharray="6 5"/>
-        <text x="${(box.x + 8).toFixed(1)}" y="${(box.y + 18).toFixed(1)}" fill="#57534E" font-size="11" font-family="Bricolage Grotesque,sans-serif" font-weight="700">Researchy</text>`;
-    })()
-    : '';
   return `<svg viewBox="0 0 640 360" role="img" aria-label="Office ${escapeHtml(label)}" data-camera="${escapeHtml(cameraId)}">
     <rect width="640" height="360" fill="#F3EEE7"/>
     <rect x="16" y="16" width="608" height="328" rx="18" fill="#EBE4DC" stroke="#CFC7BC"/>
     <text x="32" y="44" fill="#0891B2" font-size="14" font-family="Bricolage Grotesque,sans-serif" font-weight="700">${escapeHtml(label)}</text>
     ${desks}
-    ${researchy}
   </svg>`;
 }
 
@@ -326,6 +335,7 @@ function officePage({ email, snapshot, notice, error }) {
       source: camera.source,
     })),
     hotspots: OFFICE_HOTSPOTS,
+    wordmark: OFFICE_WORDMARK,
   };
   const cameraLayers = OFFICE_CAMERAS.map((camera) => (
     `<img class="office-camera-photo" data-camera-photo="${escapeHtml(camera.id)}" src="${escapeHtml(camera.photo)}" alt="Office ${escapeHtml(camera.label)}" width="1280" height="720"${camera.id === DEFAULT_CAMERA_ID ? '' : ' hidden'}/>
@@ -339,7 +349,7 @@ function officePage({ email, snapshot, notice, error }) {
     error,
     scripts: `<style>${officeStyles()}</style>
 <script type="application/json" id="office-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-office.js?v=cameras" defer></script>`,
+<script src="/assets/js/ops-office.js?v=wordmark" defer></script>`,
     body: `
       <div class="office-hero" id="office-hero">
         <div class="office-cameras" id="office-cameras" role="group" aria-label="Cameras">
@@ -351,6 +361,10 @@ function officePage({ email, snapshot, notice, error }) {
           <div class="office-stage" id="office-stage">
             ${cameraLayers}
             <div class="office-hotspots" id="office-hotspots"></div>
+            <div class="office-wordmark" id="office-wordmark">
+              <span class="office-wordmark-name">LAVAALL</span>
+              <span class="office-wordmark-mark" aria-hidden="true"></span>
+            </div>
           </div>
         </div>
         <p class="office-selected" id="office-selected">Tap a desk or a name.</p>
@@ -386,6 +400,7 @@ module.exports = {
   OFFICE_AGENTS,
   OFFICE_CAMERAS,
   OFFICE_HOTSPOTS,
+  OFFICE_WORDMARK,
   RESEARCHY_PORTRAIT,
   TALK_AGENT_IDS,
   cropPosition,

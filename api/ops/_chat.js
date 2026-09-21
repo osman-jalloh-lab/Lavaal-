@@ -57,7 +57,7 @@ function groundedReply(question, context) {
     if (context.goal.nextStep) {
       return `From the selected goal “${context.goal.title}”: the next step is “${context.goal.nextStep}”.`;
     }
-    return `The selected goal “${context.goal.title}” has no next step saved yet. Add one under You.`;
+    return `The selected goal “${context.goal.title}” has no next step saved yet. Add one under Profile.`;
   }
   const task = context && Array.isArray(context.tasks)
     ? (context.tasks.find((item) => item.nextAction) || context.tasks[0])

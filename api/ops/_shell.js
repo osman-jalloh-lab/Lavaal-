@@ -7,8 +7,7 @@ const { escapeHtml } = require('./_lib');
 const NAV = Object.freeze([
   { id: 'dashboard', href: '/ops', label: 'Dashboard' },
   { id: 'office', href: '/ops/office', label: 'Office' },
-  { id: 'profile', href: '/ops/profile', label: 'You' },
-  { id: 'chat', href: '/ops/chat', label: 'Chat' },
+  { id: 'profile', href: '/ops/profile', label: 'Profile' },
   { id: 'memory', href: '/ops/memory', label: 'Memory' },
   { id: 'issues', href: '/ops/issues', label: 'Issues' },
   { id: 'inbox', href: '/ops/inbox', label: 'Inbox' },
@@ -25,7 +24,6 @@ function areaInfo(area) {
     case 'dashboard':
     case 'office':
     case 'profile':
-    case 'chat':
     case 'memory':
     case 'issues':
     case 'inbox':
@@ -118,7 +116,9 @@ textarea{min-height:88px;resize:vertical;}
 .bubble.assistant{border-color:rgba(16,185,129,.28);background:var(--emerald-wash);}
 .ok{margin-bottom:12px;color:var(--emerald);background:var(--emerald-wash);border:1px solid #A7E9CF;border-radius:12px;padding:10px 12px;font-size:14px;}
 .err{margin-bottom:12px;color:#BE123C;background:#FDE8EA;border:1px solid #F9C5CB;border-radius:12px;padding:10px 12px;font-size:14px;}
-.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.inbox-body{white-space:pre-wrap;overflow-wrap:anywhere;}
+.inbox-quiet{opacity:.72;}
+.btn[disabled]{opacity:.45;cursor:not-allowed;filter:none;}
 .kits-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px;}
 .kits-head .btn,.kits-banner .btn{width:auto;margin-top:0;}
 .kits-sub{color:var(--muted);font-size:13px;}
@@ -303,7 +303,7 @@ function dashboardSections({ snapshot, returnTo }) {
        ${data.goal.definitionOfDone ? `<p>Done when: ${escapeHtml(data.goal.definitionOfDone)}</p>` : ''}
        ${data.goal.nextStep ? `<p>Next step: ${escapeHtml(data.goal.nextStep)}</p>` : ''}
        ${data.goal.targetDate ? `<p>Target: ${escapeHtml(data.goal.targetDate)}</p>` : ''}`
-    : '<p class="empty">No current goal saved yet. Add one under You.</p>';
+    : '<p class="empty">No current goal saved yet. Add one under Profile.</p>';
 
   const unfinished = Array.isArray(data.unfinished) ? data.unfinished : [];
   const tasks = unfinished.length

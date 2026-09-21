@@ -22,7 +22,7 @@ const NAMES = [
 ];
 const CAMERAS = ['Wide', 'Front left', 'Front right', 'Side', 'Lead view'];
 const TALK_IDS = ['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle', 'researchy'];
-const CAMERA_TALK_IDS = ['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle'];
+const CAMERA_TALK_IDS = ['lavaall-ceo', 'sales', 'technical', 'growth', 'lifecycle', 'researchy'];
 const CAMERA_FILES = ['wide.png', 'front-left.png', 'front-right.png', 'side.png', 'lead.png'];
 const CAMERA_SOURCES = '04-primary-wide.png,01-front-left.png,02-front-right.png,03-side.png,05-lead-view.png';
 
@@ -71,7 +71,7 @@ async function run() {
   delete process.env.KV_REST_API_TOKEN;
   store.resetStore();
 
-  check('Office sits after Dashboard and before You',
+  check('Office sits after Dashboard and before Profile',
     NAV.map((item) => item.id).join(',').startsWith('dashboard,office,profile')
     && NAV.some((item) => item.id === 'office' && item.href === '/ops/office' && item.label === 'Office'));
 
@@ -90,15 +90,15 @@ async function run() {
     office.OFFICE_CAMERAS.map((item) => item.source).join(',') === CAMERA_SOURCES
     && office.OFFICE_CAMERAS.every((item) => item.photo === `/assets/ops/office/cameras/${item.id}.png`));
 
-  check('each camera has its own five-desk hotspot map and never hits Researchy',
+  check('each camera has its own six-desk hotspot map including Researchy',
     office.OFFICE_CAMERAS.map((item) => item.label).join(',') === CAMERAS.join(',')
     && Object.keys(office.OFFICE_HOTSPOTS).join(',') === office.OFFICE_CAMERAS.map((item) => item.id).join(',')
     && office.OFFICE_CAMERAS.every((camera) => {
       const spots = office.OFFICE_HOTSPOTS[camera.id] || [];
       const ids = spots.map((spot) => spot.id);
-      return spots.length === 5
+      return spots.length === 6
         && ids.slice().sort().join(',') === CAMERA_TALK_IDS.slice().sort().join(',')
-        && !ids.includes('researchy');
+        && ids.includes('researchy');
     })
     && JSON.stringify(office.OFFICE_HOTSPOTS.wide) !== JSON.stringify(office.OFFICE_HOTSPOTS.lead)
     && JSON.stringify(office.OFFICE_HOTSPOTS['front-left']) !== JSON.stringify(office.OFFICE_HOTSPOTS['front-right']));
@@ -125,7 +125,11 @@ async function run() {
       && html.includes('src="/images/logo.png"')
       && html.includes('class="ops-brand-logo"')
       && html.includes('class="office-roster-logo"')
-      && html.includes('alt="LAVAALL"')
+      && html.includes('id="office-wordmark"')
+      && html.includes('office-wordmark-name')
+      && html.includes('>LAVAALL</span>')
+      && html.includes('#1C1917')
+      && html.includes('#2EC4FF')
       && !html.includes('>Agents<')
       && !html.includes('>Roster<')
       && !html.includes('AI agents')
@@ -169,8 +173,8 @@ async function run() {
         && buf.length > 50000
         && buf.length !== fs.statSync(lead).size);
     }
-    check('Chat tab stays council while Talk uses the existing chat route',
-      html.includes('href="/ops/chat"')
+    check('Chat tab is gone; Talk still uses per-desk chat routes',
+      !html.includes('>Chat</a>')
       && html.includes('href="/ops/chat/sales"'));
     check('Office CEO Talk still opens the lavaall-ceo chat route',
       html.includes('href="/ops/chat/lavaall-ceo"')
@@ -200,10 +204,11 @@ async function run() {
 
   {
     const src = fs.readFileSync(path.join(__dirname, '../assets/js/ops-office.js'), 'utf8');
-    check('camera switch redraws that camera’s hotspot map and keeps selection',
+    check('camera switch redraws that camera’s hotspot map, wordmark, and selection',
       src.includes('graph.hotspots[cameraId]')
       && src.includes('if (selectedId) setSelected(selectedId)')
       && src.includes("setCamera('lead')")
+      && src.includes('setWordmark()')
       && office.DEFAULT_CAMERA_ID === 'lead');
   }
 

@@ -5,7 +5,10 @@
 const crypto = require('crypto');
 const {
   describeGmailSetup,
+  htmlToReadableText,
+  isUrlSoup,
   listGmailThreads,
+  preferReadableMail,
   readGmailMessage,
   sendGmailReply,
   supportInboxConfigured,
@@ -25,6 +28,52 @@ function replyAddress(fromHeader) {
   const raw = String(fromHeader || '');
   const angled = raw.match(/<([^>]+)>/);
   return (angled ? angled[1] : raw).trim();
+}
+
+function mailHaystack(item) {
+  return [
+    item && item.from,
+    item && item.to,
+    item && item.subject,
+    item && item.body,
+    item && item.snippet,
+  ].map((value) => String(value || '').toLowerCase()).join('\n');
+}
+
+function isInboxNoise(item) {
+  const hay = mailHaystack(item);
+  const from = String((item && item.from) || '').toLowerCase();
+  const to = String((item && item.to) || '').toLowerCase();
+  const subject = String((item && item.subject) || '').toLowerCase();
+  if (/voicecal|voice[\s-]?cal/.test(hay)) return true;
+  if (/mailer-daemon|postmaster@|delivery status notification|undeliverable|returned mail|failure notice/.test(hay)) return true;
+  if (/example\.com/.test(`${from} ${to}`) && /delivery status|undeliverable|mailer-daemon|postmaster|dsn\b/.test(hay)) return true;
+  if (/(google workspace|workspace billing|google payments|payments\.google|complete your workspace|verify your (bank|payment)|add a bank|gcp billing|google cloud billing)/.test(hay)) return true;
+  if (/workspace-noreply|payments-noreply|no-reply@accounts\.google|noreply@google\.com/.test(from)) {
+    if (/setup|payment|billing|bank|invoice|verify/.test(subject) || /setup|payment|billing|bank/.test(hay)) return true;
+  }
+  return false;
+}
+
+function looksLikeInquiry(item) {
+  const hay = mailHaystack(item);
+  if (/\?/.test(hay)) return true;
+  return /\b(quote|quotation|order|help|please|need|request|follow.?up|stock|lead time|pricing|invoice|thinkpad|laptop)\b/.test(hay);
+}
+
+function suggestedInboxLabel(item) {
+  if (isInboxNoise(item)) return 'reference';
+  if (looksLikeInquiry(item)) return 'needs_reply';
+  return 'reference';
+}
+
+function readableInboxBody(item) {
+  const raw = String((item && (item.body || item.snippet)) || '');
+  if (/<[a-z][\s\S]*>/i.test(raw)) {
+    const fromHtml = htmlToReadableText(raw);
+    if (fromHtml) return fromHtml;
+  }
+  return preferReadableMail(raw, '') || raw;
 }
 
 async function pasteSnapshot({ from, subject, body, createdBy }) {
@@ -135,9 +184,16 @@ async function refreshLiveInbox() {
         to: thread.to,
         subject: thread.subject,
         body,
-        snippet: thread.snippet,
+        snippet: isUrlSoup(thread.snippet) ? (body || '').slice(0, 280) : thread.snippet,
         unread: thread.unread,
         receivedAt: thread.receivedAt,
+        label: suggestedInboxLabel({
+          from: thread.from,
+          to: thread.to,
+          subject: thread.subject,
+          body,
+          snippet: thread.snippet,
+        }),
       });
     }
     return { ok: true, live: true, count: threads.length, setup: describeGmailSetup() };
@@ -158,9 +214,12 @@ async function inboxPayload() {
 module.exports = {
   confirmInboxSend,
   inboxPayload,
+  isInboxNoise,
   pasteSnapshot,
+  readableInboxBody,
   readyInboxSend,
   refreshLiveInbox,
   saveInboxDraft,
   setInboxLabel,
+  suggestedInboxLabel,
 };

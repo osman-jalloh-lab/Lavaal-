@@ -77,8 +77,12 @@ async function run() {
 
   {
     const empty = store.normalizeStore({});
-    check('empty store has no invented profile, goal, projects, or tasks',
-      Object.keys(empty.profiles).length === 0 && empty.goal == null && empty.projects.length === 0 && empty.tasks.length === 0);
+    check('empty store seeds the West Africa Apple reseller goal and invents no profiles, projects, or tasks',
+      empty.goal && /West Africa Apple reseller/.test(empty.goal.title)
+      && /Instagram/.test(empty.goal.nextStep)
+      && /Facebook/.test(empty.goal.nextStep)
+      && /no posts/.test(empty.goal.nextStep)
+      && Object.keys(empty.profiles).length === 0 && empty.projects.length === 0 && empty.tasks.length === 0);
   }
 
   {

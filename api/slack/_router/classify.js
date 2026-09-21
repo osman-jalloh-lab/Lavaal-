@@ -70,6 +70,7 @@ const VERB_ALIASES = Object.freeze({
   ads: 'ads',
   ad: 'ads',
   campaign: 'ads',
+  leverage: 'brand',
   contract: 'contract',
   secret: 'secret',
   secrets: 'secret',

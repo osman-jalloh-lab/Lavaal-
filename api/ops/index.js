@@ -102,11 +102,12 @@ function resolveArea(req) {
 }
 
 function knownArea(area) {
-  return NAV.some((item) => item.id === area);
+  return NAV.some((item) => item.id === area) || area === 'chat';
 }
 
 function safeReturnTo(value) {
-  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/chat' || value === '/ops/inbox' || value === '/ops/issues' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/map' || value === '/ops/routines' || value === '/ops/office' || value === '/ops') return value;
+  if (value === '/ops/chat') return '/ops/office';
+  if (value === '/ops/profile' || value === '/ops/tasks' || value === '/ops/memory' || value === '/ops/inbox' || value === '/ops/issues' || value === '/ops/calendar' || value === '/ops/kits' || value === '/ops/map' || value === '/ops/routines' || value === '/ops/office' || value === '/ops') return value;
   if (typeof value === 'string' && /^\/ops\/inbox\?thread=[a-zA-Z0-9_-]{6,40}$/.test(value)) return value;
   if (typeof value === 'string' && /^\/ops\/chat\/(lavaall-ceo|sales|technical|growth|lifecycle|researchy)$/.test(value)) return value;
   if (typeof value === 'string' && /^\/ops\/chat\?agent=(lavaall-ceo|ceo|sales|technical|growth|lifecycle|researchy)$/.test(value)) return value;
@@ -229,6 +230,9 @@ async function renderArea(req, res, session, extra) {
     case 'memory':
       return sendHtml(res, 200, memoryPage(pageOpts));
     case 'chat':
+      if (!isTalkAgent(pageOpts.agentId)) {
+        return wantsJson(req) ? json(res, 200, data) : redirect(res, '/ops/office');
+      }
       return sendHtml(res, 200, chatPage(pageOpts));
     case 'inbox': {
       if (supportInboxConfigured()) {

@@ -77,18 +77,79 @@ function headerFrom(headers, name) {
   return found && found.value ? String(found.value) : '';
 }
 
-function decodeGmailBody(part) {
-  if (!part) return '';
-  if (part.mimeType === 'text/plain' && part.body && part.body.data) {
-    return Buffer.from(part.body.data, 'base64url').toString('utf8');
+function decodeEntities(text) {
+  return String(text || '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = Number(n);
+      return Number.isFinite(code) ? String.fromCharCode(code) : '';
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => {
+      const code = parseInt(n, 16);
+      return Number.isFinite(code) ? String.fromCharCode(code) : '';
+    });
+}
+
+function htmlToReadableText(html) {
+  let text = String(html || '');
+  text = text.replace(/<style[\s\S]*?<\/style>/gi, ' ');
+  text = text.replace(/<script[\s\S]*?<\/script>/gi, ' ');
+  text = text.replace(/<head[\s\S]*?<\/head>/gi, ' ');
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  text = text.replace(/<\/(p|div|tr|h[1-6]|li|table|blockquote)>/gi, '\n');
+  text = text.replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, (_, inner) => {
+    const label = String(inner).replace(/<[^>]+>/g, '').trim();
+    if (!label || /^https?:\/\//i.test(label) || label.length > 80) return ' ';
+    return ` ${label} `;
+  });
+  text = text.replace(/<[^>]+>/g, ' ');
+  text = decodeEntities(text);
+  text = text.replace(/https?:\/\/\S+/g, ' ');
+  text = text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+  text = text.replace(/[ \t]{2,}/g, ' ').trim();
+  return text;
+}
+
+function isUrlSoup(text) {
+  const raw = String(text || '');
+  if (!raw) return false;
+  const urls = raw.match(/https?:\/\/\S+/g) || [];
+  const without = raw.replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim();
+  return urls.length >= 3 && without.length < 80;
+}
+
+function collectMailParts(part, bucket) {
+  if (!part) return;
+  if (part.body && part.body.data) {
+    const decoded = Buffer.from(part.body.data, 'base64url').toString('utf8');
+    if (part.mimeType === 'text/plain') bucket.plain.push(decoded);
+    if (part.mimeType === 'text/html') bucket.html.push(decoded);
   }
   if (Array.isArray(part.parts)) {
-    for (const child of part.parts) {
-      const text = decodeGmailBody(child);
-      if (text) return text;
-    }
+    part.parts.forEach((child) => collectMailParts(child, bucket));
   }
+}
+
+function preferReadableMail(plain, htmlText) {
+  const plainRaw = String(plain || '').trim();
+  const htmlRaw = String(htmlText || '').trim();
+  if (plainRaw && !isUrlSoup(plainRaw)) return plainRaw;
+  if (htmlRaw) return htmlRaw;
+  if (plainRaw) return plainRaw.replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim();
   return '';
+}
+
+function decodeGmailBody(part) {
+  const bucket = { plain: [], html: [] };
+  collectMailParts(part, bucket);
+  const plain = bucket.plain.join('\n').trim();
+  const fromHtml = htmlToReadableText(bucket.html.join('\n'));
+  return preferReadableMail(plain, fromHtml).slice(0, 4000);
 }
 
 async function gmailRequest(path, { method, body } = {}) {
@@ -240,7 +301,10 @@ module.exports = {
   describeGmailSetup,
   gmailConfigured,
   gmailFromAddress,
+  htmlToReadableText,
+  isUrlSoup,
   listGmailThreads,
+  preferReadableMail,
   readGmailMessage,
   refreshGmailAccessToken,
   sendGmailMessage,
