@@ -368,7 +368,7 @@ async function run() {
     check('CEO chat poll busts cache and clears waiting when a CEO reply lands',
       chatJs.includes("cache: 'no-store'")
       && chatJs.includes("t=' + Date.now()")
-      && chatJs.includes("if (last && last.role === 'ceo') return false")
+      && chatJs.includes("last.role === 'ceo'")
       && chatJs.includes('poll();')
       && chatJs.includes('setInterval(poll, 2000)')
       && chatJs.includes('applyThread(payload.thread, payload.waiting)'));

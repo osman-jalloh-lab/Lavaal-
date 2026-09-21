@@ -88,11 +88,16 @@ async function run() {
       const escaped = name.replace(/&/g, '&amp;');
       check(`${id} Talk page shows that desk and hides the helper`,
         page.statusCode === 200
-        && html.includes(`Talking with ${escaped}`)
-        && html.includes(`<h2>${escaped}</h2>`)
+        && html.includes(`<h1>${escaped}</h1>`)
         && !html.includes('<h2>Helper</h2>')
+        && !html.includes('Anthropic')
+        && !html.includes('OpenAI')
+        && !html.includes('Helper connected')
+        && !html.includes('assistant is not connected')
         && !html.includes('xai_runtime')
         && !html.includes('grok_bot_bridge')
+        && html.includes(`"agentName":${JSON.stringify(name)}`)
+        && html.includes('/assets/js/ops-ceo-chat.js?v=desk-voice')
         && (id === 'lavaall-ceo'
           ? html.includes('/ops/api/ceo-bridge/message')
           : html.includes('/ops/api/desk-talk/message')));
@@ -239,6 +244,13 @@ async function run() {
     check('docs list per-desk smoke for all six Talk agents',
       note.includes('Talk-ALL')
       && DESK_IDS.every((id) => note.includes(`/ops/chat?agent=${id}`)));
+    const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
+    check('Talk JS keeps the desk voice and desk poll URL',
+      chatJs.includes('function deskVoice()')
+      && chatJs.includes('graph.agentName')
+      && chatJs.includes('/ops/api/desk-talk/thread?agent=')
+      && chatJs.includes("last.role === 'assistant'")
+      && !chatJs.includes("kicker">' + (mine ? 'You' : 'LAVAALL CEO')"));
   }
 
   {

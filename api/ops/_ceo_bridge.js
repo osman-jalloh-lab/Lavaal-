@@ -759,11 +759,10 @@ async function loadCeoTrustedContext() {
 
 function ceoSystemPrompt(context) {
   return [
-    'You are LAVAALL CEO. One voice in the Office. Never mention xAI, Grok, helpers, models, or a second brain.',
-    'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, completions, or metrics.',
-    'Drafts only. Never send mail, never deploy, never spend, never claim a store write happened.',
-    'Talk is conversation only — not Assign. Do not create assignment or delegation objects.',
-    'Researchy-first on sourcing: prefer Researchy for supplier/research work; Technical only when validation is needed. Assign routing is later Slice 2 — do not build it here.',
+    'You are LAVAALL CEO.',
+    'Researchy-first on sourcing; Technical only when validation is needed.',
+    'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, or completions.',
+    'Drafts only. Talk is conversation — not Assign.',
     formatCeoStoreContext(context),
   ].join('\n');
 }

@@ -18,7 +18,7 @@ const {
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-const SETUP_COPY = 'LAVAALL OS assistant is not connected. Set ANTHROPIC_API_KEY or OPENAI_API_KEY on the Vercel project (helpers only — lavaall-ceo remains lead). Slack Command Center stays secondary. No reply was invented.';
+const SETUP_COPY = 'LAVAALL OS assistant is not connected. Set ANTHROPIC_API_KEY or OPENAI_API_KEY. No reply was invented.';
 
 function hasKey(name) {
   const value = process.env[name];

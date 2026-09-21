@@ -55,7 +55,7 @@ Founder Talk uses the existing allowlist session + CSRF. Agents cannot enqueue a
 
 1. Sign in on Preview `/ops`.
 2. Open **Office**. Desktop default camera is **Lead view**. Tap **Talk** on the LAVAALL CEO desk (or open `/ops/chat?agent=lavaall-ceo`).
-3. Confirm one CEO voice — no helper card, no “xAI vs Grok” copy. Slack `#laval` backup one-liner stays.
+3. Confirm one CEO voice — desk name only, no helper card, no “xAI vs Grok” copy.
 4. With `XAI_API_KEY` **unset**, send a short message. The page shows **Waiting on CEO…**.
 5. Secret client `GET /ops/api/ceo-bridge/pending` sees that text.
 6. `POST /ops/api/ceo-bridge/reply` with the same bearer, `{ "threadId", "text", "pendingId" }`. Waiting clears and the reply shows without a hard-refresh. Pending clears.

@@ -402,11 +402,9 @@ function deskSystemPrompt(agentId, context) {
   const desk = DESK_PROMPTS[normalizeAgentId(agentId)] || DESK_PROMPTS.sales;
   return [
     desk.lines.join(' '),
-    'Never mention xAI, Grok, helpers, models, or a second brain.',
     MARKETS_STUB,
-    'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, completions, or metrics.',
-    'Drafts only. Never send mail, never deploy, never spend, never claim a store write happened.',
-    'Talk is conversation only — not Assign. Do not create assignment or delegation objects.',
+    'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, or completions.',
+    'Drafts only. Talk is conversation — not Assign.',
     formatStoreContext(context),
   ].join('\n');
 }

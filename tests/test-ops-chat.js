@@ -207,12 +207,13 @@ async function run() {
     }), talk);
     const html = String(talk.raw);
     check('Talk from Office opens desk Talk for that agent',
-      html.includes('<h1>Chat</h1>')
-      && html.includes('Talking with LAVAALL Sales &amp; Customer Success')
+      html.includes('<h1>LAVAALL Sales &amp; Customer Success</h1>')
       && html.includes('name="agentId" value="sales"')
       && html.includes('/ops/api/desk-talk/message')
-      && html.includes('Open Chat with no agent to talk to everyone')
-      && !html.includes('<h2>Helper</h2>'));
+      && !html.includes('<h2>Helper</h2>')
+      && !html.includes('Anthropic')
+      && !html.includes('OpenAI')
+      && !html.includes('Helper connected'));
     const researchy = mockRes();
     await ops(authed({
       json: false,
@@ -220,9 +221,10 @@ async function run() {
       query: { area: 'chat', agent: 'researchy' },
     }), researchy);
     check('Researchy opens its own Talk pin',
-      String(researchy.raw).includes('Talking with Researchy')
+      String(researchy.raw).includes('<h1>Researchy</h1>')
       && String(researchy.raw).includes('name="agentId" value="researchy"')
-      && String(researchy.raw).includes('/ops/api/desk-talk/message'));
+      && String(researchy.raw).includes('/ops/api/desk-talk/message')
+      && !String(researchy.raw).includes('Anthropic'));
     const sentTalk = mockRes();
     await ops(authed({
       json: true,
@@ -240,13 +242,14 @@ async function run() {
     }), ceoDesk);
     const ceoHtml = String(ceoDesk.raw);
     check('CEO Talk uses the bridge and hides the Anthropic/OpenAI helper',
-      ceoHtml.includes('Talking with LAVAALL CEO')
+      ceoHtml.includes('<h1>LAVAALL CEO</h1>')
       && ceoHtml.includes('Waiting on CEO')
-      && ceoHtml.includes('Slack #laval is the backup')
       && ceoHtml.includes('/ops/api/ceo-bridge/message')
       && ceoHtml.includes('/assets/js/ops-ceo-chat.js')
       && !ceoHtml.includes('name="action" value="send-chat"')
       && !ceoHtml.includes('No Anthropic or OpenAI key')
+      && !ceoHtml.includes('Helper connected')
+      && !ceoHtml.includes('Slack #laval')
       && !ceoHtml.includes('<h2>Helper</h2>'));
   }
 

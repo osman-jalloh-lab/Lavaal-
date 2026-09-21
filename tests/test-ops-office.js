@@ -117,11 +117,17 @@ async function run() {
       && html.includes('<h1>Office</h1>')
       && html.includes('--canvas:#EDE7E0')
       && !html.includes('coming in ticket'));
-    check('desktop cameras and always-on Agents roster are present',
+    check('desktop cameras and LAVAALL-branded roster are present',
       CAMERAS.every((label) => html.includes(`>${label}<`))
       && html.includes('aria-label="Cameras"')
-      && html.includes('>Agents<')
-      && html.includes('>Roster<'));
+      && html.includes('id="office-roster"')
+      && html.includes('src="/images/logo.png"')
+      && html.includes('alt="LAVAALL"')
+      && !html.includes('>Agents<')
+      && !html.includes('>Roster<')
+      && !html.includes('AI agents')
+      && fs.existsSync(path.join(__dirname, '../images/logo.png'))
+      && fs.existsSync(path.join(__dirname, '../images/logo.webp')));
     check('phone/iPad cards crop the same camera photos plus Talk, never text-only',
       html.includes('src="/assets/ops/office/cameras/lead.png"')
       && html.includes('src="/assets/ops/office/cameras/front-left.png"')
@@ -162,8 +168,7 @@ async function run() {
     }
     check('Chat tab stays council while Talk uses the existing chat route',
       html.includes('href="/ops/chat"')
-      && html.includes('href="/ops/chat?agent=sales"')
-      && html.includes('Chat without an agent is still everyone'));
+      && html.includes('href="/ops/chat?agent=sales"'));
     check('Office CEO Talk still opens the lavaall-ceo chat route',
       html.includes('href="/ops/chat?agent=lavaall-ceo"')
       && html.includes('all six desks, including Researchy'));

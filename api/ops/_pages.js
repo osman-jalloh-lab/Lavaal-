@@ -22,7 +22,7 @@ const {
 } = require('./_store');
 const { buildMapGraph } = require('./_map');
 const { SHEET_WRITE_BANNER } = require('./_kits');
-const { SLACK_FALLBACK, WAITING_COPY, threadIsWaiting } = require('./_ceo_bridge');
+const { WAITING_COPY, threadIsWaiting } = require('./_ceo_bridge');
 const { waitingCopy, threadIsWaiting: deskThreadIsWaiting } = require('./_agent_thread');
 const { isTalkAgent, officeAgentById } = require('./_office');
 const { persistenceBanner, shellPage } = require('./_shell');
@@ -274,10 +274,11 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
       : `/ops/api/desk-talk/thread?agent=${encodeURIComponent(talkAgent.id)}`);
   const list = messages.length
     ? `<ol class="thread" id="ceo-thread">${messages.map((item) => deskMessageBubble(item, agentName)).join('')}</ol>`
-    : `<ol class="thread" id="ceo-thread"></ol><p class="empty" id="ceo-empty">No messages yet. Send one to ${escapeHtml(agentName)}.</p>`;
+    : `<ol class="thread" id="ceo-thread"></ol><p class="empty" id="ceo-empty">No messages yet.</p>`;
   const graph = {
     threadId: thread.id || '',
     agentId: talkAgent.id,
+    agentName,
     status: waiting ? 'pending' : 'answered',
     csrf: csrf || '',
     pollUrl,
@@ -291,14 +292,11 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     notice,
     error,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-ceo-chat.js?v=talk-all" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=desk-voice" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
-      <h1>Chat</h1>
-      <p class="lead">Talking with ${escapeHtml(agentName)}. This desk uses Office Talk — not the Anthropic or OpenAI helper. Open Chat with no agent to talk to everyone.</p>
+      <h1>${escapeHtml(agentName)}</h1>
       <section class="card">
-        <div class="kicker">Desk</div>
-        <h2>${escapeHtml(agentName)}</h2>
         <p id="ceo-waiting" class="empty"${waiting ? '' : ' hidden'}>${escapeHtml(waitText)}</p>
         ${list}
         <form id="ceo-bridge-form" method="POST" action="${escapeHtml(postUrl)}">
@@ -307,10 +305,9 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
           <input type="hidden" name="agentId" value="${escapeHtml(talkAgent.id)}"/>
           <input type="hidden" name="source" value="ops-office"/>
           <label for="ceo-message">Message</label>
-          <textarea id="ceo-message" name="text" required maxlength="2000" placeholder="Ask ${escapeHtml(agentName)}"></textarea>
+          <textarea id="ceo-message" name="text" required maxlength="2000" placeholder="Message"></textarea>
           <button class="btn" type="submit">Send</button>
         </form>
-        ${isCeo ? `<p class="empty">${escapeHtml(SLACK_FALLBACK)}</p>` : ''}
       </section>
     `,
   });
