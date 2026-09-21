@@ -1,9 +1,8 @@
-// Slice 2 — CEO Assign → Researchy child + CEO synthesize.
-// KV tasks in _store.js are the SoT. Researchy runs via desk-talk / xAI,
-// never ceo-bridge. B2 pending is not woken. Specialist done ≠ task done
-// until CEO synthesizes. Research/sourcing → Researchy first; Technical
-// is not auto-involved. Underscore prefix: not a Vercel function. No npm.
-// Never log emails or secrets. L3: no outbound email/send.
+// CEO Assign → Researchy child + Grok Bot wake.
+// KV tasks in _store.js are the SoT. Default wake is the Researchy pending
+// inbox (same secret as CEO B2). In-OS xAI is optional fallback only.
+// Specialist done ≠ task done until CEO synthesizes / founder OK.
+// Underscore prefix: not a Vercel function. No npm. L3: no outbound email.
 
 const {
   createCsrfToken,
@@ -21,13 +20,30 @@ const {
   redirect,
   wantsJson,
 } = require('./_lib');
-const { addTask, notesSelectableForChat, readStore, unfinishedTasks, updateTask } = require('./_store');
+const {
+  addTask,
+  enqueueResearchyPending,
+  listResearchyPending,
+  nextAssignSeq,
+  notesSelectableForChat,
+  readStore,
+  takeResearchyPending,
+  unfinishedTasks,
+  updateTask,
+} = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const ceo = require('./_ceo_bridge');
 const desks = require('./_agent_thread');
 
 const RESEARCHY_ID = 'researchy';
 const ACK_PREFIX = 'Assigned to Researchy.';
+const LAVAALL_ASSIGN_CONTEXT = [
+  'Locked LAVAALL company context (do not re-ask):',
+  '- West Africa IT sourcing marketplace.',
+  '- Markets: Sierra Leone, Guinea, Guinea-Bissau, Liberia.',
+  '- Quote-first. Never invent prices, SKUs, suppliers, or landed costs.',
+  '- Category → brand → family → model → variant, then Request Quote.',
+].join('\n');
 
 function clean(value, max) {
   return typeof value === 'string' ? value.trim().replace(/[<>]/g, '').slice(0, max) : '';
@@ -45,6 +61,15 @@ function looksLikeAssign(input) {
   return false;
 }
 
+function topicWords(text) {
+  const words = String(text || '')
+    .replace(/[^A-Za-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 6);
+  return words.join(' ') || 'research';
+}
+
 function parseAssignBrief(text) {
   const raw = typeof text === 'string' ? text.trim() : '';
   const stripped = raw
@@ -53,8 +78,24 @@ function parseAssignBrief(text) {
     .replace(/^assign\s+researchy\b[:\s-]*/i, '')
     .trim();
   const brief = stripped || raw;
-  const title = (brief.split(/\n/)[0] || '').trim().slice(0, 160) || 'Researchy assignment';
-  return { brief, title };
+  const topic = topicWords(brief);
+  return { brief, topic, title: topic };
+}
+
+function formatAssignTitle(n, topic) {
+  const seq = Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
+  const short = topicWords(topic);
+  return `Assign ${seq} — ${short}`.slice(0, 160);
+}
+
+function packAssignBrief(founderAsk, context) {
+  const ask = clean(founderAsk, 1600) || 'Research request.';
+  return [
+    `Founder ask:\n${ask}`,
+    LAVAALL_ASSIGN_CONTEXT,
+    formatTrustedContext(context),
+    'Return findings bullets only, then one recommend. No methodology, logs, or tool traces.',
+  ].join('\n\n');
 }
 
 function assigneeOf(input) {
@@ -95,6 +136,29 @@ function formatTrustedContext(data) {
   return lines.join('\n');
 }
 
+function isNoiseLine(line) {
+  return /^(i will|let me|as an ai|methodology|i searched|step \d|here is my (plan|approach)|ok researchy|waiting on)/i.test(line)
+    || /\/ops|xai|anthropic|openai|grok bot|stack trace|console\./i.test(line);
+}
+
+function formatResultsForFounder(text) {
+  const raw = clean(text, 4000);
+  if (!raw) {
+    return 'Found:\n- No findings yet.\n\nBased on that, recommend we wait for Researchy. (awaiting your OK)';
+  }
+  if (/^found:/i.test(raw) && /based on that, recommend/i.test(raw)) {
+    return raw.replace(/\s+$/, '') + (/\(awaiting your OK\)/i.test(raw) ? '' : ' (awaiting your OK)');
+  }
+  const lines = raw.split(/\n+/).map((line) => line.replace(/^[-*•]\s*/, '').trim()).filter((line) => line && !isNoiseLine(line));
+  const bullets = (lines.length ? lines : [raw]).slice(0, 8).map((line) => `- ${line.slice(0, 220)}`);
+  const recommend = (lines[lines.length - 1] || 'review these findings').slice(0, 180);
+  return `Found:\n${bullets.join('\n')}\n\nBased on that, recommend ${recommend}. (awaiting your OK)`;
+}
+
+function assignXaiFallbackEnabled() {
+  return String(process.env.OPS_ASSIGN_XAI_FALLBACK || '') === '1';
+}
+
 async function loadTrustedContext() {
   try {
     const data = await readStore();
@@ -113,7 +177,8 @@ function synthesisSystem(context) {
     'You are LAVAALL CEO synthesizing Researchy specialist result for the founder.',
     desks.MARKETS_STUB,
     'Use only the trusted KV records and the Researchy result below. Do not invent company context, prices, SKUs, suppliers, owners, or completions.',
-    'Do not dump the specialist reply verbatim. Summarize what Researchy found, what is still unknown, and the next decision.',
+    'Write results only: Found bullets, then “Based on that, recommend … (awaiting your OK)”.',
+    'Do not dump methodology, logs, or the specialist reply verbatim.',
     'Researchy-first. Do not involve Technical unless the founder asked for validation.',
     'Never mention /ops, Talk bridges, helpers, Anthropic, OpenAI, or xAI.',
     formatTrustedContext(context),
@@ -124,6 +189,19 @@ function findAssignTask(storeData, pred) {
   return ((storeData && storeData.tasks) || []).find(pred) || null;
 }
 
+async function wakeResearchy({ task, packedBrief, founderEmail, childThreadId, childCorrelationId }) {
+  const queued = await enqueueResearchyPending({
+    threadId: childThreadId,
+    founderEmail,
+    taskId: task && task.id,
+    messageId: childCorrelationId,
+    correlationId: childCorrelationId,
+    text: packedBrief,
+    wakeReason: 'assign',
+  });
+  return queued;
+}
+
 async function assignToResearchy(input) {
   const who = normalizeEmail(input && input.founderEmail);
   if (!who || !isAllowlisted(who)) return { error: 'forbidden' };
@@ -131,6 +209,12 @@ async function assignToResearchy(input) {
   if (assignee !== RESEARCHY_ID) return { error: 'invalid_assignee' };
   const parsed = parseAssignBrief(input && (input.text || input.message || input.brief));
   if (!parsed.brief) return { error: 'invalid_message' };
+
+  const seq = await nextAssignSeq();
+  if (seq.error) return seq;
+  const title = formatAssignTitle(seq.n, parsed.topic);
+  const context = await loadTrustedContext();
+  const packedBrief = packAssignBrief(parsed.brief, context);
 
   const queued = await ceo.enqueueFounderMessage({
     text: parsed.brief,
@@ -147,15 +231,15 @@ async function assignToResearchy(input) {
   let task = findAssignTask(storeData, (row) => row.parentCorrelationId === queued.correlationId);
   if (!task) {
     const created = await addTask({
-      title: parsed.title,
-      nextAction: 'Researchy researching',
+      title,
+      nextAction: 'Researchy working',
       status: 'doing',
       createdBy: who,
       ownerAgentId: RESEARCHY_ID,
       parentThreadId: queued.thread && queued.thread.id,
       parentCorrelationId: queued.correlationId,
       assignStatus: 'assigned',
-      brief: parsed.brief,
+      brief: packedBrief,
     });
     if (created.error) return created;
     task = created.task;
@@ -164,29 +248,21 @@ async function assignToResearchy(input) {
   if (!queued.replay) {
     await ceo.appendCeoNotice({
       threadId: queued.thread.id,
-      text: `${ACK_PREFIX} Child task ${task.id}. Researchy is on the brief. Specialist done is not task done until I synthesize.`,
+      text: `${ACK_PREFIX} ${title}. Full brief is on the task. Waiting on Researchy Grok Bot.`,
       provenance: 'tool',
       markAnsweredFor: queued.correlationId,
     });
   }
 
-  let desk = await desks.talkToDesk({
+  const desk = await desks.talkToDesk({
     agentId: RESEARCHY_ID,
-    text: `Assigned from LAVAALL CEO. Task ${task.id}.\n${parsed.brief}`,
+    text: `Assigned from LAVAALL CEO. Task ${task.id}. ${title}\n${packedBrief}`,
     founderEmail: who,
     threadId: task.childThreadId || undefined,
     source: 'ceo-assign',
     correlationId: task.childCorrelationId || undefined,
+    completeXai: false,
   });
-  if (desk && !desk.error && desk.waiting && desk.thread && desk.correlationId && xaiConfigured()) {
-    desk = await desks.completeXaiDeskReply({
-      agentId: RESEARCHY_ID,
-      threadId: desk.thread.id,
-      correlationId: desk.correlationId,
-      maxTokens: 280,
-      timeoutMs: 5500,
-    });
-  }
   if (desk.error) {
     return {
       ok: true,
@@ -195,20 +271,59 @@ async function assignToResearchy(input) {
       task,
       thread: queued.thread,
       deskError: desk.error,
-      waiting: false,
+      waiting: true,
+      wake: 'researchy-pending',
       correlationId: queued.correlationId,
     };
   }
 
+  let usedFallback = false;
+  if (
+    desk.waiting
+    && assignXaiFallbackEnabled()
+    && !ceo.bridgeSecretConfigured()
+    && xaiConfigured()
+    && desk.thread
+    && desk.correlationId
+  ) {
+    const completed = await desks.completeXaiDeskReply({
+      agentId: RESEARCHY_ID,
+      threadId: desk.thread.id,
+      correlationId: desk.correlationId,
+      maxTokens: 280,
+      timeoutMs: 5500,
+    });
+    usedFallback = !completed.error && !completed.waiting && Boolean(completed.reply);
+    if (usedFallback) {
+      Object.assign(desk, completed);
+    }
+  }
+
+  const wake = usedFallback
+    ? { ok: true, skipped: true }
+    : await wakeResearchy({
+      task,
+      packedBrief,
+      founderEmail: who,
+      childThreadId: desk.thread && desk.thread.id,
+      childCorrelationId: desk.correlationId,
+    });
+
   const patch = {
     childThreadId: desk.thread && desk.thread.id,
     childCorrelationId: desk.correlationId,
-    nextAction: desk.waiting ? 'Waiting on Researchy' : 'CEO synthesize',
+    nextAction: usedFallback && desk.reply ? 'Ready for review' : 'Researchy working',
   };
-  if (!desk.waiting && desk.reply) {
-    patch.result = desk.reply;
-    patch.assignStatus = 'specialist_done';
+  if (usedFallback && desk.reply) {
+    const formatted = formatResultsForFounder(desk.reply);
+    patch.result = formatted;
+    patch.assignStatus = 'ready_for_review';
     patch.status = 'doing';
+    await ceo.appendCeoNotice({
+      threadId: queued.thread.id,
+      text: formatted,
+      provenance: 'tool',
+    });
   }
   const updated = await updateTask(task.id, patch);
   task = (updated && updated.task) || task;
@@ -222,13 +337,15 @@ async function assignToResearchy(input) {
     task,
     thread: latest.thread || queued.thread,
     deskThread: desk.thread,
-    deskReply: desk.reply,
-    waiting: false,
-    usedModel: desk.usedModel,
-    provider: desk.provider,
+    deskReply: usedFallback ? desk.reply : '',
+    waiting: !usedFallback,
+    wake: usedFallback ? 'xai-fallback' : 'researchy-pending',
+    usedModel: Boolean(usedFallback),
+    provider: usedFallback ? 'xai' : '',
     correlationId: queued.correlationId,
     childCorrelationId: desk.correlationId,
-    reply: (lastCeo && lastCeo.text) || `${ACK_PREFIX}`,
+    pending: wake && wake.pending ? wake.pending : null,
+    reply: (lastCeo && lastCeo.text) || `${ACK_PREFIX} ${title}`,
   };
 }
 
@@ -242,20 +359,29 @@ async function noteDeskProgress({ agentId, threadId, correlationId, resultText, 
     row.ownerAgentId === RESEARCHY_ID
     && (
       (corr && row.childCorrelationId === corr)
-      || (childId && row.childThreadId === childId && (row.assignStatus === 'assigned' || row.assignStatus === 'specialist_done'))
+      || (childId && row.childThreadId === childId && (row.assignStatus === 'assigned' || row.assignStatus === 'ready_for_review' || row.assignStatus === 'specialist_done'))
     )
   ));
   if (!task) return { ok: true, skipped: true };
-  if (task.assignStatus === 'synthesized' || task.assignStatus === 'synthesizing') {
+  if (task.assignStatus === 'synthesized' || task.assignStatus === 'synthesizing' || task.assignStatus === 'ready_for_review') {
     return { ok: true, task };
   }
   if (waiting || !resultText) return { ok: true, task };
-  return updateTask(task.id, {
-    result: resultText,
-    assignStatus: 'specialist_done',
-    nextAction: 'CEO synthesize',
+  const formatted = formatResultsForFounder(resultText);
+  const updated = await updateTask(task.id, {
+    result: formatted,
+    assignStatus: 'ready_for_review',
+    nextAction: 'Ready for review',
     status: 'doing',
   });
+  if (task.parentThreadId) {
+    await ceo.appendCeoNotice({
+      threadId: task.parentThreadId,
+      text: formatted,
+      provenance: 'grok_bot_bridge',
+    });
+  }
+  return updated;
 }
 
 async function onDeskThreadPoll({ agentId, founderEmail }) {
@@ -265,44 +391,8 @@ async function onDeskThreadPoll({ agentId, founderEmail }) {
     const loaded = desk && who ? await desks.getFounderDeskThread(desk, who) : { thread: null };
     return { ok: true, skipped: true, thread: loaded.thread };
   }
-  const threadId = desks.threadIdFor(desk, who);
-  const storeData = await readStore();
-  const task = findAssignTask(storeData, (row) => (
-    row.ownerAgentId === RESEARCHY_ID
-    && row.createdBy === who
-    && (row.assignStatus === 'assigned' || row.assignStatus === 'specialist_done')
-    && (row.childThreadId === threadId || !row.childThreadId)
-  ));
-  const inspected = await desks.inspectDeskThread(desk, threadId);
-  const full = inspected.thread;
-  const founder = lastByRole(full, 'founder');
-  const assignedWork = Boolean(founder && /Assigned from LAVAALL CEO/i.test(founder.text));
-  if (!task && !assignedWork) {
-    const loaded = await desks.getFounderDeskThread(desk, who);
-    return { ok: true, skipped: true, thread: loaded.thread };
-  }
-  if (desks.threadIsWaiting(full) && founder && xaiConfigured()) {
-    await desks.completeXaiDeskReply({
-      agentId: desk,
-      threadId,
-      correlationId: founder.correlationId,
-      maxTokens: 280,
-      timeoutMs: 5500,
-    });
-  }
-  const again = await desks.inspectDeskThread(desk, threadId);
-  const assistant = lastByRole(again.thread, 'assistant');
-  await noteDeskProgress({
-    agentId: desk,
-    threadId,
-    correlationId: (task && task.childCorrelationId) || (founder && founder.correlationId),
-    resultText: assistant ? assistant.text : '',
-    waiting: desks.threadIsWaiting(again.thread),
-  });
-  return {
-    ok: true,
-    thread: desks.publicThread(again.thread || full),
-  };
+  const loaded = await desks.getFounderDeskThread(desk, who);
+  return { ok: true, skipped: true, thread: loaded.thread };
 }
 
 async function synthesizeOpenAssigns({ founderEmail }) {
@@ -312,60 +402,110 @@ async function synthesizeOpenAssigns({ founderEmail }) {
   const open = (storeData.tasks || []).filter((row) => (
     row.createdBy === who
     && row.ownerAgentId === RESEARCHY_ID
-    && (row.assignStatus === 'assigned' || row.assignStatus === 'specialist_done')
+    && row.assignStatus === 'specialist_done'
+    && row.result
   ));
   let synthesized = 0;
   for (const task of open) {
-    let current = task;
-    if (current.assignStatus === 'assigned' && current.childThreadId) {
-      const inspected = await desks.inspectDeskThread(RESEARCHY_ID, current.childThreadId);
-      const assistant = lastByRole(inspected.thread, 'assistant');
-      if (assistant && assistant.text) {
-        const pulled = await updateTask(current.id, {
-          result: assistant.text,
-          assignStatus: 'specialist_done',
-          nextAction: 'CEO synthesize',
-          status: 'doing',
-        });
-        current = (pulled && pulled.task) || current;
-      }
-    }
-    if (current.assignStatus !== 'specialist_done' || !current.result) continue;
     if (!xaiConfigured()) continue;
-    await updateTask(current.id, { assignStatus: 'synthesizing' });
+    await updateTask(task.id, { assignStatus: 'synthesizing' });
     try {
       const context = await loadTrustedContext();
       const result = await completeXai({
         system: synthesisSystem(context),
         messages: [{
           role: 'user',
-          content: `Founder brief:\n${current.brief}\n\nResearchy result:\n${current.result}\n\nWrite the CEO synthesis. Not a raw dump.`,
+          content: `Founder brief:\n${task.brief}\n\nResearchy result:\n${task.result}\n\nWrite Found / recommend only.`,
         }],
-        maxTokens: 500,
+        maxTokens: 400,
       });
       if (result.error || !result.text) {
-        await updateTask(current.id, { assignStatus: 'specialist_done' });
+        await updateTask(task.id, { assignStatus: 'specialist_done' });
         continue;
       }
-      const threadId = current.parentThreadId || ceo.threadIdFor(who);
+      const formatted = formatResultsForFounder(result.text);
+      const threadId = task.parentThreadId || ceo.threadIdFor(who);
       await ceo.appendCeoNotice({
         threadId,
-        text: result.text,
+        text: formatted,
         provenance: 'xai_runtime',
       });
-      await updateTask(current.id, {
+      await updateTask(task.id, {
         assignStatus: 'synthesized',
-        synthesis: result.text,
+        synthesis: formatted,
         nextAction: 'Founder review',
         status: 'doing',
       });
       synthesized += 1;
       break;
     } catch {
-      await updateTask(current.id, { assignStatus: 'specialist_done' });
+      await updateTask(task.id, { assignStatus: 'specialist_done' });
     }
   }
   return { ok: true, synthesized };
+}
+
+async function listAssignPending() {
+  try {
+    const storeData = await readStore();
+    return { ok: true, pending: listResearchyPending(storeData) };
+  } catch {
+    return { error: 'store_unavailable' };
+  }
+}
+
+async function postResearchyReply({ threadId, text, pendingId, messageId, correlationId }) {
+  const replayId = clean(pendingId, 40) || clean(messageId, 40) || clean(correlationId, 40);
+  const body = clean(text, 4000);
+  if (!body) return { error: 'invalid_message' };
+  const taken = replayId ? await takeResearchyPending(replayId) : { pending: null };
+  const storeData = await readStore();
+  const pending = taken.pending || listResearchyPending(storeData)[0] || null;
+  const task = findAssignTask(storeData, (row) => (
+    (pending && pending.taskId && row.id === pending.taskId)
+    || (replayId && row.childCorrelationId === replayId)
+    || (threadId && row.childThreadId === threadId && row.assignStatus === 'assigned')
+  ));
+  if (task && (task.assignStatus === 'ready_for_review' || task.assignStatus === 'synthesized') && task.result) {
+    return { ok: true, replay: true, task };
+  }
+  if (!task) return { error: 'assign_not_found' };
+  const deskThreadId = clean(threadId, 40) || task.childThreadId;
+  const corr = replayId || task.childCorrelationId;
+  let desk = { replay: false };
+  if (deskThreadId && corr) {
+    desk = await desks.appendOwnedReply({
+      agentId: RESEARCHY_ID,
+      threadId: deskThreadId,
+      correlationId: corr,
+      owner: 'grok_bot_bridge',
+      text: body,
+    });
+    if (desk.error && desk.error !== 'desk_thread_not_found') return desk;
+  }
+  if (desk.replay && task.result) return { ok: true, replay: true, task, thread: desk.thread };
+  const formatted = formatResultsForFounder(body);
+  const updated = await updateTask(task.id, {
+    result: formatted,
+    assignStatus: 'ready_for_review',
+    nextAction: 'Ready for review',
+    status: 'doing',
+    childThreadId: deskThreadId || task.childThreadId,
+    childCorrelationId: corr || task.childCorrelationId,
+  });
+  if (task.parentThreadId) {
+    await ceo.appendCeoNotice({
+      threadId: task.parentThreadId,
+      text: formatted,
+      provenance: 'grok_bot_bridge',
+    });
+  }
+  return {
+    ok: true,
+    replay: false,
+    task: (updated && updated.task) || task,
+    thread: desk.thread,
+  };
 }
 
 function sendJson(res, status, body) {
@@ -408,6 +548,14 @@ function ceoAssignKind(req) {
   return '';
 }
 
+function researchyWakeKind(req) {
+  const hay = hayOf(req);
+  if (!hay.includes('desk-talk') || !hay.includes('researchy')) return '';
+  if (hay.includes('/pending') || hay.endsWith('pending')) return 'pending';
+  if (hay.includes('/reply') || hay.endsWith('reply')) return 'reply';
+  return '';
+}
+
 function isCeoBridgeMessage(req) {
   const hay = hayOf(req);
   return hay.includes('ceo-bridge/message');
@@ -420,17 +568,21 @@ function isCeoBridgeThread(req) {
 
 function writeStatus(error) {
   switch (error) {
+    case 'unauthorized':
+      return 401;
     case 'forbidden':
     case 'agent_denied':
     case 'csrf':
     case 'invalid_csrf':
       return 403;
     case 'ceo_thread_not_found':
+    case 'assign_not_found':
       return 404;
     case 'store_unavailable':
       return 503;
     case 'invalid_message':
     case 'invalid_assignee':
+    case 'invalid_pending':
     case 'method_not_allowed':
       return error === 'method_not_allowed' ? 405 : 400;
     default: {
@@ -445,6 +597,8 @@ function errorMessage(error) {
   switch (error) {
     case 'store_unavailable':
       return 'The assign store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).';
+    case 'unauthorized':
+      return 'Researchy bridge secret was rejected.';
     case 'forbidden':
     case 'agent_denied':
       return 'That request is not allowed.';
@@ -456,7 +610,8 @@ function errorMessage(error) {
     case 'invalid_assignee':
       return 'This slice assigns Researchy only.';
     case 'ceo_thread_not_found':
-      return 'That CEO thread was not found.';
+    case 'assign_not_found':
+      return 'That assign was not found.';
     default:
       return 'Could not assign that work.';
   }
@@ -494,7 +649,7 @@ async function handleAssignMessage(req, res) {
   if (wantsJson(req)) {
     return sendJson(res, 200, Object.assign({ ok: true }, result, {
       csrf: createCsrfToken(access.session.email),
-      waiting: false,
+      waiting: result.waiting !== false,
       waitingCopy: ceo.WAITING_COPY,
       agentId: 'lavaall-ceo',
       agentName: 'LAVAALL CEO',
@@ -503,7 +658,47 @@ async function handleAssignMessage(req, res) {
   return redirect(res, '/ops/chat/lavaall-ceo');
 }
 
+async function handleResearchyPending(req, res) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'method_not_allowed' });
+  const auth = ceo.verifyBridgeSecret(req);
+  if (auth.error) return sendJson(res, 401, { error: 'unauthorized' });
+  const result = await listAssignPending();
+  if (result.error) return sendAssignError(req, res, result.error);
+  return sendJson(res, 200, { ok: true, pending: result.pending, lead: RESEARCHY_ID });
+}
+
+async function handleResearchyReply(req, res) {
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
+  const auth = ceo.verifyBridgeSecret(req);
+  if (auth.error) return sendJson(res, 401, { error: 'unauthorized' });
+  if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
+  const body = readBody(req);
+  const result = await postResearchyReply({
+    threadId: body.threadId || body.id,
+    text: body.text || body.message || body.reply,
+    pendingId: body.pendingId,
+    messageId: body.messageId,
+    correlationId: body.correlationId,
+  });
+  if (result.error) return sendAssignError(req, res, result.error);
+  return sendJson(res, 200, {
+    ok: true,
+    replay: result.replay,
+    task: result.task,
+    lead: RESEARCHY_ID,
+  });
+}
+
 async function handleCeoAssign(req, res) {
+  const wakeKind = researchyWakeKind(req);
+  if (wakeKind === 'pending') {
+    await handleResearchyPending(req, res);
+    return true;
+  }
+  if (wakeKind === 'reply') {
+    await handleResearchyReply(req, res);
+    return true;
+  }
   const kind = ceoAssignKind(req);
   const body = req.method === 'POST' ? readBody(req) : {};
   if (!kind && isCeoBridgeThread(req) && (req.method === 'GET' || req.method === 'HEAD')) {
@@ -527,13 +722,19 @@ async function handleCeoAssign(req, res) {
 
 Object.assign(module.exports, {
   ACK_PREFIX,
+  LAVAALL_ASSIGN_CONTEXT,
   RESEARCHY_ID,
   assignToResearchy,
   ceoAssignKind,
+  formatAssignTitle,
+  formatResultsForFounder,
   handleCeoAssign,
   looksLikeAssign,
   noteDeskProgress,
   onDeskThreadPoll,
   parseAssignBrief,
+  postResearchyReply,
+  researchyWakeKind,
   synthesizeOpenAssigns,
+  topicWords,
 });

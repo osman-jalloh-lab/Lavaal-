@@ -113,6 +113,8 @@ function tasksPage({ email, store, snapshot, notice, error }) {
               ${task.ownerAgentId ? ` · owner ${escapeHtml(task.ownerAgentId)}` : ''}
               ${task.assignStatus ? ` · ${escapeHtml(assignStatusLabel(task.assignStatus) || task.assignStatus)}` : ''}
               ${task.parentThreadId ? ` · parent ${escapeHtml(task.parentThreadId)}` : ''}</p>
+            ${task.brief ? `<details><summary>Full brief + context</summary><p>${escapeHtml(task.brief)}</p></details>` : ''}
+            ${task.result ? `<details><summary>Results</summary><p>${escapeHtml(task.result)}</p></details>` : ''}
             <label>
               Status
               <select name="status">

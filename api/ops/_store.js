@@ -43,9 +43,10 @@ const STATUS_LABELS = Object.freeze({
   doing: 'Doing',
   done: 'Done',
 });
-const ASSIGN_STATUSES = Object.freeze(['assigned', 'specialist_done', 'synthesizing', 'synthesized']);
+const ASSIGN_STATUSES = Object.freeze(['assigned', 'ready_for_review', 'specialist_done', 'synthesizing', 'synthesized']);
 const ASSIGN_STATUS_LABELS = Object.freeze({
   assigned: 'Assigned',
+  ready_for_review: 'Ready for review',
   specialist_done: 'Specialist done',
   synthesizing: 'Synthesizing',
   synthesized: 'Synthesized',
@@ -70,6 +71,8 @@ function emptyStore() {
     kitsMeta: null,
     issues: [],
     pendingBookings: [],
+    assignSeq: 0,
+    researchyPending: [],
   };
 }
 
@@ -191,7 +194,7 @@ function normalizeTask(row, projectIds) {
     childThreadId: clean(row && row.childThreadId, 40),
     childCorrelationId: clean(row && row.childCorrelationId, 40),
     assignStatus: normalizeAssignStatus(row && row.assignStatus),
-    brief: clean(row && row.brief, 2000),
+    brief: clean(row && row.brief, 4000),
     result: clean(row && row.result, 4000),
     synthesis: clean(row && row.synthesis, 4000),
   };
@@ -812,7 +815,33 @@ function normalizeStore(raw) {
     pendingBookings: Array.isArray(src.pendingBookings)
       ? src.pendingBookings.map(normalizePendingBooking).filter((row) => row.leadId).slice(0, MAX_PENDING_BOOKINGS)
       : [],
+    assignSeq: Number.isFinite(src.assignSeq) && src.assignSeq > 0 ? Math.min(Math.floor(src.assignSeq), 9999) : 0,
+    researchyPending: Array.isArray(src.researchyPending)
+      ? src.researchyPending.map(normalizeResearchyPending).filter(Boolean).slice(-40)
+      : [],
   };
+}
+
+function normalizeResearchyPending(row) {
+  const threadId = clean(row && row.threadId, 40);
+  const text = clean(row && row.text, 4000);
+  const founderEmail = normalizeEmail(row && row.founderEmail);
+  if (!threadId || !text || !founderEmail) return null;
+  return {
+    threadId,
+    founderEmail,
+    taskId: clean(row && row.taskId, 40),
+    messageId: clean(row && row.messageId, 40) || newId(),
+    correlationId: clean(row && row.correlationId, 40) || clean(row && row.messageId, 40) || newId(),
+    text,
+    at: Number.isFinite(row && row.at) ? row.at : Date.now(),
+    status: 'pending',
+    wakeReason: clean(row && row.wakeReason, 40) || 'assign',
+  };
+}
+
+function listResearchyPending(storeData) {
+  return ((storeData && storeData.researchyPending) || []).slice();
 }
 
 function unfinishedTasks(storeData) {
@@ -1490,6 +1519,44 @@ async function takePendingBooking(leadId) {
   });
 }
 
+async function nextAssignSeq() {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const n = (Number(storeData.assignSeq) || 0) + 1;
+    storeData.assignSeq = n;
+    await writeStore(storeData);
+    return { ok: true, n };
+  });
+}
+
+async function enqueueResearchyPending(fields) {
+  return mutate(async () => {
+    const item = normalizeResearchyPending(Object.assign({}, fields, { at: Date.now() }));
+    if (!item) return { error: 'invalid_pending' };
+    const storeData = await readStore();
+    storeData.researchyPending = [item]
+      .concat((storeData.researchyPending || []).filter((row) => row.correlationId !== item.correlationId))
+      .slice(0, 40);
+    await writeStore(storeData);
+    return { ok: true, pending: item };
+  });
+}
+
+async function takeResearchyPending(correlationId) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const id = clean(correlationId, 40);
+    const index = (storeData.researchyPending || []).findIndex((row) => (
+      row.correlationId === id || row.messageId === id
+    ));
+    if (index === -1) return { ok: true, pending: null };
+    const item = storeData.researchyPending[index];
+    storeData.researchyPending = storeData.researchyPending.filter((_, i) => i !== index);
+    await writeStore(storeData);
+    return { ok: true, pending: item };
+  });
+}
+
 function resetStore(seed) {
   memory = normalizeStore(seed || emptyStore());
 }
@@ -1551,7 +1618,10 @@ module.exports = {
   lastKitsSync,
   listIssues,
   listKits,
+  listResearchyPending,
   nextActionFrom,
+  nextAssignSeq,
+  enqueueResearchyPending,
   normalizeDateAdded,
   normalizeKit,
   normalizeKitStatus,
@@ -1565,6 +1635,7 @@ module.exports = {
   savePendingBooking,
   saveProfile,
   takePendingBooking,
+  takeResearchyPending,
   searchKits,
   searchNotes,
   selectableForChat,

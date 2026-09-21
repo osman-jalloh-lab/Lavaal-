@@ -14,7 +14,7 @@ Office CEO Talk and `/ops/chat?agent=lavaall-ceo` write founder turns into `ops:
 
 **Explicit wake** means a founder/bridge-intent message that should wake Grok Bot (`wake=true` / `explicitWake=true`, or text starting with `@grok` / `/wake`). Normal chat is owned by xAI when the key is set.
 
-Slice 2 **Assign** (CEO → Researchy child → CEO synthesize) is in scope on this Preview PR. Voice, calendar invites, inbox polish, Office Lead View, a full multi-assignee board, and waking Grok Bot via B2 for Assign stay out of scope.
+Slice 2 **Assign** (CEO → Researchy child → Researchy Grok wake → results-only writeback) is in scope on this Preview PR. Voice, calendar invites, Office Lead View, and a full multi-assignee board stay out of scope.
 
 ## KV schema
 
@@ -110,20 +110,60 @@ If pending or reply returns 401, stop — the secret is wrong. If 503, the store
 
 All six Office Talk agents use a persistent KV thread + server xAI. `_xai.js` is the only model adapter.
 
-## Slice 2 — Assign (CEO → Researchy → synthesize)
+## Slice 2 — Assign (CEO → Researchy Grok wake → results-only)
 
-KV tasks in `_store.js` are the SoT. `_assign.js` creates a **child task** owned by **Researchy**, linked to the parent CEO thread + `correlationId`. Researchy runs through existing desk-talk / xAI (`ops:agent:thread:researchy:{id}`) — **never** ceo-bridge. CEO posts a tool ack, then synthesizes the specialist result into the parent CEO thread (`provenance: tool` then `xai_runtime`). Specialist done is not task done until CEO synthesizes. Research/sourcing → Researchy first. Technical is not auto-involved.
+KV tasks in `_store.js` are the SoT. `_assign.js` creates a **child task** owned by **Researchy**, linked to the parent CEO thread + `correlationId`.
 
-HTTP: `POST /ops/ceo-assign/message` (also NL `/assign` or “assign to researchy” on the CEO message path). B2 pending is **not** woken (`enqueuePending: false`).
+- **Title:** `Assign N — <topic ≤6 words>`. Full founder ask + locked LAVAALL context pack live on the task brief only.
+- **Default work:** wake Researchy Grok Bot via `ops` researchy pending (same `OPS_CEO_BRIDGE_SECRET` as CEO B2). Do **not** treat in-OS xAI “OK Researchy” as the real work.
+- **Optional fallback:** `OPS_ASSIGN_XAI_FALLBACK=1` and no bridge secret → in-OS xAI only.
+- CEO B2 pending is **not** woken (`enqueuePending: false`).
+- Researchy desk-talk thread stores the packed brief. Results write back **Found / recommend** only. Specialist done is not task done until CEO synthesizes / founder OK.
+
+HTTP:
+
+- Founder: `POST /ops/ceo-assign/message` (also NL `/assign` or “assign to researchy” on the CEO message path)
+- Grok Bot: `GET /ops/api/desk-talk/researchy/pending` and `POST /ops/api/desk-talk/researchy/reply`  
+  Header: `Authorization: Bearer $OPS_CEO_BRIDGE_SECRET`
+
+### Researchy Grok Bot routine prompt
+
+Jobs are not limited to weekday 09:00–17:00. Poll when the founder may be working. Replace `PREVIEW_ORIGIN` with the Preview host (no trailing slash). Keep the secret in the bot’s env — never in this note.
+
+```
+You are Researchy for LAVAALL. Poll the Preview Researchy assign wake inbox when woken.
+
+Locked company context (always apply, do not re-ask):
+- West Africa IT sourcing marketplace.
+- Markets: Sierra Leone, Guinea, Guinea-Bissau, Liberia.
+- Quote-first. Never invent prices, SKUs, suppliers, or landed costs.
+- Category → brand → family → model → variant, then Request Quote.
+
+1. GET {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/pending
+   Header: Authorization: Bearer $OPS_CEO_BRIDGE_SECRET
+2. If pending is empty, stop. Do not invent work. This inbox is assign wakes only.
+   Do not poll /ops/api/ceo-bridge/pending for Assign work.
+3. For each pending item, do the Founder ask using the locked context already in the item text.
+   Return findings only: short bullets, then one recommend.
+   Do not write methodology, logs, tool traces, or “OK Researchy”.
+   Do not send mail, deploy, spend, or change production.
+4. POST {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/reply
+   Header: Authorization: Bearer $OPS_CEO_BRIDGE_SECRET
+   Body JSON: { "threadId": "<item.threadId>", "text": "<findings + recommend>", "pendingId": "<item.messageId>", "correlationId": "<item.correlationId>" }
+5. If the POST is a replay (already written), ignore and continue.
+6. Slack #laval is backup only.
+
+If pending or reply returns 401, stop — the secret is wrong. If 503, the store is down; retry later. Never invent a founder assign.
+```
 
 ### Slice 2 Preview smoke (one redeploy)
 
-1. Hard-refresh Preview. Office → CEO **Talk** (`/ops/chat/lavaall-ceo`). First paint must show **Assign to Researchy** under Send — no extra navigation.
-2. Type a sourcing brief. Click **Assign to Researchy** (or send `/assign find ThinkPad docks`). CEO thread shows an assign ack. Network: `POST /ops/ceo-assign/message` (200). **No** new row on `GET /ops/api/ceo-bridge/pending`.
-3. Open `/ops/tasks`. Child task: owner **researchy**, parent CEO thread id, status doing (not done), assign status assigned / specialist done / synthesized.
-4. Open Researchy Talk (`/ops/chat/researchy`). Assigned brief **and** a Researchy reply are already there — Waiting must clear. Do not send another Researchy message. Network: only `/ops/desk-talk/researchy/thread` (200). Zero `/ops/ceo-bridge/thread` and zero `/ops/api/ceo-bridge/thread`.
-5. Return to CEO Talk (or wait for the poll). CEO posts a **synthesis** (decision + unknowns), not a raw Researchy dump. Task assign status becomes **synthesized**; task status stays doing until you mark done.
-6. Repeat with NL only: `assign to researchy: source USB-C hubs` via Send. Same child + Researchy + synthesis path. Do not involve Technical unless you explicitly ask for validation.
+1. Hard-refresh Preview. Office → CEO **Talk** (`/ops/chat/lavaall-ceo`). First paint must show **Assign to Researchy** under Send.
+2. Type a long sourcing brief (more than 6 words). Click **Assign to Researchy**. CEO ack. Network: `POST /ops/ceo-assign/message` (200). **No** new row on `GET /ops/api/ceo-bridge/pending`.
+3. Open `/ops/tasks`. Title is `Assign N — <≤6 words>`, not the full brief. Status **Doing**. Detail shows full brief + West Africa / quote-first context pack.
+4. `GET /ops/api/desk-talk/researchy/pending` with the CEO bridge bearer lists that assign. Researchy Talk shows the packed brief and stays Waiting — no in-OS “OK Researchy” unless `OPS_ASSIGN_XAI_FALLBACK=1`.
+5. Researchy Grok Bot `POST /ops/api/desk-talk/researchy/reply` with findings. CEO Talk shows **Found:** bullets and **Based on that, recommend … (awaiting your OK)**. No methodology dump. Task becomes **Ready for review**, still Doing — not done.
+6. Repeat with NL: `assign to researchy: source USB-C hubs`. Title increments `Assign N`. Do not involve Technical unless you explicitly ask.
 
 | Desk | Talk route | KV key |
 |------|------------|--------|

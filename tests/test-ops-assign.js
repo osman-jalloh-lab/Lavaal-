@@ -78,6 +78,10 @@ async function run() {
   check('assign brief strips the command prefix',
     assign.parseAssignBrief('/assign find ThinkPad suppliers').brief === 'find ThinkPad suppliers'
     && assign.parseAssignBrief('assign to researchy: source docks').title === 'source docks');
+  check('assign titles are Assign N — topic ≤6 words, not the full brief',
+    assign.formatAssignTitle(3, 'source Apple products for Freetown enterprise quotes now') === 'Assign 3 — source Apple products for Freetown enterprise'
+    && assign.topicWords('source Apple products for Freetown enterprise quotes now') === 'source Apple products for Freetown enterprise'
+    && !assign.formatAssignTitle(1, 'a very long founder brief about everything').includes('everything'));
 
   {
     const page = mockRes();
@@ -164,63 +168,112 @@ async function run() {
     const ceoMessages = posted.body && posted.body.thread && posted.body.thread.messages
       ? posted.body.thread.messages
       : [];
-    check('B) child task has parent link, Researchy owner, assigned/specialist status',
+    check('B) child task has short Assign N title, parent link, and Doing',
       posted.statusCode === 200
       && posted.body.ok === true
       && posted.body.assignee === 'researchy'
       && task
+      && /^Assign 1 — /.test(task.title)
+      && task.title.split('—')[1].trim().split(/\s+/).length <= 6
+      && !task.title.includes('assign to researchy')
       && task.ownerAgentId === 'researchy'
       && task.parentThreadId === posted.body.thread.id
       && task.parentCorrelationId === 'assign-corr-1'
       && task.childThreadId
       && task.childCorrelationId
-      && (task.assignStatus === 'specialist_done' || task.assignStatus === 'assigned')
+      && task.assignStatus === 'assigned'
       && task.status === 'doing'
-      && task.status !== 'done');
+      && task.status !== 'done'
+      && task.brief.includes('Founder ask:')
+      && task.brief.includes('Sierra Leone')
+      && task.brief.includes('Quote-first')
+      && task.brief.includes('source ThinkPad docks'));
 
     const pending = await ceo.listPending();
-    check('Assign does not wake B2 pending',
+    const researchyPending = store.listResearchyPending(await store.readStore());
+    check('Assign does not wake CEO B2 pending',
       pending.ok === true && pending.pending.length === 0);
+    check('Assign wakes Researchy Grok pending with the packed brief',
+      posted.body.wake === 'researchy-pending'
+      && researchyPending.length === 1
+      && researchyPending[0].text.includes('Locked LAVAALL company context')
+      && researchyPending[0].taskId === task.id);
 
     const inspectedDesk = await desks.inspectDeskThread('researchy', task.childThreadId);
     const deskFounder = (inspectedDesk.thread.messages || []).find((item) => item.role === 'founder');
     const deskAssistant = (inspectedDesk.thread.messages || []).find((item) => item.role === 'assistant');
-    check('C) assign auto-runs Researchy reply without a second founder Talk click',
+    check('C) assign does not auto-run in-OS Researchy xAI',
       inspectedDesk.thread.agentId === 'researchy'
       && deskFounder
       && /Assigned from LAVAALL CEO/.test(deskFounder.text)
       && /source ThinkPad docks/.test(deskFounder.text)
-      && deskAssistant
-      && deskAssistant.text.includes('Researchy draft')
-      && deskAssistant.provenance === 'xai_runtime'
-      && seen.researchy >= 1
-      && posted.body.deskReply
-      && posted.body.deskReply.includes('Researchy draft'));
+      && !deskAssistant
+      && seen.researchy === 0
+      && !posted.body.deskReply);
 
     check('A/NL) CEO thread has the assign ack, not a raw specialist dump only',
       ceoMessages.some((item) => item.role === 'founder' && item.text.includes('source ThinkPad docks'))
       && ceoMessages.some((item) => item.role === 'ceo' && /Assigned to Researchy/.test(item.text))
-      && !ceoMessages.some((item) => item.text === 'Researchy draft: two possible docks, no landed cost invented.'));
+      && !ceoMessages.some((item) => /Researchy draft/.test(item.text)));
 
-    const poll = mockRes();
-    await ops(authed({
-      json: true,
-      url: `/ops/ceo-bridge/thread?id=${posted.body.thread.id}`,
-      query: { area: 'api/ceo-bridge/thread', id: posted.body.thread.id },
-    }), poll);
-    const after = poll.body && poll.body.thread && poll.body.thread.messages
-      ? poll.body.thread.messages
-      : [];
-    const synth = after.find((item) => item.role === 'ceo' && /CEO synthesis/.test(item.text));
-    const saved = (await store.readStore()).tasks.find((row) => row.id === task.id);
-    check('D) CEO Talk synthesizes Researchy instead of dumping the specialist reply',
-      poll.statusCode === 200
-      && synth
-      && synth.text.includes('Next: pick one vendor')
-      && !synth.text.includes('Researchy draft: two possible docks')
-      && saved.assignStatus === 'synthesized'
-      && saved.synthesis.includes('CEO synthesis')
-      && saved.status === 'doing');
+    const denied = mockRes();
+    await ops({
+      method: 'GET',
+      headers: { host: 'preview.example.test', accept: 'application/json' },
+      query: { area: 'api/desk-talk/researchy/pending', agent: 'researchy' },
+      url: '/ops/api/desk-talk/researchy/pending',
+    }, denied);
+    check('Researchy pending without bearer is 401', denied.statusCode === 401);
+
+    const listed = mockRes();
+    await ops({
+      method: 'GET',
+      headers: {
+        host: 'preview.example.test',
+        accept: 'application/json',
+        authorization: `Bearer ${BRIDGE_SECRET}`,
+      },
+      query: { area: 'api/desk-talk/researchy/pending', agent: 'researchy' },
+      url: '/ops/api/desk-talk/researchy/pending',
+    }, listed);
+    check('Researchy Grok Bot lists the assign wake inbox',
+      listed.statusCode === 200
+      && listed.body.ok === true
+      && listed.body.lead === 'researchy'
+      && listed.body.pending.some((item) => item.taskId === task.id));
+
+    const replied = mockRes();
+    await ops({
+      method: 'POST',
+      headers: {
+        host: 'preview.example.test',
+        accept: 'application/json',
+        'content-type': 'application/json',
+        authorization: `Bearer ${BRIDGE_SECRET}`,
+      },
+      query: { area: 'api/desk-talk/researchy/reply', agent: 'researchy' },
+      url: '/ops/api/desk-talk/researchy/reply',
+      body: {
+        threadId: task.childThreadId,
+        correlationId: task.childCorrelationId,
+        text: 'Two quote-first dock options in Freetown. No landed cost invented.',
+      },
+    }, replied);
+    const afterStore = await store.readStore();
+    const saved = afterStore.tasks.find((row) => row.id === task.id);
+    const ceoInspectEarly = await ceo.inspectCeoThread(posted.body.thread.id);
+    const foundNote = (ceoInspectEarly.thread.messages || []).find((item) => /Based on that, recommend/i.test(item.text));
+    check('D) Researchy reply writes results-only into CEO Talk and Ready for review',
+      replied.statusCode === 200
+      && replied.body.ok === true
+      && saved.assignStatus === 'ready_for_review'
+      && saved.status === 'doing'
+      && saved.nextAction === 'Ready for review'
+      && /Found:/.test(saved.result)
+      && /awaiting your OK/i.test(saved.result)
+      && foundNote
+      && foundNote.provenance === 'grok_bot_bridge'
+      && !/methodology|I searched|OK Researchy/i.test(foundNote.text));
 
     const researchyPage = mockRes();
     await ops(authed({
@@ -230,7 +283,7 @@ async function run() {
     }), researchyPage);
     check('C) Researchy Talk page shows the assigned child work',
       String(researchyPage.raw).includes('Assigned from LAVAALL CEO')
-      && String(researchyPage.raw).includes('Researchy draft')
+      && String(researchyPage.raw).includes('source ThinkPad docks')
       && String(researchyPage.raw).includes(`<h1>${office.officeAgentById('researchy').name}</h1>`));
 
     const tasksPage = mockRes();
@@ -239,16 +292,18 @@ async function run() {
       url: '/ops/tasks',
       query: { area: 'tasks' },
     }), tasksPage);
-    check('B) tasks list shows Researchy owner and parent link',
-      String(tasksPage.raw).includes('owner researchy')
+    check('B) tasks list shows short title, Researchy owner, and full brief',
+      String(tasksPage.raw).includes('Assign 1 —')
+      && String(tasksPage.raw).includes('owner researchy')
       && String(tasksPage.raw).includes(`parent ${task.parentThreadId}`)
-      && (String(tasksPage.raw).includes('Specialist done') || String(tasksPage.raw).includes('Synthesized')));
+      && String(tasksPage.raw).includes('Ready for review')
+      && String(tasksPage.raw).includes('Full brief + context')
+      && String(tasksPage.raw).includes('Sierra Leone'));
 
-    check('E) Researchy xAI never hits ceo-bridge; CEO synthesis uses xAI only',
-      seen.researchy === 1
-      && seen.ceo === 1
-      && seen.other === 0
-      && seen.urls.every((url) => url.includes('api.x.ai')));
+    check('E) default assign does not call in-OS Researchy xAI',
+      seen.researchy === 0
+      && seen.ceo === 0
+      && seen.other === 0);
 
     const nl = mockRes();
     await ops(authed({
@@ -267,7 +322,8 @@ async function run() {
       && nl.body.assigned === true
       && nl.body.task
       && nl.body.task.ownerAgentId === 'researchy'
-      && nl.body.task.parentCorrelationId === 'assign-corr-nl');
+      && nl.body.task.parentCorrelationId === 'assign-corr-nl'
+      && /^Assign 2 — /.test(nl.body.task.title));
 
     const technical = await assign.assignToResearchy({
       text: 'source docks',
@@ -280,9 +336,9 @@ async function run() {
     const ceoInspect = await ceo.inspectCeoThread(posted.body.thread.id);
     const notice = (ceoInspect.thread.messages || []).find((item) => /Assigned to Researchy/.test(item.text));
     const synthOwned = (ceoInspect.thread.messages || []).find((item) => /CEO synthesis/.test(item.text));
-    check('provenance is tool for the assign ack and xai_runtime for synthesis',
+    check('provenance is tool for the assign ack and grok_bot_bridge for results',
       notice && notice.provenance === 'tool'
-      && synthOwned && synthOwned.provenance === 'xai_runtime');
+      && !synthOwned);
 
     delete process.env.XAI_API_KEY;
     global.fetch = origFetch;
@@ -297,6 +353,7 @@ async function run() {
       src.includes("require('./_store')")
       && src.includes("require('./_agent_thread')")
       && src.includes('enqueuePending: false')
+      && src.includes('completeXai: false')
       && src.includes("agentId: RESEARCHY_ID")
       && !src.includes('gmail')
       && !src.includes('sendMail')
@@ -312,11 +369,14 @@ async function run() {
       && chatJs.includes("isDeskTalk() && url.indexOf('/ops/desk-talk/')")
       && chatJs.includes('/ceo-bridge/i.test(url) && !isCeoTalk()')
       && !chatJs.includes('/ops/api/ceo-bridge'));
-    check('docs include Slice 2 assign smoke',
+    check('docs include Slice 2 assign smoke and Researchy Grok wake',
       note.includes('Slice 2')
       && note.includes('Assign to Researchy')
       && note.includes('/ops/ceo-assign/message')
-      && note.includes('Specialist done is not task done'));
+      && note.includes('Specialist done is not task done')
+      && note.includes('/ops/api/desk-talk/researchy/pending')
+      && note.includes('/ops/api/desk-talk/researchy/reply')
+      && note.includes('Assign N'));
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
     assertPublicLogin(check, home);
   }

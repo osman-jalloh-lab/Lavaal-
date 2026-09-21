@@ -34,7 +34,7 @@ const THREAD_KEY_PREFIX = 'ops:agent:thread:';
 const THREAD_ROLES = Object.freeze(['founder', 'assistant']);
 const THREAD_STATUSES = Object.freeze(['pending', 'answered']);
 const PROVENANCE = Object.freeze(['human', 'xai_runtime', 'grok_bot_bridge', 'system', 'tool']);
-const RESPONSE_OWNERS = Object.freeze(['pending', 'xai_runtime']);
+const RESPONSE_OWNERS = Object.freeze(['pending', 'xai_runtime', 'grok_bot_bridge']);
 const MAX_MESSAGES = 40;
 const MAX_ANSWERED = 40;
 const MAX_TEXT = 2000;
@@ -660,7 +660,8 @@ async function talkToDesk(input) {
   if (desk === CEO_DESK_ID) {
     return ceoBridge.talkToCeo(input);
   }
-  const tryXai = xaiConfigured();
+  // Assign wakes Researchy Grok Bot; skip in-OS xAI unless the caller opts in.
+  const tryXai = xaiConfigured() && input.completeXai !== false;
   const queued = await enqueueFounderMessage(Object.assign({}, input, { agentId: desk }));
   if (queued.error) return queued;
   if (queued.replay && (!tryXai || !threadIsWaiting(queued.thread))) {
@@ -913,6 +914,7 @@ Object.assign(module.exports, {
   resetDeskTalk,
   storeMode,
   talkToDesk,
+  appendOwnedReply,
   completeXaiDeskReply,
   threadIdFor,
   threadIsWaiting,
