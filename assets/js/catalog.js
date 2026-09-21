@@ -1222,7 +1222,10 @@
       { comingSoon: true, bg: '#25D366', label: 'WA', text: 'WhatsApp' },
       { comingSoon: true, bg: '#0088cc', label: 'TG', text: 'Telegram' },
       { comingSoon: true, bg: '#006AFF', label: 'FB', text: 'Facebook Messenger' },
-      { href: 'mailto:sales@lavaall.com?subject=' + emailSubj + '&body=' + emailBody, bg: '#EA4335', label: '@', text: 'Email Us' },
+      { href: (typeof gmailComposeHref === 'function'
+        ? gmailComposeHref('sales@lavaall.com', 'Quote Request: ' + currentQuoteTitle(), safeText)
+        : 'https://mail.google.com/mail/?view=cm&fs=1&to=sales@lavaall.com&su=' + emailSubj + '&body=' + emailBody), bg: '#EA4335', label: '@', text: 'Email Us' },
+      { href: 'mailto:sales@lavaall.com?subject=' + emailSubj + '&body=' + emailBody, bg: '#5f6368', label: '✉', text: 'Open in mail app' },
     ];
     links.forEach(linkData => {
       const el = document.createElement(linkData.comingSoon ? 'button' : 'a');

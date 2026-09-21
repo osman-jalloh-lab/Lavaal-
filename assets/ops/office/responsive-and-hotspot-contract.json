@@ -1,0 +1,296 @@
+{
+  "route": "/ops",
+  "assets": {
+    "front_left": "01-front-left.png",
+    "front_right": "02-front-right.png",
+    "side": "03-side.png",
+    "wide": "04-primary-wide.png",
+    "lead_view": "05-lead-view.png"
+  },
+  "agents": [
+    {
+      "name": "LAVAALL CEO",
+      "short": "LAVAALL CEO",
+      "duty": "Coordinates priorities, decisions, and work across the LAVAALL agent team.",
+      "image": "front_right",
+      "pos": "50% 53%",
+      "scale": "1.52"
+    },
+    {
+      "name": "LAVAALL Sales & Customer Success",
+      "short": "Sales & Customer Success",
+      "duty": "Handles leads, quotes, follow-ups, customer questions, and sales handoffs.",
+      "image": "front_left",
+      "pos": "10% 48%",
+      "scale": "1.72"
+    },
+    {
+      "name": "LAVAALL Technical & QA",
+      "short": "Technical & QA",
+      "duty": "Reviews technical requests, implementation details, product quality, and QA issues.",
+      "image": "front_right",
+      "pos": "91% 48%",
+      "scale": "1.72"
+    },
+    {
+      "name": "LAVAALL Growth, UGC & Ads",
+      "short": "Growth, UGC & Ads",
+      "duty": "Builds campaign ideas, UGC briefs, paid-ad tests, and growth experiments.",
+      "image": "front_right",
+      "pos": "31% 31%",
+      "scale": "1.72"
+    },
+    {
+      "name": "LAVAALL Lifecycle & Klaviyo",
+      "short": "Lifecycle & Klaviyo",
+      "duty": "Runs lifecycle messaging, segments, email flows, follow-ups, and retention work.",
+      "image": "front_right",
+      "pos": "70% 31%",
+      "scale": "1.72"
+    },
+    {
+      "name": "Researchy",
+      "short": "Researchy",
+      "duty": "Researches vendors, products, competitors, pricing, sources, and market evidence.",
+      "image": "lead_view",
+      "pos": "50% 49%",
+      "scale": "1.30",
+      "placeholder": true
+    }
+  ],
+  "hotspots_by_view": {
+    "wide": [
+      [
+        "LAVAALL CEO",
+        40.2,
+        34.1,
+        19.5,
+        31.6
+      ],
+      [
+        "LAVAALL Sales & Customer Success",
+        5.4,
+        29.0,
+        19.2,
+        26.6
+      ],
+      [
+        "LAVAALL Technical & QA",
+        76.1,
+        28.4,
+        19.1,
+        27.3
+      ],
+      [
+        "LAVAALL Growth, UGC & Ads",
+        28.1,
+        21.8,
+        16.2,
+        20.8
+      ],
+      [
+        "LAVAALL Lifecycle & Klaviyo",
+        59.0,
+        21.6,
+        16.2,
+        21.0
+      ],
+      [
+        "Researchy",
+        86.2,
+        15.8,
+        12.0,
+        14.8
+      ]
+    ],
+    "front_left": [
+      [
+        "LAVAALL CEO",
+        37.0,
+        21.0,
+        28.0,
+        48.0
+      ],
+      [
+        "LAVAALL Sales & Customer Success",
+        5.0,
+        25.0,
+        20.5,
+        33.0
+      ],
+      [
+        "LAVAALL Technical & QA",
+        79.0,
+        24.0,
+        18.0,
+        34.0
+      ],
+      [
+        "LAVAALL Growth, UGC & Ads",
+        25.0,
+        23.0,
+        15.5,
+        24.0
+      ],
+      [
+        "LAVAALL Lifecycle & Klaviyo",
+        62.0,
+        23.0,
+        15.5,
+        24.0
+      ],
+      [
+        "Researchy",
+        88.0,
+        13.0,
+        10.5,
+        14.0
+      ]
+    ],
+    "front_right": [
+      [
+        "LAVAALL CEO",
+        35.0,
+        22.0,
+        29.0,
+        47.0
+      ],
+      [
+        "LAVAALL Sales & Customer Success",
+        5.0,
+        25.0,
+        21.0,
+        34.0
+      ],
+      [
+        "LAVAALL Technical & QA",
+        78.0,
+        24.0,
+        19.0,
+        35.0
+      ],
+      [
+        "LAVAALL Growth, UGC & Ads",
+        25.0,
+        23.0,
+        15.5,
+        24.0
+      ],
+      [
+        "LAVAALL Lifecycle & Klaviyo",
+        62.0,
+        23.0,
+        15.5,
+        24.0
+      ],
+      [
+        "Researchy",
+        88.0,
+        13.0,
+        10.5,
+        14.0
+      ]
+    ],
+    "side": [
+      [
+        "LAVAALL CEO",
+        43.0,
+        22.0,
+        31.0,
+        50.0
+      ],
+      [
+        "LAVAALL Sales & Customer Success",
+        7.0,
+        24.0,
+        19.5,
+        35.0
+      ],
+      [
+        "LAVAALL Technical & QA",
+        81.0,
+        26.0,
+        17.5,
+        34.0
+      ],
+      [
+        "LAVAALL Growth, UGC & Ads",
+        26.0,
+        23.0,
+        15.0,
+        25.0
+      ],
+      [
+        "LAVAALL Lifecycle & Klaviyo",
+        62.0,
+        23.0,
+        14.5,
+        25.0
+      ],
+      [
+        "Researchy",
+        3.5,
+        57.0,
+        13.0,
+        20.0
+      ]
+    ],
+    "lead_view": [
+      [
+        "LAVAALL CEO",
+        30.0,
+        28.0,
+        40.0,
+        68.0
+      ],
+      [
+        "LAVAALL Sales & Customer Success",
+        4.0,
+        27.0,
+        21.0,
+        34.0
+      ],
+      [
+        "LAVAALL Technical & QA",
+        80.0,
+        27.0,
+        18.0,
+        34.0
+      ],
+      [
+        "LAVAALL Growth, UGC & Ads",
+        25.0,
+        25.0,
+        15.0,
+        24.0
+      ],
+      [
+        "LAVAALL Lifecycle & Klaviyo",
+        62.0,
+        25.0,
+        15.0,
+        24.0
+      ],
+      [
+        "Researchy",
+        20.0,
+        51.0,
+        18.0,
+        26.0
+      ]
+    ]
+  },
+  "responsive": {
+    "phone": "<700px, 1 card/row",
+    "ipad_portrait": "700+ touch/tablet, 2 cards/row",
+    "ipad_landscape": "wide touch tablet, 3 cards/row",
+    "desktop": "full office; combined reference keeps touch iPad in card mode up to 1366px"
+  },
+  "constraints": [
+    "approved images only",
+    "all desktop camera views interactive",
+    "Chat remains council",
+    "no fake status dots",
+    "preview only"
+  ]
+}

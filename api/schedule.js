@@ -14,6 +14,9 @@
 // a profile link + consent for 'messenger'). lastName, country, and
 // company are always optional.
 
+const { savePendingBooking } = require('./ops/_store');
+const { recordPublicBooking } = require('./ops/_booking');
+
 const MAX_BODY = 8_000;
 const recentByEmail = new Map(); // mirrors contact.js's per-IP map, keyed by email/phone here
 
@@ -156,6 +159,23 @@ async function schedule(req, res) {
       sourcePage: clean(body.sourcePage, 200) || 'lavaall.com',
       bookingBaseUrl: `https://${req.headers.host || 'www.lavaall.com'}/schedule`,
     }, true);
+    if (result.ok && result.body && result.body.ok && result.body.leadId) {
+      try {
+        await savePendingBooking({
+          leadId: result.body.leadId,
+          firstName,
+          lastName,
+          email,
+          phone,
+          company,
+          reason,
+          method: preferredContactMethod,
+          note,
+        });
+      } catch {
+        // Booking still succeeded; /ops mirror can use book-time fields.
+      }
+    }
     return json(res, result.status, result.body);
   }
 
@@ -172,6 +192,29 @@ async function schedule(req, res) {
     }
 
     const result = await callBackend('book', { leadId, token, date, time }, true);
+    if (result.ok && result.body && result.body.ok) {
+      try {
+        const mirrored = await recordPublicBooking({
+          leadId,
+          date,
+          time,
+          meetLink: result.body.meetLink || result.body.hangoutLink || '',
+          firstName: clean(body.firstName, 60),
+          lastName: clean(body.lastName, 60),
+          email: clean(body.email, 100),
+          phone: clean(body.phone, 20),
+          company: clean(body.company, 100),
+          reason: clean(body.reason, 30),
+          method: clean(body.preferredContactMethod, 20),
+          note: clean(body.note, 500),
+        });
+        if (mirrored && mirrored.confirmation) {
+          result.body.confirmation = mirrored.confirmation;
+        }
+      } catch {
+        // Customer booking already succeeded. Do not fail the public book.
+      }
+    }
     return json(res, result.status, result.body);
   }
 
