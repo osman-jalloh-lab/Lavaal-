@@ -102,7 +102,7 @@ async function runRoutine(id, { selection, createdBy } = {}) {
   }
 
   const extracted = extractDrafts(model.text);
-  const result = extracted.text || 'Helper returned an empty draft. Nothing was applied.';
+  const result = extracted.text || 'The run returned an empty draft. Nothing was applied.';
   const saved = await recordRoutineRun(routine.id, {
     result,
     status: 'ok',

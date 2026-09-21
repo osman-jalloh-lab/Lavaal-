@@ -7,7 +7,6 @@ const {
   KIT_STATUSES,
   getInboxItem,
   getProfile,
-  getSharedChat,
   inboxLabelText,
   lastKitsSync,
   listEvents,
@@ -17,9 +16,9 @@ const {
   listMailAudit,
   listRoutines,
   notesSelectableForChat,
-  pendingProposals,
   searchNotes,
   assignStatusLabel,
+  ownerAgentLabel,
   statusLabel,
 } = require('./_store');
 const { buildMapGraph } = require('./_map');
@@ -28,23 +27,40 @@ const { WAITING_COPY, threadIsWaiting } = require('./_ceo_bridge');
 const { waitingCopy, threadIsWaiting: deskThreadIsWaiting } = require('./_agent_thread');
 const { isTalkAgent, officeAgentById } = require('./_office');
 const { persistenceBanner, shellPage } = require('./_shell');
+const { isInboxNoise, readableInboxBody } = require('./_inbox');
+const { isCalendarResidue } = require('./_calendar');
 
 function option(value, label, selected) {
   return `<option value="${escapeHtml(value)}"${selected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+}
+
+function taskOwnerLabel(id) {
+  const named = ownerAgentLabel(id);
+  if (named) return named;
+  const agent = officeAgentById(id);
+  return (agent && agent.name) || id;
+}
+
+function stripRecommend(text) {
+  return String(text || '')
+    .split(/\n+/)
+    .filter((line) => !/^based on that, recommend/i.test(line.trim()))
+    .join('\n')
+    .trim();
 }
 
 function profilePage({ email, store, snapshot, notice, error }) {
   const profile = getProfile(store, email) || { role: '', timezone: '', writingPreferences: '' };
   const goal = store.goal || { title: '', definitionOfDone: '', nextStep: '', targetDate: '' };
   return shellPage({
-    title: 'LAVAALL OS — You',
+    title: 'LAVAALL OS — Profile',
     email,
     area: 'profile',
     notice,
     error,
     body: `
       ${persistenceBanner(snapshot.durable)}
-      <h1>You</h1>
+      <h1>Profile</h1>
       <p class="lead">Your role, and the one thing we are finishing.</p>
       <div class="grid forms">
         <section class="card">
@@ -110,11 +126,10 @@ function tasksPage({ email, store, snapshot, notice, error }) {
             <p><strong>${escapeHtml(task.title)}</strong>
               ${projectName(task.projectId) ? ` · ${escapeHtml(projectName(task.projectId))}` : ''}
               ${task.due ? ` · due ${escapeHtml(task.due)}` : ''}
-              ${task.ownerAgentId ? ` · owner ${escapeHtml(task.ownerAgentId)}` : ''}
-              ${task.assignStatus ? ` · ${escapeHtml(assignStatusLabel(task.assignStatus) || task.assignStatus)}` : ''}
-              ${task.parentThreadId ? ` · parent ${escapeHtml(task.parentThreadId)}` : ''}</p>
+              ${task.ownerAgentId ? ` · Owner: ${escapeHtml(taskOwnerLabel(task.ownerAgentId))}` : ''}
+              ${task.assignStatus ? ` · ${escapeHtml(assignStatusLabel(task.assignStatus) || task.assignStatus)}` : ''}</p>
             ${task.brief ? `<details><summary>Full brief + context</summary><p>${escapeHtml(task.brief)}</p></details>` : ''}
-            ${task.result ? `<details><summary>Results</summary><p>${escapeHtml(task.result)}</p></details>` : ''}
+            ${task.result ? `<details><summary>Results</summary><p>${escapeHtml(stripRecommend(task.result))}</p></details>` : ''}
             <label>
               Status
               <select name="status">
@@ -356,9 +371,9 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
 })();
 </script>`;
   return shellPage({
-    title: 'LAVAALL OS — Chat',
+    title: `LAVAALL OS — ${agentName}`,
     email,
-    area: 'chat',
+    area: 'office',
     notice,
     error,
     head: talkGuard,
@@ -402,102 +417,18 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, c
       talkAgent,
     });
   }
-  const chat = getSharedChat(store);
-  const setup = chatSetup || { modelConfigured: false, anthropic: false, openai: false, lead: 'lavaall-ceo' };
-  const notes = notesSelectableForChat(store);
-  const drafts = pendingProposals(store);
-  const goal = store.goal;
-  const returnTo = '/ops/chat';
-  const chatLead = 'Ask about the goal, a task, or a note. This tab talks to everyone. Chat does not send mail or change records until you confirm.';
-  const setupCard = setup.modelConfigured
-    ? `<p>Helper connected (${setup.anthropic ? 'Anthropic' : ''}${setup.anthropic && setup.openai ? ' + ' : ''}${setup.openai ? 'OpenAI' : ''}). Lead stays ${escapeHtml(setup.lead)}. Drafts only — nothing is sent or written without confirm.</p>`
-    : '<p class="empty">No Anthropic or OpenAI key on this project. Ask a saved next step and it still reads the record. Anything else shows this message — no invented reply.</p>';
-
-  const contextPick = `
-    <fieldset class="ctx">
-      <legend>Context sent with the next message</legend>
-      ${goal
-        ? `<label class="check"><input type="checkbox" name="useGoal" value="1" checked/> Goal — ${escapeHtml(goal.title)}${goal.nextStep ? ` · next step: ${escapeHtml(goal.nextStep)}` : ''}</label>`
-        : '<p class="empty">No current goal. Save one under You.</p>'}
-      <label for="chat-task">Task (optional)</label>
-      <select id="chat-task" name="taskId">
-        ${option('', 'No task', true)}
-        ${(store.tasks || []).map((task) => option(task.id, `${task.title}${task.nextAction ? ` — ${task.nextAction}` : ''}`, false)).join('')}
-      </select>
-      <label for="chat-note">Note (optional)</label>
-      <select id="chat-note" name="noteId">
-        ${option('', 'No note', true)}
-        ${notes.map((note) => option(note.id, note.title, false)).join('')}
-      </select>
-      <p>Tick the goal and pick a task or note to send with the question.</p>
-    </fieldset>`;
-
-  const thread = chat.messages.length
-    ? `<ol class="thread">${chat.messages.map((item) => (
-      `<li class="bubble ${escapeHtml(item.role)}">
-        <div class="kicker">${item.role === 'user' ? 'You' : 'LAVAALL OS assistant'}${item.grounded ? ' · from record' : ''}${item.setup ? ' · setup' : ''}</div>
-        <p>${escapeHtml(item.text)}</p>
-        ${item.contextSummary ? `<p class="who">${escapeHtml(item.contextSummary)}</p>` : ''}
-      </li>`
-    )).join('')}</ol>`
-    : '<p class="empty">No messages yet. Select context, then ask.</p>';
-
-  const proposalList = drafts.length
-    ? `<ul class="list">${drafts.map((item) => (
-      `<li>
-        <p><span class="tag">Draft</span><strong>${escapeHtml(item.kind)}</strong> — ${escapeHtml(item.title || item.fields.title || 'Untitled')}</p>
-        ${item.body || item.fields.body ? `<p>${escapeHtml(item.body || item.fields.body)}</p>` : ''}
-        <form method="POST" action="/ops/chat" style="display:inline">
-          <input type="hidden" name="action" value="confirm-proposal"/>
-          <input type="hidden" name="id" value="${escapeHtml(item.id)}"/>
-          <input type="hidden" name="returnTo" value="${escapeHtml(returnTo)}"/>
-          <button class="btn btn-sm" type="submit">Confirm draft</button>
-        </form>
-        <form method="POST" action="/ops/chat" style="display:inline">
-          <input type="hidden" name="action" value="dismiss-proposal"/>
-          <input type="hidden" name="id" value="${escapeHtml(item.id)}"/>
-          <input type="hidden" name="returnTo" value="${escapeHtml(returnTo)}"/>
-          <button class="btn btn-sm btn-danger" type="submit">Dismiss</button>
-        </form>
-      </li>`
-    )).join('')}</ul>`
-    : '<p class="empty">No pending drafts. Chat cannot write the store until you confirm a proposal.</p>';
-
   return shellPage({
-    title: 'LAVAALL OS — Chat',
+    title: 'LAVAALL OS — Office',
     email,
-    area: 'chat',
+    area: 'office',
     notice,
     error,
     body: `
-      ${persistenceBanner(snapshot.durable)}
-      <h1>Chat</h1>
-      <p class="lead">${escapeHtml(chatLead)}</p>
-      <div class="grid forms">
-        <section class="card">
-          <div class="kicker">Ready?</div>
-          <h2>Helper</h2>
-          ${setupCard}
-        </section>
-        <section class="card">
-          <div class="kicker">Waiting</div>
-          <h2>Drafts to confirm</h2>
-          ${proposalList}
-        </section>
-      </div>
-      <section class="card" style="margin-top:14px">
-        <div class="kicker">${talkAgent ? 'Desk' : 'Everyone'}</div>
-        <h2>Conversation</h2>
-        ${thread}
-        <form method="POST" action="/ops/chat">
-          <input type="hidden" name="action" value="send-chat"/>
-          <input type="hidden" name="returnTo" value="${escapeHtml(returnTo)}"/>
-          ${talkAgent ? `<input type="hidden" name="agent" value="${escapeHtml(talkAgent.id)}"/>` : ''}
-          ${contextPick}
-          <label for="chat-message">Message</label>
-          <textarea id="chat-message" name="message" required maxlength="2000" placeholder="What is the next step?"></textarea>
-          <button class="btn" type="submit">Send</button>
-        </form>
+      ${persistenceBanner(snapshot && snapshot.durable)}
+      <h1>Talk</h1>
+      <p class="lead">Desk Talk and CEO Talk live on the Office floor. There is no Everyone chat.</p>
+      <section class="card">
+        <p><a href="/ops/office">Open Office</a> · <a href="/ops/chat/lavaall-ceo">CEO Talk</a></p>
       </section>
     `,
   });
@@ -525,18 +456,21 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
        <p>Until then, paste a snapshot below — it is never marked as live mail. Nothing is sent to customers unless you click Confirm send.</p>`;
 
   const rows = items.length
-    ? `<ul class="list">${items.map((item) => (
-      `<li>
+    ? `<ul class="list">${items.map((item) => {
+      const quiet = isInboxNoise(item);
+      const snippet = readableInboxBody({ body: item.snippet, snippet: item.snippet });
+      return `<li${quiet ? ' class="inbox-quiet"' : ''}>
         <span class="tag">${item.live ? 'Live' : 'Paste snapshot'}</span>
-        <span class="tag">${escapeHtml(inboxLabelText(item.label))}</span>
-        ${item.unread ? '<span class="tag">Unread</span>' : ''}
+        <span class="tag">${escapeHtml(quiet ? 'Reference' : inboxLabelText(item.label))}</span>
+        ${quiet ? '<span class="tag">Quiet</span>' : ''}
+        ${!quiet && item.unread ? '<span class="tag">Unread</span>' : ''}
         ${item.sentMessageId ? '<span class="tag">Sent</span>' : ''}
         <strong>${escapeHtml(item.subject)}</strong>
-        <p>${escapeHtml(item.from || 'Unknown sender')}${item.snippet ? ` — ${escapeHtml(item.snippet)}` : ''}</p>
+        <p>${escapeHtml(item.from || 'Unknown sender')}${snippet ? ` — ${escapeHtml(snippet)}` : ''}</p>
         <p>${inboxWhen(item) ? escapeHtml(inboxWhen(item)) : ''}${item.to ? ` · to ${escapeHtml(item.to)}` : ''}</p>
         <p><a href="/ops/inbox?thread=${escapeHtml(item.id)}">Open</a></p>
-      </li>`
-    )).join('')}</ul>`
+      </li>`;
+    }).join('')}</ul>`
     : '<p class="empty">No snapshots or live threads yet. Paste one below.</p>';
 
   const labelOptions = INBOX_LABELS.map((value) => option(value, inboxLabelText(value), open && open.label === value)).join('');
@@ -547,7 +481,7 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
         <h2>${escapeHtml(open.subject)}</h2>
         <p>From ${escapeHtml(open.from || 'unknown')}${open.to ? ` · to ${escapeHtml(open.to)}` : ''}</p>
         <p>${open.unread ? '<span class="tag">Unread</span> ' : ''}${inboxWhen(open) ? escapeHtml(inboxWhen(open)) : ''}</p>
-        <p>${escapeHtml(open.body || open.snippet || '')}</p>
+        <p class="inbox-body">${escapeHtml(readableInboxBody(open))}</p>
         <form method="POST" action="/ops/inbox">
           <input type="hidden" name="action" value="save-inbox-draft"/>
           <input type="hidden" name="id" value="${escapeHtml(open.id)}"/>
@@ -634,7 +568,7 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
 
 function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) {
   const setup = calendarSetup || { googleConnected: false, calendarIdSet: false, oauthSet: false };
-  const events = listEvents(store);
+  const events = listEvents(store).filter((event) => !isCalendarResidue(event));
   const setupCard = setup.googleConnected
     ? `<p>Google is connected. Refresh to pull the shared calendar — never Osman’s personal one.</p>
        <form method="POST" action="/ops/calendar">
@@ -642,15 +576,7 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
          <input type="hidden" name="returnTo" value="/ops/calendar"/>
          <button class="btn btn-sm" type="submit">Refresh Google agenda</button>
        </form>`
-    : `<p class="empty">Google Calendar is not connected. Add events below. No Google events are invented.</p>
-       <p>Use a shared LAVAALL calendar, not a personal primary calendar.</p>
-       <ol class="list">
-         <li>Create a Google Calendar, share it with both founders, and copy its calendar id (not <code>primary</code>).</li>
-         <li>Set <code>OPS_GOOGLE_CALENDAR_ID</code> on Vercel Preview.</li>
-         <li>Reuse Gmail OAuth (<code>OPS_GMAIL_*</code> client + refresh token) with Calendar scope, or set a separate calendar refresh token.</li>
-         <li>Required scope: <code>https://www.googleapis.com/auth/calendar</code> (or <code>calendar.events</code>).</li>
-         <li>Workspace admin may still block this the same way support@ Gmail hits “Service Not Allowed” until that policy is fixed. Out of scope for this ticket.</li>
-       </ol>
+    : `<p>Connect a shared LAVAALL Google Calendar (calendar id + OAuth) to sync. Events still save here without it.</p>
        <p>Checklist: calendar id ${setup.calendarIdSet ? 'set' : 'missing'} · OAuth ${setup.oauthSet ? 'set' : 'missing'}.</p>`;
 
   const rows = events.length
@@ -703,7 +629,7 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
       <p class="lead">What is next. Add a meeting if you need one. Only Osman, Hamid, and @lavaall.com. Email invites stay drafts until Confirm send.</p>
       ${setup.googleConnected
         ? '<p class="ok">Shared Google Calendar is connected. New events save here and sync when Google is up.</p>'
-        : '<p class="empty">Google Calendar is not connected. Events still save on this page. Set a shared calendar id and OAuth to sync — never a personal primary calendar.</p>'}
+        : '<p class="empty">Google Calendar is not connected. Connect a shared calendar to sync — never a personal primary calendar.</p>'}
       <section class="card">
         <div class="kicker">Next</div>
         <h2>Coming up</h2>
@@ -754,9 +680,9 @@ function runStatusLabel(status) {
     case 'missing_input':
       return 'Missing inputs';
     case 'unconfigured':
-      return 'Helper not connected';
+      return 'Not connected';
     case 'helper_failed':
-      return 'Helper failed';
+      return 'Run failed';
     default: {
       const _never = status;
       void _never;
@@ -770,8 +696,8 @@ function routinesPage({ email, store, snapshot, notice, error, chatSetup }) {
   const routines = listRoutines(store);
   const notes = notesSelectableForChat(store);
   const setupCard = setup.modelConfigured
-    ? `<p>Helper connected (${setup.anthropic ? 'Anthropic' : ''}${setup.anthropic && setup.openai ? ' + ' : ''}${setup.openai ? 'OpenAI' : ''}). Run is manual and drafts only — no mail, no schedule.</p>`
-    : '<p class="empty">No Anthropic or OpenAI key on this project. You can still edit and copy prompts. Run will show a clear helper-not-connected error — no invented result.</p>';
+    ? `<p>Runs are manual and drafts only — no mail, no schedule.</p>`
+    : '<p class="empty">No model key on this project. You can still edit and copy prompts. Run will say it is not connected — no invented result.</p>';
 
   const cards = routines.map((routine) => {
     const last = routine.lastRunAt
@@ -809,7 +735,7 @@ function routinesPage({ email, store, snapshot, notice, error, chatSetup }) {
             <legend>Context for this run</legend>
             ${store.goal
               ? `<label class="check"><input type="checkbox" name="useGoal" value="1" checked/> Goal — ${escapeHtml(store.goal.title)}</label>`
-              : '<p class="empty">No current goal saved.</p>'}
+              : '<p class="empty">No current goal saved. Save one on Profile before running.</p>'}
             <label for="run-task-${escapeHtml(routine.id)}">Task (optional)</label>
             <select id="run-task-${escapeHtml(routine.id)}" name="taskId">
               ${option('', 'No task', true)}
@@ -821,7 +747,9 @@ function routinesPage({ email, store, snapshot, notice, error, chatSetup }) {
               ${notes.map((note) => option(note.id, note.title, false)).join('')}
             </select>
           </fieldset>
-          <button class="btn" type="submit">Run</button>
+          ${store.goal
+            ? '<button class="btn" type="submit">Run</button>'
+            : '<button class="btn" type="submit" disabled>Run</button>'}
         </form>
         <div class="kicker" style="margin-top:16px">Last result</div>
         ${last}
@@ -841,7 +769,7 @@ function routinesPage({ email, store, snapshot, notice, error, chatSetup }) {
       <h1>Saved routines</h1>
       <p class="lead">Saved questions you run yourself. Copy or run. No background schedules.</p>
       <section class="card">
-        <div class="kicker">Helper</div>
+        <div class="kicker">Ready</div>
         <h2>Run status</h2>
         ${setupCard}
       </section>

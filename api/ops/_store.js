@@ -52,6 +52,15 @@ const ASSIGN_STATUS_LABELS = Object.freeze({
   synthesized: 'Synthesized',
 });
 const OWNER_AGENT_IDS = Object.freeze(['researchy']);
+const OWNER_AGENT_LABELS = Object.freeze({
+  researchy: 'Researchy',
+});
+const DEFAULT_GOAL = Object.freeze({
+  title: 'Close first West Africa Apple reseller quote path (ASBIS/MCI)',
+  definitionOfDone: '',
+  nextStep: 'open Instagram + Facebook business accounts (research only, no posts)',
+  targetDate: '',
+});
 
 let memory = emptyStore();
 
@@ -133,6 +142,32 @@ function normalizeAssignStatus(value) {
 function assignStatusLabel(status) {
   const key = normalizeAssignStatus(status);
   return key ? ASSIGN_STATUS_LABELS[key] : '';
+}
+
+function ownerAgentLabel(id) {
+  const key = normalizeOwnerAgentId(id);
+  return key ? OWNER_AGENT_LABELS[key] : '';
+}
+
+function seededGoal() {
+  return normalizeGoal(Object.assign({}, DEFAULT_GOAL, { updatedAt: Date.now() }));
+}
+
+function withSeededGoal(goal) {
+  return normalizeGoal(goal) || seededGoal();
+}
+
+function rawHasGoal(raw) {
+  if (raw == null) return false;
+  let src = raw;
+  if (typeof raw === 'string') {
+    try {
+      src = JSON.parse(raw);
+    } catch {
+      return false;
+    }
+  }
+  return Boolean(src && typeof src === 'object' && src.goal && String(src.goal.title || '').trim());
 }
 
 function normalizeOwnerAgentId(value) {
@@ -425,7 +460,17 @@ function normalizeAudit(row) {
 }
 
 function listInboxItems(storeData) {
-  return ((storeData && storeData.inbox) || []).slice().sort((a, b) => b.updatedAt - a.updatedAt);
+  return ((storeData && storeData.inbox) || []).slice().sort((a, b) => {
+    const rank = (item) => {
+      if (item && item.label === 'needs_reply') return 0;
+      if (item && item.unread) return 1;
+      if (item && item.label === 'reference') return 3;
+      return 2;
+    };
+    const delta = rank(a) - rank(b);
+    if (delta !== 0) return delta;
+    return (b.updatedAt || 0) - (a.updatedAt || 0);
+  });
 }
 
 function getInboxItem(storeData, id) {
@@ -784,7 +829,7 @@ function normalizeStore(raw) {
   const projectIds = new Set(projects.map((row) => row.id));
   return {
     profiles: normalizeProfiles(src.profiles),
-    goal: normalizeGoal(src.goal),
+    goal: withSeededGoal(src.goal),
     projects,
     tasks: Array.isArray(src.tasks)
       ? src.tasks.map((row) => normalizeTask(row, projectIds)).filter((row) => row.title).slice(0, MAX_TASKS)
@@ -928,11 +973,27 @@ function fileSet(storeData) {
   fs.writeFileSync(target, JSON.stringify(storeData));
 }
 
+async function persistSeededGoalIfNeeded(raw) {
+  if (!isDurable() || rawHasGoal(raw)) return;
+  try {
+    await writeStore(memory);
+  } catch {
+    // In-memory seed still applies if durable write is down.
+  }
+}
+
 async function readStore() {
   if (kvConfigured()) {
-    memory = await kvGet();
+    const payload = await kvCommand(['GET', STORE_KEY]);
+    const raw = payload && payload.result;
+    memory = decodeKvResult(raw);
+    await persistSeededGoalIfNeeded(raw);
   } else if (filePath()) {
-    memory = fileGet();
+    const target = filePath();
+    const raw = target && fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null;
+    memory = raw ? fileGet() : emptyStore();
+    memory = normalizeStore(memory);
+    await persistSeededGoalIfNeeded(raw);
   }
   return clone(normalizeStore(memory));
 }
@@ -1346,6 +1407,7 @@ async function upsertLiveInboxItem(fields) {
       gmailMessageId: fields.gmailMessageId || current.gmailMessageId,
       unread: fields.unread == null ? current.unread : fields.unread,
       receivedAt: fields.receivedAt || current.receivedAt,
+      label: current.label === 'needs_reply' && fields.label === 'reference' ? 'reference' : current.label,
       updatedAt: Date.now(),
     }));
     storeData.inbox[index] = next;
@@ -1572,6 +1634,9 @@ module.exports = {
   normalizeOwnerAgentId,
   STORE_KEY,
   CHAT_ID,
+  DEFAULT_GOAL,
+  OWNER_AGENT_LABELS,
+  ownerAgentLabel,
   KIT_STATUSES,
   MAX_KITS,
   SEED_ROUTINE_IDS,

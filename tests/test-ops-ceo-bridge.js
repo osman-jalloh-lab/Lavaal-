@@ -322,10 +322,11 @@ async function run() {
       url: '/ops/chat',
       query: { area: 'chat' },
     }), everyone);
-    check('Chat without an agent stays the helper / everyone path',
-      String(everyone.raw).includes('This tab talks to everyone')
-      && String(everyone.raw).includes('name="action" value="send-chat"')
-      && !String(everyone.raw).includes('name="agent"'));
+    check('Chat without an agent redirects to Office',
+      everyone.statusCode === 302
+      && everyone.headers.Location === '/ops/office'
+      && !String(everyone.raw).includes('This tab talks to everyone')
+      && !String(everyone.raw).includes('<h2>Helper</h2>'));
   }
 
   {

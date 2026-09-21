@@ -189,6 +189,11 @@ async function draftCalendarInvites(event, { createdBy } = {}) {
   return { ok: true, drafts, sent: false };
 }
 
+function isCalendarResidue(event) {
+  const hay = `${(event && event.title) || ''} ${(event && event.notes) || ''}`.toLowerCase();
+  return /voicecal|voice[\s-]?cal/.test(hay);
+}
+
 function wantsInviteDraft(value) {
   return value === true || value === '1' || value === 'true' || value === 'on';
 }
@@ -235,6 +240,7 @@ async function refreshGoogleAgenda() {
         : [];
       const storeData = await readStore();
       const existing = (storeData.events || []).find((row) => row.googleEventId === item.id);
+      if (isCalendarResidue({ title: item.summary || '', notes: item.description || '' })) continue;
       const fields = {
         title: item.summary || '(untitled)',
         date,
@@ -269,6 +275,7 @@ module.exports = {
   describeCalendarSetup,
   draftCalendarInvites,
   guardAttendees,
+  isCalendarResidue,
   isInternalAttendee,
   refreshGoogleAgenda,
   removeCalendarEvent,

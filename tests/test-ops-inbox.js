@@ -237,6 +237,39 @@ async function run() {
   }
 
   {
+    check('Google Workspace billing is reference, not Needs reply',
+      inbox.suggestedInboxLabel({
+        from: 'workspace-noreply@google.com',
+        subject: 'Your Google Workspace payment failed',
+        body: 'Update your bank account to keep Workspace.',
+      }) === 'reference'
+      && inbox.isInboxNoise({ from: 'workspace-noreply@google.com', subject: 'Your Google Workspace payment failed' }) === true);
+    check('DSN to example.com is quiet reference',
+      inbox.suggestedInboxLabel({
+        from: 'mailer-daemon@google.com',
+        to: 'user@example.com',
+        subject: 'Delivery Status Notification (Failure)',
+        body: 'The recipient example.com could not be reached.',
+      }) === 'reference');
+    check('QA VoiceCal invite is quiet',
+      inbox.isInboxNoise({ from: 'calendar@voicecal.test', subject: 'QA VoiceCal invite', body: 'Join VoiceCal' }) === true);
+    check('a real quote request still Needs reply',
+      inbox.suggestedInboxLabel({
+        from: 'Buyer <buyer@example.com>',
+        subject: 'Quote for P14s',
+        body: 'Need a ThinkPad quote for Freetown.',
+        unread: true,
+      }) === 'needs_reply');
+    const htmlSoup = '<html><body><p>Thanks for the quote request.</p><p><a href="https://tracking.example/a">https://tracking.example/a</a> <a href="https://cdn.example/x.png">https://cdn.example/x.png</a> <a href="https://click.example/z">Click here</a></p></body></html>';
+    const readable = inbox.readableInboxBody({ body: htmlSoup });
+    check('HTML mail becomes readable text, not URL soup',
+      /Thanks for the quote request/.test(readable)
+      && /Click here/.test(readable)
+      && !/https:\/\/tracking\.example/.test(readable)
+      && !/<p>/.test(readable));
+  }
+
+  {
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
     assertPublicLogin(check, home);
   }

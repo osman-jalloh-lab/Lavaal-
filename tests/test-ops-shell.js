@@ -59,8 +59,10 @@ async function run() {
   delete process.env.KV_REST_API_TOKEN;
   store.resetStore();
 
-  check('nav lists all twelve areas', NAV.length === 12
-    && NAV.map((item) => item.id).join(',') === 'dashboard,office,profile,chat,memory,issues,inbox,calendar,kits,map,tasks,routines');
+  check('nav lists eleven areas without Helper chat', NAV.length === 11
+    && NAV.map((item) => item.id).join(',') === 'dashboard,office,profile,memory,issues,inbox,calendar,kits,map,tasks,routines'
+    && NAV.some((item) => item.id === 'profile' && item.label === 'Profile' && item.href === '/ops/profile')
+    && !NAV.some((item) => item.id === 'chat'));
 
   {
     const res = mockRes();
@@ -71,7 +73,7 @@ async function run() {
   {
     const res = mockRes();
     await ops(authed({ json: true }), res);
-    check('empty dashboard snapshot has no invented records', res.statusCode === 200 && res.body.snapshot.empty === true && res.body.snapshot.unfinished.length === 0 && !res.body.snapshot.goal && !res.body.snapshot.nextAction);
+    check('empty dashboard snapshot seeds the West Africa Apple reseller goal', res.statusCode === 200 && res.body.snapshot.empty === false && res.body.snapshot.unfinished.length === 0 && res.body.snapshot.goal && /West Africa Apple reseller/.test(res.body.snapshot.goal.title) && /Instagram/.test(res.body.snapshot.goal.nextStep) && !res.body.snapshot.nextAction);
     check('empty dashboard names the demo store when KV is unset', String(res.raw).includes('Demo store') || res.body.snapshot.durable === false);
   }
 
@@ -80,9 +82,9 @@ async function run() {
     await ops(authed(), res);
     const html = String(res.raw);
     check('logged-in /ops is the dashboard shell', res.statusCode === 200 && html.includes('Dashboard') && html.includes('signed in as') && html.includes(ALLOWED));
-    check('dashboard nav links all twelve areas', NAV.every((item) => html.includes(`href="${item.href}"`)));
+    check('dashboard nav links all eleven areas', NAV.every((item) => html.includes(`href="${item.href}"`)) && !html.includes('>Chat</a>'));
     check('home title stays Dashboard', html.includes('<h1>Dashboard</h1>') && !html.includes('<h1>Floor</h1>'));
-    check('empty state copy is present', html.includes('Nothing saved yet') && html.includes('No current goal saved yet') && html.includes('No unfinished tasks'));
+    check('seeded goal and unfinished empty copy are present', html.includes('West Africa Apple reseller') && html.includes('Instagram') && html.includes('No unfinished tasks') && !html.includes('Nothing saved yet'));
     check('add task and note are reachable from home', html.includes('id="add-task"') && html.includes('id="add-note"') && html.includes('Save task') && html.includes('Save note'));
     check('dashboard does not invent activity metrics', !/productivity|streak|points|12 tasks completed/i.test(html));
     check('Sign out is still on the shell', /Sign out/.test(html));

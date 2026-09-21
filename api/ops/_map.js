@@ -191,10 +191,10 @@ function buildMapGraph(storeData) {
       label: title.length > 14 ? `${title.slice(0, 12)}…` : (title || 'Decision'),
       working: workingText(
         goal.nextStep || goal.definitionOfDone,
-        'A founder call to remember. Open You for the current goal.'
+        'A founder call to remember. Open Profile for the current goal.'
       ),
       href: '/ops/profile',
-      linkLabel: 'Open in You',
+      linkLabel: 'Open in Profile',
       search: `${title} ${goal.nextStep || ''} ${goal.definitionOfDone || ''}`.toLowerCase(),
       source: 'goal',
     });

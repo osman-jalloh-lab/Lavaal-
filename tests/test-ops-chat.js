@@ -67,16 +67,13 @@ async function run() {
     const html = mockRes();
     await ops(authed({ json: false, url: '/ops/chat', query: { area: 'chat' } }), html);
     const page = String(html.raw);
-    check('chat page is real, not a ticket stub',
-      page.includes('<h1>Chat</h1>') && page.includes('Send') && !page.includes('coming in ticket 05'));
-    check('chat HTML never includes API keys or secret names as values',
-      !/sk-ant|sk-proj|re_[A-Za-z0-9]|ANTHROPIC_API_KEY=|OPENAI_API_KEY=/.test(page));
-    check('unconfigured setup copy is honest',
-      page.includes('No Anthropic or OpenAI key') && page.includes('no invented reply'));
-    check('Chat tab without an agent stays council / talk-to-everyone',
-      page.includes('This tab talks to everyone')
-      && !page.includes('name="agent"')
-      && page.includes('name="returnTo" value="/ops/chat"'));
+    check('bare /ops/chat redirects to Office',
+      html.statusCode === 302 && html.headers.Location === '/ops/office');
+    check('bare /ops/chat does not render Helper or Everyone',
+      !page.includes('<h1>Chat</h1>')
+      && !page.includes('<h2>Helper</h2>')
+      && !page.includes('This tab talks to everyone')
+      && !page.includes('Helper connected'));
   }
 
   {
@@ -185,8 +182,8 @@ async function run() {
     await store.saveGoal({ title: 'Preview goal', nextStep: 'Ask chat' });
     const page = mockRes();
     await ops(authed({ json: false, url: '/ops/chat', query: { area: 'chat' } }), page);
-    check('selected context is visible on the form before send',
-      String(page.raw).includes('Context sent with the next message') && String(page.raw).includes('Preview goal') && String(page.raw).includes('Ask chat'));
+    check('bare chat GET still redirects after a goal is saved',
+      page.statusCode === 302 && page.headers.Location === '/ops/office');
     const sent = mockRes();
     await ops(authed({
       json: true,

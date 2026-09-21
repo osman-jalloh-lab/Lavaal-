@@ -196,8 +196,8 @@ async function run() {
     check('task mentioning a person creates a task-person edge', taskPerson === true);
     check('task mentioning the goal creates a task-decision edge', taskDecision === true);
     check('linked graph still has only four node types', nodeTypes(graph).every((type) => map.MAP_NODE_TYPES.includes(type)));
-    check('decision node opens You, person opens Memory',
-      graph.nodes.some((node) => node.type === 'decision' && node.linkLabel === 'Open in You' && node.href === '/ops/profile')
+    check('decision node opens Profile, person opens Memory',
+      graph.nodes.some((node) => node.type === 'decision' && node.linkLabel === 'Open in Profile' && node.href === '/ops/profile')
       && personAda.linkLabel === 'Open in Memory');
   }
 

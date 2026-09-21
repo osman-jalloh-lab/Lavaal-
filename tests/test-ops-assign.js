@@ -338,8 +338,9 @@ async function run() {
     }), tasksPage);
     check('B) tasks list shows short title, Researchy owner, and full brief',
       String(tasksPage.raw).includes('Assign 1 —')
-      && String(tasksPage.raw).includes('owner researchy')
-      && String(tasksPage.raw).includes(`parent ${task.parentThreadId}`)
+      && String(tasksPage.raw).includes('Owner: Researchy')
+      && !String(tasksPage.raw).includes(`parent ${task.parentThreadId}`)
+      && !String(tasksPage.raw).includes('owner researchy')
       && String(tasksPage.raw).includes('Ready for review')
       && String(tasksPage.raw).includes('Full brief + context')
       && String(tasksPage.raw).includes('Sierra Leone'));
