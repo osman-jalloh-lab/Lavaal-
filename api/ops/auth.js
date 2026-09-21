@@ -1,6 +1,6 @@
 // api/ops/auth.js — LAVAALL OS founder sign-in (Vercel serverless).
-// Preview: instant session for allowlisted emails (VERCEL_ENV=preview).
-// Magic-link remains behind the flag / non-preview. Never instant in production.
+// Preview + Production: instant session for allowlisted emails when auth is configured.
+// Magic-link remains the fallback when OPS_INSTANT_LOGIN=0 (emergency).
 // POST action=request|logout  ·  GET ?token=… still consumes a one-time link.
 
 const { loginPage } = require('./_html');
