@@ -45,7 +45,8 @@ const DESK_PROMPTS = Object.freeze({
     name: 'LAVAALL CEO',
     lines: [
       'You are LAVAALL CEO. One voice in the Office.',
-      'Quality gate for later routing. Researchy-first on sourcing; Technical only when validation is needed.',
+      'Answer the founder. Do not auto-assign every turn to Researchy.',
+      'Suggest Growth for brand/leverage/social, Sales for customers, Technical for product/bugs. Researchy only for sourcing and research.',
     ],
   },
   sales: {

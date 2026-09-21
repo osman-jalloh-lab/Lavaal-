@@ -32,6 +32,7 @@ const {
   updateTask,
 } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
+const { classify } = require('../slack/_router/classify');
 const ceo = require('./_ceo_bridge');
 const desks = require('./_agent_thread');
 
@@ -49,16 +50,64 @@ function clean(value, max) {
   return typeof value === 'string' ? value.trim().replace(/[<>]/g, '').slice(0, max) : '';
 }
 
-function looksLikeAssign(input) {
-  if (!input) return false;
-  if (input.assign === true || input.assign === '1' || input.assign === 'researchy') return true;
-  const assignee = String(input.assignee || input.ownerAgentId || '').toLowerCase();
-  if (assignee === 'researchy') return true;
-  const text = String(input.text || input.message || input.brief || '');
+function looksLikeExplicitAssignText(input) {
+  const text = String((input && (input.text || input.message || input.brief)) || '');
   if (/^\/assign\b/i.test(text)) return true;
   if (/\bassign(?:\s+this)?\s+to\s+researchy\b/i.test(text)) return true;
   if (/\bassign\s+researchy\b/i.test(text)) return true;
   return false;
+}
+
+function looksLikeAssignControl(input) {
+  if (!input) return false;
+  if (input.assign === true || input.assign === '1' || input.assign === 'researchy') return true;
+  const assignee = String(input.assignee || input.ownerAgentId || '').toLowerCase();
+  return assignee === 'researchy';
+}
+
+function looksLikeAssign(input) {
+  if (!input) return false;
+  return looksLikeAssignControl(input) || looksLikeExplicitAssignText(input);
+}
+
+function specialistSuggest(route) {
+  const area = route && route.area;
+  const lead = route && route.leadAgent;
+  if (area === 'growth' || lead === 'growth') return 'growth';
+  if (area === 'sales' || lead === 'sales') return 'sales';
+  if (area === 'technical' || lead === 'technical') return 'technical';
+  return '';
+}
+
+function routeCeoSend(input) {
+  if (looksLikeExplicitAssignText(input)) {
+    return {
+      action: 'assign-researchy',
+      reason: 'explicit',
+      specialist: RESEARCHY_ID,
+      suggest: '',
+    };
+  }
+  const text = String((input && (input.text || input.message || input.brief)) || '').trim();
+  const route = classify({ text, source: 'ops_ceo_send' });
+  const verb = route && route.verb;
+  const area = route && route.area;
+  if ((verb === 'research' || verb === 'source') && (!area || area === 'ceo')) {
+    return {
+      action: 'assign-researchy',
+      reason: 'route',
+      specialist: RESEARCHY_ID,
+      suggest: '',
+      route,
+    };
+  }
+  return {
+    action: 'ceo',
+    reason: 'answer',
+    specialist: '',
+    suggest: specialistSuggest(route),
+    route,
+  };
 }
 
 const TOPIC_MAX = 6;
@@ -774,7 +823,8 @@ async function handleCeoAssign(req, res) {
     if (access.session) await synthesizeOpenAssigns({ founderEmail: access.session.email });
     return false;
   }
-  const viaBridge = !kind && isCeoBridgeMessage(req) && !ceo.isExplicitWake(body) && looksLikeAssign(body);
+  const viaBridge = !kind && isCeoBridgeMessage(req) && !ceo.isExplicitWake(body)
+    && routeCeoSend(body).action === 'assign-researchy';
   if (!kind && !viaBridge) return false;
   switch (kind || 'message') {
     case 'message':
@@ -798,7 +848,9 @@ Object.assign(module.exports, {
   formatResultsForFounder,
   handleCeoAssign,
   looksLikeAssign,
+  looksLikeExplicitAssignText,
   noteDeskProgress,
+  routeCeoSend,
   onDeskThreadPoll,
   parseAssignBrief,
   postResearchyReply,

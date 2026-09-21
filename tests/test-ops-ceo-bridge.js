@@ -431,7 +431,8 @@ async function run() {
       && xaiCalls === 1
       && lastXaiBody
       && lastXaiBody.model === 'grok-4.3'
-      && String(lastXaiBody.messages[0].content).includes('Researchy-first')
+      && String(lastXaiBody.messages[0].content).includes('Researchy only for sourcing')
+      && String(lastXaiBody.messages[0].content).includes('Send is not auto-Assign')
       && String(lastXaiBody.messages[0].content).includes('Do not invent prices'));
 
     const pendingAfterXai = await ceo.listPending();

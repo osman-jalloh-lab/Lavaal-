@@ -337,7 +337,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     waitingCopy: waitText,
   };
   const assignControl = isCeo
-    ? `<button class="btn btn-assign" type="submit" formaction="/ops/ceo-assign/message" name="assign" value="researchy" id="ceo-assign-researchy">Assign to Researchy</button>`
+    ? `<button class="btn btn-assign" type="button" name="assign" value="researchy" data-assign="researchy" id="ceo-assign-researchy">Assign to Researchy</button>`
     : '';
   const talkGuard = `<meta name="lavaall-talk-agent" content="${escapeHtml(talkAgent.id)}"/>
 <script>
@@ -363,7 +363,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     error,
     head: talkGuard,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-ceo-chat.js?v=talk-mic" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=send-not-assign" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>${escapeHtml(agentName)}</h1>
@@ -380,7 +380,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
           <p id="talk-mic-status" class="empty" hidden></p>
           <div class="talk-actions">
             <button type="button" class="btn btn-mic" id="talk-mic" aria-pressed="false">Mic</button>
-            <button class="btn" type="submit">Send</button>
+            <button class="btn" type="submit" name="intent" value="send" id="ceo-send" data-intent="send">Send</button>
             ${assignControl}
           </div>
         </form>

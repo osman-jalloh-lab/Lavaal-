@@ -123,6 +123,19 @@ document.addEventListener('DOMContentLoaded', () => {
       || /\bassign\s+researchy\b/i.test(raw);
   }
 
+  function isSendSubmitter(submitter) {
+    if (!submitter) return false;
+    if (submitter.id === 'ceo-send' || submitter.getAttribute('data-intent') === 'send') return true;
+    return submitter.name === 'intent' && String(submitter.value || '') === 'send';
+  }
+
+  function isAssignSubmitter(submitter) {
+    if (!submitter || isSendSubmitter(submitter)) return false;
+    return submitter.id === 'ceo-assign-researchy'
+      || submitter.name === 'assign'
+      || submitter.getAttribute('data-assign') === 'researchy';
+  }
+
   function escapeHtml(value) {
     return String(value)
       .replace(/&/g, '&amp;')
@@ -294,57 +307,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
   bindTalkMic();
 
+  async function postTalk(opts) {
+    if (!form) return;
+    const text = box && box.value ? box.value.trim() : '';
+    if (!text) return;
+    const assignClick = Boolean(opts && opts.assignClick);
+    const shouldAssign = isCeoTalk() && (assignClick || looksLikeAssignText(text));
+    const postUrl = shouldAssign ? assignPostUrl() : (threadPostUrl() || graph.postUrl);
+    if (!postUrl || (!isCeoTalk() && (postUrl.indexOf('ceo-bridge') !== -1 || postUrl.indexOf('ceo-assign') !== -1))) return;
+    const body = {
+      csrf: graph.csrf || (form.querySelector('[name="csrf"]') && form.querySelector('[name="csrf"]').value) || '',
+      threadId: graph.threadId || (threadIdInput && threadIdInput.value) || '',
+      source: shouldAssign ? 'ceo-assign' : 'ops-office',
+      agentId: currentAgentId(),
+      correlationId: (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID().replace(/-/g, '').slice(0, 32)
+        : String(Date.now()) + Math.random().toString(16).slice(2, 10),
+      text,
+    };
+    if (shouldAssign) {
+      body.assign = 'researchy';
+      body.assignee = 'researchy';
+    }
+    try {
+      const response = await fetch(postUrl, {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(body),
+      });
+      const payload = await response.json();
+      if (!response.ok) return;
+      if (payload && payload.csrf) {
+        graph.csrf = payload.csrf;
+        const csrfInput = form.querySelector('[name="csrf"]');
+        if (csrfInput) csrfInput.value = payload.csrf;
+      }
+      if (box) box.value = '';
+      rememberDesk(payload);
+      if (payload && payload.thread) applyThread(payload.thread, payload.waiting);
+      else setWaiting(true);
+      startPoll();
+    } catch (err) {
+      return;
+    }
+  }
+
   if (form) {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const text = box && box.value ? box.value.trim() : '';
-      if (!text) return;
-      const submitter = event.submitter;
-      const assignClick = Boolean(submitter && (submitter.id === 'ceo-assign-researchy' || submitter.name === 'assign' || submitter.getAttribute('data-assign') === 'researchy'));
-      const shouldAssign = isCeoTalk() && (assignClick || looksLikeAssignText(text));
-      const postUrl = shouldAssign ? assignPostUrl() : (threadPostUrl() || graph.postUrl);
-      if (!postUrl || (!isCeoTalk() && (postUrl.indexOf('ceo-bridge') !== -1 || postUrl.indexOf('ceo-assign') !== -1))) return;
-      const body = {
-        csrf: graph.csrf || (form.querySelector('[name="csrf"]') && form.querySelector('[name="csrf"]').value) || '',
-        threadId: graph.threadId || (threadIdInput && threadIdInput.value) || '',
-        source: shouldAssign ? 'ceo-assign' : 'ops-office',
-        agentId: currentAgentId(),
-        correlationId: (window.crypto && crypto.randomUUID)
-          ? crypto.randomUUID().replace(/-/g, '').slice(0, 32)
-          : String(Date.now()) + Math.random().toString(16).slice(2, 10),
-        text,
-      };
-      if (shouldAssign) {
-        body.assign = 'researchy';
-        body.assignee = 'researchy';
-      }
-      try {
-        const response = await fetch(postUrl, {
-          method: 'POST',
-          cache: 'no-store',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store',
-          },
-          credentials: 'same-origin',
-          body: JSON.stringify(body),
-        });
-        const payload = await response.json();
-        if (!response.ok) return;
-        if (payload && payload.csrf) {
-          graph.csrf = payload.csrf;
-          const csrfInput = form.querySelector('[name="csrf"]');
-          if (csrfInput) csrfInput.value = payload.csrf;
-        }
-        if (box) box.value = '';
-        rememberDesk(payload);
-        if (payload && payload.thread) applyThread(payload.thread, payload.waiting);
-        else setWaiting(true);
-        startPoll();
-      } catch (err) {
-        return;
-      }
+      await postTalk({ assignClick: isCeoTalk() && isAssignSubmitter(event.submitter) });
+    });
+  }
+
+  const assignBtn = document.getElementById('ceo-assign-researchy');
+  if (assignBtn) {
+    assignBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      await postTalk({ assignClick: true });
     });
   }
 
