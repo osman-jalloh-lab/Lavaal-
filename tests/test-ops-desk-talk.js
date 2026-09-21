@@ -123,7 +123,7 @@ async function run() {
         query: { area: 'api/desk-talk/message', agent: id },
         body: {
           csrf: lib.createCsrfToken(ALLOWED),
-          agent: id,
+          agentId: id,
           text: `Hello ${id}`,
           correlationId: `corr-${id}-1`,
         },
@@ -146,7 +146,7 @@ async function run() {
         query: { area: 'api/desk-talk/message', agent: id },
         body: {
           csrf: lib.createCsrfToken(ALLOWED),
-          agent: id,
+          agentId: id,
           text: `Hello ${id}`,
           correlationId: `corr-${id}-1`,
         },

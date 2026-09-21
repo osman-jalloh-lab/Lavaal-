@@ -209,7 +209,7 @@ async function run() {
     check('Talk from Office opens desk Talk for that agent',
       html.includes('<h1>Chat</h1>')
       && html.includes('Talking with LAVAALL Sales &amp; Customer Success')
-      && html.includes('name="agent" value="sales"')
+      && html.includes('name="agentId" value="sales"')
       && html.includes('/ops/api/desk-talk/message')
       && html.includes('Open Chat with no agent to talk to everyone')
       && !html.includes('<h2>Helper</h2>'));
@@ -221,7 +221,7 @@ async function run() {
     }), researchy);
     check('Researchy opens its own Talk pin',
       String(researchy.raw).includes('Talking with Researchy')
-      && String(researchy.raw).includes('name="agent" value="researchy"')
+      && String(researchy.raw).includes('name="agentId" value="researchy"')
       && String(researchy.raw).includes('/ops/api/desk-talk/message'));
     const sentTalk = mockRes();
     await ops(authed({

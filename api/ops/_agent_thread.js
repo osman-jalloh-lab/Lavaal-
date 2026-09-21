@@ -797,7 +797,8 @@ async function handleMessage(req, res) {
   if (!access.session) return sendJson(res, access.status, { error: access.error });
   if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
   const body = readBody(req);
-  const agentId = normalizeAgentId(body.agent || body.agentId || firstQuery(req, 'agent'));
+  // Use agentId, never body.agent — looksLikeAgentRequest treats body.agent as bot auth.
+  const agentId = normalizeAgentId(body.agentId || firstQuery(req, 'agent') || firstQuery(req, 'agentId'));
   if (!agentId || agentId === CEO_DESK_ID) return sendDeskError(req, res, 'invalid_agent', agentId);
   if (!readCsrfToken(csrfFrom(req, body), access.session.email)) {
     return sendDeskError(req, res, 'csrf', agentId);

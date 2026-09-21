@@ -304,7 +304,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
         <form id="ceo-bridge-form" method="POST" action="${escapeHtml(postUrl)}">
           <input type="hidden" name="csrf" value="${escapeHtml(csrf || '')}"/>
           <input type="hidden" name="threadId" id="ceo-thread-id" value="${escapeHtml(thread.id || '')}"/>
-          <input type="hidden" name="agent" value="${escapeHtml(talkAgent.id)}"/>
+          <input type="hidden" name="agentId" value="${escapeHtml(talkAgent.id)}"/>
           <input type="hidden" name="source" value="ops-office"/>
           <label for="ceo-message">Message</label>
           <textarea id="ceo-message" name="text" required maxlength="2000" placeholder="Ask ${escapeHtml(agentName)}"></textarea>

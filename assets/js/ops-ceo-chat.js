@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         csrf: graph.csrf || (form.querySelector('[name="csrf"]') && form.querySelector('[name="csrf"]').value) || '',
         threadId: graph.threadId || (threadIdInput && threadIdInput.value) || '',
         source: 'ops-office',
-        agent: graph.agentId || '',
+        agentId: graph.agentId || '',
         correlationId: (window.crypto && crypto.randomUUID)
           ? crypto.randomUUID().replace(/-/g, '').slice(0, 32)
           : String(Date.now()) + Math.random().toString(16).slice(2, 10),
