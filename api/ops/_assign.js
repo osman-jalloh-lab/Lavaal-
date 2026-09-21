@@ -306,6 +306,34 @@ function findAssignTask(storeData, pred) {
   return ((storeData && storeData.tasks) || []).find(pred) || null;
 }
 
+function uniqueIds(...values) {
+  const ids = [];
+  for (const value of values) {
+    const id = clean(value, 40);
+    if (id && ids.indexOf(id) === -1) ids.push(id);
+  }
+  return ids;
+}
+
+// Strict Assign match: pending.taskId and/or childCorrelationId / pendingId /
+// messageId / correlationId. Never desk childThreadId alone — multiple Assigns
+// can share one Researchy thread.
+function matchAssignTask(storeData, { pending, replayId, correlationId }) {
+  const taskId = pending && pending.taskId;
+  if (taskId) {
+    const byTask = findAssignTask(storeData, (row) => row.id === taskId);
+    if (byTask) return byTask;
+  }
+  const corrIds = uniqueIds(
+    replayId,
+    correlationId,
+    pending && pending.correlationId,
+    pending && pending.messageId,
+  );
+  if (!corrIds.length) return null;
+  return findAssignTask(storeData, (row) => corrIds.indexOf(row.childCorrelationId) !== -1);
+}
+
 async function wakeResearchy({ task, packedBrief, founderEmail, childThreadId, childCorrelationId }) {
   const queued = await enqueueResearchyPending({
     threadId: childThreadId,
@@ -469,17 +497,12 @@ async function assignToResearchy(input) {
 async function noteDeskProgress({ agentId, threadId, correlationId, resultText, waiting }) {
   const desk = desks.normalizeAgentId(agentId);
   if (desk !== RESEARCHY_ID) return { ok: true, skipped: true };
+  void threadId;
   const storeData = await readStore();
-  const childId = clean(threadId, 40);
   const corr = clean(correlationId, 40);
-  const task = findAssignTask(storeData, (row) => (
-    row.ownerAgentId === RESEARCHY_ID
-    && (
-      (corr && row.childCorrelationId === corr)
-      || (childId && row.childThreadId === childId && (row.assignStatus === 'assigned' || row.assignStatus === 'ready_for_review' || row.assignStatus === 'specialist_done'))
-    )
-  ));
-  if (!task) return { ok: true, skipped: true };
+  if (!corr) return { ok: true, skipped: true };
+  const task = matchAssignTask(storeData, { correlationId: corr });
+  if (!task || task.ownerAgentId !== RESEARCHY_ID) return { ok: true, skipped: true };
   if (task.assignStatus === 'synthesized' || task.assignStatus === 'synthesizing' || task.assignStatus === 'ready_for_review') {
     return { ok: true, task };
   }
@@ -577,12 +600,8 @@ async function postResearchyReply({ threadId, text, pendingId, messageId, correl
   if (!body) return { error: 'invalid_message' };
   const taken = replayId ? await takeResearchyPending(replayId) : { pending: null };
   const storeData = await readStore();
-  const pending = taken.pending || listResearchyPending(storeData)[0] || null;
-  const task = findAssignTask(storeData, (row) => (
-    (pending && pending.taskId && row.id === pending.taskId)
-    || (replayId && row.childCorrelationId === replayId)
-    || (threadId && row.childThreadId === threadId && row.assignStatus === 'assigned')
-  ));
+  const pending = taken.pending || null;
+  const task = matchAssignTask(storeData, { pending, replayId });
   if (task && (task.assignStatus === 'ready_for_review' || task.assignStatus === 'synthesized') && task.result) {
     return { ok: true, replay: true, task };
   }
