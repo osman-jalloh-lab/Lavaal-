@@ -250,7 +250,7 @@ async function run() {
       && chatJs.includes('graph.agentName')
       && chatJs.includes('/ops/api/desk-talk/thread?agent=')
       && chatJs.includes("last.role === 'assistant'")
-      && !chatJs.includes("kicker">' + (mine ? 'You' : 'LAVAALL CEO')"));
+      && !chatJs.includes("mine ? 'You' : 'LAVAALL CEO'"));
   }
 
   {
