@@ -1,4 +1,4 @@
-// api/ops/index.js — private /ops gate through calendar, routines, and kits.
+// api/ops/index.js — private /ops gate through calendar, routines, kits, and Jev.
 // Session required. Public catalog routes are unchanged. Preview only.
 
 const { kitsDeniedPage, loginPage } = require('./_html');
@@ -28,6 +28,7 @@ const { describeChatSetup, sendChatTurn } = require('./_chat');
 const { CEO_DESK_ID, getFounderThread, handleCeoBridge } = require('./_ceo_bridge');
 const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
 const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
+const { handleJevEvaluate } = require('./_jev');
 const {
   confirmInboxSend,
   pasteSnapshot,
@@ -704,6 +705,7 @@ async function handleMapApi(req, res) {
 }
 
 async function ops(req, res) {
+  if (await handleJevEvaluate(req, res)) return;
   if (await handleCeoAssign(req, res)) return;
   if (await handleCeoBridge(req, res)) return;
   if (await handleDeskTalk(req, res)) return;
