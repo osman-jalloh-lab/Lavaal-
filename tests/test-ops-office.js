@@ -145,6 +145,16 @@ async function run() {
       && html.includes('min-width:768px')
       && html.includes('orientation:landscape')
       && (html.match(/class="btn"[^>]*>Talk<\/a>/g) || []).length >= 6);
+    check('frosted LAVAALL wordmark stays hidden and Lead CEO hotspot is the shrunk box',
+      html.includes('.office-wordmark{display:none!important;}')
+      && html.includes('Wordmark overlay removed (founder 2026-09-22)')
+      && !html.includes('.office-wordmark{display:flex;')
+      && html.includes('>Lead view<')
+      && html.includes('aria-label="Cameras"')
+      && (() => {
+        const ceo = office.OFFICE_HOTSPOTS.lead.find((spot) => spot.id === 'lavaall-ceo');
+        return ceo && ceo.left === 42 && ceo.top === 38 && ceo.width === 16 && ceo.height === 28;
+      })());
     check('desktop cameras use the approved photo files',
       CAMERA_FILES.every((file) => html.includes(`src="/assets/ops/office/cameras/${file}"`))
       && html.includes('data-camera-photo="wide"'));

@@ -67,7 +67,7 @@ const OFFICE_HOTSPOTS = Object.freeze({
     { id: 'researchy', left: 40, top: 72, width: 16, height: 16 },
   ],
   lead: [
-    { id: 'lavaall-ceo', left: 32, top: 22, width: 36, height: 48 },
+    { id: 'lavaall-ceo', left: 42, top: 38, width: 16, height: 28 },
     { id: 'sales', left: 6, top: 40, width: 18, height: 28 },
     { id: 'technical', left: 76, top: 40, width: 18, height: 28 },
     { id: 'growth', left: 14, top: 72, width: 20, height: 18 },
@@ -255,7 +255,8 @@ function officeStyles() {
   .office-stage-wrap{display:block;width:100%;}
   .office-stage{width:100%;border:0;border-radius:0;min-height:0;}
   .office-cameras{position:absolute;top:16px;left:16px;z-index:2;}
-  .office-wordmark{display:flex;position:absolute;z-index:2;align-items:center;justify-content:center;gap:8px;pointer-events:none;background:rgba(243,238,231,.92);border-radius:12px;padding:6px 14px;}
+  /* Wordmark overlay removed (founder 2026-09-22): frosted LAVAALL. blocked aisle/bots. */
+  .office-wordmark{display:none!important;}
   .office-roster{display:block;position:absolute;top:16px;right:16px;z-index:2;width:240px;max-height:calc(100% - 32px);overflow:auto;background:rgba(243,238,231,.94);}
   .office-selected{position:absolute;left:16px;bottom:16px;z-index:2;padding:8px 12px;border-radius:999px;background:rgba(243,238,231,.94);border:1px solid var(--line);}
   .office-cards{display:none;}
