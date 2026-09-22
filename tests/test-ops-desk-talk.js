@@ -103,6 +103,9 @@ async function run() {
         && html.includes('id="talk-mic-status"')
         && !html.includes('# LAVAALL Shared Context')
         && !html.includes('SOUL.md:')
+        && !html.includes('OPS_CEO_BRIDGE_SECRET')
+        && !html.includes('desk-talk/researchy/pending')
+        && !html.includes('www.lavaall.com/ops/api/desk-talk')
         && !html.includes('This desk uses Office Talk')
         && !html.includes('not the Anthropic or OpenAI helper')
         && (id === 'lavaall-ceo'
@@ -262,14 +265,28 @@ async function run() {
 
     const shared = souls.sharedContext();
     const prompt = desks.deskSystemPrompt('researchy', { goal: null, tasks: [], notes: [] });
+    const researchySoul = souls.deskSoul('researchy');
     check('researchy Talk prompt is shared context then its SOUL',
       prompt.startsWith(shared)
-      && prompt.indexOf(souls.deskSoul('researchy')) > shared.length
+      && prompt.indexOf(researchySoul) > shared.length
       && prompt.includes('Never invent prices')
       && prompt.includes('The CEO assigns me work')
       && prompt.includes('Drafts only')
       && prompt.includes('| L3 |')
       && prompt.includes('| L4 |'));
+    check('researchy Talk SOUL stays Found and recommend without the wake recipe',
+      researchySoul.includes('I am Researchy')
+      && researchySoul.includes('sourcing and catalog research')
+      && researchySoul.includes('Found, then recommend')
+      && researchySoul.includes('One recommendation')
+      && !researchySoul.includes('OPS_CEO_BRIDGE_SECRET')
+      && !researchySoul.includes('desk-talk/researchy/pending')
+      && !researchySoul.includes('www.lavaall.com/ops/api/desk-talk')
+      && !researchySoul.includes('Wake routine')
+      && !researchySoul.includes('Authorization: Bearer')
+      && !prompt.includes('OPS_CEO_BRIDGE_SECRET')
+      && !prompt.includes('desk-talk/researchy/pending')
+      && !prompt.includes('www.lavaall.com/ops/api/desk-talk'));
     for (const id of DESK_IDS) {
       const built = id === 'lavaall-ceo'
         ? ceo.ceoSystemPrompt({ goal: null, tasks: [], notes: [] })
@@ -414,6 +431,13 @@ async function run() {
     check('docs list per-desk smoke for all six Talk agents',
       note.includes('Talk-ALL')
       && DESK_IDS.every((id) => note.includes(`/ops/chat/${id}`)));
+    check('wake docs keep the production Researchy poll path for the Grok Bot',
+      note.includes('poll dual-run')
+      && note.includes('Not Talk UI')
+      && note.includes('https://www.lavaall.com/ops/api/desk-talk/researchy/pending')
+      && note.includes('https://www.lavaall.com/ops/api/desk-talk/researchy/reply')
+      && note.includes('Authorization: Bearer $OPS_CEO_BRIDGE_SECRET')
+      && note.includes('Never attach a reply by desk threadId alone'));
     const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
     check('Talk JS keeps the desk voice and desk poll URL',
       chatJs.includes('function deskVoice()')
