@@ -4,18 +4,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const hotspots = document.getElementById('office-hotspots');
   const selected = document.getElementById('office-selected');
   const roster = document.getElementById('office-roster');
-  let graph = { agents: [], cameras: [], hotspots: {} };
+  let graph = { agents: [], cameras: [], hotspots: {}, wordmark: {} };
   let cameraId = 'lead';
   let selectedId = '';
 
   try {
     graph = JSON.parse(dataNode && dataNode.textContent ? dataNode.textContent : '{}') || graph;
   } catch (err) {
-    graph = { agents: [], cameras: [], hotspots: {} };
+    graph = { agents: [], cameras: [], hotspots: {}, wordmark: {} };
   }
   if (!Array.isArray(graph.agents)) graph.agents = [];
   if (!Array.isArray(graph.cameras)) graph.cameras = [];
   if (!graph.hotspots || typeof graph.hotspots !== 'object') graph.hotspots = {};
+  if (!graph.wordmark || typeof graph.wordmark !== 'object') graph.wordmark = {};
 
   function agentById(id) {
     return graph.agents.find((item) => item.id === id) || null;
@@ -116,7 +117,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setWordmark() {
     const mark = document.getElementById('office-wordmark');
-    if (mark && mark.parentNode) mark.parentNode.removeChild(mark);
+    if (!mark) return;
+    const box = graph.wordmark[cameraId] || graph.wordmark.lead;
+    if (!box) return;
+    mark.style.left = box.left + '%';
+    mark.style.top = box.top + '%';
+    mark.style.width = box.width + '%';
+    mark.style.height = box.height + '%';
   }
 
   function setCamera(nextId) {

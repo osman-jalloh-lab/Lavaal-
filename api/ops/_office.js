@@ -84,7 +84,7 @@ const RESEARCHY_SEATS = Object.freeze({
   lead: { left: 40, top: 74, width: 20, height: 14 },
 });
 
-// Not rendered. The frosted LAVAALL. plate that used these boxes blocked the aisle.
+// Covers the baked-in “AI AGENTS” wall sign. Not over desk faces.
 const OFFICE_WORDMARK = Object.freeze({
   wide: { left: 37, top: 5, width: 26, height: 17 },
   'front-left': { left: 34, top: 3, width: 28, height: 16 },
@@ -222,8 +222,9 @@ function officeStyles() {
 .office-hotspots{position:absolute;inset:0;z-index:1;}
 .office-hotspot{position:absolute;border:2px solid transparent;border-radius:14px;cursor:pointer;background:transparent;padding:0;}
 .office-hotspot-label{position:absolute;left:6px;bottom:6px;font-size:11px;font-weight:700;color:#1C1917;background:rgba(243,238,231,.92);padding:2px 8px;border-radius:999px;pointer-events:none;}
-/* Wordmark overlay removed (founder 2026-09-22): frosted LAVAALL. blocked aisle/bots. */
-.office-wordmark,.office-wordmark-name,.office-wordmark-mark{display:none!important;pointer-events:none;}
+.office-wordmark{display:none;}
+.office-wordmark-name{font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-.03em;color:#1C1917;font-size:clamp(18px,2.1vw,32px);line-height:1;}
+.office-wordmark-mark{width:8px;height:8px;border-radius:50%;background:#2EC4FF;flex-shrink:0;}
 .office-roster{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;box-shadow:0 10px 28px rgba(28,20,16,.08);}
 .office-roster-brand{margin:0 0 12px;}
 .office-roster-logo{display:block;height:36px;width:auto;max-width:100%;object-fit:contain;}
@@ -254,6 +255,8 @@ function officeStyles() {
   .office-stage-wrap{display:block;width:100%;}
   .office-stage{width:100%;border:0;border-radius:0;min-height:0;}
   .office-cameras{position:absolute;top:16px;left:16px;z-index:2;}
+  /* Wordmark overlay removed (founder 2026-09-22): frosted LAVAALL. blocked aisle/bots. */
+  .office-wordmark{display:none!important;}
   .office-roster{display:block;position:absolute;top:16px;right:16px;z-index:2;width:240px;max-height:calc(100% - 32px);overflow:auto;background:rgba(243,238,231,.94);}
   .office-selected{position:absolute;left:16px;bottom:16px;z-index:2;padding:8px 12px;border-radius:999px;background:rgba(243,238,231,.94);border:1px solid var(--line);}
   .office-cards{display:none;}
@@ -333,6 +336,7 @@ function officePage({ email, snapshot, notice, error }) {
       source: camera.source,
     })),
     hotspots: OFFICE_HOTSPOTS,
+    wordmark: OFFICE_WORDMARK,
   };
   const cameraLayers = OFFICE_CAMERAS.map((camera) => (
     `<img class="office-camera-photo" data-camera-photo="${escapeHtml(camera.id)}" src="${escapeHtml(camera.photo)}" alt="Office ${escapeHtml(camera.label)}" width="1280" height="720"${camera.id === DEFAULT_CAMERA_ID ? '' : ' hidden'}/>
@@ -346,7 +350,7 @@ function officePage({ email, snapshot, notice, error }) {
     error,
     scripts: `<style>${officeStyles()}</style>
 <script type="application/json" id="office-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-office.js?v=no-wordmark" defer></script>`,
+<script src="/assets/js/ops-office.js?v=wordmark" defer></script>`,
     body: `
       <div class="office-hero" id="office-hero">
         <div class="office-cameras" id="office-cameras" role="group" aria-label="Cameras">
@@ -358,6 +362,10 @@ function officePage({ email, snapshot, notice, error }) {
           <div class="office-stage" id="office-stage">
             ${cameraLayers}
             <div class="office-hotspots" id="office-hotspots"></div>
+            <div class="office-wordmark" id="office-wordmark">
+              <span class="office-wordmark-name">LAVAALL</span>
+              <span class="office-wordmark-mark" aria-hidden="true"></span>
+            </div>
           </div>
         </div>
         <p class="office-selected" id="office-selected">Tap a desk or a name.</p>
