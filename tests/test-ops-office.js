@@ -125,11 +125,9 @@ async function run() {
       && html.includes('src="/images/logo.png"')
       && html.includes('class="ops-brand-logo"')
       && html.includes('class="office-roster-logo"')
-      && html.includes('id="office-wordmark"')
-      && html.includes('office-wordmark-name')
-      && html.includes('>LAVAALL</span>')
+      && !html.includes('id="office-wordmark"')
+      && !html.includes('>LAVAALL</span>')
       && html.includes('#1C1917')
-      && html.includes('#2EC4FF')
       && !html.includes('>Agents<')
       && !html.includes('>Roster<')
       && !html.includes('AI agents')
@@ -145,12 +143,16 @@ async function run() {
       && html.includes('min-width:768px')
       && html.includes('orientation:landscape')
       && (html.match(/class="btn"[^>]*>Talk<\/a>/g) || []).length >= 6);
-    check('frosted LAVAALL wordmark stays hidden and Lead CEO hotspot is the shrunk box',
-      html.includes('.office-wordmark{display:none!important;}')
-      && html.includes('Wordmark overlay removed (founder 2026-09-22)')
+    check('frosted LAVAALL wordmark is not rendered and Lead CEO hotspot is the shrunk box',
+      !html.includes('id="office-wordmark"')
+      && !html.includes('<span class="office-wordmark-name"')
+      && !html.includes('>LAVAALL</span>')
+      && html.includes('.office-wordmark,.office-wordmark-name,.office-wordmark-mark{display:none!important;pointer-events:none;}')
       && !html.includes('.office-wordmark{display:flex;')
+      && !html.includes('"wordmark"')
       && html.includes('>Lead view<')
       && html.includes('aria-label="Cameras"')
+      && html.includes('data-camera="lead"')
       && (() => {
         const ceo = office.OFFICE_HOTSPOTS.lead.find((spot) => spot.id === 'lavaall-ceo');
         return ceo && ceo.left === 42 && ceo.top === 38 && ceo.width === 16 && ceo.height === 28;
@@ -214,11 +216,15 @@ async function run() {
 
   {
     const src = fs.readFileSync(path.join(__dirname, '../assets/js/ops-office.js'), 'utf8');
-    check('camera switch redraws that camera’s hotspot map, wordmark, and selection',
+    check('camera switch redraws that camera’s hotspot map and selection, and does not place a wordmark',
       src.includes('graph.hotspots[cameraId]')
       && src.includes('if (selectedId) setSelected(selectedId)')
       && src.includes("setCamera('lead')")
       && src.includes('setWordmark()')
+      && src.includes("getElementById('office-wordmark')")
+      && src.includes('removeChild(mark)')
+      && !src.includes('mark.style.left')
+      && !src.includes('graph.wordmark')
       && office.DEFAULT_CAMERA_ID === 'lead');
   }
 
