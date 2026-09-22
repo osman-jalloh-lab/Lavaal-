@@ -45,6 +45,90 @@ function formatHandoffText(payload) {
   ].join('\n');
 }
 
+const ASSIGN_BRIEF_MAX = 3500;
+const ASSIGN_ORIGIN = 'https://www.lavaall.com';
+const ASSIGN_REPLY_PATH = '/ops/api/desk-talk/researchy/reply';
+const SECRET_ENV_NAMES = [
+  'OPS_CEO_BRIDGE_SECRET',
+  'SLACK_BOT_TOKEN',
+  'SLACK_SIGNING_SECRET',
+  'OPS_AUTH_SECRET',
+];
+
+function scrubSecrets(text) {
+  let out = typeof text === 'string' ? text : '';
+  for (const name of SECRET_ENV_NAMES) {
+    const value = process.env[name];
+    if (typeof value !== 'string' || value.length < 8) continue;
+    if (out.indexOf(value) === -1) continue;
+    out = out.split(value).join('[redacted]');
+  }
+  return out;
+}
+
+function asAssignText(value, max) {
+  const text = scrubSecrets(value == null ? '' : String(value));
+  return max ? text.slice(0, max) : text;
+}
+
+function buildAssignWakePayload(input) {
+  const fullBrief = asAssignText(input && input.brief);
+  const briefLen = fullBrief.length;
+  const payload = {
+    kind: 'assign',
+    taskId: asAssignText(input && input.taskId),
+    pendingId: asAssignText(input && input.pendingId),
+    correlationId: asAssignText(input && input.correlationId),
+    threadId: asAssignText(input && input.threadId),
+    title: asAssignText(input && input.title, 200),
+    brief: briefLen > ASSIGN_BRIEF_MAX ? fullBrief.slice(0, ASSIGN_BRIEF_MAX) : fullBrief,
+    origin: ASSIGN_ORIGIN,
+    replyPath: ASSIGN_REPLY_PATH,
+  };
+  if (briefLen > ASSIGN_BRIEF_MAX) payload.briefLen = briefLen;
+  return payload;
+}
+
+function formatAssignWakeFence(payload) {
+  return ['```LAVAALL_ASSIGN', JSON.stringify(payload, null, 2), '```'].join('\n');
+}
+
+function formatAssignWakeText(payload) {
+  const taskId = payload && payload.taskId ? payload.taskId : '';
+  return [
+    `LAVAALL_ASSIGN ${taskId} wake=researchy`,
+    formatAssignWakeFence(payload),
+  ].join('\n');
+}
+
+async function postAssignWake(input) {
+  const taskId = input && input.taskId ? String(input.taskId) : '';
+  try {
+    const token = typeof process.env.SLACK_BOT_TOKEN === 'string'
+      ? process.env.SLACK_BOT_TOKEN.trim()
+      : '';
+    if (!token) return { ok: true, skipped: true };
+    const payload = buildAssignWakePayload(input);
+    const channel = handoffChannel();
+    const result = await slackPostMessage({
+      channel,
+      text: scrubSecrets(formatAssignWakeText(payload)),
+    });
+    if (!result.ok) {
+      console.error('[slack] postAssignWake failed', result.error, {
+        taskId: payload.taskId || null,
+        channel,
+      });
+      return { ok: false, error: result.error || 'slack_post_failed' };
+    }
+    return { ok: true, channel };
+  } catch (err) {
+    console.error('[slack] postAssignWake threw', { taskId: taskId || null });
+    void err;
+    return { ok: false, error: 'post_assign_wake_failed' };
+  }
+}
+
 function founderAckText(classification, taskId) {
   const helpers = Array.isArray(classification.helperAgents) ? classification.helperAgents : [];
   const disconnected = helpers.filter((h) => String(h).includes('NOT CONNECTED') || String(h).includes('NOT_INVOKEABLE'));
@@ -132,13 +216,19 @@ async function postLavalHandoff(taskLike) {
 }
 
 module.exports = {
+  ASSIGN_BRIEF_MAX,
+  ASSIGN_ORIGIN,
+  ASSIGN_REPLY_PATH,
   DEFAULT_HANDOFF_CHANNEL,
   SLACK_POST_MESSAGE,
+  buildAssignWakePayload,
   buildHandoffPayload,
+  formatAssignWakeText,
   formatHandoffText,
   formatLavalTaskFence,
   founderAckText,
   handoffChannel,
+  postAssignWake,
   postLavalHandoff,
   replyInThread,
   replyViaResponseUrl,

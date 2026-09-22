@@ -9,6 +9,7 @@ const store = require(path.join(opsDir, '_store.js'));
 const ceo = require(path.join(opsDir, '_ceo_bridge.js'));
 const desks = require(path.join(opsDir, '_agent_thread.js'));
 const assign = require(path.join(opsDir, '_assign.js'));
+const bridge = require(path.join(__dirname, '../api/slack/_router/bridge.js'));
 const office = require(path.join(opsDir, '_office.js'));
 const ops = require(path.join(opsDir, 'index.js'));
 
@@ -65,6 +66,8 @@ async function run() {
   delete process.env.XAI_API_KEY;
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
+  delete process.env.SLACK_BOT_TOKEN;
+  delete process.env.LAVAALL_HANDOFF_CHANNEL;
   store.resetStore();
   ceo.resetCeoBridge();
   desks.resetDeskTalk();
@@ -631,6 +634,180 @@ async function run() {
   }
 
   {
+    store.resetStore();
+    ceo.resetCeoBridge();
+    desks.resetDeskTalk();
+    delete process.env.XAI_API_KEY;
+    delete process.env.SLACK_BOT_TOKEN;
+    delete process.env.LAVAALL_HANDOFF_CHANNEL;
+    const slackPosts = [];
+    let slackMode = 'ok';
+    global.fetch = async (url, opts) => {
+      const target = String(url);
+      if (!target.includes('slack.com/api/chat.postMessage')) {
+        return { ok: true, json: async () => ({ choices: [{ message: { content: 'unused' } }] }) };
+      }
+      const body = opts && opts.body ? JSON.parse(opts.body) : {};
+      slackPosts.push({
+        body,
+        headers: opts && opts.headers ? opts.headers : {},
+      });
+      if (slackMode === 'throw') throw new Error('slack down');
+      if (slackMode === 'fail') {
+        return { ok: true, status: 200, json: async () => ({ ok: false, error: 'channel_not_found' }) };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, ts: '1.0', channel: body.channel }),
+      };
+    };
+
+    function parseAssignFence(text) {
+      const match = String(text || '').match(/```LAVAALL_ASSIGN\n([\s\S]*?)\n```/);
+      if (!match) return null;
+      try {
+        return JSON.parse(match[1]);
+      } catch {
+        return null;
+      }
+    }
+
+    async function postAssign(correlationId, text) {
+      const res = mockRes();
+      await ops(authed({
+        json: true,
+        method: 'POST',
+        url: '/ops/ceo-assign/message',
+        query: { area: 'api/ceo-assign/message' },
+        body: {
+          csrf: lib.createCsrfToken(ALLOWED),
+          text,
+          correlationId,
+          assign: 'researchy',
+        },
+      }), res);
+      return res;
+    }
+
+    const unset = await postAssign('assign-slack-unset', 'assign to researchy: source docks without slack');
+    const unsetPending = store.listResearchyPending(await store.readStore());
+    check('Assign succeeds and enqueues when Slack token is unset',
+      unset.statusCode === 200
+      && unset.body.ok === true
+      && unset.body.assigned === true
+      && unset.body.wake === 'researchy-pending'
+      && unsetPending.length === 1
+      && unsetPending[0].taskId === unset.body.task.id
+      && slackPosts.length === 0);
+
+    const skipped = await bridge.postAssignWake({
+      taskId: 'task-skip',
+      pendingId: 'pend-skip',
+      correlationId: 'corr-skip',
+      threadId: 'thread-skip',
+      title: 'Assign 0 — skip',
+      brief: BRIDGE_SECRET,
+    });
+    check('postAssignWake skips without throwing when Slack token is unset',
+      skipped.ok === true
+      && skipped.skipped === true
+      && slackPosts.length === 0);
+
+    process.env.SLACK_BOT_TOKEN = 'xoxb-test-not-a-real-token';
+    const woken = await postAssign(
+      'assign-slack-ok',
+      `assign to researchy: ${BRIDGE_SECRET} source docks`,
+    );
+    const wokenTask = woken.body && woken.body.task;
+    const wokenPending = store.listResearchyPending(await store.readStore())
+      .find((item) => wokenTask && item.taskId === wokenTask.id);
+    const slackHit = slackPosts[0] || { body: {}, headers: {} };
+    const slackText = String(slackHit.body.text || '');
+    const fence = parseAssignFence(slackText);
+    const scrubbedTitle = wokenTask
+      ? String(wokenTask.title).split(BRIDGE_SECRET).join('[redacted]')
+      : '';
+    check('Slack LAVAALL_ASSIGN payload has ids and omits the bridge secret',
+      woken.statusCode === 200
+      && woken.body.assigned === true
+      && woken.body.wake === 'researchy-pending'
+      && wokenPending
+      && slackPosts.length === 1
+      && slackHit.body.channel === bridge.DEFAULT_HANDOFF_CHANNEL
+      && slackText.startsWith(`LAVAALL_ASSIGN ${wokenTask.id} wake=researchy`)
+      && fence
+      && fence.kind === 'assign'
+      && fence.taskId === wokenTask.id
+      && fence.pendingId === wokenPending.messageId
+      && fence.correlationId === wokenPending.correlationId
+      && fence.threadId === wokenPending.threadId
+      && fence.title === scrubbedTitle
+      && fence.origin === 'https://www.lavaall.com'
+      && fence.replyPath === '/ops/api/desk-talk/researchy/reply'
+      && fence.brief.includes('Founder ask:')
+      && fence.brief.includes('[redacted]')
+      && fence.brief.length <= bridge.ASSIGN_BRIEF_MAX
+      && !slackText.includes(BRIDGE_SECRET)
+      && !slackText.includes('xoxb-test-not-a-real-token')
+      && !String(slackHit.headers.Authorization || '').includes(BRIDGE_SECRET)
+      && store.listResearchyPending(await store.readStore()).some((item) => item.taskId === wokenTask.id));
+
+    slackMode = 'fail';
+    const failed = await postAssign('assign-slack-fail', 'assign to researchy: source monitors');
+    const failedPending = store.listResearchyPending(await store.readStore())
+      .find((item) => failed.body && failed.body.task && item.taskId === failed.body.task.id);
+    check('Assign still succeeds and enqueues when Slack post fails',
+      failed.statusCode === 200
+      && failed.body.ok === true
+      && failed.body.assigned === true
+      && failed.body.wake === 'researchy-pending'
+      && failedPending
+      && failedPending.text.includes('source monitors'));
+
+    slackMode = 'throw';
+    const thrown = await postAssign('assign-slack-throw', 'assign to researchy: source cables');
+    const thrownPending = store.listResearchyPending(await store.readStore())
+      .find((item) => thrown.body && thrown.body.task && item.taskId === thrown.body.task.id);
+    check('Assign still succeeds and enqueues when Slack throws',
+      thrown.statusCode === 200
+      && thrown.body.ok === true
+      && thrown.body.assigned === true
+      && thrownPending
+      && thrownPending.taskId === thrown.body.task.id);
+
+    slackMode = 'ok';
+    const beforeDirect = slackPosts.length;
+    const direct = await bridge.postAssignWake({
+      taskId: 'task-huge',
+      pendingId: 'pend-huge',
+      correlationId: 'corr-huge',
+      threadId: 'thread-huge',
+      title: `Assign 9 — ${BRIDGE_SECRET}`,
+      brief: `${'A'.repeat(3600)}${BRIDGE_SECRET}`,
+    });
+    const directHit = slackPosts[beforeDirect] || { body: {} };
+    const directFence = parseAssignFence(directHit.body.text);
+    check('postAssignWake truncates a huge brief and still omits the bridge secret',
+      direct.ok === true
+      && directFence
+      && directFence.kind === 'assign'
+      && directFence.taskId === 'task-huge'
+      && directFence.pendingId === 'pend-huge'
+      && directFence.correlationId === 'corr-huge'
+      && directFence.threadId === 'thread-huge'
+      && directFence.title === 'Assign 9 — [redacted]'
+      && directFence.brief.length === bridge.ASSIGN_BRIEF_MAX
+      && directFence.briefLen === 3600 + '[redacted]'.length
+      && String(directHit.body.text).startsWith('LAVAALL_ASSIGN task-huge wake=researchy')
+      && !String(directHit.body.text).includes(BRIDGE_SECRET)
+      && !String(directHit.body.text).includes('xoxb-test-not-a-real-token'));
+
+    delete process.env.SLACK_BOT_TOKEN;
+    global.fetch = origFetch;
+  }
+
+  {
     const src = fs.readFileSync(path.join(opsDir, '_assign.js'), 'utf8');
     const vercel = fs.readFileSync(path.join(__dirname, '../vercel.json'), 'utf8');
     const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
@@ -638,6 +815,8 @@ async function run() {
     check('assign module extends KV tasks and desk-talk, not a second store',
       src.includes("require('./_store')")
       && src.includes("require('./_agent_thread')")
+      && src.includes("require('../slack/_router/bridge')")
+      && src.includes('postAssignWake')
       && src.includes('enqueuePending: false')
       && src.includes('completeXai: false')
       && src.includes("agentId: RESEARCHY_ID")
@@ -676,6 +855,10 @@ async function run() {
       && note.includes('https://www.lavaall.com/ops/api/desk-talk/researchy/reply')
       && note.includes('Never attach a reply by desk threadId alone')
       && note.includes('Preview branch URLs may 410')
+      && note.includes('LAVAALL_ASSIGN')
+      && note.includes('dual-run until founder L3')
+      && note.includes('Never put OPS_CEO_BRIDGE_SECRET')
+      && note.includes('Standing poll above is dual-run backup until founder L3')
       && !note.includes('GET {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/pending')
       && !note.includes('POST {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/reply'));
     check('assign matcher does not fall through to shared childThreadId or leftover pending',
@@ -683,6 +866,12 @@ async function run() {
       && !src.includes('listResearchyPending(storeData)[0]')
       && !src.includes("row.childThreadId === threadId && row.assignStatus === 'assigned'")
       && !src.includes('row.childThreadId === childId'));
+    const envExample = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
+    check('env example notes Assign LAVAALL_ASSIGN wake uses SLACK_BOT_TOKEN by name only',
+      /Assign wake also posts LAVAALL_ASSIGN/.test(envExample)
+      && envExample.includes('SLACK_BOT_TOKEN=')
+      && !/SLACK_BOT_TOKEN=\S+/.test(envExample)
+      && !/OPS_CEO_BRIDGE_SECRET=\S+/.test(envExample));
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
     assertPublicLogin(check, home);
   }
