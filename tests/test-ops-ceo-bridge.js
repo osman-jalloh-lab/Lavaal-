@@ -432,9 +432,11 @@ async function run() {
       && xaiCalls === 1
       && lastXaiBody
       && lastXaiBody.model === 'grok-4.3'
+      && String(lastXaiBody.messages[0].content).startsWith('# LAVAALL Shared Context')
+      && String(lastXaiBody.messages[0].content).includes('I am LAVAALL CEO, the one lead voice')
       && String(lastXaiBody.messages[0].content).includes('Researchy only for sourcing')
-      && String(lastXaiBody.messages[0].content).includes('Send is not auto-Assign')
-      && String(lastXaiBody.messages[0].content).includes('Do not invent prices'));
+      && String(lastXaiBody.messages[0].content).includes('Send is not Assign')
+      && String(lastXaiBody.messages[0].content).includes('Never invent prices'));
 
     const pendingAfterXai = await ceo.listPending();
     check('normal xAI chat is not left on the B2 wake inbox',

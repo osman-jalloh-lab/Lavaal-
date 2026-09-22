@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/ops/index.js": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "includeFiles": "docs/ops/souls/**"
     }
   },
   "headers": [
