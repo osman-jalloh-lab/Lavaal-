@@ -60,224 +60,44 @@
   ],
   "hotspots_by_view": {
     "wide": [
-      [
-        "LAVAALL CEO",
-        40.2,
-        34.1,
-        19.5,
-        31.6
-      ],
-      [
-        "LAVAALL Sales & Customer Success",
-        5.4,
-        29.0,
-        19.2,
-        26.6
-      ],
-      [
-        "LAVAALL Technical & QA",
-        76.1,
-        28.4,
-        19.1,
-        27.3
-      ],
-      [
-        "LAVAALL Growth, UGC & Ads",
-        28.1,
-        21.8,
-        16.2,
-        20.8
-      ],
-      [
-        "LAVAALL Lifecycle & Klaviyo",
-        59.0,
-        21.6,
-        16.2,
-        21.0
-      ],
-      [
-        "Researchy",
-        86.2,
-        15.8,
-        12.0,
-        14.8
-      ]
+      ["LAVAALL CEO", 42.0, 36.0, 16.0, 28.0],
+      ["LAVAALL Sales & Customer Success", 5.4, 29.0, 19.2, 26.6],
+      ["LAVAALL Technical & QA", 76.1, 28.4, 19.1, 27.3],
+      ["LAVAALL Growth, UGC & Ads", 28.1, 21.8, 16.2, 20.8],
+      ["LAVAALL Lifecycle & Klaviyo", 59.0, 21.6, 16.2, 21.0],
+      ["Researchy", 86.2, 15.8, 12.0, 14.8]
     ],
     "front_left": [
-      [
-        "LAVAALL CEO",
-        37.0,
-        21.0,
-        28.0,
-        48.0
-      ],
-      [
-        "LAVAALL Sales & Customer Success",
-        5.0,
-        25.0,
-        20.5,
-        33.0
-      ],
-      [
-        "LAVAALL Technical & QA",
-        79.0,
-        24.0,
-        18.0,
-        34.0
-      ],
-      [
-        "LAVAALL Growth, UGC & Ads",
-        25.0,
-        23.0,
-        15.5,
-        24.0
-      ],
-      [
-        "LAVAALL Lifecycle & Klaviyo",
-        62.0,
-        23.0,
-        15.5,
-        24.0
-      ],
-      [
-        "Researchy",
-        88.0,
-        13.0,
-        10.5,
-        14.0
-      ]
+      ["LAVAALL CEO", 54.0, 32.0, 18.0, 30.0],
+      ["LAVAALL Sales & Customer Success", 5.0, 25.0, 20.5, 33.0],
+      ["LAVAALL Technical & QA", 79.0, 24.0, 18.0, 34.0],
+      ["LAVAALL Growth, UGC & Ads", 25.0, 23.0, 15.5, 24.0],
+      ["LAVAALL Lifecycle & Klaviyo", 62.0, 23.0, 15.5, 24.0],
+      ["Researchy", 88.0, 13.0, 10.5, 14.0]
     ],
     "front_right": [
-      [
-        "LAVAALL CEO",
-        35.0,
-        22.0,
-        29.0,
-        47.0
-      ],
-      [
-        "LAVAALL Sales & Customer Success",
-        5.0,
-        25.0,
-        21.0,
-        34.0
-      ],
-      [
-        "LAVAALL Technical & QA",
-        78.0,
-        24.0,
-        19.0,
-        35.0
-      ],
-      [
-        "LAVAALL Growth, UGC & Ads",
-        25.0,
-        23.0,
-        15.5,
-        24.0
-      ],
-      [
-        "LAVAALL Lifecycle & Klaviyo",
-        62.0,
-        23.0,
-        15.5,
-        24.0
-      ],
-      [
-        "Researchy",
-        88.0,
-        13.0,
-        10.5,
-        14.0
-      ]
+      ["LAVAALL CEO", 30.0, 32.0, 18.0, 30.0],
+      ["LAVAALL Sales & Customer Success", 5.0, 25.0, 21.0, 34.0],
+      ["LAVAALL Technical & QA", 78.0, 24.0, 19.0, 35.0],
+      ["LAVAALL Growth, UGC & Ads", 25.0, 23.0, 15.5, 24.0],
+      ["LAVAALL Lifecycle & Klaviyo", 62.0, 23.0, 15.5, 24.0],
+      ["Researchy", 88.0, 13.0, 10.5, 14.0]
     ],
     "side": [
-      [
-        "LAVAALL CEO",
-        43.0,
-        22.0,
-        31.0,
-        50.0
-      ],
-      [
-        "LAVAALL Sales & Customer Success",
-        7.0,
-        24.0,
-        19.5,
-        35.0
-      ],
-      [
-        "LAVAALL Technical & QA",
-        81.0,
-        26.0,
-        17.5,
-        34.0
-      ],
-      [
-        "LAVAALL Growth, UGC & Ads",
-        26.0,
-        23.0,
-        15.0,
-        25.0
-      ],
-      [
-        "LAVAALL Lifecycle & Klaviyo",
-        62.0,
-        23.0,
-        14.5,
-        25.0
-      ],
-      [
-        "Researchy",
-        3.5,
-        57.0,
-        13.0,
-        20.0
-      ]
+      ["LAVAALL CEO", 37.0, 30.0, 20.0, 32.0],
+      ["LAVAALL Sales & Customer Success", 7.0, 24.0, 19.5, 35.0],
+      ["LAVAALL Technical & QA", 81.0, 26.0, 17.5, 34.0],
+      ["LAVAALL Growth, UGC & Ads", 26.0, 23.0, 15.0, 25.0],
+      ["LAVAALL Lifecycle & Klaviyo", 62.0, 23.0, 14.5, 25.0],
+      ["Researchy", 3.5, 57.0, 13.0, 20.0]
     ],
     "lead_view": [
-      [
-        "LAVAALL CEO",
-        30.0,
-        28.0,
-        40.0,
-        68.0
-      ],
-      [
-        "LAVAALL Sales & Customer Success",
-        4.0,
-        27.0,
-        21.0,
-        34.0
-      ],
-      [
-        "LAVAALL Technical & QA",
-        80.0,
-        27.0,
-        18.0,
-        34.0
-      ],
-      [
-        "LAVAALL Growth, UGC & Ads",
-        25.0,
-        25.0,
-        15.0,
-        24.0
-      ],
-      [
-        "LAVAALL Lifecycle & Klaviyo",
-        62.0,
-        25.0,
-        15.0,
-        24.0
-      ],
-      [
-        "Researchy",
-        20.0,
-        51.0,
-        18.0,
-        26.0
-      ]
+      ["LAVAALL CEO", 38.0, 28.0, 24.0, 36.0],
+      ["LAVAALL Sales & Customer Success", 4.0, 27.0, 21.0, 34.0],
+      ["LAVAALL Technical & QA", 80.0, 27.0, 18.0, 34.0],
+      ["LAVAALL Growth, UGC & Ads", 25.0, 25.0, 15.0, 24.0],
+      ["LAVAALL Lifecycle & Klaviyo", 62.0, 25.0, 15.0, 24.0],
+      ["Researchy", 20.0, 51.0, 18.0, 26.0]
     ]
   },
   "responsive": {
@@ -292,5 +112,8 @@
     "Chat remains council",
     "no fake status dots",
     "preview only"
+  ],
+  "notes": [
+    "2026-09-22: shrink CEO lead/aisle hotspots; Talk chrome above map."
   ]
 }
