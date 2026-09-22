@@ -146,14 +146,19 @@ async function run() {
       && html.includes('orientation:landscape')
       && (html.match(/class="btn"[^>]*>Talk<\/a>/g) || []).length >= 6);
     check('frosted LAVAALL wordmark stays hidden and Lead CEO hotspot is the shrunk box',
-      html.includes('.office-wordmark{display:none!important;}')
+      (html.includes('.office-wordmark,#office-wordmark{display:none!important')
+        || html.includes('.office-wordmark{display:none!important;}'))
       && html.includes('Wordmark overlay removed (founder 2026-09-22)')
       && !html.includes('.office-wordmark{display:flex;')
       && html.includes('>Lead view<')
       && html.includes('aria-label="Cameras"')
       && (() => {
         const ceo = office.OFFICE_HOTSPOTS.lead.find((spot) => spot.id === 'lavaall-ceo');
-        return ceo && ceo.left === 42 && ceo.top === 38 && ceo.width === 16 && ceo.height === 28;
+        // Prefer founder target {38,28,24,36}; accept interim {42,38,16,28} until server SoT lands.
+        return ceo && (
+          (ceo.left === 38 && ceo.top === 28 && ceo.width === 24 && ceo.height === 36)
+          || (ceo.left === 42 && ceo.top === 38 && ceo.width === 16 && ceo.height === 28)
+        );
       })());
     check('desktop cameras use the approved photo files',
       CAMERA_FILES.every((file) => html.includes(`src="/assets/ops/office/cameras/${file}"`))
@@ -219,6 +224,9 @@ async function run() {
       && src.includes('if (selectedId) setSelected(selectedId)')
       && src.includes("setCamera('lead')")
       && src.includes('setWordmark()')
+      && src.includes('data-office-aisle-fix')
+      && src.includes('#office-wordmark{display:none!important')
+      && src.includes('left: 38, top: 28, width: 24, height: 36')
       && office.DEFAULT_CAMERA_ID === 'lead');
   }
 
