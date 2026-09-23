@@ -360,6 +360,53 @@ async function run() {
       && desks.isDeskGreeting('hello Researchy') === true
       && desks.isDeskGreeting('Verify the researchy catalog facts for docks.') === false);
 
+    const deskOpeners = [
+      ["what's up?", 'corr-desk-up'],
+      ['whats up', 'corr-desk-whats'],
+      ['sup', 'corr-desk-sup'],
+      ['how are you?', 'corr-desk-how'],
+      ['how are you doing today?', 'corr-desk-how-today'],
+      ['hey, can you help me with this?', 'corr-desk-help'],
+      ['hey there', 'corr-desk-there'],
+      ['good morning', 'corr-desk-morning'],
+      ['good afternoon Researchy', 'corr-desk-afternoon'],
+      ['good morning Researchy', 'corr-desk-gm-name'],
+    ];
+    for (let i = 0; i < deskOpeners.length; i += 1) {
+      const phrase = deskOpeners[i][0];
+      const correlationId = deskOpeners[i][1];
+      const before = greetCalls;
+      const greeted = mockRes();
+      await ops(authed({
+        json: true,
+        method: 'POST',
+        url: '/ops/api/desk-talk/message',
+        query: { area: 'api/desk-talk/message', agent: 'researchy' },
+        body: {
+          csrf: lib.createCsrfToken(ALLOWED),
+          agentId: 'researchy',
+          text: phrase,
+          correlationId,
+        },
+      }), greeted);
+      check(`desk opener ${phrase} greets without xAI or Assign dump`,
+        greeted.statusCode === 200
+        && greeted.body.waiting === false
+        && greeted.body.usedModel === false
+        && greeted.body.replay === false
+        && greetCalls === before
+        && greeted.body.reply === desks.DESK_GREETING_COPY
+        && !greeted.body.reply.includes('Starlink')
+        && !greeted.body.reply.includes('Assign')
+        && !greeted.body.reply.includes('Findings')
+        && !greeted.body.reply.toLowerCase().includes('task')
+        && desks.isDeskGreeting(phrase) === true);
+    }
+    check('desk mixed status and concrete research are not greetings',
+      desks.isDeskGreeting('Hey, how are you doing today? What are we working on?') === false
+      && desks.isDeskGreeting('can you help me research Starlink for Liberia?') === false
+      && desks.isDeskGreeting('Verify the researchy catalog facts for docks.') === false);
+
     const researchAsk = mockRes();
     await ops(authed({
       json: true,
@@ -378,6 +425,28 @@ async function run() {
       && greetCalls === 1
       && lastDeskBody
       && String(lastDeskBody.messages[0].content).includes('Task: Assign 3 — Starlink kit Liberia'));
+
+    const concreteHelp = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/desk-talk/message',
+      query: { area: 'api/desk-talk/message', agent: 'researchy' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        agentId: 'researchy',
+        text: 'can you help me research Starlink for Liberia?',
+        correlationId: 'corr-desk-concrete-1',
+      },
+    }), concreteHelp);
+    check('concrete Researchy help is not a greeting and still gets task context',
+      concreteHelp.statusCode === 200
+      && concreteHelp.body.reply !== desks.DESK_GREETING_COPY
+      && concreteHelp.body.usedModel === true
+      && greetCalls === 2
+      && lastDeskBody
+      && String(lastDeskBody.messages[0].content).includes('Task: Assign 3 — Starlink kit Liberia')
+      && desks.isDeskGreeting('can you help me research Starlink for Liberia?') === false);
 
     const pending = await ceo.listPending();
     check('non-CEO xAI turns are not added to the CEO B2 inbox',

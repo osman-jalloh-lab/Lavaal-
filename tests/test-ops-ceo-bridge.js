@@ -387,13 +387,43 @@ async function run() {
   }
 
   {
-    check('phatic greetings classify as phatic',
-      ceo.isPhaticGreeting('Hi') === true
-      && ceo.isPhaticGreeting('hi') === true
-      && ceo.isPhaticGreeting('Hello!') === true
-      && ceo.isPhaticGreeting('hey?') === true
-      && ceo.isPhaticGreeting('Hello CEO') === false
-      && ceo.classifyCeoAsk('Hi') === 'phatic');
+    const phaticPhrases = [
+      'Hi',
+      'hi',
+      'Hello!',
+      'hey?',
+      'yo',
+      'howdy',
+      "what's up?",
+      'whats up',
+      'sup',
+      'how are you?',
+      'how are you doing today?',
+      'hey, can you help me with this?',
+      'hey there',
+      'good morning',
+      'good afternoon',
+    ];
+    phaticPhrases.forEach((phrase) => {
+      check(`phatic opener stays a short greeting: ${phrase}`,
+        ceo.isPhaticGreeting(phrase) === true
+        && ceo.classifyCeoAsk(phrase) === 'phatic');
+    });
+    check('Hello CEO stays off the phatic short-circuit',
+      ceo.isPhaticGreeting('Hello CEO') === false
+      && ceo.classifyCeoAsk('Hello CEO') !== 'phatic');
+    check('mixed greeting plus status stays status so Goal can inject',
+      ceo.isPhaticGreeting('Hey, how are you doing today? What are we working on?') === false
+      && ceo.classifyCeoAsk('Hey, how are you doing today? What are we working on?') === 'status'
+      && ceo.classifyCeoAsk('What are you doing?') === 'status');
+    check('concrete help is not phatic',
+      ceo.isPhaticGreeting('can you help me research Starlink for Liberia?') === false
+      && ceo.classifyCeoAsk('can you help me research Starlink for Liberia?') === 'answer_first');
+    check('quality and previous-message probes are not phatic',
+      ceo.isPhaticGreeting('Hey, what is the quality gate?') === false
+      && ceo.classifyCeoAsk('Hey, what is the quality gate?') === 'answer_first'
+      && ceo.isPhaticGreeting('hi, what was my previous message?') === false
+      && ceo.isPreviousMessageAsk('hi, what was my previous message?') === true);
     check('status asks keep Goal/Tasks mode',
       ceo.classifyCeoAsk('What is LAVAALL working on?') === 'status'
       && ceo.classifyCeoAsk('Need a Preview status') === 'status'
@@ -639,6 +669,96 @@ async function run() {
       && String(lastXaiBody.messages[0].content).includes('Answer the founder question first')
       && !String(lastXaiBody.messages[0].content).includes('Wire Assign wake')
       && String(lastXaiBody.messages[0].content).includes('Do not auto-Assign'));
+
+    const broaderGreetings = [
+      ["what's up?", 'corr-phatic-up'],
+      ['whats up', 'corr-phatic-whats'],
+      ['sup', 'corr-phatic-sup'],
+      ['how are you?', 'corr-phatic-how'],
+      ['how are you doing today?', 'corr-phatic-how-today'],
+      ['hey, can you help me with this?', 'corr-phatic-help'],
+      ['hey there', 'corr-phatic-there'],
+      ['good morning', 'corr-phatic-morning'],
+      ['good afternoon', 'corr-phatic-afternoon'],
+    ];
+    for (let i = 0; i < broaderGreetings.length; i += 1) {
+      const phrase = broaderGreetings[i][0];
+      const correlationId = broaderGreetings[i][1];
+      const before = xaiCalls;
+      const greeted = mockRes();
+      await ops(authed({
+        json: true,
+        method: 'POST',
+        url: '/ops/api/ceo-bridge/message',
+        query: { area: 'api/ceo-bridge/message' },
+        body: {
+          csrf: lib.createCsrfToken(ALLOWED),
+          text: phrase,
+          correlationId,
+        },
+      }), greeted);
+      const greetedCeo = (greeted.body.thread.messages || []).filter((item) => item.role === 'ceo').pop();
+      check(`phatic ${phrase} returns a short greeting without xAI or Goal/Tasks`,
+        greeted.statusCode === 200
+        && greeted.body.ok === true
+        && greeted.body.waiting === false
+        && greeted.body.usedModel === false
+        && greeted.body.replay === false
+        && xaiCalls === before
+        && greeted.body.reply === ceo.PHATIC_GREETING_COPY
+        && greetedCeo
+        && greetedCeo.text === ceo.PHATIC_GREETING_COPY
+        && !greetedCeo.text.includes('Ship Preview Slice 1')
+        && !greetedCeo.text.includes('Wire Assign wake')
+        && !greetedCeo.text.toLowerCase().includes('goal')
+        && !greetedCeo.text.toLowerCase().includes('task'));
+    }
+
+    const mixedStatus = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'Hey, how are you doing today? What are we working on?',
+        correlationId: 'corr-mixed-status-1',
+      },
+    }), mixedStatus);
+    check('mixed greeting plus status still injects Goal into the xAI prompt',
+      mixedStatus.statusCode === 200
+      && mixedStatus.body.correlationId === 'corr-mixed-status-1'
+      && mixedStatus.body.reply !== ceo.PHATIC_GREETING_COPY
+      && mixedStatus.body.usedModel === true
+      && xaiCalls === xaiBeforeHi + 3
+      && lastXaiBody
+      && String(lastXaiBody.messages[0].content).includes('Goal: Ship Preview Slice 1')
+      && String(lastXaiBody.messages[0].content).includes('Task: Wire Assign wake')
+      && !String(lastXaiBody.messages[0].content).includes('short fresh greeting'));
+
+    const concreteHelp = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'can you help me research Starlink for Liberia?',
+        correlationId: 'corr-concrete-help-1',
+      },
+    }), concreteHelp);
+    check('concrete help is not a greeting and still assigns Researchy',
+      concreteHelp.statusCode === 200
+      && concreteHelp.body.correlationId === 'corr-concrete-help-1'
+      && concreteHelp.body.reply !== ceo.PHATIC_GREETING_COPY
+      && concreteHelp.body.usedModel === false
+      && xaiCalls === xaiBeforeHi + 3
+      && String(concreteHelp.body.reply || '').startsWith('Assigned to Researchy.')
+      && String(concreteHelp.body.reply || '').includes('Starlink')
+      && !String(concreteHelp.body.reply || '').includes('Ship Preview Slice 1')
+      && !String(concreteHelp.body.reply || '').includes('Wire Assign wake'));
 
     ceo.resetCeoBridge();
     store.resetStore();

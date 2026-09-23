@@ -50,9 +50,10 @@ const DESK_PROMPTS = Object.freeze({
   lifecycle: { name: 'LAVAALL Lifecycle & Klaviyo' },
   researchy: { name: 'Researchy' },
 });
-// Desk greetings ("hello Researchy") must not pull open Assign tasks.
-const DESK_GREETING_RE = /^(hi|hello|hey|yo|howdy)(?:\s+(?:there|researchy|lavaall(?:\s+ceo)?|ceo|sales|technical|growth|lifecycle))?[.!?,…\s]*$/i;
+// Desk greetings ("hello Researchy", "what's up") must not pull open Assign tasks.
+// Vocatives are stripped, then the CEO phatic classifier decides. Named work stays on xAI.
 const DESK_GREETING_COPY = 'Hi — good to see you. What should we focus on?';
+const DESK_VOCATIVE_RE = /\b(?:researchy|lavaall(?:\s+ceo)?|ceo|sales|technical|growth|lifecycle)\b/gi;
 
 let memory = emptyMemory();
 
@@ -66,7 +67,11 @@ function clean(value, max) {
 
 function isDeskGreeting(text) {
   const body = clean(String(text || ''), MAX_TEXT);
-  return Boolean(body) && DESK_GREETING_RE.test(body);
+  if (!body) return false;
+  if (ceoBridge.isPhaticGreeting(body)) return true;
+  const stripped = body.replace(DESK_VOCATIVE_RE, ' ').replace(/\s+/g, ' ').trim();
+  if (!stripped || stripped === body) return false;
+  return ceoBridge.isPhaticGreeting(stripped);
 }
 
 function newId() {

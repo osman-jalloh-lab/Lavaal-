@@ -45,9 +45,35 @@ const MAX_TEXT = 2000;
 const SLACK_FALLBACK = 'If this bridge is down, Slack #laval is the backup — not the usual path.';
 const WAITING_COPY = 'Waiting on CEO…';
 const RUNTIME_UNAVAILABLE_COPY = "Couldn't reach the CEO runtime just now — try again in a moment.";
-// Phatic greetings must not pull Goal + unfinished Tasks into the model turn.
-const PHATIC_GREETING_RE = /^(hi|hello|hey|yo|howdy)([.!?,… ]*)$/i;
+// Casual openers must not pull Goal + unfinished Tasks into the model turn.
+// Pure phatic = greeting, wellbeing check, or a help offer with no concrete task.
+// A greeting mixed with status, quality, recall, or real work is not phatic.
 const PHATIC_GREETING_COPY = 'Hi — good to see you. What should we focus on?';
+const PHATIC_GREETING_WORD = 'hiya|heya|hello|howdy|hey|hi|yo|hola|sup|good\\s+(?:morning|afternoon|evening|night)|morning|afternoon|evening';
+const PHATIC_FILLER = "there|everyone|folks|y'all|all";
+const PHATIC_GREETING_PREFIX_RE = new RegExp(
+  `^(?:${PHATIC_GREETING_WORD})\\b(?:[\\s,]+(?:${PHATIC_FILLER})\\b)?(?:[.!?…,]+|\\s)*`,
+  'i'
+);
+const PHATIC_SOCIAL_CLAUSE = [
+  "what(?:'s|s|\\s+is)?\\s+up(?:\\s+today)?",
+  'wassup',
+  'whassup',
+  'sup',
+  "how(?:\\s+are|\\s+r|'re)?\\s+you(?:\\s+doing)?(?:\\s+today)?",
+  'how\\s+you\\s+doing(?:\\s+today)?',
+  "how(?:'s|s|\\s+is)\\s+it\\s+going(?:\\s+today)?",
+  "how(?:'s|s|\\s+is)\\s+(?:everything|things)(?:\\s+going)?(?:\\s+today)?",
+  'how\\s+have\\s+you\\s+been',
+  "how(?:'s|s|\\s+is)\\s+your\\s+day(?:\\s+going)?",
+  'you\\s+(?:there|around)',
+  '(?:you\\s+)?got\\s+a\\s+(?:sec|second|minute|moment)',
+  "(?:(?:can|could|would)\\s+you\\s+)?(?:please\\s+)?help(?:\\s+me)?(?:\\s+out)?(?:\\s+with\\s+(?:this|that|something))?",
+  '(?:can|could|would)\\s+you\\s+(?:please\\s+)?(?:give\\s+me\\s+a\\s+hand|lend\\s+(?:me\\s+)?a\\s+hand)(?:\\s+with\\s+(?:this|that|something))?',
+  'i\\s+(?:could\\s+)?(?:use|need)\\s+(?:some\\s+|a\\s+little\\s+)?help(?:\\s+with\\s+(?:this|that|something))?',
+].join('|');
+const PHATIC_SOCIAL_CLAUSE_RE = new RegExp(`^(?:${PHATIC_SOCIAL_CLAUSE})$`, 'i');
+const PHATIC_CONCRETE_WORK_RE = /\b(?:research(?:ing)?|sourcing|suppliers?|catalog(?:ue)?|quotes?|draft(?:ing)?|compar(?:e|ing)|review(?:ing)?|verif(?:y|ying)|investigat(?:e|ing)|deploy(?:ing)?|skus?|pric(?:e|es|ing)|starlink|liberia|assignment|working\s+on)\b/i;
 const CEO_ASK_MODES = Object.freeze(['phatic', 'status', 'answer_first', 'default']);
 
 let memory = emptyMemory();
@@ -215,9 +241,42 @@ function isExplicitWake(input) {
   return /^@grok\b/i.test(text) || /^\/wake\b/i.test(text);
 }
 
+function normalizeAskText(text) {
+  return clean(String(text || ''), MAX_TEXT)
+    .replace(/[\u2018\u2019\u2032]/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripLeadingGreetings(body) {
+  let rest = body;
+  for (let i = 0; i < 4; i += 1) {
+    if (!PHATIC_GREETING_PREFIX_RE.test(rest)) return rest;
+    const next = rest.replace(PHATIC_GREETING_PREFIX_RE, '').trim();
+    if (!next || next === rest) return next;
+    rest = next;
+  }
+  return rest;
+}
+
+function remainderIsSocial(remainder) {
+  const text = String(remainder || '').replace(/^[.!?,…\s]+|[.!?,…\s]+$/g, '').trim();
+  if (!text) return true;
+  const parts = text.split(/[.!?…]+/).map((part) => part.trim()).filter(Boolean);
+  if (!parts.length) return true;
+  return parts.every((part) => {
+    const pieces = part.split(/\s*(?:,|&|\band\b)\s*/i).map((piece) => piece.trim()).filter(Boolean);
+    return pieces.length > 0 && pieces.every((piece) => PHATIC_SOCIAL_CLAUSE_RE.test(piece));
+  });
+}
+
 function isPhaticGreeting(text) {
-  const body = clean(String(text || ''), MAX_TEXT);
-  return Boolean(body) && PHATIC_GREETING_RE.test(body);
+  const body = normalizeAskText(text);
+  if (!body) return false;
+  // Status, quality, recall, and named work win over the greeting in front.
+  if (isQualityOrApprovalAsk(body) || isStatusAsk(body) || isPreviousMessageAsk(body)) return false;
+  if (PHATIC_CONCRETE_WORK_RE.test(body)) return false;
+  return remainderIsSocial(stripLeadingGreetings(body));
 }
 
 function isPreviousMessageAsk(text) {
@@ -1008,7 +1067,7 @@ async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
   const founder = founderByCorrelation(claim.thread, correlationId) || lastFounderMessage(claim.thread);
   const founderText = founder && founder.text ? founder.text : '';
   const mode = classifyCeoAsk(founderText);
-  // Phatic Hi/hello must not call xAI with Goal + unfinished Tasks injected.
+  // Pure greetings must not call xAI with Goal + unfinished Tasks injected.
   if (mode === 'phatic') {
     const replied = await appendOwnedCeoReply({
       threadId,
