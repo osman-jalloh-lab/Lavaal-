@@ -1,6 +1,9 @@
 // Preview-only research quality gate. Calls Jev through Vercel AI Gateway HTTP.
-// Explicit POST /ops/api/jev/evaluate only — not Assign routing, and not fired
-// from Talk. No npm. AI_GATEWAY_API_KEY never leaves the server and is never logged.
+// Manual route: POST /ops/api/jev/evaluate (founder session + CSRF).
+// Automatic score: Researchy desk-talk reply only (see _assign.postResearchyReply).
+// Talk chat and Assign enqueue do not call this. No npm.
+// AI_GATEWAY_API_KEY never leaves the server and is never logged.
+// VERCEL_ENV=production ignores JEV_RESEARCH_QUALITY_PREVIEW and does not call Jev.
 
 const {
   header,
@@ -19,6 +22,7 @@ const {
 const EVALUATE_URL = 'https://ai-gateway.vercel.sh/v1/evaluate';
 const JEV_MODEL = 'typesafe-ai/jev';
 const ACCEPT_THRESHOLD = 0.75;
+const MAX_QUALITY_REVISES = 2;
 const MAX_STATE_CHARS = 4000;
 const MIN_KEY_LENGTH = 16;
 // Short on purpose: typed eval, not a chat completion. Stay under ops maxDuration 30.
@@ -31,6 +35,22 @@ function gatewayKey() {
 
 function jevConfigured() {
   return gatewayKey().length >= MIN_KEY_LENGTH;
+}
+
+function productionEnv() {
+  return String(process.env.VERCEL_ENV || '').trim().toLowerCase() === 'production';
+}
+
+function previewFlagOn() {
+  const flag = String(process.env.JEV_RESEARCH_QUALITY_PREVIEW || '').trim().toLowerCase();
+  return flag === '1' || flag === 'true' || flag === 'on';
+}
+
+// Automatic Researchy scoring. Production never enables this, even if the flag is set.
+function researchQualityAutoEnabled() {
+  if (productionEnv()) return false;
+  if (!previewFlagOn()) return false;
+  return jevConfigured();
 }
 
 function researchQualityQuestions() {
@@ -134,6 +154,36 @@ function decideResearchQuality(answers) {
     action: probability >= ACCEPT_THRESHOLD ? 'accept' : 'revise',
     thresholds: { accept_research: ACCEPT_THRESHOLD },
     answers,
+  };
+}
+
+async function scoreResearchResult({ brief, result, fetchImpl }) {
+  if (!researchQualityAutoEnabled()) return { ok: true, skipped: true, reason: 'gate_off' };
+  const packed = truncateResearchState({ brief, result });
+  if (!packed.state.result) return { ok: true, skipped: true, reason: 'invalid_state' };
+  let evaluated;
+  try {
+    evaluated = await evaluate({
+      state: packed.state,
+      questions: researchQualityQuestions(),
+      fetchImpl,
+    });
+  } catch {
+    return { ok: true, skipped: true, reason: 'jev_failed' };
+  }
+  if (!evaluated || evaluated.error) {
+    const reason = evaluated && evaluated.error === 'jev_not_configured' ? 'gate_off' : 'jev_failed';
+    return { ok: true, skipped: true, reason };
+  }
+  const decision = decideResearchQuality(evaluated.answers);
+  if (!decision.ok) return { ok: true, skipped: true, reason: 'jev_failed' };
+  const row = evaluated.answers.accept_research;
+  return {
+    ok: true,
+    skipped: false,
+    action: decision.action,
+    probability: row.probability,
+    thresholds: decision.thresholds,
   };
 }
 
@@ -250,6 +300,13 @@ async function handleJevEvaluate(req, res) {
     sendJson(res, 403, { error: 'csrf' });
     return true;
   }
+  if (productionEnv()) {
+    sendJson(res, 503, {
+      error: 'jev_disabled',
+      message: 'Jev research quality is Preview-only.',
+    });
+    return true;
+  }
   if (!jevConfigured()) {
     sendJson(res, 503, notConfiguredBody());
     return true;
@@ -301,6 +358,7 @@ module.exports = {
   DEFAULT_TIMEOUT_MS,
   EVALUATE_URL,
   JEV_MODEL,
+  MAX_QUALITY_REVISES,
   MAX_STATE_CHARS,
   MIN_KEY_LENGTH,
   answerProbs,
@@ -308,6 +366,8 @@ module.exports = {
   evaluate,
   handleJevEvaluate,
   jevConfigured,
+  researchQualityAutoEnabled,
   researchQualityQuestions,
+  scoreResearchResult,
   truncateResearchState,
 };

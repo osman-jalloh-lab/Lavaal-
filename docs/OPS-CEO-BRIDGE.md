@@ -182,6 +182,19 @@ Use `https://www.lavaall.com` (Preview branch URLs may 410).
 6. Researchy Grok Bot `POST https://www.lavaall.com/ops/api/desk-talk/researchy/reply` with findings (include `pendingId` / `correlationId` — never threadId alone). CEO Talk shows **Found:** bullets and **Based on that, recommend … (awaiting your OK)**. No methodology dump. Task becomes **Ready for review**, still Doing — not done.
 7. Repeat with NL: `assign to researchy: source USB-C hubs`. Title increments `Assign N`. Do not involve Technical unless you explicitly ask.
 
+### Jev research quality (Preview only)
+
+Automatic scoring runs only when Researchy posts a Found result (`POST /ops/api/desk-talk/researchy/reply`). Talk Send and Assign enqueue do not call Jev. Threshold stays `0.75` in code. At most two revise scores, then the result is delivered with `quality.action` still `revise`.
+
+The gate runs only when all of these are true: `VERCEL_ENV` is not `production`, `JEV_RESEARCH_QUALITY_PREVIEW=true`, and `AI_GATEWAY_API_KEY` is set (16+ characters). Production ignores the flag even if it is set. A missing key or a gateway failure still delivers the Researchy result.
+
+Preview smoke (key already on Preview; set the flag on Preview only, then redeploy):
+
+1. Sign in on the Vercel Preview `/ops`. Assign a sourcing brief to Researchy.
+2. Post a weak reply (no sources, invented price or supplier count) to `/ops/api/desk-talk/researchy/reply` with that pending’s `pendingId` and `correlationId`. Task becomes **Revise**. `/ops/tasks` shows `Quality: revise` and the probability. A new Researchy pending row asks for a sourced revision. CEO Talk does not show the weak blob as Ready for review.
+3. Post a cited revision on that new pending id. If `accept_research` ≥ 0.75, the task becomes **Ready for review** and CEO Talk shows Found / recommend plus `Quality: accept`.
+4. With the flag unset, or on Production, the same reply stays the old path: Ready for review, no gateway call.
+
 | Desk | Talk route | KV key |
 |------|------------|--------|
 | LAVAALL CEO | `/ops/chat/lavaall-ceo` | `ops:ceo:thread:{id}` (+ B2 wake inbox) |

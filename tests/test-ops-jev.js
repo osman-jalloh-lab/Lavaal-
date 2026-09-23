@@ -6,6 +6,10 @@ const path = require('path');
 const opsDir = path.join(__dirname, '../api/ops');
 const lib = require(path.join(opsDir, '_lib.js'));
 const jev = require(path.join(opsDir, '_jev.js'));
+const store = require(path.join(opsDir, '_store.js'));
+const assign = require(path.join(opsDir, '_assign.js'));
+const ceo = require(path.join(opsDir, '_ceo_bridge.js'));
+const desks = require(path.join(opsDir, '_agent_thread.js'));
 const ops = require(path.join(opsDir, 'index.js'));
 
 const SECRET = 'test-ops-auth-secret-32chars!!';
@@ -329,10 +333,222 @@ async function run() {
       /^AI_GATEWAY_API_KEY=\s*$/m.test(env)
       && /Preview spike/.test(env)
       && /Never commit the value/.test(env)
+      && /JEV_RESEARCH_QUALITY_PREVIEW/.test(env)
+      && /Production ignores this flag/.test(env)
       && !env.includes(GATEWAY_KEY));
     check('vercel rewrite sends /ops/api/jev/evaluate to the ops function',
       vercel.includes('"/ops/api/jev/evaluate"')
       && vercel.includes('area=api/jev/evaluate'));
+  }
+
+  {
+    delete process.env.JEV_RESEARCH_QUALITY_PREVIEW;
+    delete process.env.VERCEL_ENV;
+    delete process.env.XAI_API_KEY;
+    delete process.env.OPS_ASSIGN_XAI_FALLBACK;
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    process.env.AI_GATEWAY_API_KEY = GATEWAY_KEY;
+    store.resetStore();
+    ceo.resetCeoBridge();
+    desks.resetDeskTalk();
+    const seen = mockFetch(async () => jsonResponse(200, gatewayAnswers(0.99, 3)));
+    const seeded = await assign.assignToResearchy({
+      text: 'source USB-C docks for Freetown',
+      founderEmail: ALLOWED,
+      source: 'test',
+    });
+    await assign.noteDeskProgress({
+      agentId: 'researchy',
+      threadId: seeded.task && seeded.task.childThreadId,
+      correlationId: seeded.task && seeded.task.childCorrelationId,
+      resultText: STRONG_RESULT,
+      waiting: false,
+    });
+    check('Talk progress and Assign enqueue do not call Jev',
+      seeded.ok === true
+      && seen.length === 0
+      && seeded.task
+      && seeded.task.assignStatus !== 'revise');
+  }
+
+  function enablePreviewGate() {
+    process.env.VERCEL_ENV = 'preview';
+    process.env.JEV_RESEARCH_QUALITY_PREVIEW = 'true';
+    process.env.AI_GATEWAY_API_KEY = GATEWAY_KEY;
+    delete process.env.XAI_API_KEY;
+    delete process.env.OPS_ASSIGN_XAI_FALLBACK;
+  }
+
+  async function freshAssign() {
+    store.resetStore();
+    ceo.resetCeoBridge();
+    desks.resetDeskTalk();
+    return assign.assignToResearchy({
+      text: 'source USB-C docks for Freetown',
+      founderEmail: ALLOWED,
+      source: 'test',
+    });
+  }
+
+  {
+    enablePreviewGate();
+    delete process.env.AI_GATEWAY_API_KEY;
+    const seen = mockFetch(async () => jsonResponse(200, gatewayAnswers(0.1, 0)));
+    const seeded = await freshAssign();
+    const posted = await assign.postResearchyReply({
+      threadId: seeded.task.childThreadId,
+      correlationId: seeded.task.childCorrelationId,
+      text: WEAK_RESULT,
+    });
+    check('missing key skips the gate and still delivers Researchy',
+      posted.ok === true
+      && posted.replay !== true
+      && posted.task.assignStatus === 'ready_for_review'
+      && !posted.task.quality
+      && seen.length === 0);
+  }
+
+  {
+    enablePreviewGate();
+    process.env.VERCEL_ENV = 'production';
+    const seen = mockFetch(async () => jsonResponse(200, gatewayAnswers(0.1, 0)));
+    const seeded = await freshAssign();
+    const posted = await assign.postResearchyReply({
+      threadId: seeded.task.childThreadId,
+      correlationId: seeded.task.childCorrelationId,
+      text: WEAK_RESULT,
+    });
+    const manual = mockRes();
+    await ops(authed({
+      body: { purpose: 'research_quality', state: { result: WEAK_RESULT }, csrf: csrf() },
+    }), manual);
+    check('production ignores the preview flag and does not call Jev',
+      posted.ok === true
+      && posted.task.assignStatus === 'ready_for_review'
+      && !posted.task.quality
+      && manual.statusCode === 503
+      && manual.body.error === 'jev_disabled'
+      && seen.length === 0);
+    process.env.VERCEL_ENV = 'preview';
+  }
+
+  {
+    enablePreviewGate();
+    const seen = mockFetch(async (body) => {
+      const result = body && body.state && body.state.result ? body.state.result : '';
+      const strong = /https?:\/\//.test(result);
+      return jsonResponse(200, gatewayAnswers(strong ? 0.91 : 0.18, strong ? 2.8 : 0.2));
+    });
+    const seeded = await freshAssign();
+    check('assign enqueue with the gate armed still does not call Jev', seen.length === 0 && seeded.ok === true);
+    const weak = await assign.postResearchyReply({
+      threadId: seeded.task.childThreadId,
+      correlationId: seeded.task.childCorrelationId,
+      text: WEAK_RESULT,
+    });
+    const pending = store.listResearchyPending(await store.readStore());
+    const ceoThread = await ceo.inspectCeoThread(seeded.thread.id);
+    const reviseNote = (ceoThread.thread.messages || []).find((item) => /Waiting on a sourced revision/.test(item.text));
+    const tasksPage = mockRes();
+    await ops(authed({
+      method: 'GET',
+      url: '/ops/tasks',
+      query: { area: 'tasks' },
+      headers: { accept: 'text/html', 'content-type': 'text/html' },
+    }), tasksPage);
+    check('weak Researchy result revises, persists quality, and wakes one re-score',
+      weak.ok === true
+      && weak.task.assignStatus === 'revise'
+      && weak.task.quality.action === 'revise'
+      && weak.task.quality.probability === 0.18
+      && weak.task.quality.thresholds.accept_research === 0.75
+      && weak.task.quality.attempts === 1
+      && weak.task.result.includes('Quality: revise')
+      && pending.length === 1
+      && pending[0].wakeReason === 'quality-revise'
+      && pending[0].taskId === seeded.task.id
+      && reviseNote
+      && !/About 40 suppliers/.test(reviseNote.text)
+      && String(tasksPage.raw).includes('Quality: revise')
+      && seen.length === 1);
+
+    const same = await assign.postResearchyReply({
+      threadId: seeded.task.childThreadId,
+      correlationId: pending[0].correlationId,
+      pendingId: pending[0].messageId,
+      text: WEAK_RESULT,
+    });
+    check('identical revise text does not spend another Jev call',
+      same.replay === true
+      && same.task.quality.attempts === 1
+      && seen.length === 1);
+
+    const strong = await assign.postResearchyReply({
+      threadId: seeded.task.childThreadId,
+      correlationId: pending[0].correlationId,
+      pendingId: pending[0].messageId,
+      text: STRONG_RESULT,
+    });
+    check('revised cited result accepts at or above 0.75',
+      strong.ok === true
+      && strong.replay !== true
+      && strong.task.assignStatus === 'ready_for_review'
+      && strong.task.quality.action === 'accept'
+      && strong.task.quality.probability === 0.91
+      && strong.task.quality.attempts === 2
+      && strong.task.result.includes('Quality: accept')
+      && seen.length === 2);
+  }
+
+  {
+    enablePreviewGate();
+    const seen = mockFetch(async () => jsonResponse(200, gatewayAnswers(0.12, 0.1)));
+    const seeded = await freshAssign();
+    await assign.postResearchyReply({
+      threadId: seeded.task.childThreadId,
+      correlationId: seeded.task.childCorrelationId,
+      text: 'No sources. Invented price $9 and 40 suppliers.',
+    });
+    const firstPending = store.listResearchyPending(await store.readStore())[0];
+    const second = await assign.postResearchyReply({
+      threadId: seeded.task.childThreadId,
+      correlationId: firstPending.correlationId,
+      pendingId: firstPending.messageId,
+      text: 'Still unsourced. Price about $8. No citation.',
+    });
+    const third = await assign.postResearchyReply({
+      threadId: seeded.task.childThreadId,
+      correlationId: firstPending.correlationId,
+      text: 'Third unsourced blob with a made-up supplier count.',
+    });
+    check('revise loop caps at two scores and then delivers',
+      second.task.assignStatus === 'ready_for_review'
+      && second.task.quality.action === 'revise'
+      && second.task.quality.capped === true
+      && second.task.quality.attempts === 2
+      && second.task.quality.thresholds.accept_research === jev.ACCEPT_THRESHOLD
+      && third.replay === true
+      && seen.length === 2
+      && store.listResearchyPending(await store.readStore()).length === 0);
+  }
+
+  {
+    enablePreviewGate();
+    const seen = mockFetch(async () => jsonResponse(502, { error: 'upstream' }));
+    const seeded = await freshAssign();
+    const posted = await assign.postResearchyReply({
+      threadId: seeded.task.childThreadId,
+      correlationId: seeded.task.childCorrelationId,
+      text: STRONG_RESULT,
+    });
+    check('gateway failure still delivers the Researchy result',
+      posted.ok === true
+      && posted.task.assignStatus === 'ready_for_review'
+      && posted.task.quality.skipped === true
+      && posted.task.quality.reason === 'jev_failed'
+      && /Found:/.test(posted.task.result)
+      && seen.length === 1);
   }
 
   {
@@ -343,6 +559,8 @@ async function run() {
   global.fetch = origFetch;
   console.log = origLog;
   delete process.env.AI_GATEWAY_API_KEY;
+  delete process.env.JEV_RESEARCH_QUALITY_PREVIEW;
+  delete process.env.VERCEL_ENV;
 
   let failed = 0;
   for (const row of results) {
