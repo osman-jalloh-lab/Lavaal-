@@ -137,6 +137,10 @@ HTTP:
 
 ### Researchy Grok Bot routine prompt
 
+**Audience:** Researchy Grok Bot / poll dual-run only. Not Talk UI. Not `docs/ops/souls/SOUL_researchy.md`. Founders at `/ops/chat/researchy` get sourcing voice only: Found, then recommend. Do not paste this poll recipe back into the Talk system prompt.
+
+This is the production wake recipe that used to live in the Researchy Talk SOUL. The bot polls Assign here. Talk does not.
+
 Jobs are not limited to weekday 09:00–17:00. Poll when the founder may be working. Production SoT origin is `https://www.lavaall.com`. Preview branch URLs may 410 — do not poll them. Keep the secret in the bot’s env — never in this note.
 
 ```

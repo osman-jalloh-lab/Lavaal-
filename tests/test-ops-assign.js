@@ -402,7 +402,7 @@ async function run() {
       xaiCalls += 1;
       const body = opts && opts.body ? JSON.parse(opts.body) : {};
       const system = body.messages && body.messages[0] ? String(body.messages[0].content) : '';
-      if (system.includes('You are LAVAALL CEO')) {
+      if (system.includes('I am LAVAALL CEO, the one lead voice') || system.includes('synthesizing Researchy')) {
         return {
           ok: true,
           json: async () => ({ choices: [{ message: { content: 'Use Growth for brand leverage. Do not invent spend.' } }] }),

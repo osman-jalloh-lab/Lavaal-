@@ -25,6 +25,7 @@ const {
 } = require('./_lib');
 const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
+const { talkSystemPrompt } = require('./_souls');
 const { normalizeTalkAgentId, officeAgentById } = require('./_office');
 const ceoBridge = require('./_ceo_bridge');
 const assign = require('./_assign');
@@ -40,52 +41,19 @@ const MAX_ANSWERED = 40;
 const MAX_TEXT = 2000;
 const MARKETS_STUB = 'LAVAALL is a quote-first international product-sourcing marketplace. Category → brand → family → model → variant, then Request Quote. Never imply a live checkout price.';
 
+// Display names only. Talk persona text lives in docs/ops/souls.
 const DESK_PROMPTS = Object.freeze({
-  'lavaall-ceo': {
-    name: 'LAVAALL CEO',
-    lines: [
-      'You are LAVAALL CEO. One voice in the Office.',
-      'Answer the founder. Do not auto-assign every turn to Researchy.',
-      'Suggest Growth for brand/leverage/social, Sales for customers, Technical for product/bugs. Researchy only for sourcing and research.',
-    ],
-  },
-  sales: {
-    name: 'LAVAALL Sales & Customer Success',
-    lines: [
-      'You are LAVAALL Sales & Customer Success. One voice at this desk.',
-      'Help founders draft customer replies and quote-request framing. Do not close a price.',
-    ],
-  },
-  technical: {
-    name: 'LAVAALL Technical & QA',
-    lines: [
-      'You are LAVAALL Technical & QA. One voice at this desk.',
-      'Validation and quality only when the founder asks to check a fact, spec, or defect. Do not invent certifications.',
-    ],
-  },
-  growth: {
-    name: 'LAVAALL Growth, UGC & Ads',
-    lines: [
-      'You are LAVAALL Growth, UGC & Ads. One voice at this desk.',
-      'Draft campaign and UGC notes. Do not invent spend, ROAS, or live ad results.',
-    ],
-  },
-  lifecycle: {
-    name: 'LAVAALL Lifecycle & Klaviyo',
-    lines: [
-      'You are LAVAALL Lifecycle & Klaviyo. One voice at this desk.',
-      'Draft journey and retention notes. Do not invent list sizes, open rates, or send mail.',
-    ],
-  },
-  researchy: {
-    name: 'Researchy',
-    lines: [
-      'You are Researchy. One voice at this desk.',
-      'Researchy-first on sourcing: gather supplier and catalog research. Technical only when validation is needed.',
-      'Do not invent suppliers, lead times, or landed costs.',
-    ],
-  },
+  'lavaall-ceo': { name: 'LAVAALL CEO' },
+  sales: { name: 'LAVAALL Sales & Customer Success' },
+  technical: { name: 'LAVAALL Technical & QA' },
+  growth: { name: 'LAVAALL Growth, UGC & Ads' },
+  lifecycle: { name: 'LAVAALL Lifecycle & Klaviyo' },
+  researchy: { name: 'Researchy' },
 });
+// Desk greetings ("hello Researchy", "what's up") must not pull open Assign tasks.
+// Vocatives are stripped, then the CEO phatic classifier decides. Named work stays on xAI.
+const DESK_GREETING_COPY = 'Hi — good to see you. What should we focus on?';
+const DESK_VOCATIVE_RE = /\b(?:researchy|lavaall(?:\s+ceo)?|ceo|sales|technical|growth|lifecycle)\b/gi;
 
 let memory = emptyMemory();
 
@@ -95,6 +63,15 @@ function emptyMemory() {
 
 function clean(value, max) {
   return typeof value === 'string' ? value.trim().replace(/[<>]/g, '').slice(0, max) : '';
+}
+
+function isDeskGreeting(text) {
+  const body = clean(String(text || ''), MAX_TEXT);
+  if (!body) return false;
+  if (ceoBridge.isPhaticGreeting(body)) return true;
+  const stripped = body.replace(DESK_VOCATIVE_RE, ' ').replace(/\s+/g, ' ').trim();
+  if (!stripped || stripped === body) return false;
+  return ceoBridge.isPhaticGreeting(stripped);
 }
 
 function newId() {
@@ -404,15 +381,9 @@ async function loadTrustedContext() {
 }
 
 function deskSystemPrompt(agentId, context) {
-  const desk = DESK_PROMPTS[normalizeAgentId(agentId)] || DESK_PROMPTS.sales;
-  return [
-    desk.lines.join(' '),
-    MARKETS_STUB,
-    'Use only the trusted KV records below. Do not invent prices, SKUs, legal positions, owners, or completions.',
-    'Drafts only. Assigned research from LAVAALL CEO posts here.',
-    'Never mention /ops, Talk bridges, helpers, Anthropic, OpenAI, or xAI.',
-    formatStoreContext(context),
-  ].join('\n');
+  const id = normalizeAgentId(agentId);
+  const personaId = DESK_PROMPTS[id] ? id : 'sales';
+  return talkSystemPrompt(personaId, formatStoreContext(context));
 }
 
 function deskMessagesForXai(thread) {
@@ -708,6 +679,19 @@ async function completeXaiDeskReply({ agentId, threadId, correlationId, maxToken
       agentId,
     };
   }
+  const founder = founderByCorrelation(claim.thread, correlationId);
+  const founderText = founder && founder.text ? founder.text : '';
+  if (isDeskGreeting(founderText)) {
+    const replied = await appendOwnedReply({
+      agentId,
+      threadId,
+      correlationId,
+      owner: 'xai_runtime',
+      text: DESK_GREETING_COPY,
+    });
+    if (replied.error) return runtimeUnavailableDeskNotice({ agentId, threadId, correlationId });
+    return Object.assign({}, replied, { usedModel: false, provider: '' });
+  }
   try {
     const context = await loadTrustedContext();
     const result = await completeXai({
@@ -974,6 +958,7 @@ function resetDeskTalk(seed) {
 
 Object.assign(module.exports, {
   CEO_DESK_ID,
+  DESK_GREETING_COPY,
   DESK_PROMPTS,
   MARKETS_STUB,
   PROVENANCE,
@@ -984,6 +969,7 @@ Object.assign(module.exports, {
   getFounderDeskThread,
   handleDeskTalk,
   inspectDeskThread,
+  isDeskGreeting,
   normalizeAgentId,
   publicThread,
   resetDeskTalk,

@@ -10,6 +10,7 @@ const chat = require(path.join(opsDir, '_chat.js'));
 const office = require(path.join(opsDir, '_office.js'));
 const ceo = require(path.join(opsDir, '_ceo_bridge.js'));
 const desks = require(path.join(opsDir, '_agent_thread.js'));
+const souls = require(path.join(opsDir, '_souls.js'));
 const ops = require(path.join(opsDir, 'index.js'));
 
 const SECRET = 'test-ops-auth-secret-32chars!!';
@@ -100,6 +101,11 @@ async function run() {
         && html.includes('/assets/js/ops-ceo-chat.js?v=send-not-assign')
         && html.includes('id="talk-mic"')
         && html.includes('id="talk-mic-status"')
+        && !html.includes('# LAVAALL Shared Context')
+        && !html.includes('SOUL.md:')
+        && !html.includes('OPS_CEO_BRIDGE_SECRET')
+        && !html.includes('desk-talk/researchy/pending')
+        && !html.includes('www.lavaall.com/ops/api/desk-talk')
         && !html.includes('This desk uses Office Talk')
         && !html.includes('not the Anthropic or OpenAI helper')
         && (id === 'lavaall-ceo'
@@ -141,7 +147,7 @@ async function run() {
     global.fetch = async (url, opts) => {
       const body = opts && opts.body ? JSON.parse(opts.body) : {};
       const system = body.messages && body.messages[0] ? String(body.messages[0].content) : '';
-      const desk = DESK_IDS.find((id) => system.includes(desks.DESK_PROMPTS[id].lines[0].slice(0, 24))) || 'unknown';
+      const desk = DESK_IDS.find((id) => system.includes(souls.deskSoul(id).split('\n')[0])) || 'unknown';
       seen[desk] = (seen[desk] || 0) + 1;
       return {
         ok: true,
@@ -160,7 +166,7 @@ async function run() {
         body: {
           csrf: lib.createCsrfToken(ALLOWED),
           agentId: id,
-          text: `Hello ${id}`,
+          text: `Verify the ${id} catalog facts for docks.`,
           correlationId: `corr-${id}-1`,
         },
       }), sent);
@@ -183,7 +189,7 @@ async function run() {
         body: {
           csrf: lib.createCsrfToken(ALLOWED),
           agentId: id,
-          text: `Hello ${id}`,
+          text: `Verify the ${id} catalog facts for docks.`,
           correlationId: `corr-${id}-1`,
         },
       }), retry);
@@ -257,12 +263,190 @@ async function run() {
       && desks.threadKey('sales', salesId) === `ops:agent:thread:sales:${salesId}`
       && !desks.threadKey('sales', salesId).includes('ops:ceo:thread:'));
 
+    const shared = souls.sharedContext();
     const prompt = desks.deskSystemPrompt('researchy', { goal: null, tasks: [], notes: [] });
-    check('per-desk system stub is quote-first and forbids invented prices',
-      prompt.includes('Researchy')
-      && prompt.includes(desks.MARKETS_STUB)
-      && prompt.includes('Do not invent prices')
-      && prompt.includes('Assigned research from LAVAALL CEO'));
+    const researchySoul = souls.deskSoul('researchy');
+    check('researchy Talk prompt is shared context then its SOUL',
+      prompt.startsWith(shared)
+      && prompt.indexOf(researchySoul) > shared.length
+      && prompt.includes('Never invent prices')
+      && prompt.includes('The CEO assigns me work')
+      && prompt.includes('Drafts only')
+      && prompt.includes('| L3 |')
+      && prompt.includes('| L4 |'));
+    check('researchy Talk SOUL stays Found and recommend without the wake recipe',
+      researchySoul.includes('I am Researchy')
+      && researchySoul.includes('sourcing and catalog research')
+      && researchySoul.includes('Found, then recommend')
+      && researchySoul.includes('One recommendation')
+      && !researchySoul.includes('OPS_CEO_BRIDGE_SECRET')
+      && !researchySoul.includes('desk-talk/researchy/pending')
+      && !researchySoul.includes('www.lavaall.com/ops/api/desk-talk')
+      && !researchySoul.includes('Wake routine')
+      && !researchySoul.includes('Authorization: Bearer')
+      && !prompt.includes('OPS_CEO_BRIDGE_SECRET')
+      && !prompt.includes('desk-talk/researchy/pending')
+      && !prompt.includes('www.lavaall.com/ops/api/desk-talk'));
+    for (const id of DESK_IDS) {
+      const built = id === 'lavaall-ceo'
+        ? ceo.ceoSystemPrompt({ goal: null, tasks: [], notes: [] })
+        : desks.deskSystemPrompt(id, { goal: null, tasks: [], notes: [] });
+      const soul = souls.deskSoul(id);
+      const otherHeads = DESK_IDS
+        .filter((other) => other !== id)
+        .map((other) => souls.deskSoul(other).split('\n')[0]);
+      check(`${id} Talk system prompt loads shared context then only that SOUL`,
+        built.startsWith(shared)
+        && built.includes(soul)
+        && built.indexOf(soul) > shared.length
+        && otherHeads.every((head) => !built.includes(head))
+        && !built.includes('You are LAVAALL'));
+    }
+    check('lifecycle SOUL stays parked and Talk still loads it',
+      souls.deskSoul('lifecycle').includes('**parked**')
+      && souls.deskSoul('lifecycle').includes('Talk works')
+      && desks.deskSystemPrompt('lifecycle', { goal: null, tasks: [], notes: [] }).includes('I am LAVAALL Lifecycle & Klaviyo'));
+    const ceoSoul = souls.deskSoul('lavaall-ceo');
+    check('CEO SOUL keeps Send distinct from Assign',
+      ceoSoul.includes('Send is not Assign')
+      && ceoSoul.includes('I do not auto-assign every message to Researchy')
+      && ceoSoul.includes('Researchy only for sourcing and research')
+      && ceoSoul.includes('I do not pull in Technical unless the founder asked for validation')
+      && ceoSoul.includes('**Found:**')
+      && ceoSoul.includes('awaiting your OK'));
+
+    desks.resetDeskTalk();
+    store.resetStore();
+    await store.addTask({
+      title: 'Assign 3 — Starlink kit Liberia',
+      nextAction: 'Ready for review',
+      status: 'doing',
+      createdBy: ALLOWED,
+    });
+    let greetCalls = 0;
+    let lastDeskBody = null;
+    global.fetch = async (url, opts) => {
+      greetCalls += 1;
+      lastDeskBody = opts && opts.body ? JSON.parse(opts.body) : null;
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'Findings • Starlink Assign task. Recommend • supply data.' } }] }),
+      };
+    };
+    const helloResearchy = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/desk-talk/message',
+      query: { area: 'api/desk-talk/message', agent: 'researchy' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        agentId: 'researchy',
+        text: 'hello Researchy',
+        correlationId: 'corr-stale-004',
+      },
+    }), helloResearchy);
+    check('STALE-004 hello Researchy greets without Starlink Assign dump',
+      helloResearchy.statusCode === 200
+      && helloResearchy.body.waiting === false
+      && helloResearchy.body.usedModel === false
+      && helloResearchy.body.replay === false
+      && greetCalls === 0
+      && helloResearchy.body.reply === desks.DESK_GREETING_COPY
+      && !helloResearchy.body.reply.includes('Starlink')
+      && !helloResearchy.body.reply.includes('Assign')
+      && !helloResearchy.body.reply.includes('Findings')
+      && !helloResearchy.body.reply.toLowerCase().includes('task')
+      && desks.isDeskGreeting('hello Researchy') === true
+      && desks.isDeskGreeting('Verify the researchy catalog facts for docks.') === false);
+
+    const deskOpeners = [
+      ["what's up?", 'corr-desk-up'],
+      ['whats up', 'corr-desk-whats'],
+      ['sup', 'corr-desk-sup'],
+      ['how are you?', 'corr-desk-how'],
+      ['how are you doing today?', 'corr-desk-how-today'],
+      ['hey, can you help me with this?', 'corr-desk-help'],
+      ['hey there', 'corr-desk-there'],
+      ['good morning', 'corr-desk-morning'],
+      ['good afternoon Researchy', 'corr-desk-afternoon'],
+      ['good morning Researchy', 'corr-desk-gm-name'],
+    ];
+    for (let i = 0; i < deskOpeners.length; i += 1) {
+      const phrase = deskOpeners[i][0];
+      const correlationId = deskOpeners[i][1];
+      const before = greetCalls;
+      const greeted = mockRes();
+      await ops(authed({
+        json: true,
+        method: 'POST',
+        url: '/ops/api/desk-talk/message',
+        query: { area: 'api/desk-talk/message', agent: 'researchy' },
+        body: {
+          csrf: lib.createCsrfToken(ALLOWED),
+          agentId: 'researchy',
+          text: phrase,
+          correlationId,
+        },
+      }), greeted);
+      check(`desk opener ${phrase} greets without xAI or Assign dump`,
+        greeted.statusCode === 200
+        && greeted.body.waiting === false
+        && greeted.body.usedModel === false
+        && greeted.body.replay === false
+        && greetCalls === before
+        && greeted.body.reply === desks.DESK_GREETING_COPY
+        && !greeted.body.reply.includes('Starlink')
+        && !greeted.body.reply.includes('Assign')
+        && !greeted.body.reply.includes('Findings')
+        && !greeted.body.reply.toLowerCase().includes('task')
+        && desks.isDeskGreeting(phrase) === true);
+    }
+    check('desk mixed status and concrete research are not greetings',
+      desks.isDeskGreeting('Hey, how are you doing today? What are we working on?') === false
+      && desks.isDeskGreeting('can you help me research Starlink for Liberia?') === false
+      && desks.isDeskGreeting('Verify the researchy catalog facts for docks.') === false);
+
+    const researchAsk = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/desk-talk/message',
+      query: { area: 'api/desk-talk/message', agent: 'researchy' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        agentId: 'researchy',
+        text: 'Which verified suppliers cover this kit?',
+        correlationId: 'corr-researchy-ask-1',
+      },
+    }), researchAsk);
+    check('Researchy non-greeting still receives the open task context',
+      researchAsk.statusCode === 200
+      && greetCalls === 1
+      && lastDeskBody
+      && String(lastDeskBody.messages[0].content).includes('Task: Assign 3 — Starlink kit Liberia'));
+
+    const concreteHelp = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/desk-talk/message',
+      query: { area: 'api/desk-talk/message', agent: 'researchy' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        agentId: 'researchy',
+        text: 'can you help me research Starlink for Liberia?',
+        correlationId: 'corr-desk-concrete-1',
+      },
+    }), concreteHelp);
+    check('concrete Researchy help is not a greeting and still gets task context',
+      concreteHelp.statusCode === 200
+      && concreteHelp.body.reply !== desks.DESK_GREETING_COPY
+      && concreteHelp.body.usedModel === true
+      && greetCalls === 2
+      && lastDeskBody
+      && String(lastDeskBody.messages[0].content).includes('Task: Assign 3 — Starlink kit Liberia')
+      && desks.isDeskGreeting('can you help me research Starlink for Liberia?') === false);
 
     const pending = await ceo.listPending();
     check('non-CEO xAI turns are not added to the CEO B2 inbox',
@@ -365,12 +549,28 @@ async function run() {
       && !fs.existsSync(path.join(opsDir, 'agent-thread.js'))
       && src.includes('ops:agent:thread:')
       && src.includes("require('./_xai')")
+      && src.includes("require('./_souls')")
       && xai.includes('https://api.x.ai/v1/chat/completions')
       && !src.includes('Assign routing'));
+    const vercel = JSON.parse(fs.readFileSync(path.join(__dirname, '../vercel.json'), 'utf8'));
+    check('Preview ops function bundles the SOUL files',
+      vercel.functions
+      && vercel.functions['api/ops/index.js']
+      && vercel.functions['api/ops/index.js'].includeFiles === 'docs/ops/souls/**'
+      && souls.SOUL_IDS.join(',') === DESK_IDS.join(',')
+      && DESK_IDS.every((id) => fs.existsSync(path.join(__dirname, `../docs/ops/souls/SOUL_${id}.md`)))
+      && fs.existsSync(path.join(__dirname, '../docs/ops/souls/_SHARED_CONTEXT.md')));
     const note = fs.readFileSync(path.join(__dirname, '../docs/OPS-CEO-BRIDGE.md'), 'utf8');
     check('docs list per-desk smoke for all six Talk agents',
       note.includes('Talk-ALL')
       && DESK_IDS.every((id) => note.includes(`/ops/chat/${id}`)));
+    check('wake docs keep the production Researchy poll path for the Grok Bot',
+      note.includes('poll dual-run')
+      && note.includes('Not Talk UI')
+      && note.includes('https://www.lavaall.com/ops/api/desk-talk/researchy/pending')
+      && note.includes('https://www.lavaall.com/ops/api/desk-talk/researchy/reply')
+      && note.includes('Authorization: Bearer $OPS_CEO_BRIDGE_SECRET')
+      && note.includes('Never attach a reply by desk threadId alone'));
     const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
     check('Talk JS keeps the desk voice and desk poll URL',
       chatJs.includes('function deskVoice()')
