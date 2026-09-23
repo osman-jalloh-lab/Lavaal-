@@ -270,13 +270,48 @@ function remainderIsSocial(remainder) {
   });
 }
 
+function askClauses(text) {
+  return normalizeAskText(text)
+    .split(/[.!?…\n]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function clauseIsSubstantive(clause) {
+  if (!clause) return false;
+  if (isQualityOrApprovalAsk(clause) || isStatusAsk(clause) || isPreviousMessageAsk(clause)) return true;
+  return PHATIC_CONCRETE_WORK_RE.test(clause);
+}
+
 function isPhaticGreeting(text) {
   const body = normalizeAskText(text);
   if (!body) return false;
-  // Status, quality, recall, and named work win over the greeting in front.
-  if (isQualityOrApprovalAsk(body) || isStatusAsk(body) || isPreviousMessageAsk(body)) return false;
-  if (PHATIC_CONCRETE_WORK_RE.test(body)) return false;
+  // A later status/work sentence wins over a leading "how are you".
+  if (askClauses(body).some(clauseIsSubstantive)) return false;
+  if (clauseIsSubstantive(body)) return false;
   return remainderIsSocial(stripLeadingGreetings(body));
+}
+
+function isGreetingOnlyReply(text) {
+  const body = normalizeAskText(text).replace(/[.!?…]+$/g, '').trim();
+  const copy = normalizeAskText(PHATIC_GREETING_COPY).replace(/[.!?…]+$/g, '').trim();
+  return Boolean(body) && body === copy;
+}
+
+function statusReplyFromContext(context) {
+  const goal = context && context.goal ? context.goal : null;
+  const tasks = context && Array.isArray(context.tasks) ? context.tasks : [];
+  const lines = [];
+  if (goal && goal.title) {
+    lines.push(`We're working on ${goal.title}.`);
+    if (goal.nextStep) lines.push(`Next: ${goal.nextStep}.`);
+  }
+  if (tasks.length) {
+    const titles = tasks.map((task) => task && task.title).filter(Boolean);
+    if (titles.length) lines.push(`Open tasks: ${titles.join('; ')}.`);
+  }
+  if (!lines.length) return 'No Goal or open Tasks are loaded right now.';
+  return lines.join(' ');
 }
 
 function isPreviousMessageAsk(text) {
@@ -330,9 +365,11 @@ function isDirectQuestion(text) {
 }
 
 function classifyCeoAsk(text) {
-  if (isPhaticGreeting(text)) return 'phatic';
+  // Status and real questions beat a leading greeting. Do not let the
+  // wellbeing half of a mixed line short-circuit the work half.
   if (isQualityOrApprovalAsk(text)) return 'answer_first';
-  if (isStatusAsk(text)) return 'status';
+  if (isStatusAsk(text) || askClauses(text).some((clause) => isStatusAsk(clause))) return 'status';
+  if (isPhaticGreeting(text)) return 'phatic';
   if (isDirectQuestion(text)) return 'answer_first';
   return 'default';
 }
@@ -965,6 +1002,11 @@ function ceoSystemPrompt(context, options) {
       'Answer the founder question first in 1–3 sentences. Mention Goal or Tasks only if they asked for status. Do not auto-Assign.'
     );
   }
+  if (mode === 'status') {
+    extras.push(
+      'The founder asked what we are working on. Answer with the Goal and unfinished Tasks in 1–3 sentences. Do not reply with only a greeting.'
+    );
+  }
   if (mode === 'phatic') {
     extras.push('Reply with a short fresh greeting only. Do not list Goal, Tasks, Assign status, or unfinished work.');
   }
@@ -974,13 +1016,22 @@ function ceoSystemPrompt(context, options) {
 
 function ceoMessagesForXai(thread, options) {
   const mode = normalizeCeoAskMode(options && options.mode);
-  const mapped = (thread && Array.isArray(thread.messages) ? thread.messages : []).map((item) => ({
+  const source = thread && Array.isArray(thread.messages) ? thread.messages : [];
+  // Phatic turns must not drown in prior Goal/Tasks chatter from history.
+  // Status turns must not drown in earlier greeting-only replies, or the
+  // model copies "Hi — good to see you" and drops the work question.
+  const kept = mode === 'phatic'
+    ? source.slice(-1)
+    : source.filter((item) => {
+      if (!item || !item.text) return false;
+      if (isGreetingOnlyReply(item.text)) return false;
+      if (item.role === 'founder' && isPhaticGreeting(item.text)) return false;
+      return true;
+    });
+  return kept.slice(-20).map((item) => ({
     role: item.role === 'ceo' ? 'assistant' : 'user',
     content: item.text,
   }));
-  // Phatic turns must not drown in prior Goal/Tasks chatter from history.
-  if (mode === 'phatic') return mapped.slice(-1);
-  return mapped.slice(-20);
 }
 
 async function clearPendingForThread(threadId) {
@@ -1111,11 +1162,15 @@ async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
       messages: ceoMessagesForXai(claim.thread, { mode }),
     });
     if (result.error || !result.text) throw new Error('xai_failed');
+    // If the model copies an earlier greeting, a status ask still gets Goal/Tasks.
+    const text = mode === 'status' && isGreetingOnlyReply(result.text)
+      ? statusReplyFromContext(context)
+      : result.text;
     return await appendOwnedCeoReply({
       threadId,
       correlationId,
       owner: 'xai_runtime',
-      text: result.text,
+      text,
     });
   } catch {
     return runtimeUnavailableNotice({

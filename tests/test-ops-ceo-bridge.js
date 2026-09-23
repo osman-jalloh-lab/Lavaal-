@@ -412,10 +412,13 @@ async function run() {
     check('Hello CEO stays off the phatic short-circuit',
       ceo.isPhaticGreeting('Hello CEO') === false
       && ceo.classifyCeoAsk('Hello CEO') !== 'phatic');
+    const mixedLine = 'Hey, how are you doing today? What are we working on?';
     check('mixed greeting plus status stays status so Goal can inject',
-      ceo.isPhaticGreeting('Hey, how are you doing today? What are we working on?') === false
-      && ceo.classifyCeoAsk('Hey, how are you doing today? What are we working on?') === 'status'
-      && ceo.classifyCeoAsk('What are you doing?') === 'status');
+      ceo.isPhaticGreeting(mixedLine) === false
+      && ceo.isStatusAsk(mixedLine) === true
+      && ceo.classifyCeoAsk(mixedLine) === 'status'
+      && ceo.classifyCeoAsk('What are you doing?') === 'status'
+      && ceo.classifyCeoAsk('how are you doing today?') === 'phatic');
     check('concrete help is not phatic',
       ceo.isPhaticGreeting('can you help me research Starlink for Liberia?') === false
       && ceo.classifyCeoAsk('can you help me research Starlink for Liberia?') === 'answer_first');
@@ -714,6 +717,21 @@ async function run() {
         && !greetedCeo.text.toLowerCase().includes('task'));
     }
 
+    const mixedLine = 'Hey, how are you doing today? What are we working on?';
+    global.fetch = async (url, opts) => {
+      xaiCalls += 1;
+      lastXaiBody = opts && opts.body ? JSON.parse(opts.body) : null;
+      const joined = lastXaiBody && Array.isArray(lastXaiBody.messages)
+        ? lastXaiBody.messages.map((item) => item.content).join('\n')
+        : '';
+      const content = joined.includes(mixedLine)
+        ? ceo.PHATIC_GREETING_COPY
+        : 'Preview draft from CEO. No deploy.';
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content } }] }),
+      };
+    };
     const mixedStatus = mockRes();
     await ops(authed({
       json: true,
@@ -722,20 +740,31 @@ async function run() {
       query: { area: 'api/ceo-bridge/message' },
       body: {
         csrf: lib.createCsrfToken(ALLOWED),
-        text: 'Hey, how are you doing today? What are we working on?',
+        text: mixedLine,
         correlationId: 'corr-mixed-status-1',
       },
     }), mixedStatus);
+    const sentTurns = lastXaiBody && Array.isArray(lastXaiBody.messages)
+      ? lastXaiBody.messages.slice(1)
+      : [];
     check('mixed greeting plus status still injects Goal into the xAI prompt',
       mixedStatus.statusCode === 200
       && mixedStatus.body.correlationId === 'corr-mixed-status-1'
+      && ceo.classifyCeoAsk(mixedLine) === 'status'
+      && ceo.isPhaticGreeting(mixedLine) === false
       && mixedStatus.body.reply !== ceo.PHATIC_GREETING_COPY
+      && String(mixedStatus.body.reply || '').includes('Ship Preview Slice 1')
+      && String(mixedStatus.body.reply || '').includes('Wire Assign wake')
       && mixedStatus.body.usedModel === true
       && xaiCalls === xaiBeforeHi + 3
       && lastXaiBody
       && String(lastXaiBody.messages[0].content).includes('Goal: Ship Preview Slice 1')
       && String(lastXaiBody.messages[0].content).includes('Task: Wire Assign wake')
-      && !String(lastXaiBody.messages[0].content).includes('short fresh greeting'));
+      && String(lastXaiBody.messages[0].content).includes('Do not reply with only a greeting')
+      && !String(lastXaiBody.messages[0].content).includes('short fresh greeting')
+      && sentTurns.length > 0
+      && sentTurns[sentTurns.length - 1].content === mixedLine
+      && sentTurns.every((item) => item.content !== ceo.PHATIC_GREETING_COPY));
 
     const concreteHelp = mockRes();
     await ops(authed({
