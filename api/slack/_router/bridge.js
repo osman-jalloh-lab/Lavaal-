@@ -48,6 +48,14 @@ function formatHandoffText(payload) {
 const ASSIGN_BRIEF_MAX = 3500;
 const ASSIGN_ORIGIN = 'https://www.lavaall.com';
 const ASSIGN_REPLY_PATH = '/ops/api/desk-talk/researchy/reply';
+
+function assignOrigin() {
+  const fromEnv = typeof process.env.LAVAALL_PUBLIC_ORIGIN === 'string'
+    ? process.env.LAVAALL_PUBLIC_ORIGIN.trim().replace(/\/+$/, '')
+    : '';
+  return fromEnv || ASSIGN_ORIGIN;
+}
+
 const SECRET_ENV_NAMES = [
   'OPS_CEO_BRIDGE_SECRET',
   'SLACK_BOT_TOKEN',
@@ -82,7 +90,7 @@ function buildAssignWakePayload(input) {
     threadId: asAssignText(input && input.threadId),
     title: asAssignText(input && input.title, 200),
     brief: briefLen > ASSIGN_BRIEF_MAX ? fullBrief.slice(0, ASSIGN_BRIEF_MAX) : fullBrief,
-    origin: ASSIGN_ORIGIN,
+    origin: assignOrigin(),
     replyPath: ASSIGN_REPLY_PATH,
   };
   if (briefLen > ASSIGN_BRIEF_MAX) payload.briefLen = briefLen;
@@ -219,6 +227,7 @@ module.exports = {
   ASSIGN_BRIEF_MAX,
   ASSIGN_ORIGIN,
   ASSIGN_REPLY_PATH,
+  assignOrigin,
   DEFAULT_HANDOFF_CHANNEL,
   SLACK_POST_MESSAGE,
   buildAssignWakePayload,

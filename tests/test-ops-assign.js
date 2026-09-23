@@ -68,6 +68,7 @@ async function run() {
   delete process.env.KV_REST_API_TOKEN;
   delete process.env.SLACK_BOT_TOKEN;
   delete process.env.LAVAALL_HANDOFF_CHANNEL;
+  delete process.env.LAVAALL_PUBLIC_ORIGIN;
   store.resetStore();
   ceo.resetCeoBridge();
   desks.resetDeskTalk();
@@ -640,6 +641,7 @@ async function run() {
     delete process.env.XAI_API_KEY;
     delete process.env.SLACK_BOT_TOKEN;
     delete process.env.LAVAALL_HANDOFF_CHANNEL;
+    delete process.env.LAVAALL_PUBLIC_ORIGIN;
     const slackPosts = [];
     let slackMode = 'ok';
     global.fetch = async (url, opts) => {
@@ -801,7 +803,45 @@ async function run() {
       && directFence.briefLen === 3600 + '[redacted]'.length
       && String(directHit.body.text).startsWith('LAVAALL_ASSIGN task-huge wake=researchy')
       && !String(directHit.body.text).includes(BRIDGE_SECRET)
-      && !String(directHit.body.text).includes('xoxb-test-not-a-real-token'));
+      && !String(directHit.body.text).includes('xoxb-test-not-a-real-token')
+      && directFence.origin === 'https://www.lavaall.com'
+      && directFence.replyPath === '/ops/api/desk-talk/researchy/reply');
+
+    process.env.LAVAALL_PUBLIC_ORIGIN = 'https://preview.lavaall.test/';
+    const beforeOverride = slackPosts.length;
+    const overridden = await bridge.postAssignWake({
+      taskId: 'task-origin',
+      pendingId: 'pend-origin',
+      correlationId: 'corr-origin',
+      threadId: 'thread-origin',
+      title: 'Assign origin',
+      brief: 'preview loop',
+    });
+    const overrideFence = parseAssignFence((slackPosts[beforeOverride] || { body: {} }).body.text);
+    check('postAssignWake origin follows LAVAALL_PUBLIC_ORIGIN and keeps replyPath',
+      overridden.ok === true
+      && overrideFence
+      && overrideFence.origin === 'https://preview.lavaall.test'
+      && overrideFence.replyPath === '/ops/api/desk-talk/researchy/reply'
+      && bridge.assignOrigin() === 'https://preview.lavaall.test'
+      && bridge.ASSIGN_ORIGIN === 'https://www.lavaall.com');
+
+    process.env.LAVAALL_PUBLIC_ORIGIN = '   ';
+    const blankOrigin = bridge.buildAssignWakePayload({
+      taskId: 'task-blank-origin',
+      brief: 'blank origin falls back',
+    });
+    delete process.env.LAVAALL_PUBLIC_ORIGIN;
+    const unsetOrigin = bridge.buildAssignWakePayload({
+      taskId: 'task-default-origin',
+      brief: 'unset origin falls back',
+    });
+    check('blank or unset LAVAALL_PUBLIC_ORIGIN defaults assign origin to www.lavaall.com',
+      blankOrigin.origin === 'https://www.lavaall.com'
+      && unsetOrigin.origin === 'https://www.lavaall.com'
+      && blankOrigin.replyPath === bridge.ASSIGN_REPLY_PATH
+      && unsetOrigin.replyPath === '/ops/api/desk-talk/researchy/reply'
+      && bridge.assignOrigin() === bridge.ASSIGN_ORIGIN);
 
     delete process.env.SLACK_BOT_TOKEN;
     global.fetch = origFetch;
@@ -859,6 +899,10 @@ async function run() {
       && note.includes('dual-run until founder L3')
       && note.includes('Never put OPS_CEO_BRIDGE_SECRET')
       && note.includes('Standing poll above is dual-run backup until founder L3')
+      && note.includes('leave `LAVAALL_PUBLIC_ORIGIN` unset')
+      && note.includes('AI_GATEWAY` and the Jev key are not required')
+      && note.includes('Preview-only `LAVAALL_PUBLIC_ORIGIN`')
+      && note.includes('Dual-run poll of the production pending inbox remains the backup')
       && !note.includes('GET {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/pending')
       && !note.includes('POST {PREVIEW_ORIGIN}/ops/api/desk-talk/researchy/reply'));
     check('assign matcher does not fall through to shared childThreadId or leftover pending',
@@ -870,7 +914,9 @@ async function run() {
     check('env example notes Assign LAVAALL_ASSIGN wake uses SLACK_BOT_TOKEN by name only',
       /Assign wake also posts LAVAALL_ASSIGN/.test(envExample)
       && envExample.includes('SLACK_BOT_TOKEN=')
+      && envExample.includes('LAVAALL_PUBLIC_ORIGIN=')
       && !/SLACK_BOT_TOKEN=\S+/.test(envExample)
+      && !/LAVAALL_PUBLIC_ORIGIN=\S+/.test(envExample)
       && !/OPS_CEO_BRIDGE_SECRET=\S+/.test(envExample));
     const home = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
     assertPublicLogin(check, home);

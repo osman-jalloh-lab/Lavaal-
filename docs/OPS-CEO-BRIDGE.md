@@ -117,7 +117,7 @@ All six Office Talk agents use a persistent KV thread + server xAI. `_xai.js` is
 
 ## Slice 2 — Assign (CEO → Researchy Grok wake → results-only)
 
-**Production SoT host:** `https://www.lavaall.com`. Researchy Assign wake polls that origin only. Preview branch URLs may 410.
+**Production SoT host:** `https://www.lavaall.com`. Standing poll uses that host. Preview branch URLs may 410. The Slack fence `origin` defaults to the same host.
 
 KV tasks in `_store.js` are the SoT. `_assign.js` creates a **child task** owned by **Researchy**, linked to the parent CEO thread + `correlationId`.
 
@@ -133,7 +133,14 @@ HTTP:
 - Founder **Assign to Researchy** and explicit NL (`POST /ops/ceo-assign/message`, also `/assign` or “assign to researchy” on the CEO message path)
 - Grok Bot (production): `GET https://www.lavaall.com/ops/api/desk-talk/researchy/pending` and `POST https://www.lavaall.com/ops/api/desk-talk/researchy/reply`  
   Header: `Authorization: Bearer $OPS_CEO_BRIDGE_SECRET` (env only — never paste the value here)
-- Slack primary wake (same moment, after the pending row exists): first line `LAVAALL_ASSIGN <taskId> wake=researchy`, then a fence labeled `LAVAALL_ASSIGN`. JSON fields: `kind` `"assign"`, `taskId`, `pendingId` (the pending message id), `correlationId`, `threadId`, `title`, `brief` (cut at 3500 chars with `briefLen` when longer), `origin` `https://www.lavaall.com`, `replyPath` `/ops/api/desk-talk/researchy/reply`. Channel is `LAVAALL_HANDOFF_CHANNEL` (default `C0C1V0HN3GA`). Missing token or a Slack error does not fail Assign. The post never includes the bridge secret.
+- Slack primary wake (same moment, after the pending row exists): first line `LAVAALL_ASSIGN <taskId> wake=researchy`, then a fence labeled `LAVAALL_ASSIGN`. JSON fields: `kind` `"assign"`, `taskId`, `pendingId` (the pending message id), `correlationId`, `threadId`, `title`, `brief` (cut at 3500 chars with `briefLen` when longer), `origin` (`LAVAALL_PUBLIC_ORIGIN` when set, otherwise `https://www.lavaall.com`), `replyPath` `/ops/api/desk-talk/researchy/reply`. Channel is `LAVAALL_HANDOFF_CHANNEL` (default `C0C1V0HN3GA`). Missing token or a Slack error does not fail Assign. The post never includes the bridge secret.
+
+### Production cutover (founder L3)
+
+No Production secret changes. `AI_GATEWAY` and the Jev key are not required for this Assign wake.
+
+- **Production:** leave `LAVAALL_PUBLIC_ORIGIN` unset. Assign wake `origin` defaults to `https://www.lavaall.com`. `replyPath` stays `/ops/api/desk-talk/researchy/reply`. Merge under founder L3 only. Dual-run poll of the production pending inbox remains the backup until the Slack wake is proven.
+- **Preview smoke:** may set Preview-only `LAVAALL_PUBLIC_ORIGIN` to that Preview origin (host only, no path) so the fence `origin` matches the host that holds the pending row. Reply to fence `origin` + `replyPath`. Do not copy that value into Production. The production Grok routine below stays pinned to `https://www.lavaall.com`.
 
 ### Researchy Grok Bot routine prompt
 
