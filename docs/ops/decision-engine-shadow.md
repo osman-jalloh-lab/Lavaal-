@@ -41,18 +41,29 @@ In shadow mode the engine records `PHATIC_ACK` with `omitStoreContext: true` and
 
 With the flag explicitly `false`, a whole-message greeting (`hi`, `hello`, `hey`, and the same with light punctuation) skips the model and returns `Hi. What should we look at?` The goal and task block is not copied into that reply. A fingerprint that is still moving returns `That turn moved before I could answer. Send it again.` Send, purchase, and delete stay blocked: `externalActionsPermitted` is false, and those verbs are not allowed operations. No new external action is executed.
 
+## Capability menu
+
+Desk capabilities, tools, and the operation/target menu are in [`capability-matrix.md`](capability-matrix.md).
+
+Before `completeXai`, the engine sets `allowedOperations`, `allowedTools`, and `allowedTargets` from the current desk and text. Route targets are registered Talk desks only. Research targets are that desk's research sources plus a task id for the current prompt. Follow-up targets are eligible lead ids passed into the request. Send, purchase, and delete are not operations the menu can execute.
+
+Delegated Researchy work stores parent request id, parent thread id, child task id, delegated goal, and originating entity on the task, the Researchy pending row, and the desk-talk message. A child result whose lineage disagrees is not written onto the parent thread.
+
+Routing and capability decisions are compared in the shadow log (`operation`, `routeTo`, `targetId`, `shadowDisagreement`). With the shadow default they do not replace the Talk reply.
+
+`DECISION_ENGINE_ROUTING_PREVIEW` is a separate Preview-only flag, default unset. Set it to `true` to let route, delegate, blocked, and clarify decisions replace the model text with an in-thread note. It does not open Assign tasks and does not send, purchase, or delete. `VERCEL_ENV=production` ignores the flag. Leave it unset on Production.
+
 ## Not fixed yet
 
-Phases 2–10 of the 2026-09-21 fix plan are still open. This PR does not claim the 44 rows pass.
+This slice does not claim the 44 rows pass. Live Preview Talk still returns production text while shadow is on.
 
-- Phase 2 — stale responses on real Preview Talk (shadow still returns the production goal dump)
-- Phase 3 — routing and tool misuse
+- Phase 2 — stale responses on real Preview Talk (shadow still returns the production goal dump). STALE-004 Researchy runtime reachability is still a runtime failure.
 - Phase 4 — weak research and source quality
 - Phase 5 — approval bypass beyond the blocked send/purchase/delete stub
-- Phase 6 — hallucination and fact availability
+- Phase 6 — hallucination and fact availability. A revenue sentence is capability-blocked here. That is not the UNKNOWN fact contract.
 - Phase 7 — context loss and active-entity tracking
 - Phase 8 — unsafe state mutation
 - Phase 9 — duplicate and idempotency protection
 - Phase 10 — independent verification
 
-Phases 11–15 (response contract, tool permissions, regression gates, acceptance rerun, later PRs) are also out of this slice.
+Phases 11–15 (response contract, full tool-permission rollout, regression gates, acceptance rerun, later PRs) are also out of this slice. Phase 3 covers the registry, the operation/target menu, and delegation ids. It does not by itself make ROUTE-002, ROUTE-004, ROUTE-005, ROUTE-006, CEO-001, or the Growth/Researchy tool rows pass in the browser.

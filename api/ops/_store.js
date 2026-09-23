@@ -232,6 +232,11 @@ function normalizeTask(row, projectIds) {
     brief: clean(row && row.brief, 4000),
     result: clean(row && row.result, 4000),
     synthesis: clean(row && row.synthesis, 4000),
+    parentRequestId: clean(row && row.parentRequestId, 40),
+    delegatedGoal: clean(row && row.delegatedGoal, 400),
+    originatingEntityType: clean(row && row.originatingEntityType, 40),
+    originatingEntityId: clean(row && row.originatingEntityId, 80),
+    originatingEntityName: clean(row && row.originatingEntityName, 120),
   };
 }
 
@@ -882,6 +887,12 @@ function normalizeResearchyPending(row) {
     at: Number.isFinite(row && row.at) ? row.at : Date.now(),
     status: 'pending',
     wakeReason: clean(row && row.wakeReason, 40) || 'assign',
+    parentRequestId: clean(row && row.parentRequestId, 40),
+    parentThreadId: clean(row && row.parentThreadId, 40),
+    delegatedGoal: clean(row && row.delegatedGoal, 400),
+    originatingEntityType: clean(row && row.originatingEntityType, 40),
+    originatingEntityId: clean(row && row.originatingEntityId, 80),
+    originatingEntityName: clean(row && row.originatingEntityName, 120),
   };
 }
 
@@ -1082,6 +1093,11 @@ async function addTask({
   brief,
   result,
   synthesis,
+  parentRequestId,
+  delegatedGoal,
+  originatingEntityType,
+  originatingEntityId,
+  originatingEntityName,
 }) {
   return mutate(async () => {
     const storeData = await readStore();
@@ -1102,6 +1118,11 @@ async function addTask({
       brief,
       result,
       synthesis,
+      parentRequestId,
+      delegatedGoal,
+      originatingEntityType,
+      originatingEntityId,
+      originatingEntityName,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }, new Set(storeData.projects.map((row) => row.id)));
@@ -1138,6 +1159,11 @@ async function updateTask(id, patch) {
       brief: patch.brief == null ? current.brief : patch.brief,
       result: patch.result == null ? current.result : patch.result,
       synthesis: patch.synthesis == null ? current.synthesis : patch.synthesis,
+      parentRequestId: patch.parentRequestId == null ? current.parentRequestId : patch.parentRequestId,
+      delegatedGoal: patch.delegatedGoal == null ? current.delegatedGoal : patch.delegatedGoal,
+      originatingEntityType: patch.originatingEntityType == null ? current.originatingEntityType : patch.originatingEntityType,
+      originatingEntityId: patch.originatingEntityId == null ? current.originatingEntityId : patch.originatingEntityId,
+      originatingEntityName: patch.originatingEntityName == null ? current.originatingEntityName : patch.originatingEntityName,
       updatedAt: Date.now(),
     }, new Set(storeData.projects.map((row) => row.id)));
     if (!next.title) return { error: 'invalid_task' };
