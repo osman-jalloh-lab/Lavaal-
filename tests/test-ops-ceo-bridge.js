@@ -641,6 +641,72 @@ async function run() {
       && String(lastXaiBody.messages[0].content).includes('Do not auto-Assign'));
 
     ceo.resetCeoBridge();
+    store.resetStore();
+    await store.addTask({
+      title: 'Assign 3 — Starlink kit Liberia',
+      nextAction: 'Ready for review',
+      status: 'doing',
+      createdBy: ALLOWED,
+    });
+    const xaiBeforeRecall = xaiCalls;
+    global.fetch = async () => {
+      xaiCalls += 1;
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'Your previous message was "TEST-A: research Starlink".' } }] }),
+      };
+    };
+    const testA = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'TEST-A: research Starlink',
+        correlationId: 'corr-stale-003-a',
+      },
+    }), testA);
+    const hiAfter = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'hi',
+        correlationId: 'corr-stale-003-hi',
+      },
+    }), hiAfter);
+    const testB = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        text: 'TEST-B: what was my previous message?',
+        correlationId: 'corr-stale-003-b',
+      },
+    }), testB);
+    check('STALE-003 previous-message probe quotes hi, not TEST-A',
+      testA.statusCode === 200
+      && hiAfter.statusCode === 200
+      && hiAfter.body.reply === ceo.PHATIC_GREETING_COPY
+      && testB.statusCode === 200
+      && testB.body.waiting === false
+      && testB.body.usedModel === false
+      && testB.body.replay === false
+      && xaiCalls === xaiBeforeRecall
+      && testB.body.reply === 'Your previous message was "hi".'
+      && !testB.body.reply.includes('TEST-A')
+      && !testB.body.reply.includes('Starlink')
+      && ceo.isPreviousMessageAsk('TEST-B: what was my previous message?') === true);
+
+    ceo.resetCeoBridge();
     const wake = mockRes();
     const xaiBeforeWake = xaiCalls;
     await ops(authed({

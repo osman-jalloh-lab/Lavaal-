@@ -166,7 +166,7 @@ async function run() {
         body: {
           csrf: lib.createCsrfToken(ALLOWED),
           agentId: id,
-          text: `Hello ${id}`,
+          text: `Verify the ${id} catalog facts for docks.`,
           correlationId: `corr-${id}-1`,
         },
       }), sent);
@@ -189,7 +189,7 @@ async function run() {
         body: {
           csrf: lib.createCsrfToken(ALLOWED),
           agentId: id,
-          text: `Hello ${id}`,
+          text: `Verify the ${id} catalog facts for docks.`,
           correlationId: `corr-${id}-1`,
         },
       }), retry);
@@ -314,6 +314,70 @@ async function run() {
       && ceoSoul.includes('I do not pull in Technical unless the founder asked for validation')
       && ceoSoul.includes('**Found:**')
       && ceoSoul.includes('awaiting your OK'));
+
+    desks.resetDeskTalk();
+    store.resetStore();
+    await store.addTask({
+      title: 'Assign 3 — Starlink kit Liberia',
+      nextAction: 'Ready for review',
+      status: 'doing',
+      createdBy: ALLOWED,
+    });
+    let greetCalls = 0;
+    let lastDeskBody = null;
+    global.fetch = async (url, opts) => {
+      greetCalls += 1;
+      lastDeskBody = opts && opts.body ? JSON.parse(opts.body) : null;
+      return {
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'Findings • Starlink Assign task. Recommend • supply data.' } }] }),
+      };
+    };
+    const helloResearchy = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/desk-talk/message',
+      query: { area: 'api/desk-talk/message', agent: 'researchy' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        agentId: 'researchy',
+        text: 'hello Researchy',
+        correlationId: 'corr-stale-004',
+      },
+    }), helloResearchy);
+    check('STALE-004 hello Researchy greets without Starlink Assign dump',
+      helloResearchy.statusCode === 200
+      && helloResearchy.body.waiting === false
+      && helloResearchy.body.usedModel === false
+      && helloResearchy.body.replay === false
+      && greetCalls === 0
+      && helloResearchy.body.reply === desks.DESK_GREETING_COPY
+      && !helloResearchy.body.reply.includes('Starlink')
+      && !helloResearchy.body.reply.includes('Assign')
+      && !helloResearchy.body.reply.includes('Findings')
+      && !helloResearchy.body.reply.toLowerCase().includes('task')
+      && desks.isDeskGreeting('hello Researchy') === true
+      && desks.isDeskGreeting('Verify the researchy catalog facts for docks.') === false);
+
+    const researchAsk = mockRes();
+    await ops(authed({
+      json: true,
+      method: 'POST',
+      url: '/ops/api/desk-talk/message',
+      query: { area: 'api/desk-talk/message', agent: 'researchy' },
+      body: {
+        csrf: lib.createCsrfToken(ALLOWED),
+        agentId: 'researchy',
+        text: 'Which verified suppliers cover this kit?',
+        correlationId: 'corr-researchy-ask-1',
+      },
+    }), researchAsk);
+    check('Researchy non-greeting still receives the open task context',
+      researchAsk.statusCode === 200
+      && greetCalls === 1
+      && lastDeskBody
+      && String(lastDeskBody.messages[0].content).includes('Task: Assign 3 — Starlink kit Liberia'));
 
     const pending = await ceo.listPending();
     check('non-CEO xAI turns are not added to the CEO B2 inbox',

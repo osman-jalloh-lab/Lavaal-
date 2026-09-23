@@ -220,6 +220,31 @@ function isPhaticGreeting(text) {
   return Boolean(body) && PHATIC_GREETING_RE.test(body);
 }
 
+function isPreviousMessageAsk(text) {
+  const body = clean(String(text || ''), MAX_TEXT);
+  if (!body) return false;
+  if (/\b(?:previous|last|prior)\s+(?:user\s+|founder\s+)?messages?\b/i.test(body)) return true;
+  return /\bwhat did i (?:just )?(?:say|send|type|write)\b/i.test(body);
+}
+
+function previousFounderMessage(thread, correlationId) {
+  const id = clean(correlationId, 40);
+  const founders = (thread && Array.isArray(thread.messages) ? thread.messages : [])
+    .filter((item) => item.role === 'founder');
+  let prior = null;
+  founders.forEach((item) => {
+    if (id && (item.correlationId === id || item.id === id)) return;
+    prior = item;
+  });
+  return prior;
+}
+
+function previousMessageReply(thread, correlationId) {
+  const prior = previousFounderMessage(thread, correlationId);
+  if (!prior || !prior.text) return 'I do not see an earlier message on this thread.';
+  return `Your previous message was "${prior.text}".`;
+}
+
 function isQualityOrApprovalAsk(text) {
   const body = clean(String(text || ''), MAX_TEXT);
   if (!body) return false;
@@ -1001,6 +1026,25 @@ async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
     }
     return Object.assign({}, replied, { usedModel: false, provider: '' });
   }
+  // Quote the real prior founder turn, including a greeting. Do not let
+  // Goal/Tasks or an earlier Assign brief stand in for that turn.
+  if (isPreviousMessageAsk(founderText)) {
+    const replied = await appendOwnedCeoReply({
+      threadId,
+      correlationId,
+      owner: 'xai_runtime',
+      text: previousMessageReply(claim.thread, correlationId),
+    });
+    if (replied.error) {
+      return runtimeUnavailableNotice({
+        threadId,
+        correlationId,
+        explicitWake,
+        wakeReason: 'xai_unavailable',
+      });
+    }
+    return Object.assign({}, replied, { usedModel: false, provider: '' });
+  }
   try {
     const context = await loadCeoTrustedContext({ mode });
     const result = await completeXai({
@@ -1259,7 +1303,10 @@ Object.assign(module.exports, {
   inspectCeoThread,
   isExplicitWake,
   isPhaticGreeting,
+  isPreviousMessageAsk,
   isStatusAsk,
+  previousFounderMessage,
+  previousMessageReply,
   listPending,
   postCeoReply,
   publicThread,
