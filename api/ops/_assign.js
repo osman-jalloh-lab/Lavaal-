@@ -35,6 +35,7 @@ const { completeXai, xaiConfigured } = require('./_xai');
 const { classify } = require('../slack/_router/classify');
 const ceo = require('./_ceo_bridge');
 const desks = require('./_agent_thread');
+const decisionEngine = require('./_decision');
 
 const RESEARCHY_ID = 'researchy';
 const ACK_PREFIX = 'Assigned to Researchy.';
@@ -334,7 +335,28 @@ function matchAssignTask(storeData, { pending, replayId, correlationId }) {
   return findAssignTask(storeData, (row) => corrIds.indexOf(row.childCorrelationId) !== -1);
 }
 
-async function wakeResearchy({ task, packedBrief, founderEmail, childThreadId, childCorrelationId }) {
+function entityFields(entity) {
+  const row = entity && typeof entity === 'object' ? entity : null;
+  return {
+    originatingEntityType: row && row.type ? row.type : '',
+    originatingEntityId: row && row.id ? row.id : '',
+    originatingEntityName: row && row.name ? row.name : '',
+  };
+}
+
+function assignLineage(input, task) {
+  return decisionEngine.buildDelegationLineage({
+    parentRequestId: input && input.parentRequestId,
+    parentThreadId: input && input.parentThreadId,
+    childTaskId: task && task.id,
+    delegatedGoal: input && input.delegatedGoal,
+    originatingEntity: input && input.originatingEntity,
+  });
+}
+
+async function wakeResearchy({ task, packedBrief, founderEmail, childThreadId, childCorrelationId, lineage }) {
+  const row = lineage || {};
+  const entity = row.originatingEntity || {};
   const queued = await enqueueResearchyPending({
     threadId: childThreadId,
     founderEmail,
@@ -343,6 +365,12 @@ async function wakeResearchy({ task, packedBrief, founderEmail, childThreadId, c
     correlationId: childCorrelationId,
     text: packedBrief,
     wakeReason: 'assign',
+    parentRequestId: row.parentRequestId,
+    parentThreadId: row.parentThreadId,
+    delegatedGoal: row.delegatedGoal,
+    originatingEntityType: entity.type || '',
+    originatingEntityId: entity.id || '',
+    originatingEntityName: entity.name || '',
   });
   return queued;
 }
@@ -372,6 +400,8 @@ async function assignToResearchy(input) {
   });
   if (queued.error) return queued;
 
+  const origin = (input && (input.originatingEntity || input.activeEntity)) || null;
+  const originFields = entityFields(origin);
   const storeData = await readStore();
   let task = findAssignTask(storeData, (row) => row.parentCorrelationId === queued.correlationId);
   if (!task) {
@@ -383,12 +413,28 @@ async function assignToResearchy(input) {
       ownerAgentId: RESEARCHY_ID,
       parentThreadId: queued.thread && queued.thread.id,
       parentCorrelationId: queued.correlationId,
+      parentRequestId: queued.correlationId,
+      delegatedGoal: parsed.brief,
+      originatingEntityType: originFields.originatingEntityType,
+      originatingEntityId: originFields.originatingEntityId,
+      originatingEntityName: originFields.originatingEntityName,
       assignStatus: 'assigned',
       brief: packedBrief,
     });
     if (created.error) return created;
     task = created.task;
   }
+  const lineage = assignLineage({
+    parentRequestId: task.parentRequestId || queued.correlationId,
+    parentThreadId: task.parentThreadId || (queued.thread && queued.thread.id),
+    delegatedGoal: task.delegatedGoal || parsed.brief,
+    originatingEntity: origin || (task.originatingEntityType ? {
+      type: task.originatingEntityType,
+      id: task.originatingEntityId,
+      name: task.originatingEntityName,
+      source: 'assign',
+    } : null),
+  }, task);
 
   if (!queued.replay) {
     await ceo.appendCeoNotice({
@@ -407,6 +453,12 @@ async function assignToResearchy(input) {
     source: 'ceo-assign',
     correlationId: task.childCorrelationId || undefined,
     completeXai: false,
+    delegation: lineage,
+    parentRequestId: lineage.parentRequestId,
+    parentThreadId: lineage.parentThreadId,
+    childTaskId: lineage.childTaskId,
+    delegatedGoal: lineage.delegatedGoal,
+    originatingEntity: lineage.originatingEntity,
   });
   if (desk.error) {
     return {
@@ -452,6 +504,7 @@ async function assignToResearchy(input) {
       founderEmail: who,
       childThreadId: desk.thread && desk.thread.id,
       childCorrelationId: desk.correlationId,
+      lineage,
     });
 
   const patch = {
@@ -497,7 +550,6 @@ async function assignToResearchy(input) {
 async function noteDeskProgress({ agentId, threadId, correlationId, resultText, waiting }) {
   const desk = desks.normalizeAgentId(agentId);
   if (desk !== RESEARCHY_ID) return { ok: true, skipped: true };
-  void threadId;
   const storeData = await readStore();
   const corr = clean(correlationId, 40);
   if (!corr) return { ok: true, skipped: true };
@@ -507,6 +559,18 @@ async function noteDeskProgress({ agentId, threadId, correlationId, resultText, 
     return { ok: true, task };
   }
   if (waiting || !resultText) return { ok: true, task };
+  let childLineage = null;
+  if (threadId && corr) {
+    const inspected = await desks.inspectDeskThread(desk, threadId);
+    const messages = inspected && inspected.thread && Array.isArray(inspected.thread.messages)
+      ? inspected.thread.messages
+      : [];
+    const hit = messages.find((item) => item && (item.correlationId === corr || item.id === corr));
+    if (hit && hit.delegation) childLineage = hit.delegation;
+  }
+  if (childLineage && !decisionEngine.delegationAttaches(task, childLineage)) {
+    return { ok: true, skipped: true, reason: 'wrong_thread' };
+  }
   const formatted = formatResultsForFounder(resultText);
   const updated = await updateTask(task.id, {
     result: formatted,
@@ -606,6 +670,10 @@ async function postResearchyReply({ threadId, text, pendingId, messageId, correl
     return { ok: true, replay: true, task };
   }
   if (!task) return { error: 'assign_not_found' };
+  if (pending && !decisionEngine.delegationAttaches(task, pending)) {
+    await enqueueResearchyPending(pending);
+    return { error: 'wrong_thread' };
+  }
   const deskThreadId = clean(threadId, 40) || task.childThreadId;
   const corr = replayId || task.childCorrelationId;
   let desk = { replay: false };
@@ -719,6 +787,7 @@ function writeStatus(error) {
     case 'invalid_message':
     case 'invalid_assignee':
     case 'invalid_pending':
+    case 'wrong_thread':
     case 'method_not_allowed':
       return error === 'method_not_allowed' ? 405 : 400;
     default: {
@@ -743,6 +812,8 @@ function errorMessage(error) {
       return 'Refresh was rejected. Reload Chat and try again.';
     case 'invalid_message':
       return 'Enter a research brief to assign.';
+    case 'wrong_thread':
+      return 'That Researchy result belongs to a different parent request.';
     case 'invalid_assignee':
       return 'This slice assigns Researchy only.';
     case 'ceo_thread_not_found':

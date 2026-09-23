@@ -145,6 +145,10 @@ function normalizeMessage(row) {
     provenance: normalizeProvenance(row && row.provenance, role),
   };
   if (role === 'founder') message.responseOwner = normalizeResponseOwner(row && row.responseOwner);
+  if (row && row.delegation && typeof row.delegation === 'object') {
+    const lineage = decisionEngine.buildDelegationLineage(row.delegation);
+    if (decisionEngine.lineagePresent(lineage)) message.delegation = lineage;
+  }
   return message;
 }
 
@@ -584,7 +588,7 @@ async function runtimeUnavailableDeskNotice({ agentId, threadId, correlationId }
   return notice;
 }
 
-async function enqueueFounderMessage({ agentId, text, founderEmail, threadId, source, correlationId }) {
+async function enqueueFounderMessage({ agentId, text, founderEmail, threadId, source, correlationId, delegation }) {
   return mutate(async () => {
     const desk = normalizeAgentId(agentId);
     const who = normalizeEmail(founderEmail);
@@ -620,6 +624,7 @@ async function enqueueFounderMessage({ agentId, text, founderEmail, threadId, so
       correlationId: reused,
       provenance: 'human',
       responseOwner: 'pending',
+      delegation,
     });
     const thread = normalizeThread({
       id,
@@ -690,7 +695,10 @@ async function completeXaiDeskReply({ agentId, threadId, correlationId, maxToken
   }
 }
 
-async function observeBeforeDeskModel(agentId, thread, rawInput, activeEntity) {
+async function observeBeforeDeskModel(agentId, thread, rawInput, input) {
+  const extra = input && typeof input === 'object' ? input : {};
+  const activeEntity = extra.activeEntity || (extra.type ? extra : null);
+  const lineage = extra.delegation && typeof extra.delegation === 'object' ? extra.delegation : {};
   const readSnapshot = async () => {
     const current = await readThread(agentId, thread && thread.id);
     let store = null;
@@ -709,6 +717,12 @@ async function observeBeforeDeskModel(agentId, thread, rawInput, activeEntity) {
     requestedAgent: agentId,
     resolvedAgent: agentId,
     activeEntity,
+    parentRequestId: extra.parentRequestId || lineage.parentRequestId,
+    parentThreadId: extra.parentThreadId || lineage.parentThreadId,
+    childTaskId: extra.childTaskId || lineage.childTaskId,
+    delegatedGoal: extra.delegatedGoal || lineage.delegatedGoal,
+    originatingEntity: extra.originatingEntity || lineage.originatingEntity || activeEntity,
+    eligibleLeads: extra.eligibleLeads,
     readSnapshot,
   });
 }
@@ -735,7 +749,7 @@ async function talkToDesk(input) {
       desk,
       queued.thread,
       decisionEngine.latestFounderText(queued.thread, input && input.text),
-      input && input.activeEntity,
+      input,
     );
   } catch {
     console.log(JSON.stringify({

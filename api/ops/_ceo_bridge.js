@@ -934,7 +934,10 @@ async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
   }
 }
 
-async function observeBeforeCeoModel(thread, rawInput, activeEntity) {
+async function observeBeforeCeoModel(thread, rawInput, input) {
+  const extra = input && typeof input === 'object' ? input : {};
+  const activeEntity = extra.activeEntity || (extra.type ? extra : null);
+  const lineage = extra.delegation && typeof extra.delegation === 'object' ? extra.delegation : {};
   const readSnapshot = async () => {
     const current = await readThread(thread && thread.id);
     let store = null;
@@ -953,6 +956,12 @@ async function observeBeforeCeoModel(thread, rawInput, activeEntity) {
     requestedAgent: CEO_DESK_ID,
     resolvedAgent: CEO_DESK_ID,
     activeEntity,
+    parentRequestId: extra.parentRequestId || lineage.parentRequestId,
+    parentThreadId: extra.parentThreadId || lineage.parentThreadId,
+    childTaskId: extra.childTaskId || lineage.childTaskId,
+    delegatedGoal: extra.delegatedGoal || lineage.delegatedGoal,
+    originatingEntity: extra.originatingEntity || lineage.originatingEntity || activeEntity,
+    eligibleLeads: extra.eligibleLeads,
     readSnapshot,
   });
 }
@@ -977,7 +986,7 @@ async function talkToCeo(input) {
     observation = await observeBeforeCeoModel(
       queued.thread,
       decisionEngine.latestFounderText(queued.thread, input && input.text),
-      input && input.activeEntity,
+      input,
     );
   } catch {
     console.log(JSON.stringify({
