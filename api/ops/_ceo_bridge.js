@@ -45,6 +45,10 @@ const MAX_TEXT = 2000;
 const SLACK_FALLBACK = 'If this bridge is down, Slack #laval is the backup — not the usual path.';
 const WAITING_COPY = 'Waiting on CEO…';
 const RUNTIME_UNAVAILABLE_COPY = "Couldn't reach the CEO runtime just now — try again in a moment.";
+// Phatic greetings must not pull Goal + unfinished Tasks into the model turn.
+const PHATIC_GREETING_RE = /^(hi|hello|hey|yo|howdy)([.!?,… ]*)$/i;
+const PHATIC_GREETING_COPY = 'Hi — good to see you. What should we focus on?';
+const CEO_ASK_MODES = Object.freeze(['phatic', 'status', 'answer_first', 'default']);
 
 let memory = emptyMemory();
 
@@ -209,6 +213,73 @@ function isExplicitWake(input) {
   if (input.wake === true || input.wake === '1' || input.wake === 'true') return true;
   const text = String(input.text || input.message || '');
   return /^@grok\b/i.test(text) || /^\/wake\b/i.test(text);
+}
+
+function isPhaticGreeting(text) {
+  const body = clean(String(text || ''), MAX_TEXT);
+  return Boolean(body) && PHATIC_GREETING_RE.test(body);
+}
+
+function isPreviousMessageAsk(text) {
+  const body = clean(String(text || ''), MAX_TEXT);
+  if (!body) return false;
+  if (/\b(?:previous|last|prior)\s+(?:user\s+|founder\s+)?messages?\b/i.test(body)) return true;
+  return /\bwhat did i (?:just )?(?:say|send|type|write)\b/i.test(body);
+}
+
+function previousFounderMessage(thread, correlationId) {
+  const id = clean(correlationId, 40);
+  const founders = (thread && Array.isArray(thread.messages) ? thread.messages : [])
+    .filter((item) => item.role === 'founder');
+  let prior = null;
+  founders.forEach((item) => {
+    if (id && (item.correlationId === id || item.id === id)) return;
+    prior = item;
+  });
+  return prior;
+}
+
+function previousMessageReply(thread, correlationId) {
+  const prior = previousFounderMessage(thread, correlationId);
+  if (!prior || !prior.text) return 'I do not see an earlier message on this thread.';
+  return `Your previous message was "${prior.text}".`;
+}
+
+function isQualityOrApprovalAsk(text) {
+  const body = clean(String(text || ''), MAX_TEXT);
+  if (!body) return false;
+  return /\b(quality(?:\s+gate)?|approval|approve|stop(?:\s+work)?|secrets?|credential|api[\s-]?key|password|prod(?:uction)?\s+hold)\b/i.test(body);
+}
+
+function isStatusAsk(text) {
+  const body = clean(String(text || ''), MAX_TEXT);
+  if (!body) return false;
+  if (/\b(goal|tasks?|unfinished|assign(?:ments?|ed)?|board|progress|next step|definition of done)\b/i.test(body)) {
+    return true;
+  }
+  if (/\bwhat(?:'s| is| are)?\b[\s\S]{0,48}\b(working on|doing|up to)\b/i.test(body)) return true;
+  if (/\b(working on|what(?:'s| is) next)\b/i.test(body)) return true;
+  if (/\bstatus\b/i.test(body) && !isQualityOrApprovalAsk(body)) return true;
+  return false;
+}
+
+function isDirectQuestion(text) {
+  const body = clean(String(text || ''), MAX_TEXT);
+  if (!body) return false;
+  if (/\?/.test(body)) return true;
+  return /^(what|why|how|when|where|who|which|can|should|is|are|do|does|did|will|could|would)\b/i.test(body);
+}
+
+function classifyCeoAsk(text) {
+  if (isPhaticGreeting(text)) return 'phatic';
+  if (isQualityOrApprovalAsk(text)) return 'answer_first';
+  if (isStatusAsk(text)) return 'status';
+  if (isDirectQuestion(text)) return 'answer_first';
+  return 'default';
+}
+
+function normalizeCeoAskMode(value) {
+  return CEO_ASK_MODES.includes(value) ? value : 'default';
 }
 
 function lastThreadMessage(thread) {
@@ -778,53 +849,79 @@ async function enqueuePendingWake({ thread, founder, wakeReason }) {
   });
 }
 
-function formatCeoStoreContext(data) {
+function formatCeoStoreContext(data, options) {
+  const mode = normalizeCeoAskMode(options && options.mode);
   const lines = ['Trusted LAVAALL OS records (KV). Use only these facts:'];
   const goal = data && data.goal ? data.goal : null;
   const tasks = data && Array.isArray(data.tasks) ? data.tasks : [];
   const notes = data && Array.isArray(data.notes) ? data.notes : [];
-  if (!goal && !tasks.length && !notes.length) {
+  const includeGoal = mode !== 'phatic' && Boolean(goal);
+  const includeTasks = (mode === 'status' || mode === 'default') && tasks.length > 0;
+  const includeNotes = mode !== 'phatic' && notes.length > 0;
+  if (!includeGoal && !includeTasks && !includeNotes) {
     lines.push('None loaded. Do not invent goals, tasks, notes, prices, SKUs, or legal positions.');
     return lines.join('\n');
   }
-  if (goal) {
+  if (includeGoal) {
     lines.push(`Goal: ${goal.title}`);
     if (goal.definitionOfDone) lines.push(`Definition of done: ${goal.definitionOfDone}`);
     if (goal.nextStep) lines.push(`Next step: ${goal.nextStep}`);
     if (goal.targetDate) lines.push(`Target date: ${goal.targetDate}`);
   }
-  tasks.forEach((task) => {
-    lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
-    if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
-  });
-  notes.forEach((note) => {
-    lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
-  });
+  if (includeTasks) {
+    tasks.forEach((task) => {
+      lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
+      if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
+    });
+  }
+  if (includeNotes) {
+    notes.forEach((note) => {
+      lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
+    });
+  }
   return lines.join('\n');
 }
 
-async function loadCeoTrustedContext() {
+async function loadCeoTrustedContext(options) {
+  const mode = normalizeCeoAskMode(options && options.mode);
   try {
     const data = await readStore();
     return {
-      goal: data && data.goal ? data.goal : null,
-      tasks: unfinishedTasks(data || {}).slice(0, 12),
-      notes: notesSelectableForChat(data || {}).slice(0, 8),
+      goal: mode === 'phatic' ? null : (data && data.goal ? data.goal : null),
+      tasks: (mode === 'status' || mode === 'default')
+        ? unfinishedTasks(data || {}).slice(0, 12)
+        : [],
+      notes: mode === 'phatic' ? [] : notesSelectableForChat(data || {}).slice(0, 8),
     };
   } catch {
     return { goal: null, tasks: [], notes: [] };
   }
 }
 
-function ceoSystemPrompt(context) {
-  return talkSystemPrompt('lavaall-ceo', formatCeoStoreContext(context));
+function ceoSystemPrompt(context, options) {
+  const mode = normalizeCeoAskMode(options && options.mode);
+  const extras = [];
+  if (mode === 'answer_first') {
+    extras.push(
+      'Answer the founder question first in 1–3 sentences. Mention Goal or Tasks only if they asked for status. Do not auto-Assign.'
+    );
+  }
+  if (mode === 'phatic') {
+    extras.push('Reply with a short fresh greeting only. Do not list Goal, Tasks, Assign status, or unfinished work.');
+  }
+  const records = [extras.join('\n'), formatCeoStoreContext(context, { mode })].filter(Boolean).join('\n');
+  return talkSystemPrompt('lavaall-ceo', records);
 }
 
-function ceoMessagesForXai(thread) {
-  return (thread && Array.isArray(thread.messages) ? thread.messages : []).map((item) => ({
+function ceoMessagesForXai(thread, options) {
+  const mode = normalizeCeoAskMode(options && options.mode);
+  const mapped = (thread && Array.isArray(thread.messages) ? thread.messages : []).map((item) => ({
     role: item.role === 'ceo' ? 'assistant' : 'user',
     content: item.text,
-  })).slice(-20);
+  }));
+  // Phatic turns must not drown in prior Goal/Tasks chatter from history.
+  if (mode === 'phatic') return mapped.slice(-1);
+  return mapped.slice(-20);
 }
 
 async function clearPendingForThread(threadId) {
@@ -908,11 +1005,51 @@ async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
       correlationId,
     };
   }
+  const founder = founderByCorrelation(claim.thread, correlationId) || lastFounderMessage(claim.thread);
+  const founderText = founder && founder.text ? founder.text : '';
+  const mode = classifyCeoAsk(founderText);
+  // Phatic Hi/hello must not call xAI with Goal + unfinished Tasks injected.
+  if (mode === 'phatic') {
+    const replied = await appendOwnedCeoReply({
+      threadId,
+      correlationId,
+      owner: 'xai_runtime',
+      text: PHATIC_GREETING_COPY,
+    });
+    if (replied.error) {
+      return runtimeUnavailableNotice({
+        threadId,
+        correlationId,
+        explicitWake,
+        wakeReason: 'xai_unavailable',
+      });
+    }
+    return Object.assign({}, replied, { usedModel: false, provider: '' });
+  }
+  // Quote the real prior founder turn, including a greeting. Do not let
+  // Goal/Tasks or an earlier Assign brief stand in for that turn.
+  if (isPreviousMessageAsk(founderText)) {
+    const replied = await appendOwnedCeoReply({
+      threadId,
+      correlationId,
+      owner: 'xai_runtime',
+      text: previousMessageReply(claim.thread, correlationId),
+    });
+    if (replied.error) {
+      return runtimeUnavailableNotice({
+        threadId,
+        correlationId,
+        explicitWake,
+        wakeReason: 'xai_unavailable',
+      });
+    }
+    return Object.assign({}, replied, { usedModel: false, provider: '' });
+  }
   try {
-    const context = await loadCeoTrustedContext();
+    const context = await loadCeoTrustedContext({ mode });
     const result = await completeXai({
-      system: ceoSystemPrompt(context),
-      messages: ceoMessagesForXai(claim.thread),
+      system: ceoSystemPrompt(context, { mode }),
+      messages: ceoMessagesForXai(claim.thread, { mode }),
     });
     if (result.error || !result.text) throw new Error('xai_failed');
     return await appendOwnedCeoReply({
@@ -1143,7 +1280,9 @@ function resetCeoBridge(seed) {
 
 Object.assign(module.exports, {
   CEO_DESK_ID,
+  CEO_ASK_MODES,
   PENDING_KEY,
+  PHATIC_GREETING_COPY,
   PROVENANCE,
   RESPONSE_OWNERS,
   SLACK_FALLBACK,
@@ -1154,13 +1293,20 @@ Object.assign(module.exports, {
   bridgeSecretConfigured,
   ceoBridgeKind,
   ceoSystemPrompt,
+  classifyCeoAsk,
   claimResponseOwner,
   emptyThread,
   enqueueFounderMessage,
+  formatCeoStoreContext,
   getFounderThread,
   handleCeoBridge,
   inspectCeoThread,
   isExplicitWake,
+  isPhaticGreeting,
+  isPreviousMessageAsk,
+  isStatusAsk,
+  previousFounderMessage,
+  previousMessageReply,
   listPending,
   postCeoReply,
   publicThread,

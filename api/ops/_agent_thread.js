@@ -50,6 +50,9 @@ const DESK_PROMPTS = Object.freeze({
   lifecycle: { name: 'LAVAALL Lifecycle & Klaviyo' },
   researchy: { name: 'Researchy' },
 });
+// Desk greetings ("hello Researchy") must not pull open Assign tasks.
+const DESK_GREETING_RE = /^(hi|hello|hey|yo|howdy)(?:\s+(?:there|researchy|lavaall(?:\s+ceo)?|ceo|sales|technical|growth|lifecycle))?[.!?,…\s]*$/i;
+const DESK_GREETING_COPY = 'Hi — good to see you. What should we focus on?';
 
 let memory = emptyMemory();
 
@@ -59,6 +62,11 @@ function emptyMemory() {
 
 function clean(value, max) {
   return typeof value === 'string' ? value.trim().replace(/[<>]/g, '').slice(0, max) : '';
+}
+
+function isDeskGreeting(text) {
+  const body = clean(String(text || ''), MAX_TEXT);
+  return Boolean(body) && DESK_GREETING_RE.test(body);
 }
 
 function newId() {
@@ -666,6 +674,19 @@ async function completeXaiDeskReply({ agentId, threadId, correlationId, maxToken
       agentId,
     };
   }
+  const founder = founderByCorrelation(claim.thread, correlationId);
+  const founderText = founder && founder.text ? founder.text : '';
+  if (isDeskGreeting(founderText)) {
+    const replied = await appendOwnedReply({
+      agentId,
+      threadId,
+      correlationId,
+      owner: 'xai_runtime',
+      text: DESK_GREETING_COPY,
+    });
+    if (replied.error) return runtimeUnavailableDeskNotice({ agentId, threadId, correlationId });
+    return Object.assign({}, replied, { usedModel: false, provider: '' });
+  }
   try {
     const context = await loadTrustedContext();
     const result = await completeXai({
@@ -932,6 +953,7 @@ function resetDeskTalk(seed) {
 
 Object.assign(module.exports, {
   CEO_DESK_ID,
+  DESK_GREETING_COPY,
   DESK_PROMPTS,
   MARKETS_STUB,
   PROVENANCE,
@@ -942,6 +964,7 @@ Object.assign(module.exports, {
   getFounderDeskThread,
   handleDeskTalk,
   inspectDeskThread,
+  isDeskGreeting,
   normalizeAgentId,
   publicThread,
   resetDeskTalk,
