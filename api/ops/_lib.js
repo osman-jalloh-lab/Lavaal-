@@ -19,7 +19,11 @@ const ALLOWLIST = Object.freeze([
 const ALLOWLIST_SET = new Set(ALLOWLIST);
 
 const MAGIC_TTL_MS = 10 * 60 * 1000;
+const MAGIC_VERSION = 2;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+// Version 2 invalidates sessions minted by the former production instant-login
+// path, where knowing an allowlisted address was enough to obtain a cookie.
+const SESSION_VERSION = 2;
 const EXP_SKEW_MS = 30 * 1000;
 const SESSION_COOKIE = 'lavaall_ops';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -75,7 +79,7 @@ function webhookConfigured() {
 }
 
 function previewInlineEnabled() {
-  return process.env.OPS_PREVIEW_INLINE_LINK === '1';
+  return vercelEnv() === 'preview' && process.env.OPS_PREVIEW_INLINE_LINK === '1';
 }
 
 function vercelEnv() {
@@ -89,17 +93,22 @@ function envFlag(value) {
   return null;
 }
 
-// Preview and Production default ON when OPS_AUTH_SECRET is set.
-// Allowlist + agent-deny still gate the session in auth.js.
-// Emergency fallback: OPS_INSTANT_LOGIN=0 (or OPS_PREVIEW_INSTANT_LOGIN=0) forces magic-link.
+// Production must always prove email ownership with a delivered magic link.
+// Instant login is an explicit Preview/local convenience only; an environment
+// variable must never be able to turn it on in Production.
 function instantLoginEnabled() {
+  if (vercelEnv() === 'production') return false;
   const explicit = envFlag(process.env.OPS_INSTANT_LOGIN);
   if (explicit !== null) return explicit;
   const legacy = envFlag(process.env.OPS_PREVIEW_INSTANT_LOGIN);
   if (legacy !== null) return legacy;
-  const env = vercelEnv();
-  if (env === 'preview' || env === 'production') return authConfigured();
   return false;
+}
+
+function sessionAudience() {
+  const env = vercelEnv();
+  if (env === 'production' || env === 'preview' || env === 'development') return env;
+  return 'local';
 }
 
 function describeDeliveryConfig() {
@@ -183,8 +192,9 @@ function createMagicToken(email, opts) {
   const now = opts && Number.isFinite(opts.now) ? opts.now : Date.now();
   const ttl = opts && Number.isFinite(opts.ttlMs) ? opts.ttlMs : MAGIC_TTL_MS;
   return signToken('magic', {
-    v: 1,
+    v: MAGIC_VERSION,
     e: normalizeEmail(email),
+    aud: sessionAudience(),
     exp: now + ttl,
     jti: crypto.randomBytes(16).toString('hex'),
   });
@@ -196,7 +206,7 @@ function consumeMagicToken(token, opts) {
   const read = readSignedToken('magic', token);
   if (read.error) return read;
   const { payload } = read;
-  if (payload.v !== 1 || typeof payload.e !== 'string' || typeof payload.jti !== 'string' || !Number.isFinite(payload.exp)) {
+  if (payload.v !== MAGIC_VERSION || payload.aud !== sessionAudience() || typeof payload.e !== 'string' || typeof payload.jti !== 'string' || !Number.isFinite(payload.exp)) {
     return { error: 'invalid' };
   }
   if (!isAllowlisted(payload.e)) return { error: 'invalid' };
@@ -210,8 +220,9 @@ function createSessionToken(email, opts) {
   const now = opts && Number.isFinite(opts.now) ? opts.now : Date.now();
   const ttl = opts && Number.isFinite(opts.ttlMs) ? opts.ttlMs : SESSION_TTL_MS;
   return signToken('session', {
-    v: 1,
+    v: SESSION_VERSION,
     e: normalizeEmail(email),
+    aud: sessionAudience(),
     iat: now,
     exp: now + ttl,
   });
@@ -222,7 +233,7 @@ function readSessionToken(token, opts) {
   const read = readSignedToken('session', token);
   if (read.error) return null;
   const { payload } = read;
-  if (payload.v !== 1 || !isAllowlisted(payload.e) || !Number.isFinite(payload.exp)) return null;
+  if (payload.v !== SESSION_VERSION || payload.aud !== sessionAudience() || !isAllowlisted(payload.e) || !Number.isFinite(payload.exp)) return null;
   if (payload.exp + EXP_SKEW_MS <= now) return null;
   return { email: payload.e, exp: payload.exp, iat: payload.iat };
 }
@@ -546,9 +557,11 @@ function looksLikeAgentRequest(req) {
 
 module.exports = {
   ALLOWLIST,
+  MAGIC_VERSION,
   MAGIC_TTL_MS,
   SESSION_COOKIE,
   SESSION_TTL_MS,
+  SESSION_VERSION,
   authConfigured,
   clearSessionCookie,
   clientIp,
