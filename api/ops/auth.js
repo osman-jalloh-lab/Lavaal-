@@ -1,6 +1,6 @@
 // api/ops/auth.js — LAVAALL OS founder sign-in (Vercel serverless).
-// Production always requires a delivered magic link to prove ownership of an
-// allowlisted address. Preview/local instant sessions are explicit opt-ins.
+// Production signs allowlisted founder emails in immediately and rejects every
+// other address. Preview/local instant sessions are explicit opt-ins.
 // POST action=request|logout  ·  GET ?token=… still consumes a one-time link.
 
 const { loginPage } = require('./_html');

@@ -93,11 +93,11 @@ function envFlag(value) {
   return null;
 }
 
-// Production must always prove email ownership with a delivered magic link.
-// Instant login is an explicit Preview/local convenience only; an environment
-// variable must never be able to turn it on in Production.
+// Production uses the founder allowlist as the complete sign-in gate: an
+// allowlisted address receives a session immediately and every other address
+// is rejected. Preview/local instant login remains an explicit opt-in.
 function instantLoginEnabled() {
-  if (vercelEnv() === 'production') return false;
+  if (vercelEnv() === 'production') return authConfigured();
   const explicit = envFlag(process.env.OPS_INSTANT_LOGIN);
   if (explicit !== null) return explicit;
   const legacy = envFlag(process.env.OPS_PREVIEW_INSTANT_LOGIN);
