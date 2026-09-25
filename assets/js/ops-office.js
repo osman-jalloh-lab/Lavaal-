@@ -18,6 +18,41 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!graph.hotspots || typeof graph.hotspots !== 'object') graph.hotspots = {};
   if (!graph.wordmark || typeof graph.wordmark !== 'object') graph.wordmark = {};
 
+  // Founder 2026-09-22: hide frosted LAVAALL glass; shrink CEO aisle hotspots.
+  (function applyAisleFix() {
+    const style = document.createElement('style');
+    style.setAttribute('data-office-aisle-fix', '1');
+    style.textContent = [
+      '.office-wordmark,#office-wordmark{display:none!important;pointer-events:none!important;}',
+      '@media (min-width:1200px){',
+      '.office-cameras{z-index:3!important;}',
+      '.office-roster,.office-selected{z-index:4!important;}',
+      '.office-hotspots{z-index:1!important;}',
+      '}',
+    ].join('');
+    document.head.appendChild(style);
+    const mark = document.getElementById('office-wordmark');
+    if (mark) {
+      mark.hidden = true;
+      mark.style.display = 'none';
+      mark.style.pointerEvents = 'none';
+    }
+    const ceo = {
+      wide: { id: 'lavaall-ceo', left: 42, top: 36, width: 16, height: 28 },
+      'front-left': { id: 'lavaall-ceo', left: 54, top: 32, width: 18, height: 30 },
+      'front-right': { id: 'lavaall-ceo', left: 30, top: 32, width: 18, height: 30 },
+      side: { id: 'lavaall-ceo', left: 37, top: 30, width: 20, height: 32 },
+      lead: { id: 'lavaall-ceo', left: 38, top: 28, width: 24, height: 36 },
+    };
+    Object.keys(ceo).forEach((cam) => {
+      const list = Array.isArray(graph.hotspots[cam]) ? graph.hotspots[cam].slice() : [];
+      const idx = list.findIndex((s) => s && s.id === 'lavaall-ceo');
+      if (idx >= 0) list[idx] = ceo[cam];
+      else list.push(ceo[cam]);
+      graph.hotspots[cam] = list;
+    });
+  })();
+
   function agentById(id) {
     return graph.agents.find((item) => item.id === id) || null;
   }
@@ -118,12 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function setWordmark() {
     const mark = document.getElementById('office-wordmark');
     if (!mark) return;
-    const box = graph.wordmark[cameraId] || graph.wordmark.lead;
-    if (!box) return;
-    mark.style.left = box.left + '%';
-    mark.style.top = box.top + '%';
-    mark.style.width = box.width + '%';
-    mark.style.height = box.height + '%';
+    // Founder: never show frosted LAVAALL glass; keep Lead view camera chip only.
+    mark.hidden = true;
+    mark.style.display = 'none';
+    mark.style.pointerEvents = 'none';
   }
 
   function setCamera(nextId) {

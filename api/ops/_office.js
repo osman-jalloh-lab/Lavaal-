@@ -67,7 +67,7 @@ const OFFICE_HOTSPOTS = Object.freeze({
     { id: 'researchy', left: 40, top: 72, width: 16, height: 16 },
   ],
   lead: [
-    { id: 'lavaall-ceo', left: 32, top: 22, width: 36, height: 48 },
+    { id: 'lavaall-ceo', left: 38, top: 28, width: 24, height: 36 },
     { id: 'sales', left: 6, top: 40, width: 18, height: 28 },
     { id: 'technical', left: 76, top: 40, width: 18, height: 28 },
     { id: 'growth', left: 14, top: 72, width: 20, height: 18 },
@@ -222,7 +222,7 @@ function officeStyles() {
 .office-hotspots{position:absolute;inset:0;z-index:1;}
 .office-hotspot{position:absolute;border:2px solid transparent;border-radius:14px;cursor:pointer;background:transparent;padding:0;}
 .office-hotspot-label{position:absolute;left:6px;bottom:6px;font-size:11px;font-weight:700;color:#1C1917;background:rgba(243,238,231,.92);padding:2px 8px;border-radius:999px;pointer-events:none;}
-.office-wordmark{display:none;}
+.office-wordmark,#office-wordmark{display:none!important;pointer-events:none;}
 .office-wordmark-name{font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-.03em;color:#1C1917;font-size:clamp(18px,2.1vw,32px);line-height:1;}
 .office-wordmark-mark{width:8px;height:8px;border-radius:50%;background:#2EC4FF;flex-shrink:0;}
 .office-roster{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;box-shadow:0 10px 28px rgba(28,20,16,.08);}
@@ -255,7 +255,8 @@ function officeStyles() {
   .office-stage-wrap{display:block;width:100%;}
   .office-stage{width:100%;border:0;border-radius:0;min-height:0;}
   .office-cameras{position:absolute;top:16px;left:16px;z-index:2;}
-  .office-wordmark{display:flex;position:absolute;z-index:2;align-items:center;justify-content:center;gap:8px;pointer-events:none;background:rgba(243,238,231,.92);border-radius:12px;padding:6px 14px;}
+  /* Wordmark overlay removed (founder 2026-09-22): frosted LAVAALL. blocked aisle/bots. */
+  .office-wordmark,#office-wordmark{display:none!important;}
   .office-roster{display:block;position:absolute;top:16px;right:16px;z-index:2;width:240px;max-height:calc(100% - 32px);overflow:auto;background:rgba(243,238,231,.94);}
   .office-selected{position:absolute;left:16px;bottom:16px;z-index:2;padding:8px 12px;border-radius:999px;background:rgba(243,238,231,.94);border:1px solid var(--line);}
   .office-cards{display:none;}
@@ -349,7 +350,7 @@ function officePage({ email, snapshot, notice, error }) {
     error,
     scripts: `<style>${officeStyles()}</style>
 <script type="application/json" id="office-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-office.js?v=wordmark" defer></script>`,
+<script src="/assets/js/ops-office.js?v=aisle-20260922" defer></script>`,
     body: `
       <div class="office-hero" id="office-hero">
         <div class="office-cameras" id="office-cameras" role="group" aria-label="Cameras">
