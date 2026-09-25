@@ -218,7 +218,6 @@ function officeStyles() {
 .office-cameras button.is-on{background:#E6F7FF;color:var(--sky-deep);border-color:transparent;}
 .office-stage{position:relative;overflow:hidden;background:var(--surface-2);}
 .office-stage svg,.office-stage img.office-camera-photo{display:block;width:100%;height:auto;}
-.office-stage img.office-camera-photo[hidden]{display:none;}
 .office-camera-photo{position:relative;z-index:0;}
 .office-hotspots{position:absolute;inset:0;z-index:1;}
 .office-hotspot{position:absolute;border:2px solid transparent;border-radius:14px;cursor:pointer;background:transparent;padding:0;}
@@ -332,7 +331,6 @@ function officePage({ email, snapshot, notice, error }) {
       source: camera.source,
     })),
     hotspots: OFFICE_HOTSPOTS,
-    wordmark: OFFICE_WORDMARK,
   };
   const cameraLayers = OFFICE_CAMERAS.map((camera) => (
     `<img class="office-camera-photo" data-camera-photo="${escapeHtml(camera.id)}" src="${escapeHtml(camera.photo)}" alt="Office ${escapeHtml(camera.label)}" width="1280" height="720"${camera.id === DEFAULT_CAMERA_ID ? '' : ' hidden'}/>
@@ -346,7 +344,7 @@ function officePage({ email, snapshot, notice, error }) {
     error,
     scripts: `<style>${officeStyles()}</style>
 <script type="application/json" id="office-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
-<script src="/assets/js/ops-office.js?v=wordmark" defer></script>`,
+<script src="/assets/js/ops-office.js?v=no-wordmark" defer></script>`,
     body: `
       <div class="office-hero" id="office-hero">
         <div class="office-cameras" id="office-cameras" role="group" aria-label="Cameras">

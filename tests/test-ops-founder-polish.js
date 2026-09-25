@@ -166,6 +166,7 @@ async function run() {
       && html.includes('alt="LAVAALL"')
       && !html.includes('id="office-wordmark"')
       && !html.includes('office-wordmark-name')
+      && !html.includes('>LAVAALL</span>')
       && !html.includes('.office-wordmark{display:flex')
       && !html.includes('AI AGENTS')
       && !html.includes('AI agents'));
