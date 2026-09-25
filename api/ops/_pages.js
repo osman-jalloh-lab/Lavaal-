@@ -129,6 +129,7 @@ function tasksPage({ email, store, snapshot, notice, error }) {
               ${task.ownerAgentId ? ` · Owner: ${escapeHtml(taskOwnerLabel(task.ownerAgentId))}` : ''}
               ${task.assignStatus ? ` · ${escapeHtml(assignStatusLabel(task.assignStatus) || task.assignStatus)}` : ''}</p>
             ${task.brief ? `<details><summary>Full brief + context</summary><p>${escapeHtml(task.brief)}</p></details>` : ''}
+            ${task.quality && task.quality.action ? `<p>Quality: ${escapeHtml(task.quality.action)} · accept_research ${escapeHtml(String(task.quality.probability))} · threshold ${escapeHtml(String(task.quality.thresholds && task.quality.thresholds.accept_research))}</p>` : ''}
             ${task.result ? `<details><summary>Results</summary><p>${escapeHtml(stripRecommend(task.result))}</p></details>` : ''}
             <label>
               Status

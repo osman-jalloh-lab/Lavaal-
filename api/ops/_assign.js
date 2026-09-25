@@ -32,6 +32,11 @@ const {
   updateTask,
 } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
+const {
+  ACCEPT_THRESHOLD,
+  MAX_QUALITY_REVISES,
+  scoreResearchResult,
+} = require('./_jev');
 const { classify } = require('../slack/_router/classify');
 const ceo = require('./_ceo_bridge');
 const desks = require('./_agent_thread');
@@ -503,7 +508,12 @@ async function noteDeskProgress({ agentId, threadId, correlationId, resultText, 
   if (!corr) return { ok: true, skipped: true };
   const task = matchAssignTask(storeData, { correlationId: corr });
   if (!task || task.ownerAgentId !== RESEARCHY_ID) return { ok: true, skipped: true };
-  if (task.assignStatus === 'synthesized' || task.assignStatus === 'synthesizing' || task.assignStatus === 'ready_for_review') {
+  if (
+    task.assignStatus === 'synthesized'
+    || task.assignStatus === 'synthesizing'
+    || task.assignStatus === 'ready_for_review'
+    || task.assignStatus === 'revise'
+  ) {
     return { ok: true, task };
   }
   if (waiting || !resultText) return { ok: true, task };
@@ -555,7 +565,14 @@ async function synthesizeOpenAssigns({ founderEmail }) {
         system: synthesisSystem(context),
         messages: [{
           role: 'user',
-          content: `Founder brief:\n${task.brief}\n\nResearchy result:\n${task.result}\n\nWrite Found / recommend only.`,
+          content: [
+            `Founder brief:\n${task.brief}`,
+            `Researchy result:\n${task.result}`,
+            task.quality && task.quality.action
+              ? `Quality gate: ${task.quality.action} (accept_research ${task.quality.probability}, threshold ${task.quality.thresholds && task.quality.thresholds.accept_research}).`
+              : '',
+            'Write Found / recommend only.',
+          ].filter(Boolean).join('\n\n'),
         }],
         maxTokens: 400,
       });
@@ -594,14 +611,104 @@ async function listAssignPending() {
   }
 }
 
+function sameFindings(stored, formatted) {
+  if (!stored || !formatted) return false;
+  if (stored === formatted) return true;
+  return stored.indexOf(`${formatted}\n`) === 0;
+}
+
+function withQualityLine(formatted, quality) {
+  if (!quality || quality.skipped || !quality.action) return formatted;
+  const prob = typeof quality.probability === 'number' ? quality.probability.toFixed(2) : '';
+  const threshold = quality.thresholds && typeof quality.thresholds.accept_research === 'number'
+    ? quality.thresholds.accept_research
+    : ACCEPT_THRESHOLD;
+  const line = `Quality: ${quality.action} (accept_research ${prob}, threshold ${threshold})`;
+  if (formatted.indexOf(line) !== -1) return formatted;
+  return `${formatted}\n\n${line}`;
+}
+
+function reviseWakeText(task, formatted) {
+  const brief = clean(task && task.brief, 1200);
+  const prior = clean(formatted, 1200);
+  return [
+    'Quality gate: revise. The last result was not sourced enough to show the founder.',
+    'Reply with sourced findings only. Cite sources. Do not invent prices, supplier counts, SKUs, or landed costs.',
+    brief ? `Founder brief:\n${brief}` : '',
+    prior ? `Previous result:\n${prior}` : '',
+  ].filter(Boolean).join('\n\n');
+}
+
+function qualityAttempts(task) {
+  const n = task && task.quality && task.quality.attempts;
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function applyResearchQuality(task, formatted) {
+  const prior = qualityAttempts(task);
+  if (task && task.quality && task.quality.action === 'revise' && prior >= MAX_QUALITY_REVISES) {
+    return {
+      quality: Object.assign({}, task.quality, { capped: true }),
+      deliver: true,
+    };
+  }
+  const scored = await scoreResearchResult({ brief: task && task.brief, result: formatted });
+  if (!scored || scored.skipped) {
+    const reason = scored && scored.reason;
+    if (reason && reason !== 'gate_off') {
+      return {
+        quality: {
+          action: '',
+          probability: null,
+          thresholds: { accept_research: ACCEPT_THRESHOLD },
+          attempts: prior,
+          skipped: true,
+          reason,
+        },
+        deliver: true,
+      };
+    }
+    return { quality: null, deliver: true };
+  }
+  const attempts = prior + 1;
+  const capped = scored.action === 'revise' && attempts >= MAX_QUALITY_REVISES;
+  return {
+    quality: {
+      action: scored.action,
+      probability: scored.probability,
+      thresholds: scored.thresholds,
+      attempts,
+      skipped: false,
+      capped,
+    },
+    deliver: scored.action === 'accept' || capped,
+  };
+}
+
+function findQueuedPending(storeData, id) {
+  if (!id) return null;
+  return ((storeData && storeData.researchyPending) || []).find((row) => (
+    row.correlationId === id || row.messageId === id
+  )) || null;
+}
+
 async function postResearchyReply({ threadId, text, pendingId, messageId, correlationId }) {
   const replayId = clean(pendingId, 40) || clean(messageId, 40) || clean(correlationId, 40);
   const body = clean(text, 4000);
   if (!body) return { error: 'invalid_message' };
-  const taken = replayId ? await takeResearchyPending(replayId) : { pending: null };
   const storeData = await readStore();
-  const pending = taken.pending || null;
-  const task = matchAssignTask(storeData, { pending, replayId });
+  const queued = findQueuedPending(storeData, replayId);
+  let task = matchAssignTask(storeData, { pending: queued, replayId, correlationId });
+  const formattedEarly = formatResultsForFounder(body);
+  if (task && task.assignStatus === 'revise' && sameFindings(task.result, formattedEarly)) {
+    return { ok: true, replay: true, task };
+  }
+  const taken = replayId ? await takeResearchyPending(replayId) : { pending: null };
+  const pending = taken.pending || queued || null;
+  if (!task) {
+    const fresh = await readStore();
+    task = matchAssignTask(fresh, { pending, replayId, correlationId });
+  }
   if (task && (task.assignStatus === 'ready_for_review' || task.assignStatus === 'synthesized') && task.result) {
     return { ok: true, replay: true, task };
   }
@@ -619,28 +726,53 @@ async function postResearchyReply({ threadId, text, pendingId, messageId, correl
     });
     if (desk.error && desk.error !== 'desk_thread_not_found') return desk;
   }
-  if (desk.replay && task.result) return { ok: true, replay: true, task, thread: desk.thread };
+  const revisedText = task.assignStatus === 'revise' && !sameFindings(task.result, formattedEarly);
+  if (desk.replay && task.result && !revisedText) return { ok: true, replay: true, task, thread: desk.thread };
   const formatted = formatResultsForFounder(body);
-  const updated = await updateTask(task.id, {
-    result: formatted,
-    assignStatus: 'ready_for_review',
-    nextAction: 'Ready for review',
+  if (task.assignStatus === 'revise' && sameFindings(task.result, formatted)) {
+    return { ok: true, replay: true, task, thread: desk.thread };
+  }
+  const gate = await applyResearchQuality(task, formatted);
+  const shown = withQualityLine(formatted, gate.quality);
+  const deliver = gate.deliver !== false;
+  const patch = {
+    result: shown,
+    assignStatus: deliver ? 'ready_for_review' : 'revise',
+    nextAction: deliver ? 'Ready for review' : 'Revise sourcing',
     status: 'doing',
     childThreadId: deskThreadId || task.childThreadId,
     childCorrelationId: corr || task.childCorrelationId,
-  });
+  };
+  if (gate.quality) patch.quality = gate.quality;
+  const updated = await updateTask(task.id, patch);
+  const saved = (updated && updated.task) || Object.assign({}, task, patch);
   if (task.parentThreadId) {
+    const notice = deliver
+      ? shown
+      : `Researchy quality: revise (accept_research ${Number(gate.quality && gate.quality.probability).toFixed(2)}, threshold ${gate.quality && gate.quality.thresholds && gate.quality.thresholds.accept_research}). Waiting on a sourced revision.`;
     await ceo.appendCeoNotice({
       threadId: task.parentThreadId,
-      text: formatted,
+      text: notice,
       provenance: 'grok_bot_bridge',
+    });
+  }
+  if (!deliver && saved.createdBy && (deskThreadId || saved.childThreadId)) {
+    await enqueueResearchyPending({
+      threadId: deskThreadId || saved.childThreadId,
+      founderEmail: saved.createdBy,
+      taskId: saved.id,
+      messageId: saved.childCorrelationId,
+      correlationId: saved.childCorrelationId,
+      text: reviseWakeText(saved, formatted),
+      wakeReason: 'quality-revise',
     });
   }
   return {
     ok: true,
     replay: false,
-    task: (updated && updated.task) || task,
+    task: saved,
     thread: desk.thread,
+    quality: saved.quality || null,
   };
 }
 

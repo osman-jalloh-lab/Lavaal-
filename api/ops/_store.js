@@ -43,10 +43,11 @@ const STATUS_LABELS = Object.freeze({
   doing: 'Doing',
   done: 'Done',
 });
-const ASSIGN_STATUSES = Object.freeze(['assigned', 'ready_for_review', 'specialist_done', 'synthesizing', 'synthesized']);
+const ASSIGN_STATUSES = Object.freeze(['assigned', 'ready_for_review', 'revise', 'specialist_done', 'synthesizing', 'synthesized']);
 const ASSIGN_STATUS_LABELS = Object.freeze({
   assigned: 'Assigned',
   ready_for_review: 'Ready for review',
+  revise: 'Revise',
   specialist_done: 'Specialist done',
   synthesizing: 'Synthesizing',
   synthesized: 'Synthesized',
@@ -208,11 +209,38 @@ function normalizeProject(row) {
   };
 }
 
+function normalizeQuality(row) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return null;
+  const action = row.action === 'accept' || row.action === 'revise' ? row.action : '';
+  const skipped = row.skipped === true;
+  if (!action && !skipped) return null;
+  let probability = null;
+  if (typeof row.probability === 'number' && Number.isFinite(row.probability)) {
+    probability = Math.max(0, Math.min(1, row.probability));
+  }
+  let threshold = 0.75;
+  if (row.thresholds && typeof row.thresholds.accept_research === 'number' && Number.isFinite(row.thresholds.accept_research)) {
+    threshold = row.thresholds.accept_research;
+  }
+  const attempts = Number.isFinite(row.attempts) ? Math.max(0, Math.min(2, Math.floor(row.attempts))) : 0;
+  const quality = {
+    action,
+    probability,
+    thresholds: { accept_research: threshold },
+    attempts,
+    skipped,
+  };
+  const reason = clean(row.reason, 40);
+  if (reason) quality.reason = reason;
+  if (row.capped === true) quality.capped = true;
+  return quality;
+}
+
 function normalizeTask(row, projectIds) {
   const status = normalizeStatus(row && row.status);
   const projectId = clean(row && row.projectId, 40);
   const linked = projectId && projectIds && projectIds.has(projectId) ? projectId : (projectId && !projectIds ? projectId : '');
-  return {
+  const task = {
     id: clean(row && row.id, 40) || newId(),
     title: clean(row && row.title, 160),
     status,
@@ -233,6 +261,9 @@ function normalizeTask(row, projectIds) {
     result: clean(row && row.result, 4000),
     synthesis: clean(row && row.synthesis, 4000),
   };
+  const quality = normalizeQuality(row && row.quality);
+  if (quality) task.quality = quality;
+  return task;
 }
 
 function normalizeNote(row) {
@@ -1138,6 +1169,7 @@ async function updateTask(id, patch) {
       brief: patch.brief == null ? current.brief : patch.brief,
       result: patch.result == null ? current.result : patch.result,
       synthesis: patch.synthesis == null ? current.synthesis : patch.synthesis,
+      quality: patch.quality === undefined ? current.quality : patch.quality,
       updatedAt: Date.now(),
     }, new Set(storeData.projects.map((row) => row.id)));
     if (!next.title) return { error: 'invalid_task' };
