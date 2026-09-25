@@ -218,6 +218,7 @@ function officeStyles() {
 .office-cameras button.is-on{background:#E6F7FF;color:var(--sky-deep);border-color:transparent;}
 .office-stage{position:relative;overflow:hidden;background:var(--surface-2);}
 .office-stage svg,.office-stage img.office-camera-photo{display:block;width:100%;height:auto;}
+.office-stage img.office-camera-photo[hidden]{display:none;}
 .office-camera-photo{position:relative;z-index:0;}
 .office-hotspots{position:absolute;inset:0;z-index:1;}
 .office-hotspot{position:absolute;border:2px solid transparent;border-radius:14px;cursor:pointer;background:transparent;padding:0;}
