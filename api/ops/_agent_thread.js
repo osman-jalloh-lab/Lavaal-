@@ -29,6 +29,7 @@ const { talkSystemPrompt } = require('./_souls');
 const { normalizeTalkAgentId, officeAgentById } = require('./_office');
 const ceoBridge = require('./_ceo_bridge');
 const assign = require('./_assign');
+const decisionEngine = require('./_decision');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const THREAD_KEY_PREFIX = 'ops:agent:thread:';
@@ -439,7 +440,7 @@ async function releaseResponseOwner({ agentId, threadId, correlationId, owner })
   });
 }
 
-async function appendOwnedReply({ agentId, threadId, correlationId, owner, text }) {
+async function appendOwnedReply({ agentId, threadId, correlationId, owner, text, provenance }) {
   return mutate(async () => {
     const current = await readThread(agentId, threadId);
     if (!current) return { error: 'desk_thread_not_found' };
@@ -472,12 +473,14 @@ async function appendOwnedReply({ agentId, threadId, correlationId, owner, text 
       };
     }
     founder.responseOwner = owner;
+    const messageProvenance = PROVENANCE.includes(provenance) ? provenance : owner;
+    const usedModel = owner === 'xai_runtime' && messageProvenance !== 'system';
     const message = normalizeMessage({
       role: 'assistant',
       text,
       at: Date.now(),
       correlationId: founder.correlationId,
-      provenance: owner,
+      provenance: messageProvenance,
     });
     const thread = normalizeThread({
       id: current.id,
@@ -493,8 +496,8 @@ async function appendOwnedReply({ agentId, threadId, correlationId, owner, text 
       ok: true,
       replay: false,
       waiting: false,
-      usedModel: owner === 'xai_runtime',
-      provider: owner === 'xai_runtime' ? 'xai' : '',
+      usedModel,
+      provider: usedModel ? 'xai' : '',
       reply: message.text,
       thread: publicThread(thread),
       correlationId: founder.correlationId,
@@ -713,6 +716,29 @@ async function completeXaiDeskReply({ agentId, threadId, correlationId, maxToken
   }
 }
 
+async function observeBeforeDeskModel(agentId, thread, rawInput, activeEntity) {
+  const readSnapshot = async () => {
+    const current = await readThread(agentId, thread && thread.id);
+    let store = null;
+    try {
+      store = await readStore();
+    } catch {
+      store = null;
+    }
+    return decisionEngine.snapshotFromThread(current || thread, {
+      activeEntity,
+      store,
+    });
+  };
+  return decisionEngine.resolveFreshDecision({
+    rawInput,
+    requestedAgent: agentId,
+    resolvedAgent: agentId,
+    activeEntity,
+    readSnapshot,
+  });
+}
+
 async function talkToDesk(input) {
   const desk = normalizeAgentId(input && input.agentId);
   if (!desk) return { error: 'invalid_agent' };
@@ -729,12 +755,40 @@ async function talkToDesk(input) {
       reply: lastAssistantText(queued.thread) || queued.reply || waitingCopy(desk),
     });
   }
+  let observation = null;
+  try {
+    observation = await observeBeforeDeskModel(
+      desk,
+      queued.thread,
+      decisionEngine.latestFounderText(queued.thread, input && input.text),
+      input && input.activeEntity,
+    );
+  } catch {
+    console.log(JSON.stringify({
+      type: 'DecisionEngine',
+      event: 'observe_failed',
+      agent: desk,
+      shadow: decisionEngine.isShadowMode(),
+    }));
+    observation = null;
+  }
   if (!tryXai) {
     return Object.assign({}, queued, {
       waiting: true,
       reply: waitingCopy(desk),
       usedModel: false,
       provider: '',
+    });
+  }
+  const override = decisionEngine.authoritativeOverride(observation);
+  if (override) {
+    return appendOwnedReply({
+      agentId: desk,
+      threadId: queued.thread.id,
+      correlationId: queued.correlationId,
+      owner: 'xai_runtime',
+      provenance: 'system',
+      text: override,
     });
   }
   return completeXaiDeskReply({
@@ -879,6 +933,7 @@ async function handleMessage(req, res) {
     threadId: body.threadId || body.id,
     source: body.source || 'ops-office',
     correlationId: body.correlationId,
+    activeEntity: body.activeEntity,
   });
   if (result.error) return sendDeskError(req, res, result.error, agentId);
   await assign.noteDeskProgress({

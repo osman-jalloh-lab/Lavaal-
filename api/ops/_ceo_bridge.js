@@ -30,6 +30,7 @@ const {
 const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
+const decisionEngine = require('./_decision');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const PENDING_KEY = 'ops:ceo:pending';
@@ -807,7 +808,7 @@ async function releaseResponseOwner({ threadId, correlationId, owner }) {
   });
 }
 
-async function appendOwnedCeoReply({ threadId, correlationId, owner, text }) {
+async function appendOwnedCeoReply({ threadId, correlationId, owner, text, provenance }) {
   return mutate(async () => {
     const current = await readThread(threadId);
     if (!current) return { error: 'ceo_thread_not_found' };
@@ -840,12 +841,14 @@ async function appendOwnedCeoReply({ threadId, correlationId, owner, text }) {
       };
     }
     founder.responseOwner = owner;
+    const messageProvenance = PROVENANCE.includes(provenance) ? provenance : owner;
+    const usedModel = owner === 'xai_runtime' && messageProvenance !== 'system';
     const message = normalizeMessage({
       role: 'ceo',
       text,
       at: Date.now(),
       correlationId: founder.correlationId,
-      provenance: owner,
+      provenance: messageProvenance,
     });
     const thread = normalizeThread({
       id: current.id,
@@ -862,8 +865,8 @@ async function appendOwnedCeoReply({ threadId, correlationId, owner, text }) {
       ok: true,
       replay: false,
       waiting: false,
-      usedModel: owner === 'xai_runtime',
-      provider: owner === 'xai_runtime' ? 'xai' : '',
+      usedModel,
+      provider: usedModel ? 'xai' : '',
       reply: message.text,
       thread: publicThread(thread),
       pending: null,
@@ -1182,6 +1185,29 @@ async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
   }
 }
 
+async function observeBeforeCeoModel(thread, rawInput, activeEntity) {
+  const readSnapshot = async () => {
+    const current = await readThread(thread && thread.id);
+    let store = null;
+    try {
+      store = await readStore();
+    } catch {
+      store = null;
+    }
+    return decisionEngine.snapshotFromThread(current || thread, {
+      activeEntity,
+      store,
+    });
+  };
+  return decisionEngine.resolveFreshDecision({
+    rawInput,
+    requestedAgent: CEO_DESK_ID,
+    resolvedAgent: CEO_DESK_ID,
+    activeEntity,
+    readSnapshot,
+  });
+}
+
 async function talkToCeo(input) {
   const explicitWake = isExplicitWake(input);
   const tryXai = xaiConfigured() && !explicitWake;
@@ -1197,12 +1223,38 @@ async function talkToCeo(input) {
       reply: lastCeoText(queued.thread) || queued.reply || WAITING_COPY,
     });
   }
+  let observation = null;
+  try {
+    observation = await observeBeforeCeoModel(
+      queued.thread,
+      decisionEngine.latestFounderText(queued.thread, input && input.text),
+      input && input.activeEntity,
+    );
+  } catch {
+    console.log(JSON.stringify({
+      type: 'DecisionEngine',
+      event: 'observe_failed',
+      agent: CEO_DESK_ID,
+      shadow: decisionEngine.isShadowMode(),
+    }));
+    observation = null;
+  }
   if (!tryXai) {
     return Object.assign({}, queued, {
       waiting: true,
       reply: WAITING_COPY,
       usedModel: false,
       provider: '',
+    });
+  }
+  const override = decisionEngine.authoritativeOverride(observation);
+  if (override) {
+    return appendOwnedCeoReply({
+      threadId: queued.thread.id,
+      correlationId: queued.correlationId,
+      owner: 'xai_runtime',
+      provenance: 'system',
+      text: override,
     });
   }
   return completeXaiCeoReply({
@@ -1291,6 +1343,7 @@ async function handleMessage(req, res) {
     correlationId: body.correlationId,
     explicitWake: body.explicitWake || body.wake,
     wake: body.wake,
+    activeEntity: body.activeEntity,
   });
   if (result.error) return sendBridgeError(req, res, result.error);
   if (wantsJson(req)) {
