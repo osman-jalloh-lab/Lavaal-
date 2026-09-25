@@ -125,11 +125,6 @@ async function run() {
       && html.includes('src="/images/logo.png"')
       && html.includes('class="ops-brand-logo"')
       && html.includes('class="office-roster-logo"')
-      && html.includes('id="office-wordmark"')
-      && html.includes('office-wordmark-name')
-      && html.includes('>LAVAALL</span>')
-      && html.includes('#1C1917')
-      && html.includes('#2EC4FF')
       && !html.includes('>Agents<')
       && !html.includes('>Roster<')
       && !html.includes('AI agents')
@@ -148,6 +143,13 @@ async function run() {
     check('desktop cameras use the approved photo files',
       CAMERA_FILES.every((file) => html.includes(`src="/assets/ops/office/cameras/${file}"`))
       && html.includes('data-camera-photo="wide"'));
+    check('Office HTML has no floor wordmark overlay',
+      !html.includes('id="office-wordmark"')
+      && !html.includes('class="office-wordmark"')
+      && !html.includes('office-wordmark-name')
+      && !html.includes('>LAVAALL</span>')
+      && !html.includes('.office-wordmark{display:flex')
+      && html.includes('/assets/js/ops-office.js?v=no-wordmark'));
     check('Researchy shows a cropped specialist portrait and Talk',
       html.includes('src="/assets/ops/office/cameras/researchy.png"')
       && html.includes('alt="Researchy"')
@@ -204,11 +206,12 @@ async function run() {
 
   {
     const src = fs.readFileSync(path.join(__dirname, '../assets/js/ops-office.js'), 'utf8');
-    check('camera switch redraws that camera’s hotspot map, wordmark, and selection',
+    check('camera switch redraws that camera’s hotspot map and selection without a wordmark',
       src.includes('graph.hotspots[cameraId]')
       && src.includes('if (selectedId) setSelected(selectedId)')
       && src.includes("setCamera('lead')")
-      && src.includes('setWordmark()')
+      && !src.includes('setWordmark')
+      && !src.includes('office-wordmark')
       && office.DEFAULT_CAMERA_ID === 'lead');
   }
 

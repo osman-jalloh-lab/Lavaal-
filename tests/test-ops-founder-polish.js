@@ -160,11 +160,14 @@ async function run() {
     const officePage = mockRes();
     await ops(authed({ json: false, url: '/ops/office', query: { area: 'office' } }), officePage);
     const html = String(officePage.raw);
-    check('Office header is a LAVAALL wordmark with cyan mark, not AI-agents copy',
-      html.includes('id="office-wordmark"')
-      && html.includes('office-wordmark-name')
-      && html.includes('#1C1917')
-      && html.includes('#2EC4FF')
+    check('Office keeps the header and roster logos and does not paint a floor wordmark card',
+      html.includes('class="ops-brand-logo"')
+      && html.includes('class="office-roster-logo"')
+      && html.includes('alt="LAVAALL"')
+      && !html.includes('id="office-wordmark"')
+      && !html.includes('office-wordmark-name')
+      && !html.includes('>LAVAALL</span>')
+      && !html.includes('.office-wordmark{display:flex')
       && !html.includes('AI AGENTS')
       && !html.includes('AI agents'));
   }
