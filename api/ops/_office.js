@@ -218,13 +218,11 @@ function officeStyles() {
 .office-cameras button.is-on{background:#E6F7FF;color:var(--sky-deep);border-color:transparent;}
 .office-stage{position:relative;overflow:hidden;background:var(--surface-2);}
 .office-stage svg,.office-stage img.office-camera-photo{display:block;width:100%;height:auto;}
+.office-stage img.office-camera-photo[hidden]{display:none;}
 .office-camera-photo{position:relative;z-index:0;}
 .office-hotspots{position:absolute;inset:0;z-index:1;}
 .office-hotspot{position:absolute;border:2px solid transparent;border-radius:14px;cursor:pointer;background:transparent;padding:0;}
 .office-hotspot-label{position:absolute;left:6px;bottom:6px;font-size:11px;font-weight:700;color:#1C1917;background:rgba(243,238,231,.92);padding:2px 8px;border-radius:999px;pointer-events:none;}
-.office-wordmark{display:none;}
-.office-wordmark-name{font-family:'Clash Display',sans-serif;font-weight:700;letter-spacing:-.03em;color:#1C1917;font-size:clamp(18px,2.1vw,32px);line-height:1;}
-.office-wordmark-mark{width:8px;height:8px;border-radius:50%;background:#2EC4FF;flex-shrink:0;}
 .office-roster{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;box-shadow:0 10px 28px rgba(28,20,16,.08);}
 .office-roster-brand{margin:0 0 12px;}
 .office-roster-logo{display:block;height:36px;width:auto;max-width:100%;object-fit:contain;}
@@ -255,7 +253,6 @@ function officeStyles() {
   .office-stage-wrap{display:block;width:100%;}
   .office-stage{width:100%;border:0;border-radius:0;min-height:0;}
   .office-cameras{position:absolute;top:16px;left:16px;z-index:2;}
-  .office-wordmark{display:flex;position:absolute;z-index:2;align-items:center;justify-content:center;gap:8px;pointer-events:none;background:rgba(243,238,231,.92);border-radius:12px;padding:6px 14px;}
   .office-roster{display:block;position:absolute;top:16px;right:16px;z-index:2;width:240px;max-height:calc(100% - 32px);overflow:auto;background:rgba(243,238,231,.94);}
   .office-selected{position:absolute;left:16px;bottom:16px;z-index:2;padding:8px 12px;border-radius:999px;background:rgba(243,238,231,.94);border:1px solid var(--line);}
   .office-cards{display:none;}
@@ -361,10 +358,6 @@ function officePage({ email, snapshot, notice, error }) {
           <div class="office-stage" id="office-stage">
             ${cameraLayers}
             <div class="office-hotspots" id="office-hotspots"></div>
-            <div class="office-wordmark" id="office-wordmark">
-              <span class="office-wordmark-name">LAVAALL</span>
-              <span class="office-wordmark-mark" aria-hidden="true"></span>
-            </div>
           </div>
         </div>
         <p class="office-selected" id="office-selected">Tap a desk or a name.</p>

@@ -125,11 +125,11 @@ async function run() {
       && html.includes('src="/images/logo.png"')
       && html.includes('class="ops-brand-logo"')
       && html.includes('class="office-roster-logo"')
-      && html.includes('id="office-wordmark"')
-      && html.includes('office-wordmark-name')
-      && html.includes('>LAVAALL</span>')
-      && html.includes('#1C1917')
-      && html.includes('#2EC4FF')
+      && html.includes('alt="LAVAALL"')
+      && !html.includes('id="office-wordmark"')
+      && !html.includes('office-wordmark-name')
+      && !html.includes('office-wordmark-mark')
+      && !html.includes('.office-wordmark{display:flex')
       && !html.includes('>Agents<')
       && !html.includes('>Roster<')
       && !html.includes('AI agents')
@@ -148,6 +148,18 @@ async function run() {
     check('desktop cameras use the approved photo files',
       CAMERA_FILES.every((file) => html.includes(`src="/assets/ops/office/cameras/${file}"`))
       && html.includes('data-camera-photo="wide"'));
+    {
+      const hiddenCameras = [...html.matchAll(/data-camera-photo="([^"]+)"[^>]*\shidden/g)].map((match) => match[1]);
+      const blockRule = '.office-stage svg,.office-stage img.office-camera-photo{display:block;width:100%;height:auto;}';
+      const hiddenRule = '.office-stage img.office-camera-photo[hidden]{display:none;}';
+      check('inactive camera frames stay out of layout so one floor photo fills the stage',
+        hiddenCameras.length === office.OFFICE_CAMERAS.length - 1
+        && !hiddenCameras.includes(office.DEFAULT_CAMERA_ID)
+        && office.OFFICE_CAMERAS.filter((camera) => camera.id !== office.DEFAULT_CAMERA_ID).every((camera) => hiddenCameras.includes(camera.id))
+        && html.includes(blockRule)
+        && html.includes(hiddenRule)
+        && html.indexOf(blockRule) < html.indexOf(hiddenRule));
+    }
     check('Researchy shows a cropped specialist portrait and Talk',
       html.includes('src="/assets/ops/office/cameras/researchy.png"')
       && html.includes('alt="Researchy"')
