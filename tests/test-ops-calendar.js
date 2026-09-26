@@ -381,7 +381,7 @@ async function run() {
   {
     const gated = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'calendar' }, url: '/ops/calendar' }, gated);
-    check('calendar still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Enter your work email'));
+    check('calendar still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Sign in with Google'));
     const calSrc = fs.readFileSync(path.join(opsDir, '_calendar.js'), 'utf8');
     check('calendar invite helper never calls Gmail send',
       calSrc.includes('draftCalendarInvites')
