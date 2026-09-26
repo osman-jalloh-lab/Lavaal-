@@ -7,6 +7,8 @@ const { dashboardPage, opsThemeVars } = require('./_shell');
 const { dashboardSnapshot, emptyStore } = require('./_store');
 
 function layout({ title, body }) {
+  // Chrome applies form-action to the whole redirect chain. 'self' alone blocks
+  // the 302 from /api/ops/auth to accounts.google.com.
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +16,7 @@ function layout({ title, body }) {
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>${escapeHtml(title)}</title>
 <meta name="robots" content="noindex,nofollow"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self';"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self' https://accounts.google.com;"/>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@600;700&family=Bricolage+Grotesque:wght@400;500;600&display=swap" rel="stylesheet"/>

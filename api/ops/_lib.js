@@ -324,11 +324,18 @@ function clientIp(req) {
   return String(header(req, 'x-forwarded-for') || header(req, 'x-real-ip') || 'unknown').split(',')[0].trim();
 }
 
-function rateLimited(key, windowMs) {
+// Sliding window of allowed hits. Omit maxHits for a one-hit lock (legacy email step).
+function rateLimited(key, windowMs, maxHits = 1) {
   const now = Date.now();
-  const last = recent.get(key) || 0;
-  if (now - last < windowMs) return true;
-  recent.set(key, now);
+  const cutoff = now - windowMs;
+  const prev = recent.get(key);
+  const hits = Array.isArray(prev) ? prev.filter((ts) => ts > cutoff) : [];
+  if (hits.length >= maxHits) {
+    recent.set(key, hits);
+    return true;
+  }
+  hits.push(now);
+  recent.set(key, hits);
   return false;
 }
 
