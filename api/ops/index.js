@@ -2,7 +2,8 @@
 // Session required. Public catalog routes are unchanged. Preview only.
 
 const { kitsDeniedPage, loginPage } = require('./_html');
-const { NAV, dashboardPage } = require('./_shell');
+const { NAV, dashboardPage, runWithShellRequest } = require('./_shell');
+const { foundersNavFor, handleFoundersDm } = require('./_founders_dm');
 const { calendarPage, chatPage, inboxPage, issuesPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
 const { isTalkAgent, normalizeTalkAgentId, officePage } = require('./_office');
 const {
@@ -703,7 +704,8 @@ async function handleMapApi(req, res) {
   return true;
 }
 
-async function ops(req, res) {
+async function opsDispatch(req, res) {
+  if (await handleFoundersDm(req, res)) return;
   if (await handleCeoAssign(req, res)) return;
   if (await handleCeoBridge(req, res)) return;
   if (await handleDeskTalk(req, res)) return;
@@ -741,6 +743,16 @@ async function ops(req, res) {
     return sendHtml(res, 401, loginPage({ error: message }));
   }
   return sendHtml(res, 401, loginPage());
+}
+
+async function ops(req, res) {
+  let privateNav = null;
+  try {
+    privateNav = await foundersNavFor(req);
+  } catch {
+    privateNav = null;
+  }
+  return runWithShellRequest({ privateNav }, () => opsDispatch(req, res));
 }
 
 module.exports = ops;

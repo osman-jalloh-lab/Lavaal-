@@ -378,6 +378,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     error,
     head: talkGuard,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
+<script src="/assets/js/ops-mic.js" defer></script>
 <script src="/assets/js/ops-ceo-chat.js?v=send-not-assign" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
