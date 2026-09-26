@@ -17,7 +17,6 @@ const {
   looksLikeAgentRequest,
   normalizeEmail,
   noStore,
-  payloadTooLarge,
   peekSessionEmail,
   queryOf,
   readBody,
@@ -41,6 +40,7 @@ const LABELS = Object.freeze({
 });
 const MAX_MESSAGES = 400;
 const MAX_TEXT = 2000;
+const DM_MAX_BODY = 5000;
 const POLL_MS = 4000;
 const BADGE_MS = 8000;
 
@@ -69,6 +69,10 @@ function filePath() {
   if (process.env.VERCEL) return '';
   const custom = process.env.OPS_STORE_FILE;
   return typeof custom === 'string' && custom.trim() ? `${custom.trim()}.founders-dm.json` : '';
+}
+
+function foundersBodyTooLarge(req) {
+  return JSON.stringify(req.body || '').length > DM_MAX_BODY;
 }
 
 function cleanText(value) {
@@ -602,8 +606,9 @@ async function handleApi(req, res, session) {
     sendJson(res, 405, { error: 'method_not_allowed' });
     return true;
   }
-  if (payloadTooLarge(req)) {
-    sendJson(res, 413, { error: 'payload_too_large' });
+  if (foundersBodyTooLarge(req)) {
+    if (wantsJson(req)) sendJson(res, 413, { error: 'message_too_long' });
+    else await renderPage(req, res, session, { error: 'Message too long' });
     return true;
   }
   const body = readBody(req);

@@ -535,6 +535,35 @@ async function run() {
     }), long);
     check('text is capped at 2000 characters',
       long.statusCode === 200 && long.body.messages[long.body.messages.length - 1].text.length === 2000);
+    const csrf = lib.createCsrfToken(OSMAN);
+    const midText = 'm'.repeat(4100);
+    const midBody = { text: midText, csrf };
+    const midSize = JSON.stringify(midBody).length;
+    const mid = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      method: 'POST',
+      body: midBody,
+    }), mid);
+    const hugeText = 'z'.repeat(5200);
+    const hugeBody = { text: hugeText, csrf };
+    const huge = mockRes();
+    await ops(authed(HAMEED, {
+      json: true,
+      method: 'POST',
+      body: hugeBody,
+    }), huge);
+    const afterHuge = mockRes();
+    await ops(authed(OSMAN, { json: true }), afterHuge);
+    check('this route accepts a body over 4000 characters and rejects one over 5000 as Message too long',
+      midSize > 4000
+      && midSize <= 5000
+      && JSON.stringify(hugeBody).length > 5000
+      && mid.statusCode === 200
+      && mid.body.messages[mid.body.messages.length - 1].text.length === 2000
+      && huge.statusCode === 413
+      && huge.body.error === 'message_too_long'
+      && !afterHuge.body.messages.some((row) => String(row.text).includes('zzzzzzzzzz')));
   }
 
   {
@@ -970,6 +999,9 @@ async function run() {
 
   {
     const client = fs.readFileSync(path.join(__dirname, '../assets/js/ops-founders-dm.js'), 'utf8');
+    check('a too-long send says Message too long instead of asking for a reload',
+      client.includes('Message too long')
+      && client.includes("error === 'message_too_long'"));
     check('browser poll stays on this origin and does not notify anyone',
       client.includes('/ops/api/founders-dm')
       && client.includes('scope=unread')

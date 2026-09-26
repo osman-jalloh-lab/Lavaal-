@@ -162,7 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mine !== seen) return;
         inFlight = false;
         if (!result.ok) {
-          if (status) status.textContent = 'Message was not sent. Reload and try again.';
+          if (status) {
+            status.textContent = result.body && result.body.error === 'message_too_long'
+              ? 'Message too long'
+              : 'Message was not sent. Reload and try again.';
+          }
           return;
         }
         if (field) field.value = '';
