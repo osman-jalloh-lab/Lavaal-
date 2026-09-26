@@ -466,6 +466,14 @@ async function run() {
       && pageHtml.includes('/assets/js/ops-mic.js')
       && !pageHtml.includes(OSMAN)
       && pageHtml.split('href="/ops/founders"').length === 2);
+    check('the thread list is a polite log',
+      pageHtml.includes('<ol class="thread dm-thread" id="dm-thread" role="log" aria-live="polite">'));
+    const micAt = pageHtml.indexOf('id="dm-mic"');
+    const noteAt = pageHtml.indexOf('id="dm-mic-note"');
+    check('dictation says spoken audio leaves the device',
+      noteAt > micAt
+      && pageHtml.includes("Dictation uses your browser's speech service (in Chrome, Google), so spoken audio leaves your device.")
+      && pageHtml.includes('Messages between Osman and Hameed only. Text only. They stay in this thread and are not sent to the office or any assistant.'));
     const hameedUnread = mockRes();
     await ops(authed(HAMEED, {
       json: true,

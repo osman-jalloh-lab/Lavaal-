@@ -126,6 +126,7 @@ textarea{min-height:88px;resize:vertical;}
 .dm-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
 .dm-actions .btn{width:auto;flex:1 1 8rem;margin-top:0;min-height:44px;}
 .dm-actions .btn-mic{flex:0 0 auto;min-height:44px;}
+.dm-mic-note{flex:1 1 12rem;margin:0;color:var(--muted);font-size:12px;line-height:1.35;}
 #dm-mic-status{margin:0;}
 .bubble{padding:12px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);}
 .bubble p{color:var(--text);overflow-wrap:anywhere;}

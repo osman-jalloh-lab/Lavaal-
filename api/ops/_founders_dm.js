@@ -540,6 +540,7 @@ function pageHtml(session, payload, extra) {
           <p id="dm-mic-status" class="empty" hidden></p>
           <div class="dm-actions">
             <button type="button" class="btn btn-mic" id="dm-mic" aria-pressed="false">Mic</button>
+            <p class="dm-mic-note" id="dm-mic-note">Dictation uses your browser's speech service (in Chrome, Google), so spoken audio leaves your device.</p>
             <button class="btn" type="submit">Send</button>
           </div>
           <p id="dm-status" role="status"></p>
