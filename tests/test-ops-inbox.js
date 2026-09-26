@@ -277,7 +277,7 @@ async function run() {
   {
     const gated = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'inbox' }, url: '/ops/inbox' }, gated);
-    check('inbox still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Enter your work email'));
+    check('inbox still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Sign in with Google'));
   }
 
   global.fetch = origFetch;

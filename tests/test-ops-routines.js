@@ -203,7 +203,7 @@ async function run() {
   {
     const gated = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'routines' }, url: '/ops/routines' }, gated);
-    check('routines still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Enter your work email'));
+    check('routines still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Sign in with Google'));
   }
 
   global.fetch = origFetch;
