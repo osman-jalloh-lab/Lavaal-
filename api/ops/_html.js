@@ -7,11 +7,12 @@ const { dashboardPage, opsThemeVars } = require('./_shell');
 const { dashboardSnapshot, emptyStore } = require('./_store');
 
 function layout({ title, body }) {
+  // Chrome applies form-action to the whole redirect chain. 'self' alone blocks
+  // the 302 from /api/ops/auth to accounts.google.com.
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- Chrome applies form-action to the whole redirect chain. 'self' alone blocks the 302 from /api/ops/auth to accounts.google.com, so a click never reaches the account chooser. -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>${escapeHtml(title)}</title>
 <meta name="robots" content="noindex,nofollow"/>

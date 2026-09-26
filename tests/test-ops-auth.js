@@ -182,16 +182,15 @@ async function run() {
       && String(res.raw).includes('class="btn"')
       && !String(res.raw).includes('name="email"')
       && !/allowlisted|work floor|Email me a sign-in link/i.test(String(res.raw)));
-    const csp = String(res.raw).match(/form-action[^;"]+/);
+    const policy = String(res.raw).match(/http-equiv="Content-Security-Policy" content="([^"]+)"/);
+    const directives = policy ? policy[1].split(';').map((part) => part.trim()) : [];
     const forms = String(res.raw).match(/<form\b/g) || [];
     check('one Sign in with Google click can follow the redirect to Google',
       forms.length === 1
       && String(res.raw).includes('method="POST" action="/api/ops/auth"')
       && String(res.raw).includes('type="submit"')
       && !/<script/i.test(String(res.raw))
-      && csp
-      && csp[0].includes("'self'")
-      && csp[0].includes('https://accounts.google.com'));
+      && directives.includes("form-action 'self' https://accounts.google.com"));
   }
 
   {
