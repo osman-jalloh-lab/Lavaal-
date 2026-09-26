@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const empty = document.getElementById('dm-empty');
   let graph = { csrf: '', pollMs: 4000, badgeMs: 8000 };
   let inFlight = false;
+  let seen = 0;
 
   try {
     graph = Object.assign({}, graph, JSON.parse(dataNode && dataNode.textContent ? dataNode.textContent : '{}') || {});
@@ -105,11 +106,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function pollThread() {
     if (!root || inFlight || document.hidden) return;
+    const mine = ++seen;
     fetch('/ops/api/founders-dm', {
       headers: { accept: 'application/json' },
       credentials: 'same-origin',
       cache: 'no-store',
     }).then((res) => (res.ok ? res.json() : null)).then((body) => {
+      if (mine !== seen || inFlight) return;
       applyPayload(body);
     }).catch(() => {});
   }
@@ -130,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
       event.preventDefault();
       if (inFlight) return;
       const text = field ? field.value : '';
+      const mine = ++seen;
       inFlight = true;
       fetch('/ops/api/founders-dm', {
         method: 'POST',
@@ -141,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cache: 'no-store',
         body: JSON.stringify({ text, csrf: graph.csrf || '' }),
       }).then((res) => res.json().then((body) => ({ ok: res.ok, body }))).then((result) => {
+        if (mine !== seen) return;
         inFlight = false;
         if (!result.ok) {
           if (status) status.textContent = 'Message was not sent. Reload and try again.';

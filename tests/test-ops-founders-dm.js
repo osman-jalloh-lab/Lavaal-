@@ -1031,6 +1031,87 @@ async function run() {
       check('the New messages pill jumps to the newest row',
         thread.scrollTop === thread.scrollHeight && pill.hidden === true);
     }
+    {
+      let releasePoll = null;
+      const kids = [];
+      const thread = {
+        children: kids,
+        scrollHeight: 200,
+        scrollTop: 0,
+        clientHeight: 200,
+        appendChild(node) { kids.push(node); },
+      };
+      const field = { value: 'sent now' };
+      const form = { listeners: {}, addEventListener(name, fn) { this.listeners[name] = fn; } };
+      const docListeners = {};
+      const doc = {
+        hidden: false,
+        focused: true,
+        hasFocus() { return this.focused; },
+        getElementById(id) {
+          if (id === 'founders-dm') return { id: 'founders-dm' };
+          if (id === 'founders-dm-data') return { textContent: JSON.stringify({ csrf: 'tok', pollMs: 4000, badgeMs: 8000 }) };
+          if (id === 'dm-thread') return thread;
+          if (id === 'dm-form') return form;
+          if (id === 'dm-text') return field;
+          if (id === 'dm-empty') return { hidden: true };
+          if (id === 'dm-status') return { textContent: '' };
+          return null;
+        },
+        querySelector() { return { querySelector() { return null; }, appendChild() {} }; },
+        addEventListener(name, fn) { docListeners[name] = fn; },
+        createElement() {
+          return {
+            className: '',
+            attrs: {},
+            textContent: '',
+            children: [],
+            setAttribute(name, value) { this.attrs[name] = value; },
+            getAttribute(name) { return this.attrs[name] || null; },
+            appendChild(node) { this.children.push(node); },
+          };
+        },
+      };
+      const box = {
+        document: doc,
+        fetch: (url, opts) => {
+          const method = (opts && opts.method) || 'GET';
+          if (method === 'POST' && opts && String(opts.body).includes('"text"')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                ok: true,
+                messages: [{ id: 'sent', mine: true, author: 'You', text: 'sent now', createdAt: 2 }],
+              }),
+            });
+          }
+          if (method === 'GET' && String(url) === '/ops/api/founders-dm') {
+            return new Promise((resolve) => {
+              releasePoll = () => resolve({
+                ok: true,
+                json: async () => ({
+                  messages: [{ id: 'stale', mine: false, author: 'Hameed', text: 'should-not-land', createdAt: 1 }],
+                }),
+              });
+            });
+          }
+          return Promise.resolve({ ok: true, json: async () => ({ unread: 0 }) });
+        },
+        setInterval() { return 1; },
+        addEventListener() {},
+      };
+      box.window = box;
+      vm.createContext(box);
+      vm.runInContext(client, box);
+      docListeners.DOMContentLoaded();
+      form.listeners.submit({ preventDefault() {} });
+      await new Promise((resolve) => { setTimeout(resolve, 0); });
+      if (releasePoll) releasePoll();
+      await new Promise((resolve) => { setTimeout(resolve, 0); });
+      check('a stale poll is ignored after a send',
+        thread.children.some((node) => node.attrs && node.attrs['data-id'] === 'sent')
+        && !thread.children.some((node) => node.attrs && node.attrs['data-id'] === 'stale'));
+    }
     const server = fs.readFileSync(path.join(opsDir, '_founders_dm.js'), 'utf8');
     check('the thread module does not import mail, Slack, or model adapters',
       !server.includes('_xai')
