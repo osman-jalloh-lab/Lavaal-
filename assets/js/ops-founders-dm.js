@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function pollUnread() {
-    if (!link || root) return;
+    if (!link || root || document.hidden) return;
     fetch('/ops/api/founders-dm?scope=unread', {
       headers: { accept: 'application/json' },
       credentials: 'same-origin',
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function pollThread() {
-    if (!root || inFlight) return;
+    if (!root || inFlight || document.hidden) return;
     fetch('/ops/api/founders-dm', {
       headers: { accept: 'application/json' },
       credentials: 'same-origin',
@@ -147,14 +147,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }).catch(() => {});
   }
 
+  function onVisible() {
+    if (document.hidden) return;
+    if (root) {
+      pollThread();
+      if (tabActive()) markRead();
+      return;
+    }
+    if (link) pollUnread();
+  }
+
+  document.addEventListener('visibilitychange', onVisible);
+  window.addEventListener('focus', onVisible);
+
   if (root) {
     if (tabActive()) markRead();
     pollThread();
-    window.setInterval(pollThread, graph.pollMs || 4000);
+    window.setInterval(() => {
+      if (document.hidden) return;
+      pollThread();
+    }, graph.pollMs || 4000);
     return;
   }
   if (link) {
     pollUnread();
-    window.setInterval(pollUnread, graph.badgeMs || 8000);
+    window.setInterval(() => {
+      if (document.hidden) return;
+      pollUnread();
+    }, graph.badgeMs || 8000);
   }
 });

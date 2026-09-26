@@ -886,7 +886,57 @@ async function run() {
       client.includes("action: 'read'")
       && client.includes('document.hidden')
       && client.includes('hasFocus')
-      && client.includes('tabActive'));
+      && client.includes('tabActive')
+      && client.includes("addEventListener('visibilitychange'")
+      && client.includes('if (document.hidden) return'));
+    const fetches = [];
+    const listeners = {};
+    const link = {
+      querySelector() { return null; },
+      appendChild() {},
+    };
+    const documentStub = {
+      hidden: true,
+      hasFocus() { return this.focused; },
+      focused: false,
+      getElementById(id) {
+        if (id === 'founders-dm') return { id: 'founders-dm' };
+        if (id === 'founders-dm-data') {
+          return { textContent: JSON.stringify({ csrf: 'tok', pollMs: 4000, badgeMs: 8000 }) };
+        }
+        return null;
+      },
+      querySelector() { return link; },
+      addEventListener(name, fn) { listeners[name] = fn; },
+    };
+    const sandbox = {
+      document: documentStub,
+      fetch: (url, opts) => {
+        fetches.push({
+          url: String(url),
+          method: (opts && opts.method) || 'GET',
+          body: opts && opts.body ? String(opts.body) : '',
+        });
+        return Promise.resolve({ ok: true, json: async () => ({ unread: 0, messages: [] }) });
+      },
+      setInterval() { return 1; },
+      addEventListener(name, fn) { listeners[name] = fn; },
+    };
+    sandbox.window = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(client, sandbox);
+    listeners.DOMContentLoaded();
+    check('a hidden tab does not poll or mark read', fetches.length === 0);
+    documentStub.hidden = false;
+    documentStub.focused = true;
+    listeners.visibilitychange();
+    check('visibilitychange polls and marks read only once the tab is visible and focused',
+      fetches.some((call) => call.method === 'GET' && call.url === '/ops/api/founders-dm')
+      && fetches.some((call) => call.method === 'POST' && call.body.includes('"action":"read"')));
+    const afterShow = fetches.length;
+    documentStub.hidden = true;
+    listeners.visibilitychange();
+    check('hiding the tab does not start another poll', fetches.length === afterShow);
     const server = fs.readFileSync(path.join(opsDir, '_founders_dm.js'), 'utf8');
     check('the thread module does not import mail, Slack, or model adapters',
       !server.includes('_xai')
