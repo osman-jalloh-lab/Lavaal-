@@ -458,6 +458,9 @@ async function run() {
       && pageHtml.includes('type="button" class="btn btn-mic" id="dm-mic"')
       && pageHtml.includes('id="dm-mic-status"')
       && pageHtml.includes('class="dm-actions"')
+      && pageHtml.includes('id="dm-new"')
+      && pageHtml.includes('>New messages</button>')
+      && pageHtml.includes('data-id="')
       && pageHtml.includes('/assets/js/ops-mic.js')
       && !pageHtml.includes(OSMAN)
       && pageHtml.split('href="/ops/founders"').length === 2);
@@ -937,6 +940,97 @@ async function run() {
     documentStub.hidden = true;
     listeners.visibilitychange();
     check('hiding the tab does not start another poll', fetches.length === afterShow);
+    check('new rows are appended by id instead of rebuilding the list',
+      !client.includes("list.textContent = ''")
+      && client.includes('data-id')
+      && client.includes('dm-new')
+      && client.includes('scrollToNewest')
+      && client.includes('nearBottom'));
+    {
+      const kept = {
+        attrs: { 'data-id': 'aaa' },
+        text: 'selected',
+        getAttribute(name) { return this.attrs[name] || null; },
+      };
+      const kids = [kept];
+      const thread = {
+        children: kids,
+        scrollHeight: 400,
+        scrollTop: 0,
+        clientHeight: 120,
+        appendChild(node) { kids.push(node); },
+      };
+      const pill = {
+        hidden: true,
+        listeners: {},
+        addEventListener(name, fn) { this.listeners[name] = fn; },
+      };
+      let round = 0;
+      const docListeners = {};
+      const doc = {
+        hidden: false,
+        focused: true,
+        hasFocus() { return this.focused; },
+        getElementById(id) {
+          if (id === 'founders-dm') return { id: 'founders-dm' };
+          if (id === 'founders-dm-data') return { textContent: JSON.stringify({ csrf: 'tok', pollMs: 4000, badgeMs: 8000 }) };
+          if (id === 'dm-thread') return thread;
+          if (id === 'dm-new') return pill;
+          if (id === 'dm-empty') return { hidden: false };
+          return null;
+        },
+        querySelector() { return { querySelector() { return null; }, appendChild() {} }; },
+        addEventListener(name, fn) { docListeners[name] = fn; },
+        createElement() {
+          return {
+            className: '',
+            attrs: {},
+            textContent: '',
+            children: [],
+            setAttribute(name, value) { this.attrs[name] = value; },
+            getAttribute(name) { return this.attrs[name] || null; },
+            appendChild(node) { this.children.push(node); },
+          };
+        },
+      };
+      const box = {
+        document: doc,
+        fetch: (url, opts) => {
+          const method = (opts && opts.method) || 'GET';
+          let messages = [{ id: 'aaa', mine: true, author: 'You', text: 'selected', createdAt: 1 }];
+          if (method === 'GET' && String(url) === '/ops/api/founders-dm') {
+            round += 1;
+            if (round > 1) {
+              messages = messages.concat([{ id: 'ccc', mine: false, author: 'Hameed', text: 'third', createdAt: 3 }]);
+            }
+            messages = messages.concat(round === 1 ? [{ id: 'bbb', mine: false, author: 'Hameed', text: 'fresh', createdAt: 2 }] : []);
+          }
+          return Promise.resolve({ ok: true, json: async () => ({ unread: 0, messages }) });
+        },
+        setInterval() { return 1; },
+        addEventListener() {},
+      };
+      box.window = box;
+      vm.createContext(box);
+      vm.runInContext(client, box);
+      docListeners.DOMContentLoaded();
+      await new Promise((resolve) => { setTimeout(resolve, 0); });
+      check('opening the thread scrolls to the newest row and keeps the existing node',
+        thread.scrollTop === thread.scrollHeight
+        && thread.children[0] === kept
+        && thread.children.some((node) => node.attrs && node.attrs['data-id'] === 'bbb'));
+      thread.scrollTop = 0;
+      docListeners.visibilitychange();
+      await new Promise((resolve) => { setTimeout(resolve, 0); });
+      check('a message while scrolled up shows New messages and does not jump',
+        thread.scrollTop === 0
+        && pill.hidden === false
+        && thread.children[0] === kept
+        && thread.children.some((node) => node.attrs && node.attrs['data-id'] === 'ccc'));
+      pill.listeners.click();
+      check('the New messages pill jumps to the newest row',
+        thread.scrollTop === thread.scrollHeight && pill.hidden === true);
+    }
     const server = fs.readFileSync(path.join(opsDir, '_founders_dm.js'), 'utf8');
     check('the thread module does not import mail, Slack, or model adapters',
       !server.includes('_xai')

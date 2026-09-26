@@ -36,14 +36,38 @@ document.addEventListener('DOMContentLoaded', () => {
     node.setAttribute('aria-label', `${shown} unread`);
   }
 
-  function render(messages) {
+  function hasId(id) {
+    if (!list || !id) return false;
+    return Array.prototype.some.call(list.children, (node) => node.getAttribute('data-id') === id);
+  }
+
+  function nearBottom() {
+    if (!list) return true;
+    return list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+  }
+
+  function showNew(on) {
+    const pill = document.getElementById('dm-new');
+    if (pill) pill.hidden = !on;
+  }
+
+  function scrollToNewest() {
     if (!list) return;
-    list.textContent = '';
+    list.scrollTop = list.scrollHeight;
+    showNew(false);
+  }
+
+  function appendMessages(messages) {
+    if (!list) return 0;
     const rows = Array.isArray(messages) ? messages : [];
-    if (empty) empty.hidden = rows.length > 0;
+    const stick = nearBottom();
+    let added = 0;
     rows.forEach((item) => {
+      const id = item && item.id ? String(item.id) : '';
+      if (id && hasId(id)) return;
       const li = document.createElement('li');
       li.className = `bubble ${item && item.mine ? 'user' : 'assistant'}`;
+      if (id) li.setAttribute('data-id', id);
       const kicker = document.createElement('div');
       kicker.className = 'kicker';
       kicker.textContent = item && item.author ? item.author : '';
@@ -52,12 +76,17 @@ document.addEventListener('DOMContentLoaded', () => {
       li.appendChild(kicker);
       li.appendChild(text);
       list.appendChild(li);
+      added += 1;
     });
+    if (empty) empty.hidden = list.children.length > 0;
+    if (added && stick) scrollToNewest();
+    else if (added) showNew(true);
+    return added;
   }
 
   function applyPayload(body) {
     if (!body) return;
-    if (Array.isArray(body.messages)) render(body.messages);
+    if (Array.isArray(body.messages)) appendMessages(body.messages);
     if (typeof body.unread === 'number') badge(body.unread);
     if (typeof body.csrf === 'string' && body.csrf) graph.csrf = body.csrf;
   }
@@ -159,6 +188,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('visibilitychange', onVisible);
   window.addEventListener('focus', onVisible);
+  const newer = document.getElementById('dm-new');
+  if (newer) newer.addEventListener('click', scrollToNewest);
+  if (list) scrollToNewest();
 
   if (root) {
     if (tabActive()) markRead();

@@ -482,7 +482,7 @@ function deny(req, res, access, kind) {
 function messageListHtml(messages) {
   if (!messages.length) return '';
   return messages.map((item) => (
-    `<li class="bubble ${item.mine ? 'user' : 'assistant'}">
+    `<li class="bubble ${item.mine ? 'user' : 'assistant'}" data-id="${escapeHtml(item.id)}">
       <div class="kicker">${escapeHtml(item.author)}</div>
       <p>${escapeHtml(item.text)}</p>
     </li>`
@@ -512,6 +512,7 @@ function pageHtml(session, payload, extra) {
         <h2>Osman and Hameed</h2>
         <p class="empty" id="dm-empty"${emptyHidden}>No messages yet. Write the first one below.</p>
         <ol class="thread dm-thread" id="dm-thread">${messageListHtml(messages)}</ol>
+        <button type="button" id="dm-new" class="dm-new" hidden>New messages</button>
         <form id="dm-form" class="dm-compose" method="POST" action="/ops/api/founders-dm">
           <input type="hidden" name="csrf" value="${escapeHtml(csrf)}"/>
           <label for="dm-text">Message</label>

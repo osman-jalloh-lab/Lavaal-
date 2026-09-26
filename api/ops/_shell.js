@@ -120,6 +120,8 @@ textarea{min-height:88px;resize:vertical;}
 .nav-unread{display:inline-block;margin-left:6px;min-width:1.15rem;padding:0 5px;border-radius:999px;background:var(--coral);color:#fff;font-size:11px;line-height:1.45;text-align:center;vertical-align:1px;}
 .dm-compose{display:grid;gap:8px;}
 .dm-thread{max-height:min(62vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;}
+.dm-new{display:block;margin:0 auto 8px;width:auto;padding:6px 12px;border-radius:999px;border:1px solid rgba(46,196,255,.35);background:rgba(46,196,255,.16);color:var(--sky-deep);font:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+.dm-new[hidden]{display:none;}
 .dm-compose textarea{font-size:16px;}
 .dm-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
 .dm-actions .btn{width:auto;flex:1 1 8rem;margin-top:0;min-height:44px;}
