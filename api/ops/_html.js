@@ -40,6 +40,7 @@ input[type=email]:focus{outline:2px solid var(--sky);outline-offset:2px;}
 .who{margin:18px 0 8px;padding:12px 14px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);font-size:15px;color:var(--text);word-break:break-word;}
 .who span{color:var(--emerald);}
 .preview-link{color:var(--sky-deep);word-break:break-all;}
+.hp{position:absolute;left:-9999px;height:0;width:0;overflow:hidden;}
 </style>
 </head>
 <body>
@@ -63,13 +64,12 @@ function loginPage({ error, sent, previewLoginUrl } = {}) {
     body: `
       <div class="kicker"><span class="dot" aria-hidden="true"></span> Internal</div>
       <h1>LAVAALL OS</h1>
-      <p>Enter your work email.</p>
+      <p>Sign in with your founder Google account.</p>
       ${alert}
       <form method="POST" action="/api/ops/auth">
-        <input type="hidden" name="action" value="request"/>
-        <label for="email">Work email</label>
-        <input id="email" name="email" type="email" autocomplete="username" required maxlength="120" placeholder="name@example.com"/>
-        <button class="btn" type="submit">Continue</button>
+        <input type="hidden" name="action" value="google"/>
+        <p class="hp"><label>Website <input name="website" tabindex="-1" autocomplete="off"/></label></p>
+        <button class="btn" type="submit">Sign in with Google</button>
       </form>
       <p class="note">No public signup.</p>
     `,

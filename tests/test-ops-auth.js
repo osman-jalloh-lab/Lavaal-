@@ -8,6 +8,7 @@ const opsDir = path.join(__dirname, '../api/ops');
 const lib = require(path.join(opsDir, '_lib.js'));
 const auth = require(path.join(opsDir, 'auth.js'));
 const ops = require(path.join(opsDir, 'index.js'));
+const google = require(path.join(opsDir, '_google_signin.js'));
 
 const SECRET = 'test-ops-auth-secret-32chars!!';
 const ALLOWED = 'Osmanjalloh104@gmail.com';
@@ -79,6 +80,18 @@ function tokenFromUrl(url) {
   }
 }
 
+function versionedSession(email, version, aud) {
+  const raw = Buffer.from(JSON.stringify({
+    v: version,
+    e: String(email).trim().toLowerCase(),
+    aud,
+    iat: Date.now(),
+    exp: Date.now() + 60_000,
+  }), 'utf8').toString('base64url');
+  const sig = crypto.createHmac('sha256', SECRET).update(`session:${raw}`, 'utf8').digest('base64url');
+  return `${raw}.${sig}`;
+}
+
 function legacySessionToken(email) {
   const raw = Buffer.from(JSON.stringify({
     v: 1,
@@ -111,6 +124,8 @@ function clearDeliveryEnv() {
   delete process.env.OPS_GMAIL_REFRESH_TOKEN;
   delete process.env.OPS_GMAIL_FROM;
   delete process.env.OPS_PREVIEW_INLINE_LINK;
+  delete process.env.OPS_GOOGLE_SIGNIN_CLIENT_ID;
+  delete process.env.OPS_GOOGLE_SIGNIN_CLIENT_SECRET;
 }
 
 function setGmailEnv() {
@@ -161,73 +176,52 @@ async function run() {
     check('/ops login HTML does not include allowlisted emails', !String(res.raw).toLowerCase().includes('osmanjalloh104@gmail.com') && !String(res.raw).toLowerCase().includes('abdulhbah55@gmail.com'));
     check('/ops login HTML has no public signup CTA', !/sign up|create account|register/i.test(String(res.raw)));
     check('/ops login HTML is Option I cream workspace', String(res.raw).includes('--canvas:#EDE7E0') && String(res.raw).includes('--surface:#F3EEE7') && String(res.raw).includes('#2EC4FF') && String(res.raw).includes('--emerald:#10B981') && !String(res.raw).includes('#0B1424'));
-    check('/ops login is a simple email Continue form',
-      String(res.raw).includes('Enter your work email')
-      && String(res.raw).includes('>Continue<')
+    check('/ops login is Sign in with Google on the warm palette',
+      String(res.raw).includes('Sign in with Google')
+      && String(res.raw).includes('name="action" value="google"')
+      && String(res.raw).includes('class="btn"')
+      && !String(res.raw).includes('name="email"')
       && !/allowlisted|work floor|Email me a sign-in link/i.test(String(res.raw)));
   }
 
   {
     clearDeliveryEnv();
-    process.env.VERCEL_ENV = 'preview';
+    process.env.OPS_INSTANT_LOGIN = '1';
+    process.env.OPS_PREVIEW_INSTANT_LOGIN = '1';
+    process.env.OPS_MAGIC_LINK_WEBHOOK_URL = 'https://example.test/ops-mail';
+    process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET = 'hook-secret';
+    const envs = ['production', 'preview', 'development', ''];
+    for (let i = 0; i < envs.length; i += 1) {
+      const envName = envs[i];
+      if (envName) process.env.VERCEL_ENV = envName;
+      else delete process.env.VERCEL_ENV;
+      lib.resetAuthState();
+      const fetchCalls = [];
+      global.fetch = async (url, opts) => {
+        fetchCalls.push({ url, body: opts && opts.body ? JSON.parse(opts.body) : null });
+        return { ok: true, status: 200 };
+      };
+      const res = mockRes();
+      await auth(jsonReq({
+        headers: { 'x-forwarded-for': `203.0.113.${70 + i}` },
+        body: { action: 'request', email: ALLOWED, id_token: 'eyJhbGciOiJub25lIn0.e30.x' },
+      }), res);
+      const setCookie = String(res.headers['Set-Cookie'] || '');
+      const label = envName || 'local';
+      check(`email-only POST does not issue a session when VERCEL_ENV=${label}`,
+        !/lavaall_ops=/.test(setCookie)
+        && !(res.body && res.body.via === 'instant')
+        && res.statusCode !== 302);
+    }
+    check('instant login stays off even if the old env flags are set',
+      lib.instantLoginEnabled() === false);
+    delete process.env.OPS_INSTANT_LOGIN;
     delete process.env.OPS_PREVIEW_INSTANT_LOGIN;
-    process.env.OPS_INSTANT_LOGIN = '1';
-    lib.resetAuthState();
-    const fetchCalls = [];
-    global.fetch = async () => {
-      fetchCalls.push(true);
-      return { ok: true, status: 200 };
-    };
-    const res = mockRes();
-    await auth({
-      method: 'POST',
-      headers: {
-        host: 'preview.example.test',
-        'content-type': 'application/x-www-form-urlencoded',
-        'x-forwarded-for': '203.0.113.70',
-      },
-      body: { action: 'request', email: ALLOWED },
-    }, res);
-    const instantCookie = cookieFrom(res);
-    check('Preview instant login sets the session cookie and redirects to /ops',
-      res.statusCode === 302
-      && res.headers.Location === '/ops'
-      && /HttpOnly/i.test(String(res.headers['Set-Cookie']))
-      && /SameSite=Lax/i.test(String(res.headers['Set-Cookie']))
-      && fetchCalls.length === 0);
-    const dash = mockRes();
-    await ops({ method: 'GET', headers: { cookie: instantCookie, host: 'preview.example.test' }, query: {}, url: '/ops' }, dash);
-    check('Preview instant login lands on the dashboard',
-      dash.statusCode === 200 && String(dash.raw).includes('Dashboard') && String(dash.raw).includes(ALLOWED.toLowerCase()));
-    const mapPage = mockRes();
-    await ops({ method: 'GET', headers: { cookie: instantCookie, host: 'preview.example.test' }, query: { area: 'map' }, url: '/ops/map' }, mapPage);
-    check('instant session can open Map', mapPage.statusCode === 200 && String(mapPage.raw).includes('<h1>Map</h1>'));
-    const kitsPage = mockRes();
-    await ops({ method: 'GET', headers: { cookie: instantCookie, host: 'preview.example.test' }, query: { area: 'kits' }, url: '/ops/kits' }, kitsPage);
-    check('instant session can open Kits', kitsPage.statusCode === 200 && String(kitsPage.raw).includes('Kits'));
-    delete process.env.OPS_INSTANT_LOGIN;
+    delete process.env.VERCEL_ENV;
   }
 
   {
-    process.env.VERCEL_ENV = 'preview';
-    process.env.OPS_INSTANT_LOGIN = '1';
-    lib.resetAuthState();
-    const res = mockRes();
-    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.71' }, body: { action: 'request', email: DENIED } }), res);
-    check('unknown email cannot get an instant session',
-      res.statusCode === 401
-      && res.body && res.body.error === 'sign_in_failed'
-      && res.body.message === 'That email isn’t allowed.'
-      && !res.headers['Set-Cookie']
-      && !/allowlist|unknown account|requesting another|sign-in link|magic/i.test(JSON.stringify(res.body)));
-    check('deny copy is plain and does not mention a link',
-      lib.genericSignInFailure() === 'That email isn’t allowed.'
-      && !/link|magic|requesting/i.test(lib.genericSignInFailure()));
-    delete process.env.OPS_INSTANT_LOGIN;
-  }
-
-  {
-    process.env.VERCEL_ENV = 'preview';
+    process.env.VERCEL_ENV = 'production';
     process.env.OPS_INSTANT_LOGIN = '1';
     lib.resetAuthState();
     const res = mockRes();
@@ -235,68 +229,35 @@ async function run() {
       headers: { 'x-forwarded-for': '203.0.113.72', authorization: 'Bearer simulated-agent-token' },
       body: { action: 'request', email: ALLOWED },
     }), res);
-    check('agent cannot use instant login',
+    check('agent cannot obtain a session by posting an allowlisted email',
       res.statusCode === 403
       && res.body.error === 'agent_denied'
-      && res.body.message === 'That email isn’t allowed.'
-      && !res.headers['Set-Cookie']
+      && !/lavaall_ops=/.test(String(res.headers['Set-Cookie'] || ''))
       && !/requesting another|sign-in link|magic/i.test(JSON.stringify(res.body)));
     delete process.env.OPS_INSTANT_LOGIN;
-  }
-
-  {
-    clearDeliveryEnv();
-    process.env.VERCEL_ENV = 'production';
-    delete process.env.OPS_PREVIEW_INSTANT_LOGIN;
-    process.env.OPS_INSTANT_LOGIN = '0';
-    process.env.OPS_MAGIC_LINK_WEBHOOK_URL = 'https://example.test/ops-mail';
-    process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET = 'hook-secret';
-    lib.resetAuthState();
-    check('production always enables allowlist login, even with OPS_INSTANT_LOGIN=0', lib.instantLoginEnabled() === true);
-    const fetchCalls = [];
-    global.fetch = async (url, opts) => {
-      fetchCalls.push({ url, body: JSON.parse(opts.body) });
-      return { ok: true, status: 200 };
-    };
-    const res = mockRes();
-    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.73' }, body: { action: 'request', email: ALLOWED } }), res);
-    check('production allowlisted POST creates a session immediately without sending mail',
-      res.statusCode === 200
-      && res.body && res.body.via === 'instant'
-      && /lavaall_ops=/.test(String(res.headers['Set-Cookie']))
-      && fetchCalls.length === 0);
-    const hamid = mockRes();
-    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.79' }, body: { action: 'request', email: ALLOWED_2 } }), hamid);
-    check('production second founder also receives an immediate session',
-      hamid.statusCode === 200
-      && hamid.body && hamid.body.via === 'instant'
-      && /lavaall_ops=/.test(String(hamid.headers['Set-Cookie']))
-      && fetchCalls.length === 0);
-    const denied = mockRes();
-    await auth(jsonReq({ headers: { 'x-forwarded-for': '203.0.113.75' }, body: { action: 'request', email: DENIED } }), denied);
-    check('production blocks non-allowlisted requests without sending or setting a cookie',
-      denied.statusCode === 401
-      && denied.body && denied.body.error === 'sign_in_failed'
-      && denied.body.message === 'That email isn’t allowed.'
-      && fetchCalls.length === 0
-      && !denied.headers['Set-Cookie']);
-    const agent = mockRes();
-    await auth(jsonReq({
-      headers: { 'x-forwarded-for': '203.0.113.76', authorization: 'Bearer simulated-agent-token' },
-      body: { action: 'request', email: ALLOWED },
-    }), agent);
-    check('production still denies agent spoof of instant login',
-      agent.statusCode === 403
-      && agent.body.error === 'agent_denied'
-      && !agent.headers['Set-Cookie']);
-    delete process.env.OPS_INSTANT_LOGIN;
+    delete process.env.VERCEL_ENV;
   }
 
   {
     process.env.VERCEL_ENV = 'production';
     const oldSession = legacySessionToken(ALLOWED);
-    check('session version bump rejects cookies minted by the prior token version',
-      lib.SESSION_VERSION === 2 && lib.readSessionToken(oldSession) === null);
+    const versionTwo = versionedSession(ALLOWED, 2, 'production');
+    check('session version 3 rejects version 2 instant-login cookies',
+      lib.SESSION_VERSION === 3
+      && lib.readSessionToken(oldSession) === null
+      && lib.readSessionToken(versionTwo) === null);
+    const oldCookie = mockRes();
+    await auth({
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        host: 'www.lavaall.com',
+        cookie: `${lib.SESSION_COOKIE}=${encodeURIComponent(versionTwo)}`,
+      },
+      query: { action: 'session' },
+    }, oldCookie);
+    check('old-version session cookie is rejected',
+      oldCookie.statusCode === 401 && oldCookie.body && oldCookie.body.authenticated === false);
 
     const productionSession = lib.createSessionToken(ALLOWED);
     process.env.VERCEL_ENV = 'preview';
@@ -320,7 +281,8 @@ async function run() {
     process.env.OPS_INSTANT_LOGIN = '0';
     process.env.OPS_MAGIC_LINK_WEBHOOK_URL = 'https://example.test/ops-mail';
     process.env.OPS_MAGIC_LINK_WEBHOOK_SECRET = 'hook-secret';
-    check('OPS_INSTANT_LOGIN=0 disables instant on Preview', lib.instantLoginEnabled() === false);
+    process.env.OPS_INSTANT_LOGIN = '1';
+    check('OPS_INSTANT_LOGIN=1 still cannot enable instant login on Preview', lib.instantLoginEnabled() === false);
     const fetchCalls = [];
     global.fetch = async (url, opts) => {
       fetchCalls.push({ url, body: JSON.parse(opts.body) });
@@ -461,7 +423,7 @@ async function run() {
   {
     const res = mockRes();
     await ops({ method: 'GET', headers: { cookie: `${lib.SESSION_COOKIE}=` }, query: {} }, res);
-    check('/ops after logout is the login page again', res.statusCode === 401 && String(res.raw).includes('Enter your work email'));
+    check('/ops after logout is the login page again', res.statusCode === 401 && String(res.raw).includes('Sign in with Google'));
   }
 
   {
@@ -658,12 +620,17 @@ async function run() {
 
   {
     const env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
-    check('.env.example documents the production allowlist login contract',
-      env.includes('OPS_INSTANT_LOGIN')
-      && env.includes('OPS_PREVIEW_INSTANT_LOGIN')
-      && env.includes('Production always uses immediate allowlist login')
-      && env.includes('every other email is blocked')
-      && env.includes('cannot disable'));
+    check('.env.example documents Google founder sign-in',
+      env.includes('OPS_GOOGLE_SIGNIN_CLIENT_ID')
+      && env.includes('OPS_GOOGLE_SIGNIN_CLIENT_SECRET')
+      && env.includes('OPS_GMAIL_CLIENT_ID')
+      && env.includes('https://www.lavaall.com/api/ops/auth')
+      && env.includes('https://lavaall.com/api/ops/auth')
+      && env.includes('osmanjalloh104@gmail.com')
+      && env.includes('abdulhbah55@gmail.com')
+      && /test users/i.test(env)
+      && /instant login is disabled/i.test(env)
+      && !env.includes('Production always uses immediate allowlist login'));
   }
 
   {
@@ -673,6 +640,335 @@ async function run() {
     assertPublicLogin(check, privacy, 'privacy.html');
     const terms = fs.readFileSync(path.join(__dirname, '../terms.html'), 'utf8');
     assertPublicLogin(check, terms, 'terms.html');
+  }
+
+  {
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const other = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const jwk = publicKey.export({ format: 'jwk' });
+    jwk.kid = 'test-kid';
+    jwk.alg = 'RS256';
+    jwk.use = 'sig';
+
+    function signJwt(key, payload, header) {
+      const tokenHeader = header || { alg: 'RS256', kid: 'test-kid', typ: 'JWT' };
+      const h = Buffer.from(JSON.stringify(tokenHeader)).toString('base64url');
+      const p = Buffer.from(JSON.stringify(payload)).toString('base64url');
+      const data = `${h}.${p}`;
+      const sig = crypto.sign('sha256', Buffer.from(data), key).toString('base64url');
+      return `${data}.${sig}`;
+    }
+
+    function claims(nonce, overrides) {
+      const nowSec = Math.floor(Date.now() / 1000);
+      return Object.assign({
+        iss: 'https://accounts.google.com',
+        aud: 'signin-client',
+        sub: 'sub-osman',
+        email: ALLOWED,
+        email_verified: true,
+        nonce,
+        iat: nowSec,
+        exp: nowSec + 300,
+      }, overrides || {});
+    }
+
+    process.env.VERCEL_ENV = 'production';
+    process.env.OPS_GOOGLE_SIGNIN_CLIENT_ID = 'signin-client';
+    process.env.OPS_GOOGLE_SIGNIN_CLIENT_SECRET = 'signin-secret-value';
+    google.resetGoogleSignInState();
+    lib.resetAuthState();
+
+    const directNonce = 'nonce-for-direct-tests-32bytes!!';
+    const verified = await google.verifyGoogleIdToken(signJwt(privateKey, claims(directNonce)), {
+      nonce: directNonce,
+      keys: [jwk],
+      clientId: 'signin-client',
+    });
+    check('allowlisted verified Google ID token is accepted',
+      verified.ok === true && verified.email === ALLOWED.toLowerCase());
+
+    const mixedCase = await google.verifyGoogleIdToken(
+      signJwt(privateKey, claims(directNonce, { email: 'OsmanJalloh104@gmail.com' })),
+      { nonce: directNonce, keys: [jwk], clientId: 'signin-client' },
+    );
+    check('Google allowlist match is case-insensitive',
+      mixedCase.ok === true && mixedCase.email === ALLOWED.toLowerCase());
+
+    const secondFounder = await google.verifyGoogleIdToken(
+      signJwt(privateKey, claims(directNonce, { email: ALLOWED_2, sub: 'sub-hameed' })),
+      { nonce: directNonce, keys: [jwk], clientId: 'signin-client' },
+    );
+    check('second founder Google account is accepted',
+      secondFounder.ok === true && secondFounder.email === ALLOWED_2);
+
+    async function rejected(payloadOverrides, extra) {
+      const token = signJwt((extra && extra.key) || privateKey, claims(directNonce, payloadOverrides), extra && extra.header);
+      return google.verifyGoogleIdToken(token, {
+        nonce: extra && extra.nonce ? extra.nonce : directNonce,
+        keys: [jwk],
+        clientId: 'signin-client',
+      });
+    }
+
+    check('non-allowlisted Google account is rejected',
+      (await rejected({ email: DENIED, sub: 'stranger' })).reason === 'not_allowlisted');
+    check('unverified Google email is rejected',
+      (await rejected({ email_verified: false })).reason === 'unverified');
+    check('string email_verified is rejected',
+      (await rejected({ email_verified: 'true' })).reason === 'unverified');
+    check('wrong-aud Google token is rejected',
+      (await rejected({ aud: 'other-client' })).reason === 'bad_aud');
+    check('expired Google token is rejected',
+      (await rejected({ exp: Math.floor(Date.now() / 1000) - 120 })).reason === 'expired');
+    check('wrong issuer is rejected',
+      (await rejected({ iss: 'https://accounts.google.com.evil.com' })).reason === 'bad_iss');
+    const plainIssuer = await google.verifyGoogleIdToken(
+      signJwt(privateKey, claims(directNonce, { iss: 'accounts.google.com' })),
+      { nonce: directNonce, keys: [jwk], clientId: 'signin-client' },
+    );
+    check('accounts.google.com issuer is accepted', plainIssuer.ok === true);
+    check('forged Google token is rejected',
+      (await rejected({}, { key: other.privateKey })).reason === 'bad_signature');
+    check('alg none is rejected',
+      (await rejected({}, { header: { alg: 'none', kid: 'test-kid' } })).reason === 'bad_signature');
+    check('nonce mismatch is rejected',
+      (await rejected({}, { nonce: 'different-nonce-value-32b!!!!' })).reason === 'bad_nonce');
+
+    let ipN = 10;
+    function nextIp() {
+      ipN += 1;
+      return `198.51.100.${ipN}`;
+    }
+
+    async function startGoogle(host) {
+      lib.resetAuthState();
+      const res = mockRes();
+      await auth(jsonReq({
+        headers: {
+          host: host || 'www.lavaall.com',
+          'x-forwarded-proto': 'https',
+          'x-forwarded-for': nextIp(),
+        },
+        body: { action: 'google' },
+      }), res);
+      return res;
+    }
+
+    function oauthFrom(res) {
+      const raw = res.headers['Set-Cookie'];
+      const list = Array.isArray(raw) ? raw : [raw];
+      const row = list.find((item) => String(item || '').startsWith('lavaall_ops_oauth='));
+      if (!row) return null;
+      const pair = String(row).split(';')[0];
+      const value = decodeURIComponent(pair.slice('lavaall_ops_oauth='.length));
+      const dot = value.lastIndexOf('.');
+      const body = value.slice(0, dot);
+      const sig = value.slice(dot + 1);
+      const expect = crypto.createHmac('sha256', SECRET).update(`oauth:${body}`).digest('base64url');
+      if (expect !== sig) return null;
+      return { pair, payload: JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) };
+    }
+
+    const started = await startGoogle('www.lavaall.com');
+    const tx = oauthFrom(started);
+    const loc = new URL(started.body.redirect);
+    const challenge = crypto.createHash('sha256').update(tx.payload.cv).digest('base64url');
+    check('Google start uses the code flow for www.lavaall.com',
+      started.statusCode === 200
+      && loc.origin === 'https://accounts.google.com'
+      && loc.pathname === '/o/oauth2/v2/auth'
+      && loc.searchParams.get('client_id') === 'signin-client'
+      && loc.searchParams.get('redirect_uri') === 'https://www.lavaall.com/api/ops/auth'
+      && loc.searchParams.get('scope') === 'openid email'
+      && loc.searchParams.get('response_type') === 'code'
+      && loc.searchParams.get('code_challenge') === challenge
+      && loc.searchParams.get('code_challenge_method') === 'S256'
+      && loc.searchParams.get('state') === tx.payload.state
+      && loc.searchParams.get('nonce') === tx.payload.nonce
+      && !started.body.redirect.includes('signin-secret-value')
+      && /HttpOnly/i.test(String(started.headers['Set-Cookie']))
+      && /SameSite=Lax/i.test(String(started.headers['Set-Cookie']))
+      && /Secure/i.test(String(started.headers['Set-Cookie'])));
+
+    const apex = await startGoogle('lavaall.com');
+    check('apex redirect URI is https://lavaall.com/api/ops/auth',
+      new URL(apex.body.redirect).searchParams.get('redirect_uri') === 'https://lavaall.com/api/ops/auth');
+    const previewHost = await startGoogle('lavaal-git-ops-osman14.vercel.app');
+    check('Preview redirect URI uses the lavaal preview host',
+      new URL(previewHost.body.redirect).searchParams.get('redirect_uri') === 'https://lavaal-git-ops-osman14.vercel.app/api/ops/auth');
+    const evil = await startGoogle('evil.example');
+    check('untrusted host cannot start Google sign-in',
+      evil.statusCode === 400
+      && evil.body
+      && evil.body.error === 'sign_in_failed'
+      && !evil.body.redirect
+      && !/lavaall_ops=/.test(String(evil.headers['Set-Cookie'] || '')));
+    const foreignPreview = await startGoogle('notlavaal.vercel.app');
+    check('unrelated vercel.app host cannot start Google sign-in', foreignPreview.statusCode === 400);
+
+    async function callbackWith(startRes, payloadOverrides, opts) {
+      const info = oauthFrom(startRes);
+      const token = signJwt(
+        (opts && opts.key) || privateKey,
+        claims(info.payload.nonce, payloadOverrides),
+        opts && opts.header,
+      );
+      const fetchCalls = [];
+      global.fetch = async (url, options) => {
+        const u = String(url);
+        fetchCalls.push({ url: u, body: options && options.body ? String(options.body) : '' });
+        if (u.includes('oauth2.googleapis.com/token')) {
+          return { ok: true, status: 200, json: async () => ({ id_token: token, access_token: 'ya29.should-not-leak' }) };
+        }
+        if (u.includes('/certs')) {
+          return { ok: true, status: 200, json: async () => ({ keys: [jwk] }) };
+        }
+        return { ok: false, status: 500, json: async () => ({}), text: async () => '' };
+      };
+      const res = mockRes();
+      await auth({
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          host: (opts && opts.host) || 'www.lavaall.com',
+          'x-forwarded-proto': 'https',
+          'x-forwarded-for': nextIp(),
+          cookie: info.pair,
+        },
+        query: {
+          code: 'valid-auth-code',
+          state: opts && opts.state ? opts.state : info.payload.state,
+        },
+      }, res);
+      return { res, fetchCalls, token };
+    }
+
+    google.resetGoogleSignInState();
+    const happy = await callbackWith(await startGoogle('www.lavaall.com'), { email: 'OsmanJalloh104@gmail.com' });
+    const sessionPair = cookieFrom(happy.res);
+    const tokenPost = happy.fetchCalls.find((call) => call.url.includes('/token'));
+    check('allowlisted verified Google account gets a session',
+      happy.res.statusCode === 200
+      && happy.res.body
+      && happy.res.body.ok === true
+      && happy.res.body.via === 'google'
+      && happy.res.body.email === ALLOWED.toLowerCase()
+      && /lavaall_ops=/.test(String(happy.res.headers['Set-Cookie']))
+      && /HttpOnly/i.test(String(happy.res.headers['Set-Cookie']))
+      && /SameSite=Lax/i.test(String(happy.res.headers['Set-Cookie']))
+      && /Secure/i.test(String(happy.res.headers['Set-Cookie'])));
+    check('code exchange does not request Gmail scopes or return the access token',
+      Boolean(tokenPost)
+      && tokenPost.body.includes('grant_type=authorization_code')
+      && tokenPost.body.includes('code_verifier=')
+      && tokenPost.body.includes('redirect_uri=https%3A%2F%2Fwww.lavaall.com%2Fapi%2Fops%2Fauth')
+      && !tokenPost.body.includes('gmail')
+      && !JSON.stringify(happy.res.body).includes('ya29')
+      && !JSON.stringify(happy.res.body).includes('signin-secret-value'));
+    const dash = mockRes();
+    await ops({
+      method: 'GET',
+      headers: { cookie: sessionPair, host: 'www.lavaall.com' },
+      query: {},
+      url: '/ops',
+    }, dash);
+    check('Google session opens /ops',
+      dash.statusCode === 200 && String(dash.raw).includes(ALLOWED.toLowerCase()));
+
+    google.resetGoogleSignInState();
+    const hameedLogin = await callbackWith(await startGoogle('www.lavaall.com'), { email: ALLOWED_2, sub: 'sub-hameed' });
+    check('second founder Google account gets a session',
+      hameedLogin.res.statusCode === 200
+      && hameedLogin.res.body
+      && hameedLogin.res.body.email === ALLOWED_2
+      && /lavaall_ops=/.test(String(hameedLogin.res.headers['Set-Cookie'])));
+
+    async function rejects(overrides, opts) {
+      google.resetGoogleSignInState();
+      const out = await callbackWith(await startGoogle('www.lavaall.com'), overrides, opts);
+      const body = JSON.stringify(out.res.body || {});
+      const cookie = String(out.res.headers['Set-Cookie'] || '');
+      return out.res.statusCode === 401
+        && out.res.body
+        && out.res.body.error === 'sign_in_failed'
+        && out.res.body.message === google.genericGoogleFailure()
+        && !/lavaall_ops=/.test(cookie)
+        && !body.includes(DENIED)
+        && !/allowlist|isn.t allowed|osmanjalloh|abdulhbah/i.test(body);
+    }
+
+    check('non-allowlisted Google account does not get a session', await rejects({ email: DENIED, sub: 'nope' }));
+    check('unverified Google account does not get a session', await rejects({ email_verified: false }));
+    check('wrong-aud Google token does not get a session', await rejects({ aud: 'other-client' }));
+    check('expired Google token does not get a session', await rejects({ exp: Math.floor(Date.now() / 1000) - 120 }));
+    check('forged Google token does not get a session', await rejects({}, { key: other.privateKey }));
+
+    google.resetGoogleSignInState();
+    const mismatch = await callbackWith(
+      await startGoogle('www.lavaall.com'),
+      {},
+      { state: 'wrong-state-value-not-the-real-one' },
+    );
+    check('mismatched OAuth state is rejected',
+      mismatch.res.statusCode === 401
+      && !/lavaall_ops=/.test(String(mismatch.res.headers['Set-Cookie'] || ''))
+      && mismatch.fetchCalls.length === 0);
+
+    const postedToken = mockRes();
+    lib.resetAuthState();
+    await auth(jsonReq({
+      headers: { host: 'www.lavaall.com', 'x-forwarded-for': nextIp() },
+      body: { action: 'google', id_token: signJwt(privateKey, claims(directNonce)) },
+    }), postedToken);
+    check('a client-supplied ID token does not mint a session',
+      postedToken.body
+      && postedToken.body.redirect
+      && !/lavaall_ops=/.test(String(postedToken.headers['Set-Cookie'] || '')));
+
+    const rateIp = '198.51.100.200';
+    lib.resetAuthState();
+    const firstStart = mockRes();
+    await auth(jsonReq({
+      headers: { host: 'www.lavaall.com', 'x-forwarded-for': rateIp },
+      body: { action: 'google' },
+    }), firstStart);
+    const secondStart = mockRes();
+    await auth(jsonReq({
+      headers: { host: 'www.lavaall.com', 'x-forwarded-for': rateIp },
+      body: { action: 'google' },
+    }), secondStart);
+    check('Google sign-in start is rate-limited',
+      firstStart.statusCode === 200 && secondStart.statusCode === 429 && !secondStart.body.redirect);
+
+    delete process.env.OPS_GOOGLE_SIGNIN_CLIENT_ID;
+    delete process.env.OPS_GOOGLE_SIGNIN_CLIENT_SECRET;
+    process.env.OPS_GMAIL_CLIENT_ID = 'gmail-fallback-client';
+    process.env.OPS_GMAIL_CLIENT_SECRET = 'gmail-fallback-secret';
+    const fallback = await startGoogle('www.lavaall.com');
+    check('sign-in falls back to OPS_GMAIL_CLIENT_ID',
+      fallback.statusCode === 200
+      && new URL(fallback.body.redirect).searchParams.get('client_id') === 'gmail-fallback-client'
+      && !fallback.body.redirect.includes('gmail-fallback-secret'));
+
+    process.env.OPS_GOOGLE_SIGNIN_CLIENT_ID = 'dedicated-client';
+    const incomplete = mockRes();
+    lib.resetAuthState();
+    await auth(jsonReq({
+      headers: { host: 'www.lavaall.com', 'x-forwarded-for': nextIp() },
+      body: { action: 'google' },
+    }), incomplete);
+    check('dedicated client id without its secret does not use the Gmail secret',
+      incomplete.statusCode === 503 && incomplete.body && incomplete.body.error === 'auth_not_configured');
+
+    process.env.OPS_GOOGLE_SIGNIN_CLIENT_SECRET = 'dedicated-secret';
+    const dedicated = await startGoogle('www.lavaall.com');
+    check('dedicated Google client id wins over the Gmail client',
+      new URL(dedicated.body.redirect).searchParams.get('client_id') === 'dedicated-client');
+
+    clearDeliveryEnv();
+    delete process.env.VERCEL_ENV;
+    google.resetGoogleSignInState();
   }
 
   global.fetch = origFetch;

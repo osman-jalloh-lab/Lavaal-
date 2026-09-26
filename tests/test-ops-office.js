@@ -106,7 +106,7 @@ async function run() {
   {
     const gated = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'office' }, url: '/ops/office' }, gated);
-    check('office still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Enter your work email'));
+    check('office still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Sign in with Google'));
   }
 
   {

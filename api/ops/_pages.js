@@ -602,7 +602,7 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
             <label>Start <input name="start" type="time" value="${escapeHtml(event.start)}"/></label>
             <label>End <input name="end" type="time" value="${escapeHtml(event.end)}"/></label>
             <label>Timezone <input name="timezone" maxlength="80" value="${escapeHtml(event.timezone)}"/></label>
-            <label>Who is invited (Osman, Hamid, @lavaall.com) <input name="attendees" maxlength="400" value="${escapeHtml(event.attendees.join(', '))}"/></label>
+            <label>Who is invited (Osman, Hameed, @lavaall.com) <input name="attendees" maxlength="400" value="${escapeHtml(event.attendees.join(', '))}"/></label>
             <label>Notes <textarea name="notes" maxlength="800">${escapeHtml(event.notes)}</textarea></label>
             <button class="btn btn-sm" type="submit">Save changes</button>
           </form>
@@ -626,7 +626,7 @@ function calendarPage({ email, store, snapshot, notice, error, calendarSetup }) 
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Calendar</h1>
-      <p class="lead">What is next. Add a meeting if you need one. Only Osman, Hamid, and @lavaall.com. Email invites stay drafts until Confirm send.</p>
+      <p class="lead">What is next. Add a meeting if you need one. Only Osman, Hameed, and @lavaall.com. Email invites stay drafts until Confirm send.</p>
       ${setup.googleConnected
         ? '<p class="ok">Shared Google Calendar is connected. New events save here and sync when Google is up.</p>'
         : '<p class="empty">Google Calendar is not connected. Connect a shared calendar to sync — never a personal primary calendar.</p>'}

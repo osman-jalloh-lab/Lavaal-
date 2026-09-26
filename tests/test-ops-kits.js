@@ -373,7 +373,7 @@ async function run() {
   {
     const page = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'kits' }, url: '/ops/kits' }, page);
-    check('logged-out /ops/kits is the login page', page.statusCode === 401 && String(page.raw).includes('Enter your work email'));
+    check('logged-out /ops/kits is the login page', page.statusCode === 401 && String(page.raw).includes('Sign in with Google'));
     check('logged-out Kits HTML has no kit emails', noKitPii(page.raw) && !String(page.raw).includes('KIT000TEST01'));
     check('logged-out /ops/kits shows no kit rows in DOM',
       !String(page.raw).includes('kits-row')

@@ -346,7 +346,7 @@ function dashboardSections({ snapshot, returnTo }) {
             <label for="task-title">What to do</label>
             <input id="task-title" name="title" required maxlength="160" placeholder="Follow up on SL quote pack"/>
             <label for="task-next">Next step (optional)</label>
-            <input id="task-next" name="nextAction" maxlength="200" placeholder="Email Abdulhamid the open items"/>
+            <input id="task-next" name="nextAction" maxlength="200" placeholder="Email Hameed the open items"/>
             <button class="btn" type="submit">Save task</button>
           </form>
         </section>

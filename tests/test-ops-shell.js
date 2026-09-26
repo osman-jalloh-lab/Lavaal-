@@ -67,7 +67,7 @@ async function run() {
   {
     const res = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'chat' }, url: '/ops/chat' }, res);
-    check('stub routes require a session', res.statusCode === 401 && String(res.raw).includes('Enter your work email'));
+    check('stub routes require a session', res.statusCode === 401 && String(res.raw).includes('Sign in with Google'));
   }
 
   {
@@ -175,7 +175,7 @@ async function run() {
     }, out);
     const after = mockRes();
     await ops({ method: 'GET', headers: { cookie: `${lib.SESSION_COOKIE}=` }, query: {}, url: '/ops' }, after);
-    check('sign out still returns the login page', out.body && out.body.ok === true && after.statusCode === 401 && String(after.raw).includes('Enter your work email'));
+    check('sign out still returns the login page', out.body && out.body.ok === true && after.statusCode === 401 && String(after.raw).includes('Sign in with Google'));
   }
 
   {
