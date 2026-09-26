@@ -29,6 +29,8 @@ const {
 const { persistenceBanner, shellPage } = require('./_shell');
 
 const DM_KEY = 'lavaall-ops-founders-dm-v1';
+const READ_KEY = 'lavaall-ops-founders-dm-v1:read';
+const LEGACY_KEY = 'lavaall-ops-founders-dm-v1:legacy';
 const FOUNDERS = Object.freeze([
   'osmanjalloh104@gmail.com',
   'abdulhbah55@gmail.com',
@@ -42,7 +44,9 @@ const MAX_TEXT = 2000;
 const POLL_MS = 4000;
 const BADGE_MS = 8000;
 
-let memory = emptyThread();
+let memoryMessages = [];
+let memoryRead = {};
+let localHydrated = false;
 
 function foundersDmEnabled() {
   const flag = String(process.env.FOUNDERS_DM_ENABLED || '').trim().toLowerCase();
@@ -54,10 +58,6 @@ function isFounderDmIdentity(email) {
   if (!FOUNDERS.includes(who) || !isAllowlisted(who)) return false;
   if (ALLOWLIST.length !== FOUNDERS.length) return false;
   return FOUNDERS.every((item) => ALLOWLIST.includes(item));
-}
-
-function emptyThread() {
-  return { messages: [], readAt: {} };
 }
 
 function kvConfigured() {
@@ -73,10 +73,6 @@ function filePath() {
 
 function cleanText(value) {
   return typeof value === 'string' ? value.trim().replace(/[<>]/g, '').slice(0, MAX_TEXT) : '';
-}
-
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
 }
 
 function newId() {
@@ -143,7 +139,8 @@ function publicPayload(thread, email, csrf) {
 
 async function kvCommand(args) {
   const base = process.env.KV_REST_API_URL.replace(/\/$/, '');
-  const response = await fetch(base, {
+  const pipelined = Array.isArray(args[0]);
+  const response = await fetch(pipelined ? `${base}/pipeline` : base, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
@@ -155,53 +152,189 @@ async function kvCommand(args) {
   return response.json();
 }
 
-function decodeThread(result) {
-  if (result == null) return emptyThread();
-  if (typeof result === 'string') {
-    try {
-      return normalizeThread(JSON.parse(result));
-    } catch {
-      return emptyThread();
-    }
+function readCursorPath() {
+  const target = filePath();
+  if (!target) return '';
+  return target.replace(/\.json$/, '.read.json');
+}
+
+function currentThread() {
+  return {
+    messages: memoryMessages.slice(-MAX_MESSAGES),
+    readAt: Object.assign({}, memoryRead),
+  };
+}
+
+function persistMessages() {
+  const target = filePath();
+  if (!target) return;
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, JSON.stringify(memoryMessages.slice(-MAX_MESSAGES)));
+}
+
+function persistRead() {
+  const target = readCursorPath();
+  if (!target) return;
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, JSON.stringify(memoryRead));
+}
+
+function rememberReadMap(readAt) {
+  memoryRead = {};
+  FOUNDERS.forEach((email) => {
+    const stamp = readAt && Number(readAt[email]);
+    if (Number.isFinite(stamp) && stamp > 0) memoryRead[email] = stamp;
+  });
+}
+
+function rememberMessages(rows) {
+  memoryMessages = (Array.isArray(rows) ? rows : [])
+    .map(normalizeMessage)
+    .filter(Boolean)
+    .slice(-MAX_MESSAGES);
+}
+
+function hydrateLocal() {
+  if (localHydrated || kvConfigured()) return;
+  localHydrated = true;
+  const target = filePath();
+  if (!target || !fs.existsSync(target)) return;
+  let raw;
+  try {
+    raw = JSON.parse(fs.readFileSync(target, 'utf8'));
+  } catch {
+    memoryMessages = [];
+    memoryRead = {};
+    return;
   }
-  return normalizeThread(result);
+  if (Array.isArray(raw)) {
+    rememberMessages(raw);
+    const cursorFile = readCursorPath();
+    if (cursorFile && fs.existsSync(cursorFile)) {
+      try {
+        rememberReadMap(JSON.parse(fs.readFileSync(cursorFile, 'utf8')));
+      } catch {
+        memoryRead = {};
+      }
+    }
+    return;
+  }
+  const legacy = normalizeThread(raw);
+  rememberMessages(legacy.messages);
+  rememberReadMap(legacy.readAt);
+  persistMessages();
+  persistRead();
+}
+
+function decodeHash(result) {
+  const readAt = {};
+  if (Array.isArray(result)) {
+    for (let i = 0; i < result.length; i += 2) {
+      const email = normalizeEmail(result[i]);
+      const stamp = Number(result[i + 1]);
+      if (FOUNDERS.includes(email) && Number.isFinite(stamp) && stamp > 0) readAt[email] = stamp;
+    }
+    return readAt;
+  }
+  if (result && typeof result === 'object') {
+    Object.keys(result).forEach((key) => {
+      const email = normalizeEmail(key);
+      const stamp = Number(result[key]);
+      if (FOUNDERS.includes(email) && Number.isFinite(stamp) && stamp > 0) readAt[email] = stamp;
+    });
+  }
+  return readAt;
+}
+
+function messagesFromList(result) {
+  const rows = Array.isArray(result) ? result : [];
+  return rows.map((item) => {
+    if (typeof item === 'string') {
+      try {
+        return normalizeMessage(JSON.parse(item));
+      } catch {
+        return null;
+      }
+    }
+    return normalizeMessage(item);
+  }).filter(Boolean).slice(-MAX_MESSAGES);
+}
+
+async function kvList() {
+  const payload = await kvCommand(['LRANGE', DM_KEY, '0', '-1']);
+  return messagesFromList(payload && payload.result);
+}
+
+async function kvReadMap() {
+  const payload = await kvCommand(['HGETALL', READ_KEY]);
+  return decodeHash(payload && payload.result);
+}
+
+async function migrateLegacyBlob() {
+  const payload = await kvCommand(['GET', DM_KEY]);
+  const raw = payload && payload.result;
+  if (typeof raw !== 'string' || !raw.trim().startsWith('{')) return;
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.messages)) return;
+  const thread = normalizeThread(parsed);
+  await kvCommand(['RENAME', DM_KEY, LEGACY_KEY]);
+  if (thread.messages.length) {
+    await kvCommand(['RPUSH', DM_KEY].concat(thread.messages.map((row) => JSON.stringify(row))));
+    await kvCommand(['LTRIM', DM_KEY, '-400', '-1']);
+  }
+  const fields = [];
+  FOUNDERS.forEach((email) => {
+    if (thread.readAt[email]) fields.push(email, String(thread.readAt[email]));
+  });
+  if (fields.length) await kvCommand(['HSET', READ_KEY].concat(fields));
+  await kvCommand(['DEL', LEGACY_KEY]);
 }
 
 async function readThread() {
   if (kvConfigured()) {
-    const payload = await kvCommand(['GET', DM_KEY]);
-    memory = decodeThread(payload && payload.result);
-    return clone(memory);
-  }
-  const target = filePath();
-  if (target) {
-    if (!fs.existsSync(target)) {
-      memory = emptyThread();
-      return clone(memory);
-    }
+    let messages;
     try {
-      memory = normalizeThread(JSON.parse(fs.readFileSync(target, 'utf8')));
+      messages = await kvList();
     } catch {
-      memory = emptyThread();
+      await migrateLegacyBlob();
+      messages = await kvList();
     }
-    return clone(memory);
+    const readAt = await kvReadMap();
+    return { messages, readAt };
   }
-  return clone(normalizeThread(memory));
+  hydrateLocal();
+  return currentThread();
 }
 
-async function writeThread(next) {
-  const normalized = normalizeThread(next);
+async function appendMessage(message) {
   if (kvConfigured()) {
-    await kvCommand(['SET', DM_KEY, JSON.stringify(normalized)]);
-  } else {
-    const target = filePath();
-    if (target) {
-      fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.writeFileSync(target, JSON.stringify(normalized));
+    const pipe = [
+      ['RPUSH', DM_KEY, JSON.stringify(message)],
+      ['LTRIM', DM_KEY, '-400', '-1'],
+    ];
+    try {
+      await kvCommand(pipe);
+    } catch {
+      await migrateLegacyBlob();
+      await kvCommand(pipe);
     }
+    await kvCommand(['HSET', READ_KEY, message.from, String(message.createdAt)]);
+    return readThread();
   }
-  memory = normalized;
-  return clone(memory);
+  hydrateLocal();
+  memoryMessages.push(message);
+  if (memoryMessages.length > MAX_MESSAGES) {
+    memoryMessages = memoryMessages.slice(-MAX_MESSAGES);
+  }
+  memoryRead[message.from] = message.createdAt;
+  persistMessages();
+  persistRead();
+  return currentThread();
 }
 
 async function mutate(work) {
@@ -220,15 +353,24 @@ async function countUnread(email) {
   });
 }
 
-async function listMessages(email, opts) {
-  const mark = !(opts && opts.mark === false);
+async function listMessages(email) {
+  return mutate(async () => publicPayload(await readThread(), email));
+}
+
+async function markRead(email) {
+  const who = normalizeEmail(email);
+  if (!isFounderDmIdentity(who)) return { error: 'forbidden' };
+  const now = Date.now();
   return mutate(async () => {
-    const thread = await readThread();
-    if (mark) {
-      thread.readAt[normalizeEmail(email)] = Date.now();
-      await writeThread(thread);
+    if (kvConfigured()) {
+      await kvCommand(['HSET', READ_KEY, who, String(now)]);
+    } else {
+      hydrateLocal();
+      memoryRead[who] = now;
+      persistRead();
     }
-    return publicPayload(thread, email);
+    const thread = await readThread();
+    return { ok: true, unread: unreadCount(thread, who) };
   });
 }
 
@@ -239,22 +381,21 @@ async function sendMessage(email, text) {
   const body = cleanText(text);
   if (!body) return { error: 'invalid_message' };
   return mutate(async () => {
-    const thread = await readThread();
     const message = {
       id: newId(),
       from: who,
       text: body,
       createdAt: Date.now(),
     };
-    thread.messages.push(message);
-    thread.readAt[who] = message.createdAt;
-    await writeThread(thread);
+    const thread = await appendMessage(message);
     return publicPayload(thread, who);
   });
 }
 
 function resetFoundersDm() {
-  memory = emptyThread();
+  memoryMessages = [];
+  memoryRead = {};
+  localHydrated = false;
 }
 
 function firstQuery(req, key) {
@@ -389,7 +530,7 @@ function pageHtml(session, payload, extra) {
 }
 
 async function renderPage(req, res, session, extra) {
-  const listed = await listMessages(session.email, { mark: true });
+  const listed = await listMessages(session.email);
   if (listed.error) {
     const message = listed.error === 'store_unavailable'
       ? 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).'
@@ -415,7 +556,7 @@ async function handleApi(req, res, session) {
       sendJson(res, 200, { ok: true, unread: counted.unread });
       return true;
     }
-    const listed = await listMessages(session.email, { mark: true });
+    const listed = await listMessages(session.email);
     if (listed.error) {
       sendJson(res, listed.error === 'store_unavailable' ? 503 : 400, { error: listed.error });
       return true;
@@ -435,6 +576,18 @@ async function handleApi(req, res, session) {
   if (!readCsrfToken(csrfFrom(req, body), session.email)) {
     if (wantsJson(req)) sendJson(res, 403, { error: 'csrf' });
     else await renderPage(req, res, session, { error: 'Refresh was rejected. Reload Private and try again.' });
+    return true;
+  }
+  if (String(body.action || '').toLowerCase() === 'read') {
+    const marked = await markRead(session.email);
+    if (marked.error) {
+      const status = marked.error === 'store_unavailable' ? 503 : 400;
+      if (wantsJson(req)) sendJson(res, status, { error: marked.error });
+      else await renderPage(req, res, session, { error: 'Could not update the thread.' });
+      return true;
+    }
+    if (wantsJson(req)) sendJson(res, 200, marked);
+    else redirect(res, '/ops/founders');
     return true;
   }
   const sent = await sendMessage(session.email, body.text || body.message || '');
@@ -504,6 +657,7 @@ async function handleFoundersDm(req, res) {
 module.exports = {
   BADGE_MS,
   DM_KEY,
+  READ_KEY,
   FOUNDERS,
   MAX_TEXT,
   POLL_MS,

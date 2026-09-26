@@ -10,13 +10,13 @@ One thread. Stored apart from the shared office blob (`lavaall-ops-v2`) so Talk,
 
 | | |
 |---|---|
-| Key | `lavaall-ops-founders-dm-v1` |
-| Where | Existing Vercel KV (`KV_REST_API_URL` + `KV_REST_API_TOKEN`) when those are set. Otherwise the same local fallback as the rest of `/ops`: `OPS_STORE_FILE` plus `.founders-dm.json`, or process memory when neither is set. No new vendor. |
-| Shape | `{ messages: [{ id, from, text, createdAt }], readAt: { [email]: timestamp } }` |
+| Key | `lavaall-ops-founders-dm-v1` (message list) and `lavaall-ops-founders-dm-v1:read` (per-founder read cursor) |
+| Where | Existing Vercel KV (`KV_REST_API_URL` + `KV_REST_API_TOKEN`) when those are set. Otherwise the same local fallback as the rest of `/ops`: `OPS_STORE_FILE` plus `.founders-dm.json` and `.founders-dm.read.json`, or process memory when neither is set. No new vendor. |
+| Shape | Messages are a list of `{ id, from, text, createdAt }`. Read cursors are a separate map of email to timestamp. A legacy `{ messages, readAt }` blob is copied into that shape on first read. |
 | `from` | One of the two founder emails. Anything else is dropped on read. |
 | `text` | Plain text, trimmed, angle brackets removed, 2000 characters max. |
-| Cap | The latest 400 messages are kept. Older ones are dropped. |
-| Unread | Messages from the other founder whose `createdAt` is after that founder's `readAt`. Opening the thread or polling the full list marks the viewer caught up. The unread-count poll does not. |
+| Cap | The latest 400 messages are kept (`RPUSH` then `LTRIM`). Older ones are dropped. |
+| Unread | Messages from the other founder whose `createdAt` is after that founder's read cursor. GET never writes. Marking read is `POST` `{ action: "read", csrf }`. |
 
 ## Access control
 
@@ -40,10 +40,10 @@ Existing rewrite: `/ops/:path*` → `/api/ops?area=:path*`. No new Vercel functi
 
 | | |
 |---|---|
-| `GET /ops/founders` | The thread page. Marks the viewer caught up. |
-| `GET /ops/api/founders-dm` | Messages, oldest first, newest last. Marks the viewer caught up. |
-| `GET /ops/api/founders-dm?scope=unread` | `{ ok, unread }` only. Does not return message text and does not mark read. |
-| `POST /ops/api/founders-dm` | `{ text, csrf }`. Text only. Returns the thread. |
+| `GET /ops/founders` | The thread page. Does not mark the thread read. |
+| `GET /ops/api/founders-dm` | Messages, oldest first, newest last. Does not write. |
+| `GET /ops/api/founders-dm?scope=unread` | `{ ok, unread }` only. Does not return message text and does not write. |
+| `POST /ops/api/founders-dm` | `{ text, csrf }` sends. `{ action: "read", csrf }` marks read. Text only. |
 
 JSON responses use `You`, `Osman`, and `Hameed`. They do not include the sender email as its own field.
 
@@ -80,7 +80,7 @@ The shared office store, CEO thread keys, and desk thread keys are separate. Tho
 
 - The nav label is **Private**. Say if it should say **Founders** instead.
 - The thread refreshes by polling (4 seconds while it is open, 8 seconds for the badge on other pages). Say if that is too chatty.
-- Opening the thread marks it read for that founder. Say if unread should stay until they do something else.
+- Marking the thread read is a separate POST, sent only while the tab is visible and focused.
 - Access stays locked to the two current allowlist addresses. If a third address is added to `/ops` later, this thread refuses everyone until the pair is updated on purpose.
 - Message text is not encrypted by the app. KV and Vercel admins can read it. Say if that is acceptable for v1.
 - Messages are capped at 2000 characters, and only the latest 400 are kept. Angle brackets are stripped.

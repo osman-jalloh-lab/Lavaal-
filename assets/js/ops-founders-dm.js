@@ -127,7 +127,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function tabActive() {
+    return !document.hidden && (typeof document.hasFocus !== 'function' || document.hasFocus());
+  }
+
+  function markRead() {
+    if (!root || !tabActive() || !graph.csrf) return;
+    fetch('/ops/api/founders-dm', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      credentials: 'same-origin',
+      cache: 'no-store',
+      body: JSON.stringify({ action: 'read', csrf: graph.csrf }),
+    }).then((res) => (res.ok ? res.json() : null)).then((body) => {
+      if (body && typeof body.unread === 'number') badge(body.unread);
+    }).catch(() => {});
+  }
+
   if (root) {
+    if (tabActive()) markRead();
     pollThread();
     window.setInterval(pollThread, graph.pollMs || 4000);
     return;

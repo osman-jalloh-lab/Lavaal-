@@ -84,6 +84,67 @@ function foundersGroup(html) {
   return end < 0 ? '' : html.slice(start, end);
 }
 
+function fakeKv() {
+  const kv = {
+    list: [],
+    hash: {},
+    legacy: null,
+    calls: [],
+    blockNextRead: false,
+    waiters: [],
+  };
+  kv.releaseReads = () => {
+    const pending = kv.waiters.slice();
+    kv.waiters = [];
+    pending.forEach((resolve) => resolve());
+  };
+  function apply(cmd) {
+    if (cmd[0] === 'RPUSH') {
+      for (let i = 2; i < cmd.length; i += 1) kv.list.push(cmd[i]);
+      return { result: kv.list.length };
+    }
+    if (cmd[0] === 'LTRIM') {
+      const start = Number(cmd[2]);
+      if (start < 0) kv.list = kv.list.slice(start);
+      return { result: 'OK' };
+    }
+    if (cmd[0] === 'LRANGE') return { result: kv.list.slice() };
+    if (cmd[0] === 'HSET') {
+      for (let i = 2; i < cmd.length; i += 2) kv.hash[cmd[i]] = cmd[i + 1];
+      return { result: 1 };
+    }
+    if (cmd[0] === 'HGETALL') return { result: Object.assign({}, kv.hash) };
+    if (cmd[0] === 'GET') return { result: kv.legacy };
+    if (cmd[0] === 'RENAME') {
+      kv.legacy = null;
+      return { result: 'OK' };
+    }
+    if (cmd[0] === 'DEL') return { result: 1 };
+    return null;
+  }
+  kv.fetch = async (url, opts) => {
+    const parsed = JSON.parse(opts.body);
+    const batch = Array.isArray(parsed[0]) ? parsed : [parsed];
+    const out = [];
+    for (const cmd of batch) {
+      kv.calls.push(cmd.slice());
+      if (cmd[0] === 'LRANGE' && kv.blockNextRead) {
+        kv.blockNextRead = false;
+        await new Promise((resolve) => { kv.waiters.push(resolve); });
+      }
+      if (cmd[0] === 'LRANGE' && kv.legacy) {
+        return { ok: false, status: 400, json: async () => ({ error: 'WRONGTYPE' }) };
+      }
+      const result = apply(cmd);
+      if (!result) return { ok: false, status: 400, json: async () => ({}) };
+      out.push(result);
+    }
+    if (Array.isArray(parsed[0])) return { ok: true, json: async () => out };
+    return { ok: true, json: async () => out[0] };
+  };
+  return kv;
+}
+
 async function run() {
   const origFetch = global.fetch;
   const origLog = console.log;
@@ -346,16 +407,37 @@ async function run() {
 
     const listed = mockRes();
     await ops(authed(OSMAN, { json: true }), listed);
-    check('opening the list marks Osman caught up and keeps newest last',
+    check('opening the list does not mark Osman caught up and keeps newest last',
       listed.statusCode === 200
-      && listed.body.unread === 0
+      && listed.body.unread === 1
       && listed.body.messages.map((row) => row.author).join(',') === 'You,Hameed');
+    const still = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      query: { area: 'api/founders-dm', scope: 'unread' },
+    }), still);
+    check('GET does not write the read cursor', still.statusCode === 200 && still.body.unread === 1);
+    const marked = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      method: 'POST',
+      body: { action: 'read', csrf: lib.createCsrfToken(OSMAN) },
+    }), marked);
+    check('mark-read is an explicit CSRF POST',
+      marked.statusCode === 200 && marked.body.ok === true && marked.body.unread === 0 && marked.body.messages == null);
     const after = mockRes();
     await ops(authed(OSMAN, {
       json: true,
       query: { area: 'api/founders-dm', scope: 'unread' },
     }), after);
-    check('Osman unread is clear after opening the thread', after.body.unread === 0);
+    check('Osman unread is clear after the mark-read POST', after.body.unread === 0);
+    const noCsrf = mockRes();
+    await ops(authed(HAMEED, {
+      json: true,
+      method: 'POST',
+      body: { action: 'read' },
+    }), noCsrf);
+    check('mark-read without CSRF is rejected', noCsrf.statusCode === 403 && noCsrf.body.error === 'csrf');
 
     const page = mockRes();
     await ops(authed(HAMEED, { json: false, url: '/ops/founders', query: { area: 'founders' } }), page);
@@ -384,7 +466,28 @@ async function run() {
       json: true,
       query: { area: 'api/founders-dm', scope: 'unread' },
     }), hameedUnread);
-    check('opening the page marks Hameed caught up', hameedUnread.body.unread === 0);
+    check('opening the page does not by itself change Hameed unread', hameedUnread.body.unread === 0);
+    const later = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      method: 'POST',
+      body: { text: 'After Hameed looked', csrf: lib.createCsrfToken(OSMAN) },
+    }), later);
+    const pageAgain = mockRes();
+    await ops(authed(HAMEED, { json: false, url: '/ops/founders', query: { area: 'founders' } }), pageAgain);
+    const hameedStill = mockRes();
+    await ops(authed(HAMEED, {
+      json: true,
+      query: { area: 'api/founders-dm', scope: 'unread' },
+    }), hameedStill);
+    check('a page GET leaves Hameed unread', hameedStill.body.unread === 1 && String(pageAgain.raw).includes('After Hameed looked'));
+    const hameedMark = mockRes();
+    await ops(authed(HAMEED, {
+      json: true,
+      method: 'POST',
+      body: { action: 'read', csrf: lib.createCsrfToken(HAMEED) },
+    }), hameedMark);
+    check('Hameed mark-read POST clears unread', hameedMark.body.unread === 0);
   }
 
   {
@@ -597,36 +700,93 @@ async function run() {
   }
 
   {
-    const calls = [];
-    let saved = null;
+    const kv = fakeKv();
     process.env.KV_REST_API_URL = 'https://kv.example.test';
     process.env.KV_REST_API_TOKEN = 'test-token';
     dm.resetFoundersDm();
-    global.fetch = async (url, opts) => {
-      const cmd = JSON.parse(opts.body);
-      calls.push({ url: String(url), cmd });
-      if (cmd[0] === 'GET') return { ok: true, json: async () => ({ result: saved }) };
-      if (cmd[0] === 'SET') {
-        saved = cmd[2];
-        return { ok: true, json: async () => ({ result: 'OK' }) };
-      }
-      return { ok: false, status: 500, json: async () => ({}) };
-    };
+    global.fetch = kv.fetch;
     const sent = mockRes();
     await ops(authed(OSMAN, {
       json: true,
       method: 'POST',
       body: { text: 'kv-only-phrase', csrf: lib.createCsrfToken(OSMAN) },
     }), sent);
+    const listCalls = kv.calls.filter((cmd) => cmd[0] === 'LRANGE' || cmd[0] === 'HGETALL' || cmd[0] === 'SET' || cmd[0] === 'RPUSH');
+    check('KV appends with RPUSH on the private key and does not SET the office store',
+      sent.statusCode === 200
+      && kv.calls.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === dm.DM_KEY && String(cmd[2]).includes('kv-only-phrase'))
+      && kv.calls.some((cmd) => cmd[0] === 'LTRIM' && cmd[1] === dm.DM_KEY)
+      && kv.calls.some((cmd) => cmd[0] === 'HSET' && cmd[1] === dm.READ_KEY)
+      && !kv.calls.some((cmd) => cmd[0] === 'SET')
+      && kv.calls.every((cmd) => cmd[1] === dm.DM_KEY || cmd[1] === dm.READ_KEY || cmd[1] === `${dm.DM_KEY}:legacy`)
+      && !kv.calls.some((cmd) => cmd[1] === 'lavaall-ops-v2')
+      && listCalls.length > 0);
+    const beforePoll = kv.calls.length;
+    kv.blockNextRead = true;
+    const pollRes = mockRes();
+    const pollPromise = ops(authed(OSMAN, { json: true }), pollRes);
+    const waitStart = Date.now();
+    while (!kv.waiters.length && Date.now() - waitStart < 1000) {
+      await new Promise((resolve) => { setTimeout(resolve, 5); });
+    }
+    const during = mockRes();
+    await ops(authed(HAMEED, {
+      json: true,
+      method: 'POST',
+      body: { text: 'arrived-during-poll', csrf: lib.createCsrfToken(HAMEED) },
+    }), during);
+    kv.releaseReads();
+    await pollPromise;
+    const afterPoll = kv.calls.slice(beforePoll);
+    const kept = mockRes();
+    await ops(authed(OSMAN, { json: true }), kept);
+    check('a poll interleaved with a send does not erase the message',
+      during.statusCode === 200
+      && during.body.messages.some((row) => row.text === 'arrived-during-poll')
+      && kept.statusCode === 200
+      && kept.body.messages.some((row) => row.text === 'kv-only-phrase')
+      && kept.body.messages.some((row) => row.text === 'arrived-during-poll')
+      && !afterPoll.some((cmd) => cmd[0] === 'SET')
+      && afterPoll.filter((cmd) => cmd[0] === 'RPUSH').length === 1);
+    const readOnlyStart = kv.calls.length;
+    const peek = mockRes();
+    await ops(authed(OSMAN, { json: true }), peek);
+    const readOnly = kv.calls.slice(readOnlyStart);
+    check('GET does not write',
+      peek.statusCode === 200
+      && readOnly.length > 0
+      && readOnly.every((cmd) => cmd[0] === 'LRANGE' || cmd[0] === 'HGETALL'));
     delete process.env.KV_REST_API_URL;
     delete process.env.KV_REST_API_TOKEN;
     global.fetch = origFetch;
     dm.resetFoundersDm();
-    check('KV writes use the private key and not the office store key',
-      sent.statusCode === 200
-      && calls.some((call) => call.cmd[0] === 'SET' && call.cmd[1] === dm.DM_KEY && String(call.cmd[2]).includes('kv-only-phrase'))
-      && calls.every((call) => call.cmd[1] === dm.DM_KEY)
-      && !calls.some((call) => call.cmd[1] === 'lavaall-ops-v2'));
+  }
+
+  {
+    const kv = fakeKv();
+    kv.legacy = JSON.stringify({
+      messages: [{ id: 'abc123abc123abcd', from: OSMAN, text: 'legacy-kv-phrase', createdAt: 9 }],
+      readAt: { [HAMEED]: 4 },
+    });
+    process.env.KV_REST_API_URL = 'https://kv.example.test';
+    process.env.KV_REST_API_TOKEN = 'test-token';
+    dm.resetFoundersDm();
+    global.fetch = kv.fetch;
+    const migrated = mockRes();
+    await ops(authed(HAMEED, { json: true }), migrated);
+    const again = mockRes();
+    await ops(authed(HAMEED, { json: true }), again);
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    global.fetch = origFetch;
+    dm.resetFoundersDm();
+    check('legacy KV blob migrates on first read and later reads do not rename',
+      migrated.statusCode === 200
+      && migrated.body.messages.some((row) => row.text === 'legacy-kv-phrase')
+      && kv.calls.filter((cmd) => cmd[0] === 'RENAME').length === 1
+      && again.statusCode === 200
+      && again.body.messages.some((row) => row.text === 'legacy-kv-phrase')
+      && kv.calls.filter((cmd) => cmd[0] === 'RENAME').length === 1);
   }
 
   {
@@ -722,6 +882,11 @@ async function run() {
       && client.includes('textContent')
       && !client.includes('innerHTML')
       && !/slack|resend|api\.x\.ai|anthropic|openai|gmail|mailto:/i.test(client));
+    check('mark-read is a POST sent only while the tab is visible and focused',
+      client.includes("action: 'read'")
+      && client.includes('document.hidden')
+      && client.includes('hasFocus')
+      && client.includes('tabActive'));
     const server = fs.readFileSync(path.join(opsDir, '_founders_dm.js'), 'utf8');
     check('the thread module does not import mail, Slack, or model adapters',
       !server.includes('_xai')
