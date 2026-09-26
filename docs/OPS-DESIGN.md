@@ -58,7 +58,7 @@ Type: **Clash Display** titles, **Bricolage Grotesque** UI.
 
 ---
 
-## Copy rules (Osman + Hamid)
+## Copy rules (Osman + Hameed)
 
 Every tab: **2–3 plain sentences**. What it is. What to do. No snobby admin jargon. No invented metrics. No multi-doc packs.
 
@@ -76,7 +76,7 @@ Every tab: **2–3 plain sentences**. What it is. What to do. No snobby admin ja
 | Map | Kits, people, tasks, and decisions as bubbles. Tap a bubble, then open the real record. |
 | Tasks | Task-first. Projects are optional folders at the bottom. |
 | Routines | Saved questions you run yourself. Nothing in the background. |
-| Sign in | Enter your work email → Continue. |
+| Sign in | Sign in with Google. Founder accounts only. |
 
 ---
 
