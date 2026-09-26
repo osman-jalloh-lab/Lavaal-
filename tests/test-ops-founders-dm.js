@@ -2,6 +2,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const vm = require('vm');
 
 const opsDir = path.join(__dirname, '../api/ops');
 const apiDir = path.join(__dirname, '../api');
@@ -14,7 +15,7 @@ const desks = require(path.join(opsDir, '_agent_thread.js'));
 
 const SECRET = 'test-ops-auth-secret-32chars!!';
 const OSMAN = 'osmanjalloh104@gmail.com';
-const HAMID = 'abdulhbah55@gmail.com';
+const HAMEED = 'abdulhbah55@gmail.com';
 const OUTSIDER = 'ada@example.com';
 const PHRASE = 'dm-secret-phrase-9f3c2a';
 const BOT_PHRASE = 'bot-should-not-land-44aa';
@@ -108,7 +109,7 @@ async function run() {
 
   check('identities are the two allowlisted founders and nobody else',
     dm.isFounderDmIdentity(OSMAN)
-    && dm.isFounderDmIdentity(HAMID)
+    && dm.isFounderDmIdentity(HAMEED)
     && dm.isFounderDmIdentity('Osmanjalloh104@gmail.com')
     && !dm.isFounderDmIdentity(OUTSIDER)
     && !dm.isFounderDmIdentity(''));
@@ -200,11 +201,11 @@ async function run() {
         'content-type': 'application/json',
         authorization: 'Bot simulated',
         'x-lavaall-agent': 'researchy',
-        cookie: cookieFor(HAMID),
+        cookie: cookieFor(HAMEED),
       },
       query: { area: 'api/founders-dm' },
       url: '/ops/api/founders-dm',
-      body: { text: AGENT_PHRASE, csrf: lib.createCsrfToken(HAMID) },
+      body: { text: AGENT_PHRASE, csrf: lib.createCsrfToken(HAMEED) },
     }, bot);
     check('agent headers cannot POST even with a founder cookie and CSRF',
       bot.statusCode === 403 && bot.body.error === 'agent_denied' && !bot.body.messages);
@@ -243,7 +244,7 @@ async function run() {
     await ops(authed(OSMAN, {
       json: true,
       method: 'POST',
-      body: { text: 'hello', csrf: lib.createCsrfToken(HAMID) },
+      body: { text: 'hello', csrf: lib.createCsrfToken(HAMEED) },
     }), csrf);
     check('the other founder’s CSRF token is rejected', csrf.statusCode === 403 && csrf.body.error === 'csrf');
     const method = mockRes();
@@ -270,14 +271,14 @@ async function run() {
       && first.body.messages[0].email == null);
     await new Promise((resolve) => { setTimeout(resolve, 5); });
     const second = mockRes();
-    await ops(authed(HAMID, {
+    await ops(authed(HAMEED, {
       json: true,
       method: 'POST',
-      body: { text: 'Reply from Hamid', csrf: lib.createCsrfToken(HAMID) },
+      body: { text: 'Reply from Hameed', csrf: lib.createCsrfToken(HAMEED) },
     }), second);
-    check('Hamid can send and both messages stay oldest first',
+    check('Hameed can send and both messages stay oldest first',
       second.statusCode === 200
-      && second.body.messages.map((row) => row.text).join('|') === `${PHRASE}|Reply from Hamid`
+      && second.body.messages.map((row) => row.text).join('|') === `${PHRASE}|Reply from Hameed`
       && second.body.messages[0].author === 'Osman'
       && second.body.messages[1].author === 'You');
 
@@ -292,7 +293,7 @@ async function run() {
       && unread.body.unread === 1
       && unread.body.messages == null
       && !JSON.stringify(unread.body).includes(PHRASE)
-      && !JSON.stringify(unread.body).includes('Reply from Hamid'));
+      && !JSON.stringify(unread.body).includes('Reply from Hameed'));
     const again = mockRes();
     await ops(authed(OSMAN, {
       json: true,
@@ -311,7 +312,7 @@ async function run() {
       && dashHtml.includes('ops-founders-dm.js')
       && dashHtml.includes('--canvas:#EDE7E0')
       && !dashHtml.includes(PHRASE)
-      && !dashHtml.includes('Reply from Hamid'));
+      && !dashHtml.includes('Reply from Hameed'));
 
     const office = mockRes();
     await ops(authed(OSMAN, { json: false, url: '/ops/office', query: { area: 'office' } }), office);
@@ -323,7 +324,7 @@ async function run() {
     check('opening the list marks Osman caught up and keeps newest last',
       listed.statusCode === 200
       && listed.body.unread === 0
-      && listed.body.messages.map((row) => row.author).join(',') === 'You,Hamid');
+      && listed.body.messages.map((row) => row.author).join(',') === 'You,Hameed');
     const after = mockRes();
     await ops(authed(OSMAN, {
       json: true,
@@ -332,27 +333,33 @@ async function run() {
     check('Osman unread is clear after opening the thread', after.body.unread === 0);
 
     const page = mockRes();
-    await ops(authed(HAMID, { json: false, url: '/ops/founders', query: { area: 'founders' } }), page);
+    await ops(authed(HAMEED, { json: false, url: '/ops/founders', query: { area: 'founders' } }), page);
     const pageHtml = String(page.raw);
-    check('Hamid’s page is the Option I thread and works as a phone page',
+    check('Hameed’s page is the Option I thread and works as a phone page',
       page.statusCode === 200
       && pageHtml.includes('<h1>Private</h1>')
-      && pageHtml.includes('Messages between Osman and Hamid only.')
+      && pageHtml.includes('Messages between Osman and Hameed only.')
       && pageHtml.includes(PHRASE)
-      && pageHtml.includes('Reply from Hamid')
+      && pageHtml.includes('Reply from Hameed')
       && pageHtml.includes('name="viewport"')
       && pageHtml.includes('dm-compose')
       && pageHtml.includes('font-size:16px')
       && pageHtml.includes('@media (max-width:860px)')
       && pageHtml.includes('aria-current="page"')
+      && pageHtml.includes('<h2>Osman and Hameed</h2>')
+      && pageHtml.includes('id="dm-mic"')
+      && pageHtml.includes('type="button" class="btn btn-mic" id="dm-mic"')
+      && pageHtml.includes('id="dm-mic-status"')
+      && pageHtml.includes('class="dm-actions"')
+      && pageHtml.includes('/assets/js/ops-mic.js')
       && !pageHtml.includes(OSMAN)
       && pageHtml.split('href="/ops/founders"').length === 2);
-    const hamidUnread = mockRes();
-    await ops(authed(HAMID, {
+    const hameedUnread = mockRes();
+    await ops(authed(HAMEED, {
       json: true,
       query: { area: 'api/founders-dm', scope: 'unread' },
-    }), hamidUnread);
-    check('opening the page marks Hamid caught up', hamidUnread.body.unread === 0);
+    }), hameedUnread);
+    check('opening the page marks Hameed caught up', hameedUnread.body.unread === 0);
   }
 
   {
@@ -380,10 +387,10 @@ async function run() {
       && !weird.body.messages[weird.body.messages.length - 1].text.includes('<'));
     const longText = `${'a'.repeat(2001)}`;
     const long = mockRes();
-    await ops(authed(HAMID, {
+    await ops(authed(HAMEED, {
       json: true,
       method: 'POST',
-      body: { text: longText, csrf: lib.createCsrfToken(HAMID) },
+      body: { text: longText, csrf: lib.createCsrfToken(HAMEED) },
     }), long);
     check('text is capped at 2000 characters',
       long.statusCode === 200 && long.body.messages[long.body.messages.length - 1].text.length === 2000);
@@ -396,7 +403,7 @@ async function run() {
     check('turning the flag off hides an existing thread',
       hidden.statusCode === 404 && hidden.body.error === 'not_found' && !JSON.stringify(hidden.body).includes(PHRASE));
     const page = mockRes();
-    await ops(authed(HAMID, { json: false, url: '/ops/founders', query: { area: 'founders' } }), page);
+    await ops(authed(HAMEED, { json: false, url: '/ops/founders', query: { area: 'founders' } }), page);
     check('flag off page does not render saved text',
       page.statusCode === 404 && !String(page.raw).includes(PHRASE));
     enable();
@@ -426,10 +433,10 @@ async function run() {
     check('Talk send does not echo the private message',
       talk.statusCode === 200 && !JSON.stringify(talk.body).includes(PHRASE));
     const memory = mockRes();
-    await ops(authed(HAMID, { json: false, url: '/ops/memory', query: { area: 'memory' } }), memory);
+    await ops(authed(HAMEED, { json: false, url: '/ops/memory', query: { area: 'memory' } }), memory);
     check('Memory HTML does not include the private message', !String(memory.raw).includes(PHRASE));
     const inbox = mockRes();
-    await ops(authed(HAMID, { json: false, url: '/ops/inbox', query: { area: 'inbox' } }), inbox);
+    await ops(authed(HAMEED, { json: false, url: '/ops/inbox', query: { area: 'inbox' } }), inbox);
     check('Inbox HTML does not include the private message', !String(inbox.raw).includes(PHRASE));
   }
 
@@ -509,7 +516,7 @@ async function run() {
     check('chat model prompt does not include the private message',
       turned.ok === true
       && bodies.length > 0
-      && bodies.every((call) => !call.body.includes(PHRASE) && !call.body.includes('Reply from Hamid')));
+      && bodies.every((call) => !call.body.includes(PHRASE) && !call.body.includes('Reply from Hameed')));
   }
 
   {
@@ -528,7 +535,7 @@ async function run() {
     const researchy = await desks.talkToDesk({
       agentId: 'researchy',
       text: 'Compare the two supplier quotes for kit labels.',
-      founderEmail: HAMID,
+      founderEmail: HAMEED,
       completeXai: true,
     });
     delete process.env.XAI_API_KEY;
@@ -537,7 +544,7 @@ async function run() {
       sales.ok === true
       && researchy.ok === true
       && bodies.length >= 2
-      && bodies.every((call) => call.url.includes('api.x.ai') && !call.body.includes(PHRASE) && !call.body.includes('Reply from Hamid')));
+      && bodies.every((call) => call.url.includes('api.x.ai') && !call.body.includes(PHRASE) && !call.body.includes('Reply from Hameed')));
   }
 
   {
@@ -553,7 +560,7 @@ async function run() {
       readAt: {},
     }));
     const res = mockRes();
-    await ops(authed(HAMID, { json: true }), res);
+    await ops(authed(HAMEED, { json: true }), res);
     check('messages from anyone except the two founders are dropped',
       res.statusCode === 200
       && res.body.messages.some((row) => row.text === 'kept-founder')
@@ -595,6 +602,91 @@ async function run() {
       && calls.some((call) => call.cmd[0] === 'SET' && call.cmd[1] === dm.DM_KEY && String(call.cmd[2]).includes('kv-only-phrase'))
       && calls.every((call) => call.cmd[1] === dm.DM_KEY)
       && !calls.some((call) => call.cmd[1] === 'lavaall-ops-v2'));
+  }
+
+  {
+    const micSrc = fs.readFileSync(path.join(__dirname, '../assets/js/ops-mic.js'), 'utf8');
+    const client = fs.readFileSync(path.join(__dirname, '../assets/js/ops-founders-dm.js'), 'utf8');
+    const sends = [];
+    const instances = [];
+    function SpeechRecognition() {
+      instances.push(this);
+      this.start = () => {};
+      this.stop = () => { if (this.onend) this.onend(); };
+    }
+    const sandbox = {
+      SpeechRecognition,
+      fetch: () => { sends.push('fetch'); return Promise.resolve(); },
+    };
+    sandbox.window = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(micSrc, sandbox);
+    function control() {
+      return {
+        hidden: false,
+        disabled: false,
+        textContent: 'Mic',
+        attrs: {},
+        listeners: {},
+        setAttribute(name, value) { this.attrs[name] = value; },
+        addEventListener(name, fn) { this.listeners[name] = fn; },
+      };
+    }
+    const box = {
+      value: 'Hello',
+      form: {
+        requestSubmit: () => { sends.push('submit'); },
+        submit: () => { sends.push('submit'); },
+      },
+    };
+    const mic = control();
+    const status = { hidden: true, textContent: '' };
+    sandbox.lavaallBindSpeechMic({
+      box,
+      mic,
+      status,
+      maxLength: 2000,
+      hideIfMissing: true,
+    });
+    mic.listeners.click();
+    instances[0].onresult({ results: [[{ transcript: 'from the mic' }]] });
+    check('mic appends speech into the box and does not send',
+      box.value === 'Hello from the mic'
+      && sends.length === 0
+      && mic.attrs['aria-pressed'] === 'true'
+      && mic.textContent === 'Listening…');
+    mic.listeners.click();
+    check('tapping the mic again stops listening',
+      mic.attrs['aria-pressed'] === 'false' && mic.textContent === 'Mic' && sends.length === 0);
+    box.value = 'a'.repeat(1990);
+    instances.length = 0;
+    mic.listeners.click();
+    instances[0].onresult({ results: [[{ transcript: '12345678901234567890' }]] });
+    check('mic text stays inside the 2000 character cap', box.value.length === 2000 && sends.length === 0);
+    instances[0].onerror({ error: 'not-allowed' });
+    check('denied mic permission shows a short note and still does not send',
+      status.hidden === false
+      && status.textContent.includes('Microphone permission denied')
+      && sends.length === 0);
+    delete sandbox.SpeechRecognition;
+    delete sandbox.webkitSpeechRecognition;
+    const missing = control();
+    sandbox.lavaallBindSpeechMic({
+      box,
+      mic: missing,
+      status,
+      maxLength: 2000,
+      hideIfMissing: true,
+    });
+    check('the mic button hides when the browser has no speech recognition', missing.hidden === true);
+    check('private chat uses the shared mic and does not send from speech',
+      client.includes('lavaallBindSpeechMic')
+      && client.includes('hideIfMissing: true')
+      && client.includes('maxLength: 2000')
+      && !client.includes('webkitSpeechRecognition')
+      && !micSrc.includes('.submit(')
+      && !micSrc.includes('requestSubmit')
+      && !micSrc.includes('fetch('));
   }
 
   {

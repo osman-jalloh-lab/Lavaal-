@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('dm-form');
   const field = document.getElementById('dm-text');
   const status = document.getElementById('dm-status');
+  const mic = document.getElementById('dm-mic');
+  const micStatus = document.getElementById('dm-mic-status');
   const list = document.getElementById('dm-thread');
   const empty = document.getElementById('dm-empty');
   let graph = { csrf: '', pollMs: 4000, badgeMs: 8000 };
@@ -81,6 +83,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }).then((res) => (res.ok ? res.json() : null)).then((body) => {
       applyPayload(body);
     }).catch(() => {});
+  }
+
+  if (mic && field && typeof window.lavaallBindSpeechMic === 'function') {
+    window.lavaallBindSpeechMic({
+      box: field,
+      mic,
+      status: micStatus,
+      maxLength: 2000,
+      hideIfMissing: true,
+    });
   }
 
   if (form) {

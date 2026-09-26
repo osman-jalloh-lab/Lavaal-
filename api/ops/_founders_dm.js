@@ -35,7 +35,7 @@ const FOUNDERS = Object.freeze([
 ]);
 const LABELS = Object.freeze({
   'osmanjalloh104@gmail.com': 'Osman',
-  'abdulhbah55@gmail.com': 'Hamid',
+  'abdulhbah55@gmail.com': 'Hameed',
 });
 const MAX_MESSAGES = 400;
 const MAX_TEXT = 2000;
@@ -365,17 +365,21 @@ function pageHtml(session, payload, extra) {
     body: `
       ${persistenceBanner(durable)}
       <h1>Private</h1>
-      <p class="lead">Messages between Osman and Hamid only. Text only. They stay in this thread and are not sent to the office or any assistant.</p>
+      <p class="lead">Messages between Osman and Hameed only. Text only. They stay in this thread and are not sent to the office or any assistant.</p>
       <section class="card" id="founders-dm">
         <div class="kicker">Thread</div>
-        <h2>Osman and Hamid</h2>
+        <h2>Osman and Hameed</h2>
         <p class="empty" id="dm-empty"${emptyHidden}>No messages yet. Write the first one below.</p>
         <ol class="thread dm-thread" id="dm-thread">${messageListHtml(messages)}</ol>
         <form id="dm-form" class="dm-compose" method="POST" action="/ops/api/founders-dm">
           <input type="hidden" name="csrf" value="${escapeHtml(csrf)}"/>
           <label for="dm-text">Message</label>
           <textarea id="dm-text" name="text" maxlength="${MAX_TEXT}" required placeholder="Write a message"></textarea>
-          <button class="btn" type="submit">Send</button>
+          <p id="dm-mic-status" class="empty" hidden></p>
+          <div class="dm-actions">
+            <button type="button" class="btn btn-mic" id="dm-mic" aria-pressed="false">Mic</button>
+            <button class="btn" type="submit">Send</button>
+          </div>
           <p id="dm-status" role="status"></p>
         </form>
       </section>

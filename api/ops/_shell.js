@@ -117,6 +117,10 @@ textarea{min-height:88px;resize:vertical;}
 .dm-compose{display:grid;gap:8px;}
 .dm-thread{max-height:min(62vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;}
 .dm-compose textarea{font-size:16px;}
+.dm-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.dm-actions .btn{width:auto;flex:1 1 8rem;margin-top:0;min-height:44px;}
+.dm-actions .btn-mic{flex:0 0 auto;min-height:44px;}
+#dm-mic-status{margin:0;}
 .bubble{padding:12px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);}
 .bubble p{color:var(--text);overflow-wrap:anywhere;}
 .bubble.user{border-color:rgba(46,196,255,.35);background:rgba(46,196,255,.08);}
@@ -268,7 +272,7 @@ function shellPage({ title, email, area, body, notice, error, scripts, head, pri
     `<a href="${item.href}"${item.id === current ? ' aria-current="page"' : ''}>${escapeHtml(item.label)}</a>`
   )).join('') + (extra && extra.href ? renderPrivateLink(extra, current) : '');
   const foundersScript = extra && extra.href
-    ? '<script src="/assets/js/ops-founders-dm.js" defer></script>'
+    ? '<script src="/assets/js/ops-mic.js" defer></script>\n<script src="/assets/js/ops-founders-dm.js" defer></script>'
     : '';
   const alert = error
     ? `<p class="err" role="alert">${escapeHtml(error)}</p>`

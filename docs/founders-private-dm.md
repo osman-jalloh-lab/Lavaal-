@@ -1,6 +1,6 @@
 # Founders private messages
 
-A single text thread inside LAVAALL OS (`/ops`) for Osman Jalloh and Abdulhamid Ba (Hamid) only. It lives in the same signed-in OS as the rest of the floor. Nobody else, including desks and agents, is given the thread.
+A single text thread inside LAVAALL OS (`/ops`) for Osman Jalloh and Abdulhamid Ba (Hameed) only. It lives in the same signed-in OS as the rest of the floor. Nobody else, including desks and agents, is given the thread.
 
 The feature is off until `FOUNDERS_DM_ENABLED` is set to `1`, `true`, or `on`. This draft does not set that variable.
 
@@ -45,11 +45,11 @@ Existing rewrite: `/ops/:path*` → `/api/ops?area=:path*`. No new Vercel functi
 | `GET /ops/api/founders-dm?scope=unread` | `{ ok, unread }` only. Does not return message text and does not mark read. |
 | `POST /ops/api/founders-dm` | `{ text, csrf }`. Text only. Returns the thread. |
 
-JSON responses use `You`, `Osman`, and `Hamid`. They do not include the sender email as its own field.
+JSON responses use `You`, `Osman`, and `Hameed`. They do not include the sender email as its own field.
 
 ## UI entry point
 
-When the flag is on, a founder session sees one extra nav item, **Private**, in the existing Option I cream shell. Other sessions do not. The phone layout uses the same wrapping nav as the rest of `/ops`, a 16px message box, and a composer that stays at the bottom of the screen.
+When the flag is on, a founder session sees one extra nav item, **Private**, in the existing Option I cream shell. Other sessions do not. The phone layout uses the same wrapping nav as the rest of `/ops`, a 16px message box, and a composer that stays at the bottom of the screen. The Mic button is the same browser speech control Talk already uses. Spoken words land in the message box and are not sent until Send. The button stays hidden when the browser has no speech recognition.
 
 The open thread polls `GET /ops/api/founders-dm` every 4 seconds. Other pages poll the unread count every 8 seconds and show a count on **Private**. No new realtime service.
 
@@ -85,5 +85,5 @@ The shared office store, CEO thread keys, and desk thread keys are separate. Tho
 - Message text is not encrypted by the app. KV and Vercel admins can read it. Say if that is acceptable for v1.
 - Messages are capped at 2000 characters, and only the latest 400 are kept. Angle brackets are stripped.
 - Nothing is emailed or posted to Slack when a message arrives.
-- Bubbles say You, Osman, and Hamid.
+- Bubbles say You, Osman, and Hameed.
 - The flag stays off until a founder sets `FOUNDERS_DM_ENABLED=1` on the Preview environment they want to try. Production stays off until a later decision.
