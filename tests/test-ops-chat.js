@@ -327,7 +327,7 @@ async function run() {
   {
     const gated = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'chat' }, url: '/ops/chat' }, gated);
-    check('chat still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Enter your work email'));
+    check('chat still requires a session', gated.statusCode === 401 && String(gated.raw).includes('Sign in with Google'));
   }
 
   {
