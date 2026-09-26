@@ -41,7 +41,7 @@ Existing rewrite: `/ops/:path*` → `/api/ops?area=:path*`. No new Vercel functi
 | | |
 |---|---|
 | `GET /ops/founders` | The thread page. Does not mark the thread read. |
-| `GET /ops/api/founders-dm` | Messages, oldest first, newest last. Does not write. |
+| `GET /ops/api/founders-dm` | Messages, oldest first, newest last. Does not write. `after` returns only newer rows. `If-None-Match` can return 304. |
 | `GET /ops/api/founders-dm?scope=unread` | `{ ok, unread }` only. Does not return message text and does not write. |
 | `POST /ops/api/founders-dm` | `{ text, csrf }` sends. `{ action: "read", csrf }` marks read. Text only. |
 

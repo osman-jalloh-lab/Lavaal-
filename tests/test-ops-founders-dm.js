@@ -545,6 +545,53 @@ async function run() {
   }
 
   {
+    const one = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      method: 'POST',
+      body: { text: 'cursor-one', csrf: lib.createCsrfToken(OSMAN) },
+    }), one);
+    await new Promise((resolve) => { setTimeout(resolve, 5); });
+    const two = mockRes();
+    await ops(authed(HAMEED, {
+      json: true,
+      method: 'POST',
+      body: { text: 'cursor-two', csrf: lib.createCsrfToken(HAMEED) },
+    }), two);
+    const first = one.body.messages.find((row) => row.text === 'cursor-one');
+    const delta = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      url: `/ops/api/founders-dm?after=${first.id}`,
+      query: { area: 'api/founders-dm', after: first.id },
+    }), delta);
+    const byTime = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      url: `/ops/api/founders-dm?after=${first.createdAt}`,
+      query: { area: 'api/founders-dm', after: String(first.createdAt) },
+    }), byTime);
+    check('poll after an id or time returns only newer messages',
+      delta.statusCode === 200
+      && delta.body.messages.some((row) => row.text === 'cursor-two')
+      && !delta.body.messages.some((row) => row.text === 'cursor-one')
+      && byTime.body.messages.some((row) => row.text === 'cursor-two')
+      && !byTime.body.messages.some((row) => row.text === 'cursor-one'));
+    const etag = delta.headers.ETag;
+    const same = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      headers: { 'if-none-match': etag },
+    }), same);
+    check('an unchanged poll returns 304 and an empty body',
+      typeof etag === 'string'
+      && etag.startsWith('W/"')
+      && same.statusCode === 304
+      && same.raw === ''
+      && !String(same.raw).includes('cursor-two'));
+  }
+
+  {
     const home = mockRes();
     await ops(authed(OSMAN, { json: true, url: '/ops', query: { area: 'dashboard' } }), home);
     check('dashboard JSON does not include the private thread',
@@ -793,6 +840,40 @@ async function run() {
   }
 
   {
+    const kv = fakeKv();
+    process.env.KV_REST_API_URL = 'https://kv.example.test';
+    process.env.KV_REST_API_TOKEN = 'test-token';
+    dm.resetFoundersDm();
+    global.fetch = kv.fetch;
+    const seeded = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      method: 'POST',
+      body: { text: 'nav-skip-phrase', csrf: lib.createCsrfToken(OSMAN) },
+    }), seeded);
+    const start = kv.calls.length;
+    const api = mockRes();
+    await ops(authed(OSMAN, { json: true }), api);
+    const apiCalls = kv.calls.slice(start);
+    const htmlStart = kv.calls.length;
+    const dash = mockRes();
+    await ops(authed(OSMAN, { json: false, url: '/ops', query: { area: 'dashboard' } }), dash);
+    const htmlCalls = kv.calls.slice(htmlStart);
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    global.fetch = origFetch;
+    dm.resetFoundersDm();
+    check('JSON thread reads skip the nav lookup',
+      api.statusCode === 200
+      && apiCalls.filter((cmd) => cmd[0] === 'LRANGE').length === 1
+      && apiCalls.filter((cmd) => cmd[0] === 'HGETALL').length === 1
+      && apiCalls.every((cmd) => cmd[0] === 'LRANGE' || cmd[0] === 'HGETALL'));
+    check('HTML dashboard still reads the unread count for the nav',
+      String(dash.raw).includes('Private')
+      && htmlCalls.some((cmd) => cmd[0] === 'LRANGE' || cmd[0] === 'HGETALL'));
+  }
+
+  {
     const micSrc = fs.readFileSync(path.join(__dirname, '../assets/js/ops-mic.js'), 'utf8');
     const client = fs.readFileSync(path.join(__dirname, '../assets/js/ops-founders-dm.js'), 'utf8');
     const sends = [];
@@ -998,7 +1079,7 @@ async function run() {
         fetch: (url, opts) => {
           const method = (opts && opts.method) || 'GET';
           let messages = [{ id: 'aaa', mine: true, author: 'You', text: 'selected', createdAt: 1 }];
-          if (method === 'GET' && String(url) === '/ops/api/founders-dm') {
+          if (method === 'GET' && String(url).indexOf('/ops/api/founders-dm') === 0 && String(url).indexOf('scope=unread') < 0) {
             round += 1;
             if (round > 1) {
               messages = messages.concat([{ id: 'ccc', mine: false, author: 'Hameed', text: 'third', createdAt: 3 }]);

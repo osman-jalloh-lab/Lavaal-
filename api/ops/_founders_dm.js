@@ -129,12 +129,32 @@ function publicMessage(row, viewer) {
 
 function publicPayload(thread, email, csrf) {
   const who = normalizeEmail(email);
+  const messages = thread.messages.map((row) => publicMessage(row, who));
   return {
     ok: true,
-    messages: thread.messages.map((row) => publicMessage(row, who)),
+    messages,
+    cursor: messages.length ? messages[messages.length - 1].id : '',
     unread: unreadCount(thread, who),
     csrf: csrf || createCsrfToken(who),
   };
+}
+
+function messagesAfter(messages, after) {
+  const token = typeof after === 'string' ? after.trim() : (after == null ? '' : String(after).trim());
+  if (!token) return messages;
+  const index = messages.findIndex((row) => row.id === token);
+  if (index >= 0) return messages.slice(index + 1);
+  if (/^\d+$/.test(token)) {
+    const stamp = Number(token);
+    return messages.filter((row) => row.createdAt > stamp);
+  }
+  return messages;
+}
+
+function etagFor(payload) {
+  const last = payload.messages[payload.messages.length - 1];
+  const tail = last ? `${last.id}.${last.createdAt}` : 'empty';
+  return `W/"${tail}.${payload.messages.length}.${payload.unread}"`;
 }
 
 async function kvCommand(args) {
@@ -562,7 +582,19 @@ async function handleApi(req, res, session) {
       sendJson(res, listed.error === 'store_unavailable' ? 503 : 400, { error: listed.error });
       return true;
     }
-    sendJson(res, 200, listed);
+    const etag = etagFor(listed);
+    const inbound = String(header(req, 'if-none-match') || '').trim();
+    if (inbound && inbound === etag) {
+      res.setHeader('ETag', etag);
+      res.setHeader('Cache-Control', 'no-store');
+      res.status(304).send('');
+      return true;
+    }
+    const view = Object.assign({}, listed, {
+      messages: messagesAfter(listed.messages, firstQuery(req, 'after')),
+    });
+    res.setHeader('ETag', etag);
+    sendJson(res, 200, view);
     return true;
   }
   if (req.method !== 'POST') {
@@ -623,6 +655,7 @@ async function foundersNavFor(req) {
   if (!foundersDmEnabled() || looksLikeAgentRequest(req)) return null;
   const session = readSession(req);
   if (!session || !isFounderDmIdentity(session.email)) return null;
+  if (wantsJson(req) || foundersDmKind(req) === 'api') return null;
   if (foundersDmKind(req) === 'page') {
     return { href: '/ops/founders', label: 'Private', unread: 0 };
   }

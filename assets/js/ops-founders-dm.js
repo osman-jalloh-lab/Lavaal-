@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let graph = { csrf: '', pollMs: 4000, badgeMs: 8000 };
   let inFlight = false;
   let seen = 0;
+  let etag = '';
 
   try {
     graph = Object.assign({}, graph, JSON.parse(dataNode && dataNode.textContent ? dataNode.textContent : '{}') || {});
@@ -107,11 +108,24 @@ document.addEventListener('DOMContentLoaded', () => {
   function pollThread() {
     if (!root || inFlight || document.hidden) return;
     const mine = ++seen;
-    fetch('/ops/api/founders-dm', {
-      headers: { accept: 'application/json' },
+    const last = list && list.children && list.children.length
+      ? list.children[list.children.length - 1].getAttribute('data-id')
+      : '';
+    const url = last
+      ? `/ops/api/founders-dm?after=${encodeURIComponent(last)}`
+      : '/ops/api/founders-dm';
+    const headers = { accept: 'application/json' };
+    if (etag) headers['if-none-match'] = etag;
+    fetch(url, {
+      headers,
       credentials: 'same-origin',
       cache: 'no-store',
-    }).then((res) => (res.ok ? res.json() : null)).then((body) => {
+    }).then((res) => {
+      const next = res && res.headers && typeof res.headers.get === 'function' ? res.headers.get('etag') : '';
+      if (next) etag = next;
+      if (res && res.status === 304) return null;
+      return res && res.ok ? res.json() : null;
+    }).then((body) => {
       if (mine !== seen || inFlight) return;
       applyPayload(body);
     }).catch(() => {});

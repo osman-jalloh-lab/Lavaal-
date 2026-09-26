@@ -745,12 +745,20 @@ async function opsDispatch(req, res) {
   return sendHtml(res, 401, loginPage());
 }
 
+function skipFoundersNav(req) {
+  if (wantsJson(req)) return true;
+  const area = String(firstQuery(queryOf(req), 'area') || '');
+  return area.toLowerCase().startsWith('api/');
+}
+
 async function ops(req, res) {
   let privateNav = null;
-  try {
-    privateNav = await foundersNavFor(req);
-  } catch {
-    privateNav = null;
+  if (!skipFoundersNav(req)) {
+    try {
+      privateNav = await foundersNavFor(req);
+    } catch {
+      privateNav = null;
+    }
   }
   return runWithShellRequest({ privateNav }, () => opsDispatch(req, res));
 }
