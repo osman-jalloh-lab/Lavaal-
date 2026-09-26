@@ -531,7 +531,7 @@ function pageHtml(session, payload, extra) {
         <div class="kicker">Thread</div>
         <h2>Osman and Hameed</h2>
         <p class="empty" id="dm-empty"${emptyHidden}>No messages yet. Write the first one below.</p>
-        <ol class="thread dm-thread" id="dm-thread">${messageListHtml(messages)}</ol>
+        <ol class="thread dm-thread" id="dm-thread" role="log" aria-live="polite">${messageListHtml(messages)}</ol>
         <button type="button" id="dm-new" class="dm-new" hidden>New messages</button>
         <form id="dm-form" class="dm-compose" method="POST" action="/ops/api/founders-dm">
           <input type="hidden" name="csrf" value="${escapeHtml(csrf)}"/>

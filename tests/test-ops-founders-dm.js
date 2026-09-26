@@ -458,6 +458,8 @@ async function run() {
       && pageHtml.includes('type="button" class="btn btn-mic" id="dm-mic"')
       && pageHtml.includes('id="dm-mic-status"')
       && pageHtml.includes('class="dm-actions"')
+      && pageHtml.includes('role="log"')
+      && pageHtml.includes('aria-live="polite"')
       && pageHtml.includes('id="dm-new"')
       && pageHtml.includes('>New messages</button>')
       && pageHtml.includes('data-id="')
