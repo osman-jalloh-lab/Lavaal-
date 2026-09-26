@@ -833,7 +833,7 @@ async function run() {
           accept: 'application/json',
           host: (opts && opts.host) || 'www.lavaall.com',
           'x-forwarded-proto': 'https',
-          'x-forwarded-for': nextIp(),
+          'x-forwarded-for': (opts && opts.ip) || nextIp(),
           cookie: info.pair,
         },
         query: {
@@ -926,20 +926,108 @@ async function run() {
       && postedToken.body.redirect
       && !/lavaall_ops=/.test(String(postedToken.headers['Set-Cookie'] || '')));
 
-    const rateIp = '198.51.100.200';
+    google.resetGoogleSignInState();
     lib.resetAuthState();
-    const firstStart = mockRes();
-    await auth(jsonReq({
-      headers: { host: 'www.lavaall.com', 'x-forwarded-for': rateIp },
-      body: { action: 'google' },
-    }), firstStart);
-    const secondStart = mockRes();
-    await auth(jsonReq({
-      headers: { host: 'www.lavaall.com', 'x-forwarded-for': rateIp },
-      body: { action: 'google' },
-    }), secondStart);
-    check('Google sign-in start is rate-limited',
-      firstStart.statusCode === 200 && secondStart.statusCode === 429 && !secondStart.body.redirect);
+    const rateIp = '203.0.113.77';
+    const realNow = Date.now;
+    const base = realNow();
+    Date.now = () => base;
+    try {
+      async function formStart() {
+        const res = mockRes();
+        await auth({
+          method: 'POST',
+          headers: {
+            host: 'www.lavaall.com',
+            'x-forwarded-proto': 'https',
+            'x-forwarded-for': rateIp,
+            'content-type': 'application/x-www-form-urlencoded',
+          },
+          body: 'action=google',
+        }, res);
+        return res;
+      }
+
+      function limitedLocation(res) {
+        return res.statusCode === 302
+          && res.headers.Location === `/ops?error=${encodeURIComponent(lib.genericRateLimitMessage())}`;
+      }
+
+      const starts = [];
+      for (let i = 0; i < 5; i += 1) starts.push(await formStart());
+      check('five quick Google sign-in starts are allowed',
+        starts.every((res) => res.statusCode === 302
+          && String(res.headers.Location || '').startsWith('https://accounts.google.com/')));
+
+      const blockedStart = await formStart();
+      check('sixth Google sign-in start within 60s is rate-limited', limitedLocation(blockedStart));
+
+      const jsonBlocked = mockRes();
+      await auth(jsonReq({
+        headers: { host: 'www.lavaall.com', 'x-forwarded-for': rateIp },
+        body: { action: 'google' },
+      }), jsonBlocked);
+      check('rate-limited Google start keeps the friendly message',
+        jsonBlocked.statusCode === 429
+        && jsonBlocked.body
+        && jsonBlocked.body.error === 'rate_limited'
+        && jsonBlocked.body.message === lib.genericRateLimitMessage()
+        && !jsonBlocked.body.redirect);
+
+      const callbacks = [];
+      for (const startRes of starts) {
+        callbacks.push(await callbackWith(startRes, {}, { ip: rateIp }));
+      }
+      check('Google callback bucket is independent of the start bucket',
+        callbacks.every((out) => out.res.statusCode === 200 && out.res.body && out.res.body.ok === true));
+
+      const blockedCallback = mockRes();
+      await auth({
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          host: 'www.lavaall.com',
+          'x-forwarded-proto': 'https',
+          'x-forwarded-for': rateIp,
+        },
+        query: { code: 'valid-auth-code', state: 'x'.repeat(24) },
+      }, blockedCallback);
+      check('sixth Google callback within 60s is rate-limited',
+        blockedCallback.statusCode === 429
+        && blockedCallback.body
+        && blockedCallback.body.error === 'rate_limited'
+        && blockedCallback.body.message === lib.genericRateLimitMessage());
+
+      Date.now = () => base + 59_999;
+      const stillStart = await formStart();
+      const stillCallback = mockRes();
+      await auth({
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          host: 'www.lavaall.com',
+          'x-forwarded-proto': 'https',
+          'x-forwarded-for': rateIp,
+        },
+        query: { code: 'valid-auth-code', state: 'y'.repeat(24) },
+      }, stillCallback);
+      check('Google start and callback stay limited until the 60s window ends',
+        limitedLocation(stillStart) && stillCallback.statusCode === 429);
+
+      Date.now = () => base + 60_000;
+      const recoveredStart = await formStart();
+      const recoveredCallback = await callbackWith(recoveredStart, {}, { ip: rateIp });
+      check('Google sign-in start and callback are allowed again after 60s',
+        recoveredStart.statusCode === 302
+        && String(recoveredStart.headers.Location || '').startsWith('https://accounts.google.com/')
+        && recoveredCallback.res.statusCode === 200
+        && recoveredCallback.res.body
+        && recoveredCallback.res.body.ok === true);
+    } finally {
+      Date.now = realNow;
+      google.resetGoogleSignInState();
+      lib.resetAuthState();
+    }
 
     delete process.env.OPS_GOOGLE_SIGNIN_CLIENT_ID;
     delete process.env.OPS_GOOGLE_SIGNIN_CLIENT_SECRET;

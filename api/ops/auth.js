@@ -52,6 +52,10 @@ const {
   verifyGoogleIdToken,
 } = require('./_google_signin');
 
+// Separate buckets so one Google round trip does not spend two tries.
+const GOOGLE_AUTH_MAX_HITS = 5;
+const GOOGLE_AUTH_WINDOW_MS = 60_000;
+
 function requestFailed(req, res, status, error, message) {
   if (wantsJson(req)) return json(res, status, { error, message });
   return redirect(res, `/ops?error=${encodeURIComponent(message)}`);
@@ -88,7 +92,7 @@ function handleGoogleStart(req, res) {
   }
 
   const ip = clientIp(req);
-  if (rateLimited(`google-start:${ip}`, 30_000)) {
+  if (rateLimited(`google-start:${ip}`, GOOGLE_AUTH_WINDOW_MS, GOOGLE_AUTH_MAX_HITS)) {
     return requestFailed(req, res, 429, 'rate_limited', genericRateLimitMessage());
   }
 
@@ -122,7 +126,7 @@ async function handleGoogleCallback(req, res) {
   }
 
   const ip = clientIp(req);
-  if (rateLimited(`google-callback:${ip}`, 30_000)) {
+  if (rateLimited(`google-callback:${ip}`, GOOGLE_AUTH_WINDOW_MS, GOOGLE_AUTH_MAX_HITS)) {
     return requestFailed(req, res, 429, 'rate_limited', genericRateLimitMessage());
   }
 
