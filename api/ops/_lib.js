@@ -21,9 +21,10 @@ const ALLOWLIST_SET = new Set(ALLOWLIST);
 const MAGIC_TTL_MS = 10 * 60 * 1000;
 const MAGIC_VERSION = 2;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-// Version 2 invalidates sessions minted by the former production instant-login
-// path, where knowing an allowlisted address was enough to obtain a cookie.
-const SESSION_VERSION = 2;
+// Version 3 invalidates every cookie minted before Google sign-in, including
+// version 2 sessions from the production instant-login path (an allowlisted
+// address alone was enough to obtain a cookie).
+const SESSION_VERSION = 3;
 const EXP_SKEW_MS = 30 * 1000;
 const SESSION_COOKIE = 'lavaall_ops';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -54,6 +55,8 @@ function isAllowlisted(value) {
 }
 
 function getSecret() {
+  // Read on each use. A rotated OPS_AUTH_SECRET is picked up by the next
+  // process that Vercel starts with the new value. Never hardcoded, never logged.
   const secret = process.env.OPS_AUTH_SECRET;
   return typeof secret === 'string' && secret.length >= 16 ? secret : '';
 }
@@ -86,22 +89,9 @@ function vercelEnv() {
   return String(process.env.VERCEL_ENV || '').trim().toLowerCase();
 }
 
-function envFlag(value) {
-  const flag = String(value || '').trim().toLowerCase();
-  if (flag === '0' || flag === 'false' || flag === 'off') return false;
-  if (flag === '1' || flag === 'true' || flag === 'on') return true;
-  return null;
-}
-
-// Production uses the founder allowlist as the complete sign-in gate: an
-// allowlisted address receives a session immediately and every other address
-// is rejected. Preview/local instant login remains an explicit opt-in.
+// Email-only instant login is disabled in every environment, including
+// Production and Preview. No environment variable can turn it back on.
 function instantLoginEnabled() {
-  if (vercelEnv() === 'production') return authConfigured();
-  const explicit = envFlag(process.env.OPS_INSTANT_LOGIN);
-  if (explicit !== null) return explicit;
-  const legacy = envFlag(process.env.OPS_PREVIEW_INSTANT_LOGIN);
-  if (legacy !== null) return legacy;
   return false;
 }
 
@@ -262,9 +252,9 @@ function cookieSecure(req) {
   return !(host.startsWith('localhost') || host.startsWith('127.0.0.1'));
 }
 
-function cookieHeader(value, req, maxAgeSec) {
+function buildCookie(name, value, req, maxAgeSec) {
   const parts = [
-    `${SESSION_COOKIE}=${value}`,
+    `${name}=${value}`,
     'Path=/',
     'HttpOnly',
     'SameSite=Lax',
@@ -272,6 +262,10 @@ function cookieHeader(value, req, maxAgeSec) {
   ];
   if (cookieSecure(req)) parts.push('Secure');
   return parts.join('; ');
+}
+
+function cookieHeader(value, req, maxAgeSec) {
+  return buildCookie(SESSION_COOKIE, value, req, maxAgeSec);
 }
 
 function sessionCookie(token, req) {
@@ -563,6 +557,7 @@ module.exports = {
   SESSION_TTL_MS,
   SESSION_VERSION,
   authConfigured,
+  buildCookie,
   clearSessionCookie,
   clientIp,
   consumeMagicToken,
@@ -598,12 +593,15 @@ module.exports = {
   readCsrfToken,
   readSession,
   readSessionToken,
+  readSignedToken,
   redirect,
   resetAuthState,
   resendKeyPrefixOk,
   resendKeyPresent,
   sendMagicLink,
+  sessionAudience,
   sessionCookie,
+  signToken,
   timingSafeEqualString,
   wantsJson,
 };
