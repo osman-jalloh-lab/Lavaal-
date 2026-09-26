@@ -77,6 +77,13 @@ function disable() {
   delete process.env.FOUNDERS_DM_ENABLED;
 }
 
+function foundersGroup(html) {
+  const start = html.indexOf('class="ops-nav-group"');
+  if (start < 0) return '';
+  const end = html.indexOf('</div>', start);
+  return end < 0 ? '' : html.slice(start, end);
+}
+
 async function run() {
   const origFetch = global.fetch;
   const origLog = console.log;
@@ -123,6 +130,13 @@ async function run() {
     await ops(authed(OSMAN, { json: false, url: '/ops', query: { area: 'dashboard' } }), dash);
     check('flag off does not add a Private nav item',
       dash.statusCode === 200 && !String(dash.raw).includes('href="/ops/founders"') && !String(dash.raw).includes('ops-founders-dm.js'));
+    const offGroup = foundersGroup(String(dash.raw));
+    check('flag off founders group is Kits then Map',
+      offGroup.includes('>Founders only</h2>')
+      && offGroup.includes('role="group"')
+      && offGroup.indexOf('href="/ops/kits"') >= 0
+      && offGroup.indexOf('href="/ops/kits"') < offGroup.indexOf('href="/ops/map"')
+      && !offGroup.includes('href="/ops/founders"'));
   }
 
   enable();
@@ -313,6 +327,17 @@ async function run() {
       && dashHtml.includes('--canvas:#EDE7E0')
       && !dashHtml.includes(PHRASE)
       && !dashHtml.includes('Reply from Hameed'));
+    const onGroup = foundersGroup(dashHtml);
+    const privateAt = onGroup.indexOf('href="/ops/founders"');
+    const kitsAt = onGroup.indexOf('href="/ops/kits"');
+    const mapAt = onGroup.indexOf('href="/ops/map"');
+    check('Private is first in the Founders only group when the flag is on',
+      onGroup.includes('>Founders only</h2>')
+      && onGroup.includes('aria-labelledby="ops-nav-founders"')
+      && privateAt >= 0
+      && privateAt < kitsAt
+      && kitsAt < mapAt
+      && dashHtml.indexOf('href="/ops/routines"') < dashHtml.indexOf('id="ops-nav-founders"'));
 
     const office = mockRes();
     await ops(authed(OSMAN, { json: false, url: '/ops/office', query: { area: 'office' } }), office);

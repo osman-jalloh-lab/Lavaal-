@@ -49,7 +49,7 @@ JSON responses use `You`, `Osman`, and `Hameed`. They do not include the sender 
 
 ## UI entry point
 
-When the flag is on, a founder session sees one extra nav item, **Private**, in the existing Option I cream shell. Other sessions do not. The phone layout uses the same wrapping nav as the rest of `/ops`, a 16px message box, and a composer that stays at the bottom of the screen. The Mic button is the same browser speech control Talk already uses. Spoken words land in the message box and are not sent until Send. The button stays hidden when the browser has no speech recognition.
+When the flag is on, a founder session sees **Private** first under a **Founders only** heading, with Kits and Map, in the existing Option I cream shell. The heading stays when the flag is off; Private does not. Other sessions do not see Private. The phone layout uses the same wrapping nav as the rest of `/ops`, a 16px message box, and a composer that stays at the bottom of the screen. The Mic button is the same browser speech control Talk already uses. Spoken words land in the message box and are not sent until Send. The button stays hidden when the browser has no speech recognition.
 
 The open thread polls `GET /ops/api/founders-dm` every 4 seconds. Other pages poll the unread count every 8 seconds and show a count on **Private**. No new realtime service.
 

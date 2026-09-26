@@ -9,7 +9,7 @@ Source of truth: `MAGNUM.md`, `api/ops/_agent_thread.js`, `api/ops/_assign.js`, 
 - There is no live checkout price. Ever.
 - Catalog data comes from Open Icecat. Current state is a 19-SKU human-approved pilot (Samsung tablets, Dell/HP/Lenovo computers, Samsung/LG/Hisense TVs). Phones are next. Apple is blocked on Icecat "Limited" entitlement.
 - North star: "Do not make LAVAALL look like a database. Make it feel like a curated marketplace powered by a database."
-- Founders: Osman and Hamid.
+- Founders: Osman and Hameed.
 
 ## The Office (six desks, one voice each)
 | Desk | ID | Owns |

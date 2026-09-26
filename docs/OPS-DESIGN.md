@@ -58,7 +58,7 @@ Type: **Clash Display** titles, **Bricolage Grotesque** UI.
 
 ---
 
-## Copy rules (Osman + Hamid)
+## Copy rules (Osman + Hameed)
 
 Every tab: **2–3 plain sentences**. What it is. What to do. No snobby admin jargon. No invented metrics. No multi-doc packs.
 
