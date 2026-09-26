@@ -30,6 +30,19 @@ const { persistenceBanner, shellPage } = require('./_shell');
 const DM_KEY = 'lavaall-ops-founders-dm-v1';
 const READ_KEY = 'lavaall-ops-founders-dm-v1:read';
 const LEGACY_KEY = 'lavaall-ops-founders-dm-v1:legacy';
+
+function foundersDmKeys() {
+  const env = String(process.env.VERCEL_ENV || '').trim().toLowerCase();
+  const prefix = !env || env === 'production'
+    ? ''
+    : env.replace(/[^a-z0-9_-]/g, '').slice(0, 32);
+  const thread = prefix ? `${prefix}:${DM_KEY}` : DM_KEY;
+  return {
+    thread,
+    read: prefix ? `${thread}:read` : READ_KEY,
+    legacy: prefix ? `${thread}:legacy` : LEGACY_KEY,
+  };
+}
 const FOUNDERS = Object.freeze([
   'osmanjalloh104@gmail.com',
   'abdulhbah55@gmail.com',
@@ -455,19 +468,20 @@ function messagesFromList(result) {
 }
 
 async function kvList() {
-  const payload = await kvCommand(['LRANGE', DM_KEY, '0', '-1']);
+  const payload = await kvCommand(['LRANGE', foundersDmKeys().thread, '0', '-1']);
   return messagesFromList(payload && payload.result);
 }
 
 async function kvReadMap() {
-  const payload = await kvCommand(['HGETALL', READ_KEY]);
+  const payload = await kvCommand(['HGETALL', foundersDmKeys().read]);
   return decodeHash(payload && payload.result);
 }
 
 async function migrateLegacyBlob() {
   const keys = loadKeys();
   if (!keys.ok) return;
-  const payload = await kvCommand(['GET', DM_KEY]);
+  const storeKeys = foundersDmKeys();
+  const payload = await kvCommand(['GET', storeKeys.thread]);
   const raw = payload && payload.result;
   if (typeof raw !== 'string' || !raw.trim().startsWith('{')) return;
   let parsed;
@@ -478,18 +492,18 @@ async function migrateLegacyBlob() {
   }
   if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.messages)) return;
   const thread = normalizeThread(parsed);
-  await kvCommand(['RENAME', DM_KEY, LEGACY_KEY]);
+  await kvCommand(['RENAME', storeKeys.thread, storeKeys.legacy]);
   if (thread.messages.length) {
     const sealed = thread.messages.map((row) => JSON.stringify(sealStored(row, keys)));
-    await kvCommand(['RPUSH', DM_KEY].concat(sealed));
-    await kvCommand(['LTRIM', DM_KEY, '-400', '-1']);
+    await kvCommand(['RPUSH', storeKeys.thread].concat(sealed));
+    await kvCommand(['LTRIM', storeKeys.thread, '-400', '-1']);
   }
   const fields = [];
   FOUNDERS.forEach((email) => {
     if (thread.readAt[email]) fields.push(email, String(thread.readAt[email]));
   });
-  if (fields.length) await kvCommand(['HSET', READ_KEY].concat(fields));
-  await kvCommand(['DEL', LEGACY_KEY]);
+  if (fields.length) await kvCommand(['HSET', storeKeys.read].concat(fields));
+  await kvCommand(['DEL', storeKeys.legacy]);
 }
 
 async function readThread() {
@@ -516,10 +530,11 @@ async function appendMessage(message) {
     throw err;
   }
   const packed = JSON.stringify(sealStored(message, keys));
+  const storeKeys = foundersDmKeys();
   if (kvConfigured()) {
     const pipe = [
-      ['RPUSH', DM_KEY, packed],
-      ['LTRIM', DM_KEY, '-400', '-1'],
+      ['RPUSH', storeKeys.thread, packed],
+      ['LTRIM', storeKeys.thread, '-400', '-1'],
     ];
     try {
       await kvCommand(pipe);
@@ -527,7 +542,7 @@ async function appendMessage(message) {
       await migrateLegacyBlob();
       await kvCommand(pipe);
     }
-    await kvCommand(['HSET', READ_KEY, message.from, String(message.createdAt)]);
+    await kvCommand(['HSET', storeKeys.read, message.from, String(message.createdAt)]);
     return readThread();
   }
   hydrateLocal();
@@ -574,7 +589,7 @@ async function markRead(email) {
   const now = Date.now();
   return mutate(async () => {
     if (kvConfigured()) {
-      await kvCommand(['HSET', READ_KEY, who, String(now)]);
+      await kvCommand(['HSET', foundersDmKeys().read, who, String(now)]);
     } else {
       hydrateLocal();
       memoryRead[who] = now;
@@ -925,6 +940,8 @@ module.exports = {
   BADGE_MS,
   DM_KEY,
   READ_KEY,
+  LEGACY_KEY,
+  foundersDmKeys,
   FOUNDERS,
   MAX_TEXT,
   POLL_MS,

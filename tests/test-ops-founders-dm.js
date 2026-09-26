@@ -247,7 +247,7 @@ async function run() {
     const page = mockRes();
     await ops({ method: 'GET', headers: {}, query: { area: 'founders' }, url: '/ops/founders' }, page);
     check('logged-out page is the sign-in screen',
-      page.statusCode === 401 && String(page.raw).includes('Enter your work email') && !String(page.raw).includes(PHRASE));
+      page.statusCode === 401 && String(page.raw).includes('Sign in with Google') && !String(page.raw).includes(PHRASE));
   }
 
   {
@@ -1397,6 +1397,105 @@ async function run() {
       && !/^FOUNDERS_DM_ENC_KEY_PREV=.+/m.test(env));
   }
 
+  {
+    const priorEnv = process.env.VERCEL_ENV;
+    function restoreEnv() {
+      if (priorEnv == null) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = priorEnv;
+    }
+    delete process.env.VERCEL_ENV;
+    const unsetKeys = dm.foundersDmKeys();
+    process.env.VERCEL_ENV = 'production';
+    const prodKeys = dm.foundersDmKeys();
+    process.env.VERCEL_ENV = 'Production';
+    const prodCase = dm.foundersDmKeys();
+    process.env.VERCEL_ENV = 'preview';
+    const previewKeys = dm.foundersDmKeys();
+    check('Production and an unset VERCEL_ENV keep the current KV key names',
+      unsetKeys.thread === 'lavaall-ops-founders-dm-v1'
+      && unsetKeys.read === 'lavaall-ops-founders-dm-v1:read'
+      && unsetKeys.legacy === 'lavaall-ops-founders-dm-v1:legacy'
+      && prodKeys.thread === dm.DM_KEY
+      && prodKeys.read === dm.READ_KEY
+      && prodKeys.legacy === dm.LEGACY_KEY
+      && prodCase.thread === dm.DM_KEY
+      && prodCase.read === dm.READ_KEY
+      && prodCase.legacy === dm.LEGACY_KEY);
+    check('Preview prefixes the thread, read cursor, and legacy blob',
+      previewKeys.thread === 'preview:lavaall-ops-founders-dm-v1'
+      && previewKeys.read === 'preview:lavaall-ops-founders-dm-v1:read'
+      && previewKeys.legacy === 'preview:lavaall-ops-founders-dm-v1:legacy'
+      && previewKeys.thread !== dm.DM_KEY
+      && previewKeys.read !== dm.READ_KEY
+      && previewKeys.legacy !== dm.LEGACY_KEY);
+
+    process.env.VERCEL_ENV = 'preview';
+    const kv = fakeKv();
+    process.env.KV_REST_API_URL = 'https://kv.example.test';
+    process.env.KV_REST_API_TOKEN = 'test-token';
+    enable();
+    dm.resetFoundersDm();
+    global.fetch = kv.fetch;
+    const sent = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      method: 'POST',
+      body: { text: 'preview-isolation-phrase', csrf: lib.createCsrfToken(OSMAN) },
+    }), sent);
+    const previewCalls = kv.calls.filter((cmd) => cmd[0] === 'RPUSH' || cmd[0] === 'LTRIM' || cmd[0] === 'HSET' || cmd[0] === 'LRANGE' || cmd[0] === 'HGETALL');
+    check('Preview writes never use the Production thread or read keys',
+      sent.statusCode === 200
+      && sent.body.messages.some((row) => row.text === 'preview-isolation-phrase')
+      && previewCalls.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1')
+      && previewCalls.some((cmd) => cmd[0] === 'LTRIM' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1')
+      && previewCalls.some((cmd) => cmd[0] === 'HSET' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1:read')
+      && previewCalls.every((cmd) => cmd[1] === 'preview:lavaall-ops-founders-dm-v1' || cmd[1] === 'preview:lavaall-ops-founders-dm-v1:read')
+      && !JSON.stringify(kv.calls).includes('preview-isolation-phrase')
+      && !kv.calls.some((cmd) => cmd[1] === dm.DM_KEY || cmd[1] === dm.READ_KEY || cmd[1] === dm.LEGACY_KEY));
+
+    const legacyKv = fakeKv();
+    legacyKv.legacy = JSON.stringify({
+      messages: [{ id: 'abc123abc123abcd', from: OSMAN, text: 'preview-legacy-phrase', createdAt: 9 }],
+      readAt: { [HAMEED]: 4 },
+    });
+    dm.resetFoundersDm();
+    global.fetch = legacyKv.fetch;
+    const migrated = mockRes();
+    await ops(authed(HAMEED, { json: true }), migrated);
+    check('Preview legacy migration stays on the prefixed keys',
+      migrated.statusCode === 200
+      && migrated.body.messages.some((row) => row.text === 'preview-legacy-phrase')
+      && legacyKv.calls.some((cmd) => cmd[0] === 'GET' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1')
+      && legacyKv.calls.some((cmd) => cmd[0] === 'RENAME' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1' && cmd[2] === 'preview:lavaall-ops-founders-dm-v1:legacy')
+      && legacyKv.calls.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1')
+      && legacyKv.calls.some((cmd) => cmd[0] === 'HSET' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1:read')
+      && !legacyKv.calls.some((cmd) => cmd[1] === dm.DM_KEY || cmd[1] === dm.READ_KEY || cmd[1] === dm.LEGACY_KEY)
+      && !JSON.stringify(legacyKv.calls).includes('preview-legacy-phrase'));
+
+    process.env.VERCEL_ENV = 'production';
+    const prodKv = fakeKv();
+    dm.resetFoundersDm();
+    global.fetch = prodKv.fetch;
+    const prodSent = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      method: 'POST',
+      body: { text: 'production-key-phrase', csrf: lib.createCsrfToken(OSMAN) },
+    }), prodSent);
+    check('Production writes use the unprefixed keys',
+      prodSent.statusCode === 200
+      && prodKv.calls.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === 'lavaall-ops-founders-dm-v1')
+      && prodKv.calls.some((cmd) => cmd[0] === 'HSET' && cmd[1] === 'lavaall-ops-founders-dm-v1:read')
+      && prodKv.calls.every((cmd) => cmd[1] === dm.DM_KEY || cmd[1] === dm.READ_KEY || cmd[1] === dm.LEGACY_KEY)
+      && !prodKv.calls.some((cmd) => String(cmd[1]).startsWith('preview:')));
+
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    global.fetch = origFetch;
+    dm.resetFoundersDm();
+    restoreEnv();
+  }
+
   check('server logs do not include private message text',
     logs.every((line) => !line.includes(PHRASE)
       && !line.includes(BOT_PHRASE)
@@ -1407,6 +1506,9 @@ async function run() {
       && !line.includes('preview-secret-zz')
       && !line.includes('enc-body-phrase')
       && !line.includes('enc-body-two')
+      && !line.includes('preview-isolation-phrase')
+      && !line.includes('preview-legacy-phrase')
+      && !line.includes('production-key-phrase')
       && !line.includes(ENC_KEY)));
 
   console.log = origLog;

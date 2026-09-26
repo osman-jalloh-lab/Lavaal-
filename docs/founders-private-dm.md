@@ -10,7 +10,7 @@ One thread. Stored apart from the shared office blob (`lavaall-ops-v2`) so Talk,
 
 | | |
 |---|---|
-| Key | `lavaall-ops-founders-dm-v1` (message list) and `lavaall-ops-founders-dm-v1:read` (per-founder read cursor) |
+| Key | Production: `lavaall-ops-founders-dm-v1` (message list), `lavaall-ops-founders-dm-v1:read` (per-founder read cursor), and `lavaall-ops-founders-dm-v1:legacy` (one-time blob rename). Preview and other non-production `VERCEL_ENV` values prefix those names (`preview:lavaall-ops-founders-dm-v1`, and the same prefix on `:read` and `:legacy`) so a Preview deploy cannot write the keys Production reads. |
 | Where | Existing Vercel KV (`KV_REST_API_URL` + `KV_REST_API_TOKEN`) when those are set. Otherwise the same local fallback as the rest of `/ops`: `OPS_STORE_FILE` plus `.founders-dm.json` and `.founders-dm.read.json`, or process memory when neither is set. No new vendor. |
 | Shape | Each stored row is `{ id, from, createdAt, enc }`. `enc` is base64 of `{ v: 1, kid, iv, tag, ct }`. The message text (and any preview, draft, or attachment name) is inside the AES-256-GCM ciphertext. `id`, `from`, and `createdAt` stay plain so order and unread cursors work. A legacy plaintext blob is encrypted on the one-time migration. |
 | `from` | One of the two founder emails. Anything else is dropped on read. |

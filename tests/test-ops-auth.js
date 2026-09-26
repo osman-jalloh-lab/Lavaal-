@@ -816,6 +816,34 @@ async function run() {
     const foreignPreview = await startGoogle('notlavaal.vercel.app');
     check('unrelated vercel.app host cannot start Google sign-in', foreignPreview.statusCode === 400);
 
+    const branchAlias = 'lavaal-git-cursor-founders-private-dm-63ef-osman14.vercel.app';
+    const priorPublic = process.env.OPS_PUBLIC_URL;
+    const priorVercel = process.env.VERCEL_ENV;
+    process.env.OPS_PUBLIC_URL = 'https://www.lavaall.com';
+    process.env.VERCEL_ENV = 'preview';
+    const branchStart = await startGoogle(branchAlias);
+    const branchLoc = new URL(branchStart.body.redirect);
+    check('branch alias redirect_uri stays on the preview host',
+      branchStart.statusCode === 200
+      && branchLoc.searchParams.get('redirect_uri') === `https://${branchAlias}/api/ops/auth`
+      && !branchStart.body.redirect.includes('www.lavaall.com')
+      && lib.publicOrigin({
+        headers: {
+          host: branchAlias,
+          'x-forwarded-host': branchAlias,
+          'x-forwarded-proto': 'https',
+        },
+      }) === `https://${branchAlias}`);
+    process.env.VERCEL_ENV = 'production';
+    check('Production publicOrigin still honors OPS_PUBLIC_URL',
+      lib.publicOrigin({
+        headers: {
+          host: branchAlias,
+          'x-forwarded-proto': 'https',
+        },
+      }) === 'https://www.lavaall.com');
+    process.env.VERCEL_ENV = 'preview';
+
     async function callbackWith(startRes, payloadOverrides, opts) {
       const info = oauthFrom(startRes);
       const token = signJwt(
@@ -839,7 +867,7 @@ async function run() {
       await auth({
         method: 'GET',
         headers: {
-          accept: 'application/json',
+          accept: (opts && opts.accept) || 'application/json',
           host: (opts && opts.host) || 'www.lavaall.com',
           'x-forwarded-proto': 'https',
           'x-forwarded-for': (opts && opts.ip) || nextIp(),
@@ -852,6 +880,24 @@ async function run() {
       }, res);
       return { res, fetchCalls, token };
     }
+
+    google.resetGoogleSignInState();
+    const branchHtml = await callbackWith(branchStart, { email: 'OsmanJalloh104@gmail.com' }, {
+      host: branchAlias,
+      accept: 'text/html',
+    });
+    const branchToken = branchHtml.fetchCalls.find((call) => call.url.includes('/token'));
+    check('Preview post-login redirect stays on the request host',
+      branchHtml.res.statusCode === 302
+      && branchHtml.res.headers.Location === '/ops'
+      && !String(branchHtml.res.headers.Location || '').includes('lavaall.com')
+      && Boolean(branchToken)
+      && branchToken.body.includes(`redirect_uri=${encodeURIComponent(`https://${branchAlias}/api/ops/auth`)}`)
+      && !branchToken.body.includes('www.lavaall.com'));
+    if (priorPublic == null) delete process.env.OPS_PUBLIC_URL;
+    else process.env.OPS_PUBLIC_URL = priorPublic;
+    if (priorVercel == null) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = priorVercel;
 
     google.resetGoogleSignInState();
     const happy = await callbackWith(await startGoogle('www.lavaall.com'), { email: 'OsmanJalloh104@gmail.com' });
