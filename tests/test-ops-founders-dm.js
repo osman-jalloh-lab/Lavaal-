@@ -1,4 +1,5 @@
 // Private founder thread — flag, server-side access, unread, and isolation from agents.
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -69,12 +70,33 @@ function jsFiles(dir, acc) {
   return acc;
 }
 
+const ENC_KEY = crypto.randomBytes(32).toString('base64');
+
 function enable() {
   process.env.FOUNDERS_DM_ENABLED = '1';
+  process.env.FOUNDERS_DM_ENC_KEY = ENC_KEY;
+  delete process.env.FOUNDERS_DM_ENC_KEY_PREV;
 }
 
 function disable() {
   delete process.env.FOUNDERS_DM_ENABLED;
+  delete process.env.FOUNDERS_DM_ENC_KEY;
+  delete process.env.FOUNDERS_DM_ENC_KEY_PREV;
+}
+
+function envelopeOf(raw) {
+  const row = JSON.parse(raw);
+  const env = JSON.parse(Buffer.from(row.enc, 'base64').toString('utf8'));
+  return { row, env };
+}
+
+function withFlipped(raw, field) {
+  const packed = envelopeOf(raw);
+  const buf = Buffer.from(packed.env[field], 'base64');
+  buf[0] ^= 0xff;
+  packed.env[field] = buf.toString('base64');
+  packed.row.enc = Buffer.from(JSON.stringify(packed.env), 'utf8').toString('base64');
+  return JSON.stringify(packed.row);
 }
 
 function foundersGroup(html) {
@@ -772,17 +794,23 @@ async function run() {
     fs.writeFileSync(file, JSON.stringify({
       messages: [
         { id: 'abcdabcdabcdabcd', from: OUTSIDER, text: 'leaked-stranger', createdAt: 1 },
-        { id: 'abcdabcdabcdabce', from: OSMAN, text: 'kept-founder', createdAt: 2 },
+        { id: 'abcdabcdabcdabce', from: OSMAN, text: 'kept-founder', preview: 'preview-secret-zz', createdAt: 2 },
       ],
       readAt: {},
     }));
     const res = mockRes();
     await ops(authed(HAMEED, { json: true }), res);
+    const storedFile = fs.readFileSync(file, 'utf8');
     check('messages from anyone except the two founders are dropped',
       res.statusCode === 200
       && res.body.messages.some((row) => row.text === 'kept-founder')
       && !res.body.messages.some((row) => row.text === 'leaked-stranger')
-      && !JSON.stringify(res.body).includes(OUTSIDER));
+      && !JSON.stringify(res.body).includes(OUTSIDER)
+      && !JSON.stringify(res.body).includes('preview-secret-zz')
+      && !storedFile.includes('kept-founder')
+      && !storedFile.includes('preview-secret-zz')
+      && !storedFile.includes('leaked-stranger')
+      && storedFile.includes('"enc"'));
     delete process.env.OPS_STORE_FILE;
     dm.resetFoundersDm();
     fs.rmSync(file, { force: true });
@@ -803,7 +831,7 @@ async function run() {
     const listCalls = kv.calls.filter((cmd) => cmd[0] === 'LRANGE' || cmd[0] === 'HGETALL' || cmd[0] === 'SET' || cmd[0] === 'RPUSH');
     check('KV appends with RPUSH on the private key and does not SET the office store',
       sent.statusCode === 200
-      && kv.calls.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === dm.DM_KEY && String(cmd[2]).includes('kv-only-phrase'))
+      && kv.calls.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === dm.DM_KEY && !String(cmd[2]).includes('kv-only-phrase'))
       && kv.calls.some((cmd) => cmd[0] === 'LTRIM' && cmd[1] === dm.DM_KEY)
       && kv.calls.some((cmd) => cmd[0] === 'HSET' && cmd[1] === dm.READ_KEY)
       && !kv.calls.some((cmd) => cmd[0] === 'SET')
@@ -869,13 +897,120 @@ async function run() {
     delete process.env.KV_REST_API_TOKEN;
     global.fetch = origFetch;
     dm.resetFoundersDm();
+    const pushed = kv.calls.filter((cmd) => cmd[0] === 'RPUSH').map((cmd) => cmd.slice(2).join(' ')).join('\n');
     check('legacy KV blob migrates on first read and later reads do not rename',
       migrated.statusCode === 200
       && migrated.body.messages.some((row) => row.text === 'legacy-kv-phrase')
       && kv.calls.filter((cmd) => cmd[0] === 'RENAME').length === 1
       && again.statusCode === 200
       && again.body.messages.some((row) => row.text === 'legacy-kv-phrase')
-      && kv.calls.filter((cmd) => cmd[0] === 'RENAME').length === 1);
+      && kv.calls.filter((cmd) => cmd[0] === 'RENAME').length === 1
+      && pushed.length > 0
+      && !pushed.includes('legacy-kv-phrase'));
+  }
+
+  {
+    const kv = fakeKv();
+    process.env.KV_REST_API_URL = 'https://kv.example.test';
+    process.env.KV_REST_API_TOKEN = 'test-token';
+    enable();
+    dm.resetFoundersDm();
+    global.fetch = kv.fetch;
+    const first = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      method: 'POST',
+      body: { text: 'enc-body-phrase', csrf: lib.createCsrfToken(OSMAN) },
+    }), first);
+    await new Promise((resolve) => { setTimeout(resolve, 5); });
+    const second = mockRes();
+    await ops(authed(HAMEED, {
+      json: true,
+      method: 'POST',
+      body: { text: 'enc-body-two', csrf: lib.createCsrfToken(HAMEED) },
+    }), second);
+    const stored = kv.list.slice();
+    const firstEnv = envelopeOf(stored[0]);
+    const secondEnv = envelopeOf(stored[1]);
+    const wire = JSON.stringify(kv.calls);
+    check('a stored message round-trips and the KV payload has no plaintext',
+      first.statusCode === 200
+      && first.body.messages[0].text === 'enc-body-phrase'
+      && second.body.messages.map((row) => row.text).join('|') === 'enc-body-phrase|enc-body-two'
+      && firstEnv.row.text == null
+      && firstEnv.env.v === 1
+      && typeof firstEnv.env.kid === 'string'
+      && firstEnv.env.kid.length > 0
+      && typeof firstEnv.env.iv === 'string'
+      && typeof firstEnv.env.tag === 'string'
+      && typeof firstEnv.env.ct === 'string'
+      && !wire.includes('enc-body-phrase')
+      && !wire.includes('enc-body-two')
+      && !wire.includes(ENC_KEY));
+    check('each message gets its own IV', firstEnv.env.iv !== secondEnv.env.iv);
+    kv.list[0] = withFlipped(stored[0], 'ct');
+    const flippedCt = mockRes();
+    await ops(authed(OSMAN, { json: true }), flippedCt);
+    kv.list[0] = withFlipped(stored[0], 'tag');
+    const flippedTag = mockRes();
+    await ops(authed(OSMAN, { json: true }), flippedTag);
+    const brokenId = first.body.messages[0].id;
+    check('a flipped ciphertext or tag shows a placeholder and does not crash',
+      flippedCt.statusCode === 200
+      && flippedCt.body.messages[0].text === 'Message could not be decrypted'
+      && flippedCt.body.messages[1].text === 'enc-body-two'
+      && flippedTag.statusCode === 200
+      && flippedTag.body.messages[0].text === 'Message could not be decrypted'
+      && flippedTag.body.messages[0].id === brokenId
+      && logs.some((line) => line.includes('decrypt_failed') && line.includes(brokenId))
+      && logs.every((line) => !line.includes('enc-body-phrase') && !line.includes(ENC_KEY)));
+    kv.list = stored.slice();
+    const otherKey = crypto.randomBytes(32).toString('base64');
+    process.env.FOUNDERS_DM_ENC_KEY = otherKey;
+    delete process.env.FOUNDERS_DM_ENC_KEY_PREV;
+    const wrong = mockRes();
+    await ops(authed(OSMAN, { json: true }), wrong);
+    process.env.FOUNDERS_DM_ENC_KEY_PREV = ENC_KEY;
+    const rotated = mockRes();
+    await ops(authed(HAMEED, { json: true }), rotated);
+    check('the wrong key shows a placeholder and the previous key still decrypts',
+      wrong.statusCode === 200
+      && wrong.body.messages.every((row) => row.text === 'Message could not be decrypted')
+      && rotated.statusCode === 200
+      && rotated.body.messages.map((row) => row.text).join('|') === 'enc-body-phrase|enc-body-two');
+    const beforeRefuse = kv.calls.filter((cmd) => cmd[0] === 'RPUSH').length;
+    delete process.env.FOUNDERS_DM_ENC_KEY;
+    delete process.env.FOUNDERS_DM_ENC_KEY_PREV;
+    const missing = mockRes();
+    await ops(authed(OSMAN, { json: true }), missing);
+    const missingPage = mockRes();
+    await ops(authed(OSMAN, { json: false, url: '/ops/founders', query: { area: 'founders' } }), missingPage);
+    process.env.FOUNDERS_DM_ENC_KEY = crypto.randomBytes(16).toString('base64');
+    const invalid = mockRes();
+    await ops(authed(OSMAN, { json: true, method: 'POST', body: { text: 'enc-body-phrase', csrf: lib.createCsrfToken(OSMAN) } }), invalid);
+    process.env.FOUNDERS_DM_ENC_KEY = ENC_KEY;
+    process.env.FOUNDERS_DM_ENC_KEY_PREV = crypto.randomBytes(16).toString('base64');
+    const badPrev = mockRes();
+    await ops(authed(OSMAN, { json: true }), badPrev);
+    check('a missing or invalid key returns 503 and does not write plaintext',
+      missing.statusCode === 503
+      && missing.body.error === 'encryption_not_configured'
+      && missing.body.messages == null
+      && missingPage.statusCode === 503
+      && String(missingPage.raw).includes('Private messages are unavailable because encryption is not configured.')
+      && !String(missingPage.raw).includes('id="dm-text"')
+      && !String(missingPage.raw).includes('enc-body-phrase')
+      && invalid.statusCode === 503
+      && invalid.body.error === 'encryption_not_configured'
+      && badPrev.statusCode === 503
+      && badPrev.body.error === 'encryption_not_configured'
+      && kv.calls.filter((cmd) => cmd[0] === 'RPUSH').length === beforeRefuse
+      && !JSON.stringify(kv.list).includes('enc-body-phrase'));
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    global.fetch = origFetch;
+    enable();
+    dm.resetFoundersDm();
   }
 
   {
@@ -1255,11 +1390,24 @@ async function run() {
     check('.env.example documents the flag as off and does not set it',
       env.includes('FOUNDERS_DM_ENABLED')
       && env.includes('Default off')
-      && !/^FOUNDERS_DM_ENABLED=.+/m.test(env));
+      && env.includes('FOUNDERS_DM_ENC_KEY')
+      && env.includes('openssl rand -base64 32')
+      && !/^FOUNDERS_DM_ENABLED=.+/m.test(env)
+      && !/^FOUNDERS_DM_ENC_KEY=.+/m.test(env)
+      && !/^FOUNDERS_DM_ENC_KEY_PREV=.+/m.test(env));
   }
 
   check('server logs do not include private message text',
-    logs.every((line) => !line.includes(PHRASE) && !line.includes(BOT_PHRASE) && !line.includes(AGENT_PHRASE) && !line.includes('kv-only-phrase')));
+    logs.every((line) => !line.includes(PHRASE)
+      && !line.includes(BOT_PHRASE)
+      && !line.includes(AGENT_PHRASE)
+      && !line.includes('kv-only-phrase')
+      && !line.includes('legacy-kv-phrase')
+      && !line.includes('kept-founder')
+      && !line.includes('preview-secret-zz')
+      && !line.includes('enc-body-phrase')
+      && !line.includes('enc-body-two')
+      && !line.includes(ENC_KEY)));
 
   console.log = origLog;
   let failed = 0;

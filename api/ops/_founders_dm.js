@@ -43,6 +43,12 @@ const MAX_TEXT = 2000;
 const DM_MAX_BODY = 5000;
 const POLL_MS = 4000;
 const BADGE_MS = 8000;
+const ENC_VERSION = 1;
+const KEY_BYTES = 32;
+const IV_BYTES = 12;
+const TAG_BYTES = 16;
+const PLACEHOLDER = 'Message could not be decrypted';
+const SECRET_FIELDS = Object.freeze(['preview', 'draft', 'attachmentName', 'attachment']);
 
 let memoryMessages = [];
 let memoryRead = {};
@@ -79,6 +85,128 @@ function cleanText(value) {
   return typeof value === 'string' ? value.trim().replace(/[<>]/g, '').slice(0, MAX_TEXT) : '';
 }
 
+function decodeKey(raw) {
+  if (typeof raw !== 'string') return null;
+  const compact = raw.replace(/\s+/g, '');
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(compact)) return null;
+  const buf = Buffer.from(compact, 'base64');
+  if (buf.length !== KEY_BYTES) return null;
+  const canonical = buf.toString('base64').replace(/=+$/, '');
+  if (canonical !== compact.replace(/=+$/, '')) return null;
+  return buf;
+}
+
+function readKeyEnv(name) {
+  const raw = process.env[name];
+  if (typeof raw !== 'string' || !raw.trim()) return { set: false, key: null };
+  return { set: true, key: decodeKey(raw) };
+}
+
+function keyId(key) {
+  return crypto.createHash('sha256').update(key).digest('base64url').slice(0, 16);
+}
+
+function loadKeys() {
+  const current = readKeyEnv('FOUNDERS_DM_ENC_KEY');
+  const prev = readKeyEnv('FOUNDERS_DM_ENC_KEY_PREV');
+  if (!current.key) return { ok: false };
+  if (prev.set && !prev.key) return { ok: false };
+  return {
+    ok: true,
+    current: current.key,
+    prev: prev.key,
+    kid: keyId(current.key),
+    prevKid: prev.key ? keyId(prev.key) : '',
+  };
+}
+
+function encryptionReady() {
+  return loadKeys().ok;
+}
+
+function logDecryptFailed(id) {
+  const safe = typeof id === 'string' && /^[a-f0-9]{8,32}$/.test(id) ? id : '';
+  console.log(JSON.stringify({ type: 'OpsFoundersDm', event: 'decrypt_failed', id: safe }));
+}
+
+function secretPayload(message) {
+  const payload = { text: message.text };
+  SECRET_FIELDS.forEach((field) => {
+    if (typeof message[field] === 'string' && message[field]) {
+      payload[field] = message[field].slice(0, MAX_TEXT);
+    }
+  });
+  return payload;
+}
+
+function copySecretFields(row, message) {
+  SECRET_FIELDS.forEach((field) => {
+    if (typeof row[field] === 'string' && row[field].trim()) {
+      message[field] = row[field].trim().slice(0, MAX_TEXT);
+    }
+  });
+  return message;
+}
+
+function aadFor(meta) {
+  return Buffer.from(`${meta.id}\n${meta.from}\n${meta.createdAt}`, 'utf8');
+}
+
+function sealStored(message, keys) {
+  const iv = crypto.randomBytes(IV_BYTES);
+  const cipher = crypto.createCipheriv('aes-256-gcm', keys.current, iv);
+  cipher.setAAD(aadFor(message));
+  const ct = Buffer.concat([
+    cipher.update(JSON.stringify(secretPayload(message)), 'utf8'),
+    cipher.final(),
+  ]);
+  const envelope = {
+    v: ENC_VERSION,
+    kid: keys.kid,
+    iv: iv.toString('base64'),
+    tag: cipher.getAuthTag().toString('base64'),
+    ct: ct.toString('base64'),
+  };
+  return {
+    id: message.id,
+    from: message.from,
+    createdAt: message.createdAt,
+    enc: Buffer.from(JSON.stringify(envelope), 'utf8').toString('base64'),
+  };
+}
+
+function openEnvelope(enc, meta) {
+  const keys = loadKeys();
+  if (!keys.ok || typeof enc !== 'string' || !enc) {
+    logDecryptFailed(meta.id);
+    return { ok: false };
+  }
+  try {
+    const envelope = JSON.parse(Buffer.from(enc, 'base64').toString('utf8'));
+    if (!envelope || envelope.v !== ENC_VERSION || typeof envelope.kid !== 'string') {
+      throw new Error('shape');
+    }
+    const key = envelope.kid === keys.kid
+      ? keys.current
+      : (keys.prev && envelope.kid === keys.prevKid ? keys.prev : null);
+    if (!key) throw new Error('kid');
+    const iv = Buffer.from(String(envelope.iv || ''), 'base64');
+    const tag = Buffer.from(String(envelope.tag || ''), 'base64');
+    const ct = Buffer.from(String(envelope.ct || ''), 'base64');
+    if (iv.length !== IV_BYTES || tag.length !== TAG_BYTES || ct.length < 1) throw new Error('len');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    decipher.setAAD(aadFor(meta));
+    const plain = Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
+    const parsed = JSON.parse(plain);
+    if (!parsed || typeof parsed.text !== 'string') throw new Error('payload');
+    return { ok: true, text: parsed.text };
+  } catch {
+    logDecryptFailed(meta.id);
+    return { ok: false };
+  }
+}
+
 function newId() {
   return crypto.randomBytes(8).toString('hex');
 }
@@ -96,6 +224,32 @@ function normalizeMessage(row) {
   const createdAt = Number(row.createdAt);
   if (!Number.isFinite(createdAt)) return null;
   const id = typeof row.id === 'string' && /^[a-f0-9]{8,32}$/.test(row.id) ? row.id : newId();
+  return copySecretFields(row, { id, from, text, createdAt });
+}
+
+function storedId(row) {
+  return row && typeof row.id === 'string' && /^[a-f0-9]{8,32}$/.test(row.id) ? row.id : '';
+}
+
+function openStoredRow(row) {
+  if (!row || typeof row !== 'object') return null;
+  const from = normalizeEmail(row.from);
+  if (!FOUNDERS.includes(from)) return null;
+  const createdAt = Number(row.createdAt);
+  if (!Number.isFinite(createdAt)) return null;
+  const id = storedId(row);
+  if (!id) return null;
+  if (typeof row.enc !== 'string' || !row.enc) {
+    logDecryptFailed(id);
+    return { id, from, text: PLACEHOLDER, createdAt };
+  }
+  const opened = openEnvelope(row.enc, { id, from, createdAt });
+  if (!opened.ok) return { id, from, text: PLACEHOLDER, createdAt };
+  const text = cleanText(opened.text);
+  if (!text) {
+    logDecryptFailed(id);
+    return { id, from, text: PLACEHOLDER, createdAt };
+  }
   return { id, from, text, createdAt };
 }
 
@@ -191,9 +345,13 @@ function currentThread() {
 
 function persistMessages() {
   const target = filePath();
-  if (!target) return;
+  if (!target) return true;
+  const keys = loadKeys();
+  if (!keys.ok) return false;
+  const sealed = memoryMessages.slice(-MAX_MESSAGES).map((row) => sealStored(row, keys));
   fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(target, JSON.stringify(memoryMessages.slice(-MAX_MESSAGES)));
+  fs.writeFileSync(target, JSON.stringify(sealed));
+  return true;
 }
 
 function persistRead() {
@@ -218,6 +376,10 @@ function rememberMessages(rows) {
     .slice(-MAX_MESSAGES);
 }
 
+function rowNeedsSeal(row) {
+  return Boolean(row && typeof row === 'object' && typeof row.enc !== 'string' && typeof row.text === 'string');
+}
+
 function hydrateLocal() {
   if (localHydrated || kvConfigured()) return;
   localHydrated = true;
@@ -232,7 +394,13 @@ function hydrateLocal() {
     return;
   }
   if (Array.isArray(raw)) {
-    rememberMessages(raw);
+    if (raw.some(rowNeedsSeal)) {
+      rememberMessages(raw);
+      if (encryptionReady()) persistMessages();
+      else memoryMessages = memoryMessages.map((row) => ({ id: row.id, from: row.from, text: PLACEHOLDER, createdAt: row.createdAt }));
+    } else {
+      memoryMessages = raw.map(openStoredRow).filter(Boolean).slice(-MAX_MESSAGES);
+    }
     const cursorFile = readCursorPath();
     if (cursorFile && fs.existsSync(cursorFile)) {
       try {
@@ -246,6 +414,10 @@ function hydrateLocal() {
   const legacy = normalizeThread(raw);
   rememberMessages(legacy.messages);
   rememberReadMap(legacy.readAt);
+  if (!encryptionReady()) {
+    memoryMessages = memoryMessages.map((row) => ({ id: row.id, from: row.from, text: PLACEHOLDER, createdAt: row.createdAt }));
+    return;
+  }
   persistMessages();
   persistRead();
 }
@@ -273,14 +445,12 @@ function decodeHash(result) {
 function messagesFromList(result) {
   const rows = Array.isArray(result) ? result : [];
   return rows.map((item) => {
-    if (typeof item === 'string') {
-      try {
-        return normalizeMessage(JSON.parse(item));
-      } catch {
-        return null;
-      }
+    if (typeof item !== 'string') return openStoredRow(item);
+    try {
+      return openStoredRow(JSON.parse(item));
+    } catch {
+      return null;
     }
-    return normalizeMessage(item);
   }).filter(Boolean).slice(-MAX_MESSAGES);
 }
 
@@ -295,6 +465,8 @@ async function kvReadMap() {
 }
 
 async function migrateLegacyBlob() {
+  const keys = loadKeys();
+  if (!keys.ok) return;
   const payload = await kvCommand(['GET', DM_KEY]);
   const raw = payload && payload.result;
   if (typeof raw !== 'string' || !raw.trim().startsWith('{')) return;
@@ -308,7 +480,8 @@ async function migrateLegacyBlob() {
   const thread = normalizeThread(parsed);
   await kvCommand(['RENAME', DM_KEY, LEGACY_KEY]);
   if (thread.messages.length) {
-    await kvCommand(['RPUSH', DM_KEY].concat(thread.messages.map((row) => JSON.stringify(row))));
+    const sealed = thread.messages.map((row) => JSON.stringify(sealStored(row, keys)));
+    await kvCommand(['RPUSH', DM_KEY].concat(sealed));
     await kvCommand(['LTRIM', DM_KEY, '-400', '-1']);
   }
   const fields = [];
@@ -336,9 +509,16 @@ async function readThread() {
 }
 
 async function appendMessage(message) {
+  const keys = loadKeys();
+  if (!keys.ok) {
+    const err = new Error('encryption_not_configured');
+    err.code = 'encryption_not_configured';
+    throw err;
+  }
+  const packed = JSON.stringify(sealStored(message, keys));
   if (kvConfigured()) {
     const pipe = [
-      ['RPUSH', DM_KEY, JSON.stringify(message)],
+      ['RPUSH', DM_KEY, packed],
       ['LTRIM', DM_KEY, '-400', '-1'],
     ];
     try {
@@ -356,7 +536,12 @@ async function appendMessage(message) {
     memoryMessages = memoryMessages.slice(-MAX_MESSAGES);
   }
   memoryRead[message.from] = message.createdAt;
-  persistMessages();
+  if (!persistMessages()) {
+    memoryMessages.pop();
+    const err = new Error('encryption_not_configured');
+    err.code = 'encryption_not_configured';
+    throw err;
+  }
   persistRead();
   return currentThread();
 }
@@ -364,7 +549,8 @@ async function appendMessage(message) {
 async function mutate(work) {
   try {
     return await work();
-  } catch {
+  } catch (err) {
+    if (err && err.code === 'encryption_not_configured') return { error: 'encryption_not_configured' };
     console.log(JSON.stringify({ type: 'OpsFoundersDm', event: 'store_unavailable' }));
     return { error: 'store_unavailable' };
   }
@@ -378,6 +564,7 @@ async function countUnread(email) {
 }
 
 async function listMessages(email) {
+  if (!encryptionReady()) return { error: 'encryption_not_configured' };
   return mutate(async () => publicPayload(await readThread(), email));
 }
 
@@ -404,6 +591,7 @@ async function sendMessage(email, text) {
   if (!isFounderDmIdentity(who)) return { error: 'forbidden' };
   const body = cleanText(text);
   if (!body) return { error: 'invalid_message' };
+  if (!encryptionReady()) return { error: 'encryption_not_configured' };
   return mutate(async () => {
     const message = {
       id: newId(),
@@ -555,13 +743,42 @@ function pageHtml(session, payload, extra) {
   });
 }
 
+function encryptionUnavailablePage(session) {
+  return shellPage({
+    title: 'LAVAALL OS — Private',
+    email: session.email,
+    area: 'founders',
+    privateNav: { href: '/ops/founders', label: 'Private', unread: 0 },
+    body: `
+      <h1>Private</h1>
+      <p>Private messages are unavailable because encryption is not configured.</p>
+    `,
+  });
+}
+
+function failureStatus(error) {
+  if (error === 'store_unavailable' || error === 'encryption_not_configured') return 503;
+  if (error === 'forbidden') return 403;
+  if (error === 'not_found') return 404;
+  return 400;
+}
+
+function failureCopy(error) {
+  if (error === 'store_unavailable') return 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).';
+  if (error === 'encryption_not_configured') return 'Private messages are unavailable because encryption is not configured.';
+  if (error === 'invalid_message') return 'Enter a message.';
+  return 'Could not open the thread.';
+}
+
 async function renderPage(req, res, session, extra) {
   const listed = await listMessages(session.email);
+  if (listed.error === 'encryption_not_configured') {
+    sendHtml(res, 503, encryptionUnavailablePage(session));
+    return true;
+  }
   if (listed.error) {
-    const message = listed.error === 'store_unavailable'
-      ? 'The store is unavailable. Check Vercel KV (KV_REST_API_URL + KV_REST_API_TOKEN).'
-      : 'Could not open the thread.';
-    sendHtml(res, listed.error === 'store_unavailable' ? 503 : 400, pageHtml(session, null, {
+    const message = failureCopy(listed.error);
+    sendHtml(res, failureStatus(listed.error), pageHtml(session, null, {
       error: (extra && extra.error) || message,
     }));
     return true;
@@ -576,7 +793,7 @@ async function handleApi(req, res, session) {
     if (scope === 'unread') {
       const counted = await countUnread(session.email);
       if (counted.error) {
-        sendJson(res, 503, { error: counted.error });
+        sendJson(res, failureStatus(counted.error), { error: counted.error });
         return true;
       }
       sendJson(res, 200, { ok: true, unread: counted.unread });
@@ -584,7 +801,7 @@ async function handleApi(req, res, session) {
     }
     const listed = await listMessages(session.email);
     if (listed.error) {
-      sendJson(res, listed.error === 'store_unavailable' ? 503 : 400, { error: listed.error });
+      sendJson(res, failureStatus(listed.error), { error: listed.error });
       return true;
     }
     const etag = etagFor(listed);
@@ -620,8 +837,9 @@ async function handleApi(req, res, session) {
   if (String(body.action || '').toLowerCase() === 'read') {
     const marked = await markRead(session.email);
     if (marked.error) {
-      const status = marked.error === 'store_unavailable' ? 503 : 400;
+      const status = failureStatus(marked.error);
       if (wantsJson(req)) sendJson(res, status, { error: marked.error });
+      else if (marked.error === 'encryption_not_configured') sendHtml(res, 503, encryptionUnavailablePage(session));
       else await renderPage(req, res, session, { error: 'Could not update the thread.' });
       return true;
     }
@@ -631,8 +849,9 @@ async function handleApi(req, res, session) {
   }
   const sent = await sendMessage(session.email, body.text || body.message || '');
   if (sent.error) {
-    const status = sent.error === 'store_unavailable' ? 503 : sent.error === 'forbidden' ? 403 : sent.error === 'not_found' ? 404 : 400;
+    const status = failureStatus(sent.error);
     if (wantsJson(req)) sendJson(res, status, { error: sent.error });
+    else if (sent.error === 'encryption_not_configured') sendHtml(res, 503, encryptionUnavailablePage(session));
     else {
       await renderPage(req, res, session, {
         error: sent.error === 'invalid_message' ? 'Enter a message.' : 'Could not send that message.',
@@ -662,6 +881,9 @@ async function foundersNavFor(req) {
   const session = readSession(req);
   if (!session || !isFounderDmIdentity(session.email)) return null;
   if (wantsJson(req) || foundersDmKind(req) === 'api') return null;
+  if (!encryptionReady()) {
+    return { href: '/ops/founders', label: 'Private', unread: 0 };
+  }
   if (foundersDmKind(req) === 'page') {
     return { href: '/ops/founders', label: 'Private', unread: 0 };
   }
@@ -679,6 +901,11 @@ async function handleFoundersDm(req, res) {
   const access = guard(req);
   if (!access.session) {
     deny(req, res, access, kind);
+    return true;
+  }
+  if (!encryptionReady()) {
+    if (kind === 'api' || wantsJson(req)) sendJson(res, 503, { error: 'encryption_not_configured' });
+    else sendHtml(res, 503, encryptionUnavailablePage(access.session));
     return true;
   }
   switch (kind) {

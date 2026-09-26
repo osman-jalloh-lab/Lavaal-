@@ -12,9 +12,9 @@ One thread. Stored apart from the shared office blob (`lavaall-ops-v2`) so Talk,
 |---|---|
 | Key | `lavaall-ops-founders-dm-v1` (message list) and `lavaall-ops-founders-dm-v1:read` (per-founder read cursor) |
 | Where | Existing Vercel KV (`KV_REST_API_URL` + `KV_REST_API_TOKEN`) when those are set. Otherwise the same local fallback as the rest of `/ops`: `OPS_STORE_FILE` plus `.founders-dm.json` and `.founders-dm.read.json`, or process memory when neither is set. No new vendor. |
-| Shape | Messages are a list of `{ id, from, text, createdAt }`. Read cursors are a separate map of email to timestamp. A legacy `{ messages, readAt }` blob is copied into that shape on first read. |
+| Shape | Each stored row is `{ id, from, createdAt, enc }`. `enc` is base64 of `{ v: 1, kid, iv, tag, ct }`. The message text (and any preview, draft, or attachment name) is inside the AES-256-GCM ciphertext. `id`, `from`, and `createdAt` stay plain so order and unread cursors work. A legacy plaintext blob is encrypted on the one-time migration. |
 | `from` | One of the two founder emails. Anything else is dropped on read. |
-| `text` | Plain text, trimmed, angle brackets removed, 2000 characters max. |
+| `text` | Plain text, trimmed, angle brackets removed, 2000 characters max, then encrypted. The 5000-character request limit is on the body before encryption. |
 | Cap | The latest 400 messages are kept (`RPUSH` then `LTRIM`). Older ones are dropped. |
 | Unread | Messages from the other founder whose `createdAt` is after that founder's read cursor. GET never writes. Marking read is `POST` `{ action: "read", csrf }`. |
 
@@ -30,7 +30,8 @@ The session must be a valid `/ops` cookie (`lavaall_ops`) whose email is one of 
 | Agent or bot headers (`Authorization: Bearer` / `Bot`, `x-lavaall-agent`, Slack signature headers, `agent` / `botToken` fields), even with a founder cookie | 403 `agent_denied` |
 | No session | 401 `sign_in_required` |
 | Signed session or claimed email that is not one of the two founders | 403 `forbidden` |
-| Founder session, flag on | Read and send |
+| Founder session, flag on, key missing or not 32 bytes | 503 `encryption_not_configured`. Nothing is written. |
+| Founder session, flag on, key valid | Read and send |
 
 POST also needs the same CSRF token the other `/ops` forms use. There is no bearer-secret path and no agent poller.
 
@@ -64,15 +65,16 @@ The open thread polls `GET /ops/api/founders-dm` every 4 seconds. Other pages po
 
 ## Privacy
 
-Messages are plaintext JSON in the application. This draft does not encrypt them itself. The browser and the KV REST call use HTTPS.
+Message text is encrypted in the application before it is written. The cipher is AES-256-GCM from Node `crypto`. The key is `FOUNDERS_DM_ENC_KEY` (32 bytes, base64). Each message gets a new 12-byte IV. `FOUNDERS_DM_ENC_KEY_PREV` decrypts older rows after a rotation and is never used to encrypt. If the flag is on and the key is missing or invalid, the route returns 503 and does not write. A row that will not decrypt is shown as “Message could not be decrypted”; the log line has the message id only.
 
-Who else can read the text:
+The browser still receives the decrypted text after a founder signs in. HTTPS covers that response and the KV call. Someone with the encryption key, or with both the ciphertext and the key, can read the messages. The key is not in this repo.
+
+Who else can read the ciphertext:
 
 - Anyone with Vercel project access to this KV store, or with `KV_REST_API_TOKEN`.
 - Anyone who can read a KV backup or the local `OPS_STORE_FILE.founders-dm.json` if that fallback is in use.
-- The two founders, in their own browsers, after they sign in.
 
-Platform disk encryption, if Vercel KV provides it, is not a substitute for that. There is no end-to-end encryption. Server logs for this route record `store_unavailable` only, not message text or addresses.
+The two founders can read the decrypted thread in their own browsers after they sign in. Server logs for this route record `store_unavailable` or `decrypt_failed` plus a message id. They do not record message text, the key, or addresses.
 
 The shared office store, CEO thread keys, and desk thread keys are separate. Those code paths do not import this module.
 
@@ -82,7 +84,7 @@ The shared office store, CEO thread keys, and desk thread keys are separate. Tho
 - The thread refreshes by polling (4 seconds while it is open, 8 seconds for the badge on other pages). Say if that is too chatty.
 - Marking the thread read is a separate POST, sent only while the tab is visible and focused.
 - Access stays locked to the two current allowlist addresses. If a third address is added to `/ops` later, this thread refuses everyone until the pair is updated on purpose.
-- Message text is not encrypted by the app. KV and Vercel admins can read it. Say if that is acceptable for v1.
+- Message text is encrypted at rest. KV still stores ciphertext. Set `FOUNDERS_DM_ENC_KEY` with `openssl rand -base64 32` on the Preview that has the flag on. It is a secret.
 - Messages are capped at 2000 characters, and only the latest 400 are kept. Angle brackets are stripped.
 - Nothing is emailed or posted to Slack when a message arrives.
 - Bubbles say You, Osman, and Hameed.
