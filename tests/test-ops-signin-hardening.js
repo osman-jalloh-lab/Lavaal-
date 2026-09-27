@@ -9,6 +9,8 @@ const auth = require(path.join(opsDir, 'auth.js'));
 const ops = require(path.join(opsDir, 'index.js'));
 const google = require(path.join(opsDir, '_google_signin.js'));
 const hard = require(path.join(opsDir, '_signin_hardening.js'));
+const ceo = require(path.join(opsDir, '_ceo_bridge.js'));
+const health = require(path.join(opsDir, '_routine_health.js'));
 
 const SECRET = 'test-ops-auth-secret-32chars!!';
 const ALLOWED = 'osmanjalloh104@gmail.com';
@@ -616,6 +618,119 @@ async function run() {
     check('generation bump invalidates only older cookies',
       Boolean(live && live.email === ALLOWED && live.gen === 1)
       && dead === null);
+
+    process.env.OPS_CEO_BRIDGE_SECRET = 'test-ceo-bridge-secret-32chars!!';
+    process.env.OPS_ROUTINE_HEALTH_ENABLED = '1';
+    delete process.env.XAI_API_KEY;
+    health.resetRoutineHealth();
+    ceo.resetCeoBridge();
+    const posted = mockRes();
+    await ops({
+      method: 'POST',
+      headers: {
+        host: 'www.lavaall.com',
+        accept: 'application/json',
+        'content-type': 'application/json',
+        authorization: 'Bearer test-ceo-bridge-secret-32chars!!',
+      },
+      query: { area: 'api/ceo-bridge/routine-health' },
+      url: '/ops/api/ceo-bridge/routine-health',
+      body: {
+        generatedAt: new Date().toISOString(),
+        routines: [{
+          slug: 'kit-registry-eod-sync',
+          status: 'OK',
+          lastRunAt: '2026-09-27T05:00:12Z',
+          reason: 'signed-out-cookie-must-not-see-this',
+        }],
+      },
+    }, posted);
+    const queued = mockRes();
+    await ops(authed(freshCookie, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      url: '/ops/api/ceo-bridge/message',
+      query: { area: 'api/ceo-bridge/message' },
+      body: { csrf: lib.createCsrfToken(ALLOWED), text: 'deploy production' },
+    }), queued);
+    const messageId = queued.body && queued.body.messageId;
+    const deadRead = mockRes();
+    await ops(authed(oldCookie, {
+      headers: { accept: 'application/json' },
+      url: '/ops/api/ceo-bridge/routine-health',
+      query: { area: 'api/ceo-bridge/routine-health' },
+    }), deadRead);
+    const deadConfirm = mockRes();
+    await ops(authed(oldCookie, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      url: '/ops/api/ceo-bridge/confirm',
+      query: { area: 'api/ceo-bridge/confirm' },
+      body: { csrf: lib.createCsrfToken(ALLOWED), messageId },
+    }), deadConfirm);
+    const stillPending = mockRes();
+    await ops({
+      method: 'GET',
+      headers: {
+        host: 'www.lavaall.com',
+        accept: 'application/json',
+        authorization: 'Bearer test-ceo-bridge-secret-32chars!!',
+      },
+      query: { area: 'api/ceo-bridge/pending' },
+      url: '/ops/api/ceo-bridge/pending',
+    }, stillPending);
+    const held = stillPending.body && stillPending.body.pending && stillPending.body.pending[0];
+    const liveRead = mockRes();
+    await ops(authed(freshCookie, {
+      headers: { accept: 'application/json' },
+      url: '/ops/api/ceo-bridge/routine-health',
+      query: { area: 'api/ceo-bridge/routine-health' },
+    }), liveRead);
+    const liveConfirm = mockRes();
+    await ops(authed(freshCookie, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      url: '/ops/api/ceo-bridge/confirm',
+      query: { area: 'api/ceo-bridge/confirm' },
+      body: { csrf: lib.createCsrfToken(ALLOWED), messageId },
+    }), liveConfirm);
+    const both = mockRes();
+    await ops(authed(freshCookie, { headers: { accept: 'text/html' } }), both);
+    const deadBody = JSON.stringify(deadRead.body || {});
+    check('a cookie invalidated by Sign out all sessions cannot read routine health or confirm a queued action',
+      posted.statusCode === 200
+      && queued.statusCode === 200
+      && Boolean(messageId)
+      && deadRead.statusCode === 403
+      && deadRead.body
+      && deadRead.body.error === 'forbidden'
+      && !deadBody.includes('signed-out-cookie-must-not-see-this')
+      && !deadBody.includes('kit-registry-eod-sync')
+      && deadConfirm.statusCode === 403
+      && deadConfirm.body
+      && deadConfirm.body.error === 'forbidden'
+      && held
+      && held.mayAct === false
+      && held.actionStatus === 'needs_founder_confirm'
+      && liveRead.statusCode === 200
+      && liveRead.body
+      && liveRead.body.routines
+      && liveRead.body.routines[0].reason === 'signed-out-cookie-must-not-see-this'
+      && liveConfirm.statusCode === 200
+      && liveConfirm.body
+      && liveConfirm.body.ok === true
+      && liveConfirm.body.pending
+      && liveConfirm.body.pending.mayAct === true
+      && liveConfirm.body.pending.actionStatus === 'confirmed'
+      && both.statusCode === 200
+      && String(both.raw).includes('id="signin-history"')
+      && String(both.raw).includes('Sign out all sessions')
+      && String(both.raw).includes('id="routine-health"')
+      && String(both.raw).includes('ops-routine-health.js'));
+    delete process.env.OPS_ROUTINE_HEALTH_ENABLED;
+    delete process.env.OPS_CEO_BRIDGE_SECRET;
+    health.resetRoutineHealth();
+    ceo.resetCeoBridge();
   }
 
   {

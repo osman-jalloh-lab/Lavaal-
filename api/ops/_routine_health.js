@@ -12,9 +12,9 @@ const {
   isAllowlisted,
   looksLikeAgentRequest,
   noStore,
-  readSession,
   timingSafeEqualString,
 } = require('./_lib');
+const { readLiveSession } = require('./_signin_hardening');
 
 const SNAPSHOT_KEY = 'lavaall-ops-routine-health-v1';
 const MAX_SNAPSHOT_BYTES = 20 * 1024;
@@ -87,9 +87,9 @@ function verifyBridgeSecret(req) {
   return true;
 }
 
-function founderSession(req) {
+async function founderSession(req) {
   if (looksLikeAgentRequest(req)) return { status: 403, error: 'agent_denied' };
-  const session = readSession(req);
+  const session = await readLiveSession(req);
   if (session && isAllowlisted(session.email)) return { session };
   return { status: 403, error: 'forbidden' };
 }
@@ -426,7 +426,7 @@ async function handleRoutineHealth(req, res) {
   }
   const method = String(req.method || 'GET').toUpperCase();
   if (method === 'GET' || method === 'HEAD') {
-    const access = founderSession(req);
+    const access = await founderSession(req);
     if (!access.session) {
       sendJson(res, access.status, { error: access.error });
       return true;

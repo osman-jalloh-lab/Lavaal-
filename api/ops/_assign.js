@@ -842,7 +842,7 @@ async function confirmResearchyAction({ messageId, founderEmail }) {
 
 async function handleResearchyConfirm(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
-  const access = founderGuard(req);
+  const access = await founderGuard(req);
   if (!access.session) return sendJson(res, access.status, { error: access.error });
   if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
   const body = readBody(req);
