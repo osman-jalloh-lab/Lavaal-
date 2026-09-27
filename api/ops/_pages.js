@@ -102,7 +102,7 @@ function profilePage({ email, store, snapshot, notice, error }) {
   });
 }
 
-function tasksPage({ email, store, snapshot, notice, error }) {
+function tasksPage({ email, store, snapshot, notice, error, heldActions, csrf }) {
   const projectOptions = ['<option value="">No project</option>']
     .concat(store.projects.map((project) => option(project.id, project.name, false)))
     .join('');
@@ -144,16 +144,19 @@ function tasksPage({ email, store, snapshot, notice, error }) {
         </li>`).join('')
     : '';
 
+  const heldHtml = renderHeldActions(heldActions, heldEndpoints('researchy'), csrf);
   return shellPage({
     title: 'LAVAALL OS — Tasks',
     email,
     area: 'tasks',
     notice,
     error,
+    scripts: heldHtml ? HELD_ACTIONS_SCRIPT : '',
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Tasks</h1>
       <p class="lead">Write what to do next. A project is only a folder if you need one.</p>
+      ${heldHtml}
       <section class="card">
         <div class="kicker">Work</div>
         <h2>Add a task</h2>
@@ -312,6 +315,45 @@ function visibleTalkText(text) {
     .trim();
 }
 
+function heldEndpoints(agentId) {
+  if (agentId === 'lavaall-ceo') {
+    return {
+      confirmUrl: '/ops/api/ceo-bridge/confirm',
+      declineUrl: '/ops/api/ceo-bridge/decline',
+    };
+  }
+  if (agentId === 'researchy') {
+    return {
+      confirmUrl: '/ops/api/desk-talk/researchy/confirm',
+      declineUrl: '/ops/api/desk-talk/researchy/decline',
+    };
+  }
+  return null;
+}
+
+function renderHeldActions(items, endpoints, csrf) {
+  const rows = Array.isArray(items) ? items.filter((item) => item && item.messageId) : [];
+  if (!rows.length || !endpoints || !endpoints.confirmUrl || !endpoints.declineUrl) return '';
+  const list = rows.map((item) => {
+    const id = String(item.messageId);
+    return `<li class="held-ok-item" data-message-id="${escapeHtml(id)}">
+        <p class="kicker">Needs your OK</p>
+        <p class="held-summary">${escapeHtml(item.summary || 'Queued action')}</p>
+        <p class="held-from">From ${escapeHtml(item.sender || 'unknown')} · ${escapeHtml(item.sourceLabel || item.source || 'Unknown')}</p>
+        <div class="held-ok-actions">
+          <button type="button" class="btn btn-sm" data-held-action="confirm" data-message-id="${escapeHtml(id)}" data-endpoint="${escapeHtml(endpoints.confirmUrl)}">Confirm</button>
+          <button type="button" class="btn btn-sm btn-danger" data-held-action="decline" data-message-id="${escapeHtml(id)}" data-endpoint="${escapeHtml(endpoints.declineUrl)}">Decline</button>
+        </div>
+      </li>`;
+  }).join('');
+  return `<section class="held-ok" id="held-actions" data-csrf="${escapeHtml(csrf || '')}" aria-label="Needs your OK">
+      <h2>Needs your OK</h2>
+      <ul class="list">${list}</ul>
+    </section>`;
+}
+
+const HELD_ACTIONS_SCRIPT = '<script src="/assets/js/ops-held-actions.js" defer></script>';
+
 function deskMessageBubble(item, agentName) {
   const mine = item.role === 'founder';
   const text = visibleTalkText(item && item.text);
@@ -322,7 +364,7 @@ function deskMessageBubble(item, agentName) {
       </li>`;
 }
 
-function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAgent }) {
+function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAgent, heldActions }) {
   const isCeo = talkAgent && talkAgent.id === 'lavaall-ceo';
   const thread = deskThread && deskThread.id
     ? deskThread
@@ -354,6 +396,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
   const assignControl = isCeo
     ? `<button class="btn btn-assign" type="button" name="assign" value="researchy" data-assign="researchy" id="ceo-assign-researchy">Assign to Researchy</button>`
     : '';
+  const heldHtml = renderHeldActions(heldActions, heldEndpoints(talkAgent.id), csrf);
   const talkGuard = `<meta name="lavaall-talk-agent" content="${escapeHtml(talkAgent.id)}"/>
 <script>
 (function () {
@@ -379,10 +422,12 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     head: talkGuard,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
 <script src="/assets/js/ops-mic.js" defer></script>
-<script src="/assets/js/ops-ceo-chat.js?v=send-not-assign" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=send-not-assign" defer></script>
+${heldHtml ? HELD_ACTIONS_SCRIPT : ''}`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>${escapeHtml(agentName)}</h1>
+      ${heldHtml}
       <section class="card">
         <p id="ceo-waiting" class="empty"${waiting ? '' : ' hidden'}>${escapeHtml(waitText)}</p>
         ${list}
@@ -405,7 +450,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
   });
 }
 
-function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, csrf, ceoThread, deskThread }) {
+function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, csrf, ceoThread, deskThread, heldActions }) {
   const talkAgent = isTalkAgent(agentId) ? officeAgentById(agentId) : null;
   if (talkAgent) {
     return deskChatPage({
@@ -416,6 +461,7 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, c
       csrf,
       deskThread: talkAgent.id === 'lavaall-ceo' ? ceoThread : deskThread,
       talkAgent,
+      heldActions,
     });
   }
   return shellPage({
@@ -1001,4 +1047,16 @@ function issuesPage({ email, store, snapshot, notice, error }) {
   });
 }
 
-module.exports = { profilePage, tasksPage, memoryPage, chatPage, inboxPage, calendarPage, routinesPage, kitsPage, mapPage, issuesPage };
+module.exports = {
+  profilePage,
+  tasksPage,
+  memoryPage,
+  chatPage,
+  inboxPage,
+  calendarPage,
+  routinesPage,
+  kitsPage,
+  mapPage,
+  issuesPage,
+  renderHeldActions,
+};
