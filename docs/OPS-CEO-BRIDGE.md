@@ -1,7 +1,7 @@
 # LAVAALL OS — CEO Talk + Researchy Assign wake
 
 **Status:**
-- **Researchy Assign wake** is production. SoT host is `https://www.lavaall.com`. Poll `/ops/api/desk-talk/researchy/pending` and `…/reply` there. Vercel Preview branch URLs may **410** — do not use them as the Grok Bot origin.
+- **Researchy Assign wake** is production. SoT host is `https://www.lavaall.com`. Primary wake is Slack keyword `LAVAALL_ASSIGN` (handoff channel, when `SLACK_BOT_TOKEN` is set). Standing poll of `/ops/api/desk-talk/researchy/pending` and `…/reply` on that host remains dual-run until founder L3. Vercel Preview branch URLs may **410** — do not use them as the Grok Bot origin. Never put `OPS_CEO_BRIDGE_SECRET` or any secret value in Slack text.
 - CEO Talk Slice 1 B2 Grok poll remains Preview-oriented (**Prod HOLD** as a production CEO B2 poll). The `{PREVIEW_ORIGIN}` routine below is CEO B2 only, not Assign.
 
 Keep `OPS_CEO_BRIDGE_SECRET` in the bot env only — never in this note, git, or logs.
@@ -117,12 +117,12 @@ All six Office Talk agents use a persistent KV thread + server xAI. `_xai.js` is
 
 ## Slice 2 — Assign (CEO → Researchy Grok wake → results-only)
 
-**Production SoT host:** `https://www.lavaall.com`. Researchy Assign wake polls that origin only. Preview branch URLs may 410.
+**Production SoT host:** `https://www.lavaall.com`. Standing poll uses that host. Preview branch URLs may 410. The Slack fence `origin` defaults to the same host.
 
 KV tasks in `_store.js` are the SoT. `_assign.js` creates a **child task** owned by **Researchy**, linked to the parent CEO thread + `correlationId`.
 
 - **Title:** `Assign N — <topic ≤6 words>`. Full founder ask + locked LAVAALL context pack live on the task brief only.
-- **Default work:** wake Researchy Grok Bot via `ops` researchy pending (same `OPS_CEO_BRIDGE_SECRET` as CEO B2). Do **not** treat in-OS xAI “OK Researchy” as the real work.
+- **Default work:** enqueue Researchy pending in KV (same `OPS_CEO_BRIDGE_SECRET` as CEO B2), then post Slack `LAVAALL_ASSIGN` when `SLACK_BOT_TOKEN` is set. Standing poll stays dual-run until founder L3. Do **not** treat in-OS xAI “OK Researchy” as the real work. Never put the bridge secret in Slack.
 - **Optional fallback:** `OPS_ASSIGN_XAI_FALLBACK=1` and no bridge secret → in-OS xAI only.
 - CEO B2 pending is **not** woken (`enqueuePending: false`).
 - Researchy desk-talk thread stores the packed brief. Results write back **Found / recommend** only. Specialist done is not task done until CEO synthesizes / founder OK.
@@ -133,6 +133,14 @@ HTTP:
 - Founder **Assign to Researchy** and explicit NL (`POST /ops/ceo-assign/message`, also `/assign` or “assign to researchy” on the CEO message path)
 - Grok Bot (production): `GET https://www.lavaall.com/ops/api/desk-talk/researchy/pending` and `POST https://www.lavaall.com/ops/api/desk-talk/researchy/reply`  
   Header: `Authorization: Bearer $OPS_CEO_BRIDGE_SECRET` (env only — never paste the value here)
+- Slack primary wake (same moment, after the pending row exists): first line `LAVAALL_ASSIGN <taskId> wake=researchy`, then a fence labeled `LAVAALL_ASSIGN`. JSON fields: `kind` `"assign"`, `taskId`, `pendingId` (the pending message id), `correlationId`, `threadId`, `title`, `brief` (cut at 3500 chars with `briefLen` when longer), `origin` (`LAVAALL_PUBLIC_ORIGIN` when set, otherwise `https://www.lavaall.com`), `replyPath` `/ops/api/desk-talk/researchy/reply`. Channel is `LAVAALL_HANDOFF_CHANNEL` (default `C0C1V0HN3GA`). Missing token or a Slack error does not fail Assign. The post never includes the bridge secret.
+
+### Production cutover (founder L3)
+
+No Production secret changes. `AI_GATEWAY` and the Jev key are not required for this Assign wake.
+
+- **Production:** leave `LAVAALL_PUBLIC_ORIGIN` unset. Assign wake `origin` defaults to `https://www.lavaall.com`. `replyPath` stays `/ops/api/desk-talk/researchy/reply`. Merge under founder L3 only. Dual-run poll of the production pending inbox remains the backup until the Slack wake is proven.
+- **Preview smoke:** may set Preview-only `LAVAALL_PUBLIC_ORIGIN` to that Preview origin (host only, no path) so the fence `origin` matches the host that holds the pending row. Reply to fence `origin` + `replyPath`. Do not copy that value into Production. The production Grok routine below stays pinned to `https://www.lavaall.com`.
 
 ### Researchy Grok Bot routine prompt
 
@@ -143,7 +151,7 @@ This is the production wake recipe that used to live in the Researchy Talk SOUL.
 Jobs are not limited to weekday 09:00–17:00. Poll when the founder may be working. Production SoT origin is `https://www.lavaall.com`. Preview branch URLs may 410 — do not poll them. Keep the secret in the bot’s env — never in this note.
 
 ```
-You are Researchy for LAVAALL. Poll the production Researchy assign wake inbox on https://www.lavaall.com when woken. Do not use Vercel Preview hosts (they may 410).
+You are Researchy for LAVAALL. Primary wake is Slack LAVAALL_ASSIGN <taskId> wake=researchy with a LAVAALL_ASSIGN JSON fence (taskId, pendingId, correlationId, threadId, title, brief). Standing poll of the production inbox on https://www.lavaall.com stays dual-run until founder L3. Do not use Vercel Preview hosts (they may 410). Never put OPS_CEO_BRIDGE_SECRET or any secret in Slack — the bearer stays in the bot env only.
 
 Locked company context (always apply, do not re-ask):
 - West Africa IT sourcing marketplace.
@@ -165,7 +173,7 @@ Locked company context (always apply, do not re-ask):
    Header: Authorization: Bearer $OPS_CEO_BRIDGE_SECRET
    Body JSON: { "threadId": "<item.threadId>", "text": "<findings + recommend>", "pendingId": "<item.messageId>", "correlationId": "<item.correlationId>" }
 5. If the POST is a replay (already written), ignore and continue.
-6. Slack #laval is backup only.
+6. Slack LAVAALL_ASSIGN is the primary Assign wake. Standing poll above is dual-run backup until founder L3. Never paste the bridge secret into Slack.
 
 If pending or reply returns 401, stop — the secret is wrong. If 503, the store is down; retry later. Never invent a founder assign.
 ```
@@ -178,7 +186,7 @@ Use `https://www.lavaall.com` (Preview branch URLs may 410).
 2. Type a generic strategy question (e.g. “how can we leverage LAVAALL better?”) and click **Send**. Network: `POST /ops/ceo-bridge/message` (200). CEO answers. **No** Assign task. **No** Researchy pending row.
 3. Type a long sourcing brief (more than 6 words). Click **Assign to Researchy**. CEO ack. Network: `POST /ops/ceo-assign/message` (200). **No** new row on `GET /ops/api/ceo-bridge/pending`.
 4. Open `/ops/tasks`. Title is `Assign N — <≤6 words>`, not the full brief. Status **Doing**. Detail shows full brief + West Africa / quote-first context pack.
-5. `GET https://www.lavaall.com/ops/api/desk-talk/researchy/pending` with the CEO bridge bearer lists that assign. Researchy Talk shows the packed brief and stays Waiting — no in-OS “OK Researchy” unless `OPS_ASSIGN_XAI_FALLBACK=1`.
+5. `GET https://www.lavaall.com/ops/api/desk-talk/researchy/pending` with the CEO bridge bearer lists that assign. Researchy Talk shows the packed brief and stays Waiting — no in-OS “OK Researchy” unless `OPS_ASSIGN_XAI_FALLBACK=1`. When `SLACK_BOT_TOKEN` is set, the handoff channel also shows `LAVAALL_ASSIGN <taskId> wake=researchy` for that same pending id. The Slack text has no bridge secret. If Slack is unset or the post fails, this poll row still exists.
 6. Researchy Grok Bot `POST https://www.lavaall.com/ops/api/desk-talk/researchy/reply` with findings (include `pendingId` / `correlationId` — never threadId alone). CEO Talk shows **Found:** bullets and **Based on that, recommend … (awaiting your OK)**. No methodology dump. Task becomes **Ready for review**, still Doing — not done.
 7. Repeat with NL: `assign to researchy: source USB-C hubs`. Title increments `Assign N`. Do not involve Technical unless you explicitly ask.
 

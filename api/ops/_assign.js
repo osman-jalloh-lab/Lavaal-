@@ -33,6 +33,7 @@ const {
 } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { classify } = require('../slack/_router/classify');
+const { postAssignWake } = require('../slack/_router/bridge');
 const ceo = require('./_ceo_bridge');
 const desks = require('./_agent_thread');
 
@@ -344,6 +345,24 @@ async function wakeResearchy({ task, packedBrief, founderEmail, childThreadId, c
     text: packedBrief,
     wakeReason: 'assign',
   });
+  if (queued && queued.ok && queued.pending) {
+    const pending = queued.pending;
+    try {
+      await postAssignWake({
+        taskId: (task && task.id) || pending.taskId,
+        pendingId: pending.messageId,
+        correlationId: pending.correlationId,
+        threadId: pending.threadId || childThreadId,
+        title: (task && task.title) || '',
+        brief: packedBrief,
+      });
+    } catch (err) {
+      console.error('[assign] researchy slack wake threw', {
+        taskId: task && task.id ? task.id : null,
+      });
+      void err;
+    }
+  }
   return queued;
 }
 
