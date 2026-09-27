@@ -55,12 +55,13 @@ function authed(extra) {
 
 async function run() {
   process.env.OPS_AUTH_SECRET = SECRET;
+  delete process.env.FOUNDERS_DM_ENABLED;
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
   store.resetStore();
 
   check('nav lists eleven areas without Helper chat', NAV.length === 11
-    && NAV.map((item) => item.id).join(',') === 'dashboard,office,profile,memory,issues,inbox,calendar,kits,map,tasks,routines'
+    && NAV.map((item) => item.id).join(',') === 'dashboard,office,profile,memory,issues,inbox,calendar,tasks,routines,kits,map'
     && NAV.some((item) => item.id === 'profile' && item.label === 'Profile' && item.href === '/ops/profile')
     && !NAV.some((item) => item.id === 'chat'));
 
@@ -83,6 +84,23 @@ async function run() {
     const html = String(res.raw);
     check('logged-in /ops is the dashboard shell', res.statusCode === 200 && html.includes('Dashboard') && html.includes('signed in as') && html.includes(ALLOWED));
     check('dashboard nav links all eleven areas', NAV.every((item) => html.includes(`href="${item.href}"`)) && !html.includes('>Chat</a>'));
+    const groupAt = html.indexOf('class="ops-nav-group"');
+    const groupEnd = html.indexOf('</div>', groupAt);
+    const group = groupAt >= 0 && groupEnd > groupAt ? html.slice(groupAt, groupEnd) : '';
+    check('nav renders the Founders only group with Kits and Map',
+      group.includes('role="group"')
+      && group.includes('aria-labelledby="ops-nav-founders"')
+      && group.includes('id="ops-nav-founders"')
+      && group.includes('>Founders only</h2>')
+      && group.includes('href="/ops/kits"')
+      && group.includes('href="/ops/map"')
+      && group.indexOf('href="/ops/kits"') < group.indexOf('href="/ops/map"')
+      && !group.includes('href="/ops/founders"')
+      && !html.includes('href="/ops/founders"'));
+    check('other nav links stay above the founders group',
+      html.indexOf('href="/ops/calendar"') < groupAt
+      && html.indexOf('href="/ops/tasks"') < groupAt
+      && html.indexOf('href="/ops/routines"') < groupAt);
     check('home title stays Dashboard', html.includes('<h1>Dashboard</h1>') && !html.includes('<h1>Floor</h1>'));
     check('seeded goal and unfinished empty copy are present', html.includes('West Africa Apple reseller') && html.includes('Instagram') && html.includes('No unfinished tasks') && !html.includes('Nothing saved yet'));
     check('add task and note are reachable from home', html.includes('id="add-task"') && html.includes('id="add-note"') && html.includes('Save task') && html.includes('Save note'));

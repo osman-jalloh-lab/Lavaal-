@@ -281,12 +281,17 @@ function readSession(req, opts) {
   return readSessionToken(cookies[SESSION_COOKIE], opts);
 }
 
-function publicOrigin(req) {
-  const configured = process.env.OPS_PUBLIC_URL;
-  if (typeof configured === 'string' && configured) return configured.replace(/\/$/, '');
+function requestOrigin(req) {
   const proto = header(req, 'x-forwarded-proto') || 'https';
   const host = header(req, 'x-forwarded-host') || header(req, 'host') || 'www.lavaall.com';
   return `${String(proto).split(',')[0].trim()}://${String(host).split(',')[0].trim()}`;
+}
+
+function publicOrigin(req) {
+  if (vercelEnv() === 'preview') return requestOrigin(req);
+  const configured = process.env.OPS_PUBLIC_URL;
+  if (typeof configured === 'string' && configured) return configured.replace(/\/$/, '');
+  return requestOrigin(req);
 }
 
 function wantsJson(req) {

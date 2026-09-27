@@ -572,6 +572,7 @@ async function run() {
       && note.includes('Authorization: Bearer $OPS_CEO_BRIDGE_SECRET')
       && note.includes('Never attach a reply by desk threadId alone'));
     const chatJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-ceo-chat.js'), 'utf8');
+    const micJs = fs.readFileSync(path.join(__dirname, '../assets/js/ops-mic.js'), 'utf8');
     check('Talk JS keeps the desk voice and desk poll URL',
       chatJs.includes('function deskVoice()')
       && chatJs.includes('graph.agentName')
@@ -583,9 +584,12 @@ async function run() {
       && !chatJs.includes('/ops/api/ceo-bridge')
       && !chatJs.includes("mine ? 'You' : 'LAVAALL CEO'"));
     check('Talk JS binds browser SpeechRecognition into the compose box',
-      chatJs.includes('webkitSpeechRecognition')
-      && chatJs.includes('bindTalkMic')
-      && chatJs.includes('Microphone permission denied')
+      chatJs.includes('bindTalkMic')
+      && chatJs.includes('lavaallBindSpeechMic')
+      && micJs.includes('webkitSpeechRecognition')
+      && micJs.includes('Microphone permission denied')
+      && !micJs.includes('api.openai.com')
+      && !micJs.includes('/stt')
       && !chatJs.includes('api.openai.com')
       && !chatJs.includes('/stt'));
   }

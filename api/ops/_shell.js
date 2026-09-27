@@ -2,7 +2,10 @@
 // Option I — Aboard blush workspace, improved with LAVAALL cyan/emerald.
 // Preview only. Underscore prefix: not a Vercel function.
 
+const { AsyncLocalStorage } = require('async_hooks');
 const { escapeHtml } = require('./_lib');
+
+const shellRequest = new AsyncLocalStorage();
 
 const NAV = Object.freeze([
   { id: 'dashboard', href: '/ops', label: 'Dashboard' },
@@ -12,11 +15,13 @@ const NAV = Object.freeze([
   { id: 'issues', href: '/ops/issues', label: 'Issues' },
   { id: 'inbox', href: '/ops/inbox', label: 'Inbox' },
   { id: 'calendar', href: '/ops/calendar', label: 'Calendar' },
-  { id: 'kits', href: '/ops/kits', label: 'Kits' },
-  { id: 'map', href: '/ops/map', label: 'Map' },
   { id: 'tasks', href: '/ops/tasks', label: 'Tasks' },
   { id: 'routines', href: '/ops/routines', label: 'Routines' },
+  { id: 'kits', href: '/ops/kits', label: 'Kits' },
+  { id: 'map', href: '/ops/map', label: 'Map' },
 ]);
+
+const FOUNDER_NAV_IDS = Object.freeze(['kits', 'map']);
 
 function areaInfo(area) {
   const id = NAV.some((item) => item.id === area) ? area : 'dashboard';
@@ -62,6 +67,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 .ops-nav a{display:flex;align-items:center;padding:9px 12px;border-radius:12px;color:var(--text);font-size:13px;font-weight:600;background:transparent;border:1px solid transparent;}
 .ops-nav a:hover{background:rgba(255,255,255,.55);}
 .ops-nav a[aria-current=page]{background:linear-gradient(90deg,rgba(46,196,255,.18),rgba(16,185,129,.12));color:var(--sky-deep);border-color:rgba(46,196,255,.28);}
+.ops-nav-group{display:flex;flex-direction:column;gap:4px;margin-top:12px;}
+h2.ops-nav-kicker{margin:2px 12px 4px;color:var(--muted);font-family:'Bricolage Grotesque',sans-serif;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;line-height:1.3;}
 .ops-side-foot{display:grid;gap:10px;padding-top:12px;border-top:1px solid rgba(228,216,208,.9);}
 .ops-top{display:none;}
 .brand{font-family:'Clash Display',sans-serif;font-size:22px;letter-spacing:-.03em;}
@@ -110,8 +117,19 @@ textarea{min-height:88px;resize:vertical;}
 .ctx{margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);}
 .ctx legend{color:var(--sky-deep);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
 .thread{list-style:none;display:grid;gap:10px;margin-bottom:16px;}
+.nav-unread{display:inline-block;margin-left:6px;min-width:1.15rem;padding:0 5px;border-radius:999px;background:var(--coral);color:#fff;font-size:11px;line-height:1.45;text-align:center;vertical-align:1px;}
+.dm-compose{display:grid;gap:8px;}
+.dm-thread{max-height:min(62vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;}
+.dm-new{display:block;margin:0 auto 8px;width:auto;padding:6px 12px;border-radius:999px;border:1px solid rgba(46,196,255,.35);background:rgba(46,196,255,.16);color:var(--sky-deep);font:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+.dm-new[hidden]{display:none;}
+.dm-compose textarea{font-size:16px;}
+.dm-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.dm-actions .btn{width:auto;flex:1 1 8rem;margin-top:0;min-height:44px;}
+.dm-actions .btn-mic{flex:0 0 auto;min-height:44px;}
+.dm-mic-note{flex:1 1 12rem;margin:0;color:var(--muted);font-size:12px;line-height:1.35;}
+#dm-mic-status{margin:0;}
 .bubble{padding:12px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);}
-.bubble p{color:var(--text);}
+.bubble p{color:var(--text);overflow-wrap:anywhere;}
 .bubble.user{border-color:rgba(46,196,255,.35);background:rgba(46,196,255,.08);}
 .bubble.assistant{border-color:rgba(16,185,129,.28);background:var(--emerald-wash);}
 .ok{margin-bottom:12px;color:var(--emerald);background:var(--emerald-wash);border:1px solid #A7E9CF;border-radius:12px;padding:10px 12px;font-size:14px;}
@@ -218,9 +236,13 @@ textarea{min-height:88px;resize:vertical;}
   .ops-side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px;}
   .ops-nav{flex-direction:row;flex-wrap:wrap;gap:6px;}
   .ops-nav a{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.55);border-color:var(--line);}
+  .ops-nav-group{flex-basis:100%;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;margin-top:4px;width:100%;}
+  h2.ops-nav-kicker{flex-basis:100%;margin:2px 2px 0;}
   .ops-side-foot{grid-template-columns:1fr auto;align-items:center;border-top:0;padding-top:0;}
   .ops-main{padding:18px 16px 36px;}
   .ops-top{display:none;}
+  .dm-compose{position:sticky;bottom:0;padding-bottom:8px;background:var(--canvas);}
+  .dm-thread{max-height:none;}
 }
 @media (max-width:700px){
   .kits-table thead{display:none;}
@@ -232,11 +254,50 @@ textarea{min-height:88px;resize:vertical;}
 `;
 }
 
-function shellPage({ title, email, area, body, notice, error, scripts, head }) {
-  const current = areaInfo(area).id;
-  const nav = NAV.map((item) => (
-    `<a href="${item.href}"${item.id === current ? ' aria-current="page"' : ''}>${escapeHtml(item.label)}</a>`
-  )).join('');
+function runWithShellRequest(value, fn) {
+  return shellRequest.run(value || {}, fn);
+}
+
+function requestPrivateNav() {
+  const current = shellRequest.getStore();
+  return current && current.privateNav ? current.privateNav : null;
+}
+
+function renderNavLink(item, current) {
+  return `<a href="${item.href}"${item.id === current ? ' aria-current="page"' : ''}>${escapeHtml(item.label)}</a>`;
+}
+
+function renderPrivateLink(extra, current) {
+  const unread = Math.max(0, Math.floor(Number(extra.unread) || 0));
+  const shown = unread > 99 ? '99+' : String(unread);
+  const badge = unread > 0
+    ? ` <span class="nav-unread" aria-label="${shown} unread">${shown}</span>`
+    : '';
+  const label = extra.label || 'Private';
+  const href = extra.href || '/ops/founders';
+  return `<a href="${escapeHtml(href)}"${current === 'founders' ? ' aria-current="page"' : ''}>${escapeHtml(label)}${badge}</a>`;
+}
+
+function renderShellNav(current, extra) {
+  const main = NAV.filter((item) => !FOUNDER_NAV_IDS.includes(item.id));
+  const founders = FOUNDER_NAV_IDS
+    .map((id) => NAV.find((item) => item.id === id))
+    .filter(Boolean)
+    .map((item) => renderNavLink(item, current));
+  const links = [];
+  if (extra && extra.href) links.push(renderPrivateLink(extra, current));
+  links.push(...founders);
+  const group = `<div class="ops-nav-group" role="group" aria-labelledby="ops-nav-founders"><h2 id="ops-nav-founders" class="ops-nav-kicker">Founders only</h2>${links.join('')}</div>`;
+  return main.map((item) => renderNavLink(item, current)).join('') + group;
+}
+
+function shellPage({ title, email, area, body, notice, error, scripts, head, privateNav }) {
+  const extra = privateNav || requestPrivateNav();
+  const current = area === 'founders' ? 'founders' : areaInfo(area).id;
+  const nav = renderShellNav(current, extra);
+  const foundersScript = extra && extra.href
+    ? '<script src="/assets/js/ops-mic.js" defer></script>\n<script src="/assets/js/ops-founders-dm.js" defer></script>'
+    : '';
   const alert = error
     ? `<p class="err" role="alert">${escapeHtml(error)}</p>`
     : notice
@@ -286,6 +347,7 @@ ${typeof head === 'string' ? head : ''}
   </div>
 </div>
 ${typeof scripts === 'string' ? scripts : ''}
+${foundersScript}
 </body>
 </html>`;
 }
@@ -412,6 +474,7 @@ module.exports = {
   dashboardSections,
   opsThemeVars,
   persistenceBanner,
+  runWithShellRequest,
   shellPage,
   stubPage,
 };
