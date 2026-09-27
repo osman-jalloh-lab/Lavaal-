@@ -27,6 +27,11 @@ const {
 } = require('./_calendar');
 const { describeChatSetup, sendChatTurn } = require('./_chat');
 const { CEO_DESK_ID, getFounderThread, handleCeoBridge } = require('./_ceo_bridge');
+const {
+  readRoutineHealthView,
+  renderRoutineHealthStrip,
+  routineHealthEnabled,
+} = require('./_routine_health');
 const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
 const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
 const {
@@ -170,6 +175,14 @@ async function payload(session, area, search) {
   }
 }
 
+async function withRoutineHealth(pageOpts) {
+  if (!routineHealthEnabled()) return pageOpts;
+  const view = await readRoutineHealthView();
+  return Object.assign({}, pageOpts, {
+    routineHealthHtml: renderRoutineHealthStrip(view),
+  });
+}
+
 async function renderArea(req, res, session, extra) {
   const area = resolveArea(req);
   const search = firstQuery(queryOf(req), 'q') || '';
@@ -221,7 +234,7 @@ async function renderArea(req, res, session, extra) {
 
   switch (area) {
     case 'dashboard':
-      return sendHtml(res, 200, dashboardPage(pageOpts));
+      return sendHtml(res, 200, dashboardPage(await withRoutineHealth(pageOpts)));
     case 'office':
       return sendHtml(res, 200, officePage(pageOpts));
     case 'profile':
@@ -274,7 +287,7 @@ async function renderArea(req, res, session, extra) {
     default: {
       const _never = area;
       void _never;
-      return sendHtml(res, 200, dashboardPage(pageOpts));
+      return sendHtml(res, 200, dashboardPage(await withRoutineHealth(pageOpts)));
     }
   }
 }

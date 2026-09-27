@@ -78,6 +78,25 @@ h2.ops-nav-kicker{margin:2px 12px 4px;color:var(--muted);font-family:'Bricolage 
 .ops-main{min-width:0;padding:28px 32px 48px;}
 .ops-wrap{width:min(1100px,100%);margin:0 auto;}
 .banner{margin:0 0 16px;padding:10px 12px;border-radius:12px;border:1px solid #F3D19A;background:#FFF6E0;color:var(--amber);font-size:13px;}
+.routine-health{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 12px;margin:0 0 16px;padding:8px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);}
+.routine-health-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+.routine-health h2{margin:0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;}
+.routine-health-state,.routine-health-empty{font-size:12px;color:var(--muted);font-weight:600;}
+.routine-health-stale{color:var(--amber);font-size:12px;font-weight:700;}
+.routine-health [hidden]{display:none;}
+.routine-health-list{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;min-width:0;}
+.routine-health-item{border:1px solid var(--line);border-radius:16px;background:var(--surface-2);max-width:100%;}
+.routine-health-item summary{display:flex;align-items:center;gap:6px;padding:4px 10px;cursor:pointer;list-style:none;font-size:12px;font-weight:600;}
+.routine-health-item summary::-webkit-details-marker{display:none;}
+.routine-health-item summary:focus-visible{outline:3px solid var(--emerald);outline-offset:2px;}
+.rh-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;}
+.rh-ok{background:#047857;}
+.rh-warn{background:#B45309;}
+.rh-bad{background:#E11D48;}
+.rh-run{background:#0891B2;}
+.rh-status,.rh-time{color:var(--muted);font-weight:500;}
+.rh-status{font-size:11px;letter-spacing:.04em;}
+.rh-reason{margin:0;padding:0 10px 8px;font-size:12px;font-weight:500;line-height:1.4;overflow-wrap:anywhere;}
 .grid{display:grid;gap:16px;}
 @media (min-width:800px){.grid.two{grid-template-columns:1fr 1fr;} .grid.forms{grid-template-columns:1fr 1fr;}}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 10px 28px rgba(28,20,16,.04);}
@@ -431,15 +450,17 @@ function dashboardSections({ snapshot, returnTo }) {
     `;
 }
 
-function dashboardPage({ email, snapshot, notice, error }) {
+function dashboardPage({ email, snapshot, notice, error, routineHealthHtml }) {
   return shellPage({
     title: 'LAVAALL OS — Dashboard',
     email,
     area: 'dashboard',
     notice,
     error,
+    scripts: routineHealthHtml ? '<script src="/assets/js/ops-routine-health.js" defer></script>' : '',
     body: `
       ${persistenceBanner(snapshot.durable)}
+      ${routineHealthHtml || ''}
       <h1>Dashboard</h1>
       <p class="lead">What we are finishing, and the next thing to do. Add a task or a note below.</p>
       ${dashboardSections({ snapshot, returnTo: '/ops' })}
