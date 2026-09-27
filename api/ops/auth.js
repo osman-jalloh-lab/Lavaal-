@@ -1,7 +1,7 @@
 // api/ops/auth.js — LAVAALL OS founder sign-in (Vercel serverless).
 // Founders sign in with Google. The server checks the ID token and allowlist.
 // Email-only instant login does not issue a session in any environment.
-// POST action=google|request|logout  ·  GET ?code=&state= Google callback
+// POST action=google|request|logout|signout-all  ·  GET ?code=&state= Google callback
 // GET ?token=… still consumes a one-time magic link when one was delivered.
 
 const { loginPage } = require('./_html');
@@ -29,12 +29,22 @@ const {
   queryOf,
   rateLimited,
   readBody,
-  readSession,
+  readCsrfToken,
   redirect,
   sessionCookie,
   timingSafeEqualString,
   wantsJson,
+  header,
 } = require('./_lib');
+const {
+  bumpSessionGeneration,
+  domainOf,
+  mintSessionToken,
+  noteSignIn,
+  readLiveSession,
+  rejectedWho,
+  signInHardeningEnabled,
+} = require('./_signin_hardening');
 const {
   OAUTH_COOKIE,
   allowedOauthOrigin,
@@ -135,6 +145,7 @@ async function handleGoogleCallback(req, res) {
   const state = firstQueryValue(query.state);
   if (query.error || !validAuthCode(code) || typeof state !== 'string' || state.length < 20 || state.length > 200) {
     logGoogle('rejected', 'callback');
+    await noteSignIn(req, 'rejected: unknown', 'rejected');
     return failGoogle(req, res);
   }
 
@@ -142,10 +153,12 @@ async function handleGoogleCallback(req, res) {
   const tx = readOAuthTransaction(cookies[OAUTH_COOKIE]);
   if (!tx || !timingSafeEqualString(tx.state, state)) {
     logGoogle('rejected', 'state');
+    await noteSignIn(req, 'rejected: unknown', 'rejected');
     return failGoogle(req, res);
   }
   if (!consumeOAuthState(tx.state, tx.exp)) {
     logGoogle('rejected', 'state');
+    await noteSignIn(req, 'rejected: unknown', 'rejected');
     return failGoogle(req, res, 401, true);
   }
 
@@ -158,10 +171,12 @@ async function handleGoogleCallback(req, res) {
     });
   } catch {
     logGoogle('rejected', 'exchange');
+    await noteSignIn(req, 'rejected: unknown', 'rejected');
     return failGoogle(req, res, 503, true);
   }
   if (!exchanged.ok) {
     logGoogle('rejected', exchanged.reason || 'exchange');
+    await noteSignIn(req, 'rejected: unknown', 'rejected');
     return failGoogle(req, res, 401, true);
   }
 
@@ -170,14 +185,20 @@ async function handleGoogleCallback(req, res) {
     verified = await verifyGoogleIdToken(exchanged.idToken, { nonce: tx.nonce });
   } catch {
     logGoogle('rejected', 'verify');
+    await noteSignIn(req, 'rejected: unknown', 'rejected');
     return failGoogle(req, res, 503, true);
   }
   if (!verified.ok) {
     logGoogle('rejected', verified.reason);
+    const who = verified.reason === 'not_allowlisted'
+      ? rejectedWho(verified.domain)
+      : 'rejected: unknown';
+    await noteSignIn(req, who, 'rejected');
     return failGoogle(req, res, 401, true);
   }
 
-  const session = sessionCookie(createSessionToken(verified.email), req);
+  const session = sessionCookie(await mintSessionToken(verified.email), req);
+  await noteSignIn(req, verified.email, 'signed_in');
   const clear = clearOAuthCookie(req);
   logGoogle('ok');
   if (wantsJson(req)) {
@@ -244,11 +265,12 @@ async function handleRequest(req, res) {
     return redirect(res, '/ops?sent=1');
   }
 
+  await noteSignIn(req, rejectedWho(domainOf(email)), 'rejected');
   if (wantsJson(req)) return json(res, 200, { accepted: true, message: genericRequestMessage() });
   return redirect(res, '/ops?sent=1');
 }
 
-function handleVerify(req, res) {
+async function handleVerify(req, res) {
   if (!authConfigured()) {
     return wantsJson(req)
       ? json(res, 503, { error: 'auth_not_configured' })
@@ -258,11 +280,13 @@ function handleVerify(req, res) {
   const token = Array.isArray(rawToken) ? rawToken[0] : rawToken;
   const result = consumeMagicToken(token);
   if (!result.email) {
+    await noteSignIn(req, 'rejected: unknown', 'rejected');
     return wantsJson(req)
       ? json(res, 400, { error: result.error || 'invalid', message: genericLinkFailure() })
       : redirect(res, '/ops?error=' + encodeURIComponent(genericLinkFailure()));
   }
-  const cookie = sessionCookie(createSessionToken(result.email), req);
+  const cookie = sessionCookie(await mintSessionToken(result.email), req);
+  await noteSignIn(req, result.email, 'signed_in');
   if (wantsJson(req)) {
     res.setHeader('Set-Cookie', cookie);
     return json(res, 200, { ok: true, email: result.email });
@@ -279,8 +303,58 @@ function handleLogout(req, res) {
   return redirect(res, '/ops', cookie);
 }
 
-function handleSession(req, res) {
-  const session = readSession(req);
+function csrfFrom(req, body) {
+  return (body && body.csrf)
+    || header(req, 'x-csrf-token')
+    || header(req, 'x-csrf');
+}
+
+async function handleSignOutAll(req, res) {
+  if (!signInHardeningEnabled()) {
+    return wantsJson(req) ? json(res, 404, { error: 'not_found' }) : redirect(res, '/ops');
+  }
+  if (looksLikeAgentRequest(req)) {
+    return requestFailed(req, res, 403, 'agent_denied', genericSignInFailure());
+  }
+  if (!authConfigured()) {
+    return requestFailed(req, res, 503, 'auth_not_configured', 'Sign-in is not configured yet.');
+  }
+  if (payloadTooLarge(req)) return requestFailed(req, res, 413, 'payload_too_large', 'Request is too large.');
+
+  const session = await readLiveSession(req);
+  if (!session) {
+    return wantsJson(req)
+      ? json(res, 401, { error: 'sign_in_required' })
+      : redirect(res, '/ops?error=' + encodeURIComponent('Sign in required.'));
+  }
+  if (rateLimited(`signout-all:${clientIp(req)}`, 30_000)) {
+    return requestFailed(req, res, 429, 'rate_limited', genericRateLimitMessage());
+  }
+  const body = readBody(req);
+  if (!readCsrfToken(csrfFrom(req, body), session.email)) {
+    return wantsJson(req)
+      ? json(res, 403, { error: 'csrf' })
+      : redirect(res, '/ops?signout=rejected');
+  }
+
+  const bumped = await bumpSessionGeneration();
+  if (!bumped.ok) {
+    return wantsJson(req)
+      ? json(res, 503, { error: 'store_unavailable' })
+      : redirect(res, '/ops?signout=unavailable');
+  }
+
+  const cookie = sessionCookie(createSessionToken(session.email, { generation: bumped.generation }), req);
+  await noteSignIn(req, session.email, 'signed_out_all');
+  if (wantsJson(req)) {
+    res.setHeader('Set-Cookie', cookie);
+    return json(res, 200, { ok: true });
+  }
+  return redirect(res, '/ops?revoked=1', cookie);
+}
+
+async function handleSession(req, res) {
+  const session = await readLiveSession(req);
   if (!session) return json(res, 401, { authenticated: false });
   return json(res, 200, { authenticated: true, email: session.email });
 }
@@ -292,7 +366,7 @@ async function auth(req, res) {
     if (query.code || query.state || (query.error && !query.token)) return handleGoogleCallback(req, res);
     if (query.token) return handleVerify(req, res);
     if (wantsJson(req) || query.action === 'session') return handleSession(req, res);
-    const session = readSession(req);
+    const session = await readLiveSession(req);
     return redirect(res, session ? '/ops' : '/ops?error=' + encodeURIComponent('Sign in required.'));
   }
 
@@ -307,6 +381,8 @@ async function auth(req, res) {
       return handleGoogleStart(req, res);
     case 'logout':
       return handleLogout(req, res);
+    case 'signout-all':
+      return handleSignOutAll(req, res);
     case 'session':
       return handleSession(req, res);
     default:

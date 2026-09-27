@@ -75,6 +75,9 @@ h2.ops-nav-kicker{margin:2px 12px 4px;color:var(--muted);font-family:'Bricolage 
 .who{font-size:12px;color:var(--muted);line-height:1.4;word-break:break-word;}
 .who span{color:var(--emerald);font-weight:600;}
 .signout{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;}
+.signin-lead{color:var(--muted);font-size:13px;line-height:1.45;margin:0 0 12px;}
+.signin-meta{display:block;margin-top:4px;color:var(--muted);font-size:12px;line-height:1.4;}
+#signin-history{margin:0 0 16px;}
 .ops-main{min-width:0;padding:28px 32px 48px;}
 .ops-wrap{width:min(1100px,100%);margin:0 auto;}
 .banner{margin:0 0 16px;padding:10px 12px;border-radius:12px;border:1px solid #F3D19A;background:#FFF6E0;color:var(--amber);font-size:13px;}
@@ -450,7 +453,7 @@ function dashboardSections({ snapshot, returnTo }) {
     `;
 }
 
-function dashboardPage({ email, snapshot, notice, error, routineHealthHtml }) {
+function dashboardPage({ email, snapshot, notice, error, signInPanel, routineHealthHtml }) {
   return shellPage({
     title: 'LAVAALL OS — Dashboard',
     email,
@@ -463,6 +466,7 @@ function dashboardPage({ email, snapshot, notice, error, routineHealthHtml }) {
       ${routineHealthHtml || ''}
       <h1>Dashboard</h1>
       <p class="lead">What we are finishing, and the next thing to do. Add a task or a note below.</p>
+      ${typeof signInPanel === 'string' ? signInPanel : ''}
       ${dashboardSections({ snapshot, returnTo: '/ops' })}
     `,
   });

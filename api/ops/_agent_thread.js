@@ -19,7 +19,6 @@ const {
   queryOf,
   readBody,
   readCsrfToken,
-  readSession,
   redirect,
   wantsJson,
 } = require('./_lib');
@@ -29,6 +28,7 @@ const { talkSystemPrompt } = require('./_souls');
 const { normalizeTalkAgentId, officeAgentById } = require('./_office');
 const ceoBridge = require('./_ceo_bridge');
 const assign = require('./_assign');
+const { readLiveSession } = require('./_signin_hardening');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const THREAD_KEY_PREFIX = 'ops:agent:thread:';
@@ -768,9 +768,9 @@ function sendJson(res, status, body) {
   return json(res, status, body);
 }
 
-function founderGuard(req) {
+async function founderGuard(req) {
   if (looksLikeAgentRequest(req)) return { status: 403, error: 'agent_denied' };
-  const session = readSession(req);
+  const session = await readLiveSession(req);
   if (session) return { session };
   const claimed = peekSessionEmail(req) || normalizeEmail(header(req, 'x-ops-email') || '');
   if (claimed && !isAllowlisted(claimed)) return { status: 403, error: 'forbidden' };
@@ -862,7 +862,7 @@ function sendDeskError(req, res, error, agentId) {
 
 async function handleMessage(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
-  const access = founderGuard(req);
+  const access = await founderGuard(req);
   if (!access.session) return sendJson(res, access.status, { error: access.error });
   if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
   const body = readBody(req);
@@ -902,7 +902,7 @@ async function handleMessage(req, res) {
 
 async function handleThread(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'method_not_allowed' });
-  const access = founderGuard(req);
+  const access = await founderGuard(req);
   if (!access.session) return sendJson(res, access.status, { error: access.error });
   const agentId = normalizeAgentId(agentFromPath(req) || firstQuery(req, 'agent') || firstQuery(req, 'agentId'));
   if (!agentId || agentId === CEO_DESK_ID) return sendDeskError(req, res, 'invalid_agent', agentId);

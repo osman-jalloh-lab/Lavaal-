@@ -72,10 +72,15 @@ const {
   payloadTooLarge,
   queryOf,
   readBody,
-  readSession,
   redirect,
   wantsJson,
 } = require('./_lib');
+const {
+  listSignInEvents,
+  readLiveSession,
+  renderSignInHistory,
+  signInHardeningEnabled,
+} = require('./_signin_hardening');
 
 function sendHtml(res, status, html) {
   noStore(res, 'text/html; charset=utf-8');
@@ -187,8 +192,12 @@ async function renderArea(req, res, session, extra) {
   const area = resolveArea(req);
   const search = firstQuery(queryOf(req), 'q') || '';
   const data = await payload(session, area, search);
+  if (area === 'dashboard' && signInHardeningEnabled()) {
+    data.signInHistory = await listSignInEvents();
+  }
   if (wantsJson(req)) return json(res, 200, data);
 
+  const csrf = (extra && extra.csrf) || createCsrfToken(session.email);
   const pageOpts = {
     email: session.email,
     store: data.store,
@@ -200,9 +209,12 @@ async function renderArea(req, res, session, extra) {
     inboxSetup: data.inboxSetup,
     calendarSetup: data.calendarSetup,
     kitsSetup: data.kitsSetup,
-    csrf: (extra && extra.csrf) || createCsrfToken(session.email),
+    csrf,
     openThread: firstQuery(queryOf(req), 'thread') || '',
     agentId: talkAgentFromReq(req),
+    signInPanel: area === 'dashboard' && signInHardeningEnabled()
+      ? renderSignInHistory({ events: data.signInHistory || [], csrf })
+      : '',
   };
 
   if (area === 'chat' && isTalkAgent(pageOpts.agentId)) {
@@ -617,7 +629,7 @@ function denyKits(req, res, access) {
 async function handleKitsApi(req, res) {
   const kind = kitsApiKind(req);
   if (!kind) return false;
-  const access = kitsGuard(req);
+  const access = await kitsGuard(req);
   if (!access.session) return denyKits(req, res, access);
   if (kind === 'list') {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -702,7 +714,7 @@ async function handleKitsApi(req, res) {
 
 async function handleMapApi(req, res) {
   if (!mapApiKind(req)) return false;
-  const access = mapGuard(req);
+  const access = await mapGuard(req);
   if (!access.session) return denyKits(req, res, access);
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     json(res, 405, { error: 'method_not_allowed' });
@@ -725,10 +737,10 @@ async function opsDispatch(req, res) {
   if (await handleKitsApi(req, res)) return;
   if (await handleMapApi(req, res)) return;
 
-  const session = readSession(req);
+  const session = await readLiveSession(req);
   const area = resolveArea(req);
   if (area === 'kits' || area === 'map') {
-    const access = area === 'map' ? mapGuard(req) : kitsGuard(req);
+    const access = area === 'map' ? await mapGuard(req) : await kitsGuard(req);
     if (!access.session) return denyKits(req, res, access);
   }
 
@@ -745,7 +757,7 @@ async function opsDispatch(req, res) {
     return json(res, 405, { error: 'method_not_allowed' });
   }
 
-  if (session) return renderArea(req, res, session);
+  if (session) return renderArea(req, res, session, signInPageExtra(req));
 
   const query = queryOf(req);
   const sent = firstQuery(query, 'sent');
@@ -756,6 +768,21 @@ async function opsDispatch(req, res) {
     return sendHtml(res, 401, loginPage({ error: message }));
   }
   return sendHtml(res, 401, loginPage());
+}
+
+function signInPageExtra(req) {
+  if (!signInHardeningEnabled()) return undefined;
+  const query = queryOf(req);
+  if (firstQuery(query, 'revoked') === '1') {
+    return { notice: 'Older sessions were signed out. This browser stays signed in.' };
+  }
+  if (firstQuery(query, 'signout') === 'unavailable') {
+    return { error: 'Could not sign out other sessions. Try again shortly.' };
+  }
+  if (firstQuery(query, 'signout') === 'rejected') {
+    return { error: 'That sign-out request was rejected. Reload and try again.' };
+  }
+  return undefined;
 }
 
 function skipFoundersNav(req) {

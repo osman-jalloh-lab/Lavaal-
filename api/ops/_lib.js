@@ -24,6 +24,8 @@ const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 // Version 3 invalidates every cookie minted before Google sign-in, including
 // version 2 sessions from the production instant-login path (an allowlisted
 // address alone was enough to obtain a cookie).
+// Stay on 3. "Sign out all sessions" uses a separate KV generation counter
+// and must not rotate the auth signing secret.
 const SESSION_VERSION = 3;
 const EXP_SKEW_MS = 30 * 1000;
 const SESSION_COOKIE = 'lavaall_ops';
@@ -206,16 +208,24 @@ function consumeMagicToken(token, opts) {
   return { email: payload.e };
 }
 
+function sessionGeneration(value) {
+  if (!Number.isInteger(value) || value < 0 || value > 1_000_000_000) return null;
+  return value;
+}
+
 function createSessionToken(email, opts) {
   const now = opts && Number.isFinite(opts.now) ? opts.now : Date.now();
   const ttl = opts && Number.isFinite(opts.ttlMs) ? opts.ttlMs : SESSION_TTL_MS;
-  return signToken('session', {
+  const payload = {
     v: SESSION_VERSION,
     e: normalizeEmail(email),
     aud: sessionAudience(),
     iat: now,
     exp: now + ttl,
-  });
+  };
+  const generation = sessionGeneration(opts && opts.generation);
+  if (generation != null) payload.g = generation;
+  return signToken('session', payload);
 }
 
 function readSessionToken(token, opts) {
@@ -225,7 +235,13 @@ function readSessionToken(token, opts) {
   const { payload } = read;
   if (payload.v !== SESSION_VERSION || payload.aud !== sessionAudience() || !isAllowlisted(payload.e) || !Number.isFinite(payload.exp)) return null;
   if (payload.exp + EXP_SKEW_MS <= now) return null;
-  return { email: payload.e, exp: payload.exp, iat: payload.iat };
+  const generation = sessionGeneration(payload.g);
+  return {
+    email: payload.e,
+    exp: payload.exp,
+    iat: payload.iat,
+    gen: generation == null ? 0 : generation,
+  };
 }
 
 function parseCookies(req) {

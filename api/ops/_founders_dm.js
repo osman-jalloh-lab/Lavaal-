@@ -21,10 +21,10 @@ const {
   queryOf,
   readBody,
   readCsrfToken,
-  readSession,
   redirect,
   wantsJson,
 } = require('./_lib');
+const { readLiveSession } = require('./_signin_hardening');
 const { persistenceBanner, shellPage } = require('./_shell');
 
 const DM_KEY = 'lavaall-ops-founders-dm-v1';
@@ -640,10 +640,10 @@ function foundersDmKind(req) {
   return '';
 }
 
-function guard(req) {
+async function guard(req) {
   if (!foundersDmEnabled()) return { status: 404, error: 'not_found' };
   if (looksLikeAgentRequest(req)) return { status: 403, error: 'agent_denied' };
-  const session = readSession(req);
+  const session = await readLiveSession(req);
   if (session && isFounderDmIdentity(session.email)) return { session };
   const claimed = peekSessionEmail(req) || normalizeEmail(header(req, 'x-ops-email') || '');
   if ((session && !isFounderDmIdentity(session.email)) || (claimed && !isFounderDmIdentity(claimed))) {
@@ -893,7 +893,7 @@ async function handlePage(req, res, session) {
 
 async function foundersNavFor(req) {
   if (!foundersDmEnabled() || looksLikeAgentRequest(req)) return null;
-  const session = readSession(req);
+  const session = await readLiveSession(req);
   if (!session || !isFounderDmIdentity(session.email)) return null;
   if (wantsJson(req) || foundersDmKind(req) === 'api') return null;
   if (!encryptionReady()) {
@@ -913,7 +913,7 @@ async function foundersNavFor(req) {
 async function handleFoundersDm(req, res) {
   const kind = foundersDmKind(req);
   if (!kind) return false;
-  const access = guard(req);
+  const access = await guard(req);
   if (!access.session) {
     deny(req, res, access, kind);
     return true;

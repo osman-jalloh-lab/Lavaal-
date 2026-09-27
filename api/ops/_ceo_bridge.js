@@ -22,11 +22,11 @@ const {
   queryOf,
   readBody,
   readCsrfToken,
-  readSession,
   redirect,
   timingSafeEqualString,
   wantsJson,
 } = require('./_lib');
+const { readLiveSession } = require('./_signin_hardening');
 const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
@@ -562,9 +562,9 @@ function verifyBridgeSecret(req) {
   return { ok: true };
 }
 
-function founderGuard(req) {
+async function founderGuard(req) {
   if (looksLikeAgentRequest(req)) return { status: 403, error: 'agent_denied' };
-  const session = readSession(req);
+  const session = await readLiveSession(req);
   if (session) return { session };
   const claimed = peekSessionEmail(req) || normalizeEmail(header(req, 'x-ops-email') || '');
   if (claimed && !isAllowlisted(claimed)) return { status: 403, error: 'forbidden' };
@@ -1305,7 +1305,7 @@ function sendBridgeError(req, res, error) {
 
 async function handleMessage(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
-  const access = founderGuard(req);
+  const access = await founderGuard(req);
   if (!access.session) return sendJson(res, access.status, { error: access.error });
   if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
   const body = readBody(req);
@@ -1336,7 +1336,7 @@ async function handleMessage(req, res) {
 
 async function handleThread(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'method_not_allowed' });
-  const access = founderGuard(req);
+  const access = await founderGuard(req);
   if (!access.session) return sendJson(res, access.status, { error: access.error });
   const requested = clean(firstQuery(req, 'id') || firstQuery(req, 'threadId'), 40);
   const ownId = threadIdFor(access.session.email);
