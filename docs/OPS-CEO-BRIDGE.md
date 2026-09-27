@@ -52,6 +52,8 @@ The CEO routine still sends `Authorization: Bearer <OPS_CEO_BRIDGE_SECRET>` to:
 - `GET /ops/api/ceo-bridge/pending`
 - `POST /ops/api/ceo-bridge/reply`
 
+The same bearer may also `POST /ops/api/ceo-bridge/routine-health` when `OPS_ROUTINE_HEALTH_ENABLED` is on. That flag defaults off. The bearer cannot read the founder view. Exact JSON, size cap, and curl: `docs/ops/routine-health.md`. No new secret.
+
 Founder Talk uses the existing allowlist session + CSRF. Agents cannot enqueue as a founder.
 
 ## Preview smoke (Osman)

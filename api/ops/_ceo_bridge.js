@@ -31,6 +31,7 @@ const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
 const { agentPendingItem } = require('./_untrusted');
+const { handleRoutineHealth } = require('./_routine_health');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const PENDING_KEY = 'ops:ceo:pending';
@@ -589,7 +590,13 @@ function firstQuery(req, key) {
 function ceoBridgeKind(req) {
   const area = String(firstQuery(req, 'area') || '');
   const pathOnly = String(req.url || '').split('?')[0].replace(/\/+$/, '');
-  const hay = `${area} ${pathOnly}`.toLowerCase();
+  const areaKey = area.toLowerCase();
+  const pathKey = pathOnly.toLowerCase();
+  if (/(?:^|\/)api\/ceo-bridge\/routine-health$/.test(areaKey)
+    || /(?:^|\/)ceo-bridge\/routine-health$/.test(pathKey)) {
+    return 'routine-health';
+  }
+  const hay = `${areaKey} ${pathKey}`;
   if (hay.includes('api/ceo-bridge/message')) return 'message';
   if (hay.includes('api/ceo-bridge/pending')) return 'pending';
   if (hay.includes('api/ceo-bridge/confirm')) return 'confirm';
@@ -1434,6 +1441,9 @@ async function handleCeoBridge(req, res) {
       return true;
     case 'thread':
       await handleThread(req, res);
+      return true;
+    case 'routine-health':
+      await handleRoutineHealth(req, res);
       return true;
     default: {
       const _never = kind;
