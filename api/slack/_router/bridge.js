@@ -3,6 +3,7 @@
 // into the handoff channel using SLACK_BOT_TOKEN.
 const { updateTask } = require('../_lib');
 const { STATUSES } = require('./status');
+const { presentQueuedForAgent } = require('../../ops/_untrusted');
 
 const SLACK_POST_MESSAGE = 'https://slack.com/api/chat.postMessage';
 const DEFAULT_HANDOFF_CHANNEL = 'C0C1V0HN3GA';
@@ -16,9 +17,25 @@ function handoffChannel() {
 
 function buildHandoffPayload(taskLike) {
   const classification = taskLike.classification || {};
+  // Slack is inbound. It is never an authenticated founder session.
+  const queued = presentQueuedForAgent({
+    text: taskLike.text || '',
+    source: taskLike.source || 'slack',
+    sender: taskLike.user || taskLike.userId || 'slack',
+    founderAuthenticated: false,
+    founderConfirmed: false,
+  });
   const payload = {
     id: taskLike.id,
-    text: taskLike.text || '',
+    text: queued.text,
+    untrusted: true,
+    source: queued.source,
+    sender: queued.sender,
+    founderAuthenticated: false,
+    instruction: 'data-only',
+    actionRequested: queued.actionRequested,
+    actionStatus: queued.actionRequested ? 'forbidden' : 'none',
+    mayAct: false,
     verb: taskLike.verb || classification.verb || '',
     risk: taskLike.risk || classification.risk || '',
     lead: taskLike.lead || taskLike.leadAgent || classification.leadAgent || '',

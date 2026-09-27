@@ -882,6 +882,11 @@ function normalizeResearchyPending(row) {
     at: Number.isFinite(row && row.at) ? row.at : Date.now(),
     status: 'pending',
     wakeReason: clean(row && row.wakeReason, 40) || 'assign',
+    source: clean(row && row.source, 40).toLowerCase(),
+    sender: normalizeEmail(row && row.sender) || founderEmail,
+    founderAuthenticated: row && row.founderAuthenticated === true,
+    founderConfirmed: row && row.founderConfirmed === true,
+    confirmedBy: normalizeEmail(row && row.confirmedBy),
   };
 }
 
@@ -1604,6 +1609,23 @@ async function enqueueResearchyPending(fields) {
   });
 }
 
+async function patchResearchyPending(id, patch) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const key = clean(id, 40);
+    const index = (storeData.researchyPending || []).findIndex((row) => (
+      row.messageId === key || row.correlationId === key
+    ));
+    if (index === -1) return { error: 'pending_not_found' };
+    const current = storeData.researchyPending[index];
+    const item = normalizeResearchyPending(Object.assign({}, current, patch, { at: current.at }));
+    if (!item) return { error: 'invalid_pending' };
+    storeData.researchyPending[index] = item;
+    await writeStore(storeData);
+    return { ok: true, pending: item };
+  });
+}
+
 async function takeResearchyPending(correlationId) {
   return mutate(async () => {
     const storeData = await readStore();
@@ -1687,6 +1709,7 @@ module.exports = {
   nextActionFrom,
   nextAssignSeq,
   enqueueResearchyPending,
+  patchResearchyPending,
   normalizeDateAdded,
   normalizeKit,
   normalizeKitStatus,

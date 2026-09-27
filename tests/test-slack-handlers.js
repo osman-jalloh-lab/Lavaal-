@@ -707,7 +707,16 @@ async function run() {
     check('/lavaall council posts one LAVAALL_TASK', fetchCalls.length === 1 && fetchCalls[0].url === SLACK_POST_MESSAGE);
     check('/lavaall council fence mode is council', !!(payload && payload.mode === MODE_COUNCIL && payload.lead === 'lavaall-ceo' && payload.verb === 'council'));
     check('/lavaall council fence lists connected helpers', !!(payload && GROK_SPECIALIST_IDS.every((id) => payload.helpers.includes(id))));
-    check('/lavaall council fence keeps full text', !!(payload && payload.text === 'council review the Accra launch'));
+    check('/lavaall council fence keeps full text', !!(
+      payload
+      && payload.untrusted === true
+      && payload.instruction === 'data-only'
+      && payload.founderAuthenticated === false
+      && payload.mayAct === false
+      && payload.text.includes('<<<UNTRUSTED-CONTENT>>>')
+      && payload.text.includes('council review the Accra launch')
+      && payload.text.includes('<<<END-UNTRUSTED-CONTENT>>>')
+    ));
     check('/lavaall council handoff completes before ephemeral ack', order.indexOf('fetch') > -1 && order.indexOf('send') > -1 && order.indexOf('fetch') < order.indexOf('send'));
     check('/lavaall council task ends BRIDGED', task && task.status === STATUSES.BRIDGED && task.mode === MODE_COUNCIL);
     delete process.env.SLACK_BOT_TOKEN;

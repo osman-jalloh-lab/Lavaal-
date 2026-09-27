@@ -30,6 +30,7 @@ const {
 const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
+const { agentPendingItem } = require('./_untrusted');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const PENDING_KEY = 'ops:ceo:pending';
@@ -411,6 +412,11 @@ function normalizePendingItem(row) {
     at: Number.isFinite(row && row.at) ? row.at : Date.now(),
     status: 'pending',
     wakeReason: clean(row && row.wakeReason, 40),
+    source: clean(row && row.source, 40).toLowerCase(),
+    sender: normalizeEmail(row && row.sender) || founderEmail,
+    founderAuthenticated: row && row.founderAuthenticated === true,
+    founderConfirmed: row && row.founderConfirmed === true,
+    confirmedBy: normalizeEmail(row && row.confirmedBy),
   };
 }
 
@@ -586,6 +592,7 @@ function ceoBridgeKind(req) {
   const hay = `${area} ${pathOnly}`.toLowerCase();
   if (hay.includes('api/ceo-bridge/message')) return 'message';
   if (hay.includes('api/ceo-bridge/pending')) return 'pending';
+  if (hay.includes('api/ceo-bridge/confirm')) return 'confirm';
   if (hay.includes('api/ceo-bridge/reply')) return 'reply';
   if (hay.includes('api/ceo-bridge/thread')) return 'thread';
   return '';
@@ -673,6 +680,9 @@ async function enqueueFounderMessage({
         text: message.text,
         at: message.at,
         wakeReason: clean(wakeReason, 40) || (isExplicitWake({ text: body, explicitWake, wake }) ? 'explicit' : 'xai_unavailable'),
+        source: clean(source, 40).toLowerCase() || 'ops-office',
+        sender: who,
+        founderAuthenticated: true,
       });
       await writePending(pending);
     }
@@ -939,6 +949,9 @@ async function enqueuePendingWake({ thread, founder, wakeReason }) {
       text: founder.text,
       at: founder.at,
       wakeReason: clean(wakeReason, 40) || 'xai_unavailable',
+      source: 'ops-office',
+      sender: thread.founderEmail,
+      founderAuthenticated: isAllowlisted(thread.founderEmail),
     });
     await writePending(pending);
     return pending.find((item) => item.threadId === thread.id) || null;
@@ -1229,10 +1242,14 @@ function writeStatus(error) {
     case 'invalid_csrf':
       return 403;
     case 'ceo_thread_not_found':
+    case 'pending_not_found':
       return 404;
     case 'store_unavailable':
       return 503;
+    case 'action_forbidden':
+      return 403;
     case 'invalid_message':
+    case 'no_action':
     case 'method_not_allowed':
       return error === 'method_not_allowed' ? 405 : 400;
     default: {
@@ -1258,7 +1275,12 @@ function errorMessage(error) {
     case 'invalid_message':
       return 'Enter a message.';
     case 'ceo_thread_not_found':
-      return 'That CEO thread was not found.';
+    case 'pending_not_found':
+      return 'That queued item was not found.';
+    case 'action_forbidden':
+      return 'That queued text cannot trigger an action.';
+    case 'no_action':
+      return 'That queued text does not request a tool or side-effect action.';
     default: {
       return 'Could not use the CEO bridge.';
     }
@@ -1331,7 +1353,45 @@ async function handlePending(req, res) {
   if (auth.error) return sendJson(res, 401, { error: 'unauthorized' });
   const result = await listPending();
   if (result.error) return sendBridgeError(req, res, result.error);
-  return sendJson(res, 200, { ok: true, pending: result.pending });
+  const pending = (result.pending || []).map(agentPendingItem);
+  return sendJson(res, 200, { ok: true, pending });
+}
+
+async function confirmPendingAction({ messageId, founderEmail }) {
+  const who = normalizeEmail(founderEmail);
+  if (!who || !isAllowlisted(who)) return { error: 'forbidden' };
+  const id = clean(messageId, 40);
+  if (!id) return { error: 'pending_not_found' };
+  return mutate(async () => {
+    const list = await readPending();
+    const item = list.find((row) => row.messageId === id || row.correlationId === id);
+    if (!item) return { error: 'pending_not_found' };
+    const view = agentPendingItem(item);
+    if (!view.actionRequested) return { error: 'no_action' };
+    if (view.instruction !== 'founder') return { error: 'action_forbidden' };
+    if (item.founderConfirmed === true) {
+      return { ok: true, replay: true, pending: view };
+    }
+    const nextItem = Object.assign({}, item, { founderConfirmed: true, confirmedBy: who });
+    const next = list.map((row) => (row.messageId === item.messageId ? nextItem : row));
+    await writePending(next);
+    return { ok: true, replay: false, pending: agentPendingItem(nextItem) };
+  });
+}
+
+async function handleConfirm(req, res) {
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
+  const access = founderGuard(req);
+  if (!access.session) return sendJson(res, access.status, { error: access.error });
+  if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
+  const body = readBody(req);
+  if (!verifyFounderCsrf(access.session, req, body)) return sendBridgeError(req, res, 'csrf');
+  const result = await confirmPendingAction({
+    messageId: body.messageId || body.pendingId || body.correlationId,
+    founderEmail: access.session.email,
+  });
+  if (result.error) return sendBridgeError(req, res, result.error);
+  return sendJson(res, 200, { ok: true, replay: Boolean(result.replay), pending: result.pending });
 }
 
 async function handleReply(req, res) {
@@ -1365,6 +1425,9 @@ async function handleCeoBridge(req, res) {
       return true;
     case 'pending':
       await handlePending(req, res);
+      return true;
+    case 'confirm':
+      await handleConfirm(req, res);
       return true;
     case 'reply':
       await handleReply(req, res);
