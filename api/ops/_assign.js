@@ -25,6 +25,7 @@ const {
   enqueueResearchyPending,
   listResearchyPending,
   nextAssignSeq,
+  patchResearchyPending,
   notesSelectableForChat,
   readStore,
   takeResearchyPending,
@@ -33,6 +34,7 @@ const {
 } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { classify } = require('../slack/_router/classify');
+const { agentPendingItem } = require('./_untrusted');
 const ceo = require('./_ceo_bridge');
 const desks = require('./_agent_thread');
 
@@ -343,6 +345,9 @@ async function wakeResearchy({ task, packedBrief, founderEmail, childThreadId, c
     correlationId: childCorrelationId,
     text: packedBrief,
     wakeReason: 'assign',
+    source: 'desk-talk',
+    sender: founderEmail,
+    founderAuthenticated: isAllowlisted(founderEmail),
   });
   return queued;
 }
@@ -687,6 +692,7 @@ function ceoAssignKind(req) {
 function researchyWakeKind(req) {
   const hay = hayOf(req);
   if (!hay.includes('desk-talk') || !hay.includes('researchy')) return '';
+  if (hay.includes('/confirm') || hay.endsWith('confirm')) return 'confirm';
   if (hay.includes('/pending') || hay.endsWith('pending')) return 'pending';
   if (hay.includes('/reply') || hay.endsWith('reply')) return 'reply';
   return '';
@@ -713,12 +719,16 @@ function writeStatus(error) {
       return 403;
     case 'ceo_thread_not_found':
     case 'assign_not_found':
+    case 'pending_not_found':
       return 404;
     case 'store_unavailable':
       return 503;
+    case 'action_forbidden':
+      return 403;
     case 'invalid_message':
     case 'invalid_assignee':
     case 'invalid_pending':
+    case 'no_action':
     case 'method_not_allowed':
       return error === 'method_not_allowed' ? 405 : 400;
     default: {
@@ -747,7 +757,12 @@ function errorMessage(error) {
       return 'This slice assigns Researchy only.';
     case 'ceo_thread_not_found':
     case 'assign_not_found':
-      return 'That assign was not found.';
+    case 'pending_not_found':
+      return 'That queued item was not found.';
+    case 'action_forbidden':
+      return 'That queued text cannot trigger an action.';
+    case 'no_action':
+      return 'That queued text does not request a tool or side-effect action.';
     default:
       return 'Could not assign that work.';
   }
@@ -800,7 +815,46 @@ async function handleResearchyPending(req, res) {
   if (auth.error) return sendJson(res, 401, { error: 'unauthorized' });
   const result = await listAssignPending();
   if (result.error) return sendAssignError(req, res, result.error);
-  return sendJson(res, 200, { ok: true, pending: result.pending, lead: RESEARCHY_ID });
+  const pending = (result.pending || []).map(agentPendingItem);
+  return sendJson(res, 200, { ok: true, pending, lead: RESEARCHY_ID });
+}
+
+async function confirmResearchyAction({ messageId, founderEmail }) {
+  const who = normalizeEmail(founderEmail);
+  if (!who || !isAllowlisted(who)) return { error: 'forbidden' };
+  const id = clean(messageId, 40);
+  if (!id) return { error: 'pending_not_found' };
+  const storeData = await readStore();
+  const item = listResearchyPending(storeData).find((row) => (
+    row.messageId === id || row.correlationId === id
+  ));
+  if (!item) return { error: 'pending_not_found' };
+  const view = agentPendingItem(item);
+  if (!view.actionRequested) return { error: 'no_action' };
+  if (view.instruction !== 'founder') return { error: 'action_forbidden' };
+  if (item.founderConfirmed === true) {
+    return { ok: true, replay: true, pending: view };
+  }
+  const patched = await patchResearchyPending(id, { founderConfirmed: true, confirmedBy: who });
+  if (patched.error) return patched;
+  return { ok: true, replay: false, pending: agentPendingItem(patched.pending) };
+}
+
+async function handleResearchyConfirm(req, res) {
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
+  const access = founderGuard(req);
+  if (!access.session) return sendJson(res, access.status, { error: access.error });
+  if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
+  const body = readBody(req);
+  if (!readCsrfToken(csrfFrom(req, body), access.session.email)) {
+    return sendAssignError(req, res, 'csrf');
+  }
+  const result = await confirmResearchyAction({
+    messageId: body.messageId || body.pendingId || body.correlationId,
+    founderEmail: access.session.email,
+  });
+  if (result.error) return sendAssignError(req, res, result.error);
+  return sendJson(res, 200, { ok: true, replay: Boolean(result.replay), pending: result.pending, lead: RESEARCHY_ID });
 }
 
 async function handleResearchyReply(req, res) {
@@ -829,6 +883,10 @@ async function handleCeoAssign(req, res) {
   const wakeKind = researchyWakeKind(req);
   if (wakeKind === 'pending') {
     await handleResearchyPending(req, res);
+    return true;
+  }
+  if (wakeKind === 'confirm') {
+    await handleResearchyConfirm(req, res);
     return true;
   }
   if (wakeKind === 'reply') {

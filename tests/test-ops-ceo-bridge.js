@@ -161,7 +161,13 @@ async function run() {
       pending.statusCode === 200
       && pending.body.ok === true
       && Array.isArray(pending.body.pending)
-      && pending.body.pending.some((item) => item.text === 'Ship the Preview MVP' && item.threadId === sent.body.thread.id));
+      && pending.body.pending.some((item) => (
+        item.threadId === sent.body.thread.id
+        && item.untrusted === true
+        && item.text.includes('<<<UNTRUSTED-CONTENT>>>')
+        && item.text.includes('Ship the Preview MVP')
+        && item.text.includes('<<<END-UNTRUSTED-CONTENT>>>')
+      )));
 
     const thread = mockRes();
     await ops(authed({
