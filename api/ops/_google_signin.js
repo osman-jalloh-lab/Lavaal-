@@ -338,7 +338,11 @@ async function verifyGoogleIdToken(idToken, opts = {}) {
   if (typeof payload.sub !== 'string' || !payload.sub) return { ok: false, reason: 'malformed' };
   if (typeof payload.email !== 'string') return { ok: false, reason: 'not_allowlisted' };
   const email = normalizeEmail(payload.email);
-  if (!isAllowlisted(email)) return { ok: false, reason: 'not_allowlisted' };
+  if (!isAllowlisted(email)) {
+    const at = email.lastIndexOf('@');
+    const domain = at > 0 ? email.slice(at + 1) : '';
+    return { ok: false, reason: 'not_allowlisted', domain };
+  }
   return { ok: true, email };
 }
 

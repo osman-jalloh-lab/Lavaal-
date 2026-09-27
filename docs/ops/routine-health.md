@@ -44,28 +44,52 @@ curl -sS -X POST "$ORIGIN/ops/api/ceo-bridge/routine-health" \
   "generatedAt": "2026-09-27T23:05:00Z",
   "routines": [
     {
-      "slug": "eod-jev-review",
-      "status": "OK",
-      "lastRunAt": "2026-09-27T05:00:12Z",
-      "reason": "scored"
-    },
-    {
-      "slug": "scout-scan",
-      "status": "PARTIAL",
-      "lastRunAt": "2026-09-27T12:10:00Z",
-      "reason": "one source skipped"
-    },
-    {
-      "slug": "kit-registry-sync",
+      "slug": "kit-registry-eod-sync",
       "status": "NOT_WIRED",
       "lastRunAt": null,
       "reason": "no schedule wired for this slug"
     },
     {
-      "slug": "overnight-morning-brief",
+      "slug": "ceo-talk-bridge-poll",
+      "status": "OK",
+      "lastRunAt": "2026-09-27T23:00:00Z",
+      "reason": "polled"
+    },
+    {
+      "slug": "researchy-assign-wake-poll",
+      "status": "OK",
+      "lastRunAt": "2026-09-27T23:00:04Z",
+      "reason": "polled"
+    },
+    {
+      "slug": "overnight-ops-fix-morning-brief",
       "status": "FAILED",
       "lastRunAt": "2026-09-25T11:00:00Z",
       "reason": "cause unknown"
+    },
+    {
+      "slug": "jev-eod-decision-review",
+      "status": "OK",
+      "lastRunAt": "2026-09-27T05:00:12Z",
+      "reason": "scored"
+    },
+    {
+      "slug": "nightly-decision-flush-to-obsidian",
+      "status": "RUNNING",
+      "lastRunAt": "2026-09-27T22:00:00Z",
+      "reason": "still going"
+    },
+    {
+      "slug": "researchy-next-new-thing-daily-channel-check",
+      "status": "PARTIAL",
+      "lastRunAt": "2026-09-27T12:10:00Z",
+      "reason": "one source skipped"
+    },
+    {
+      "slug": "scout-weekly-minimal-x-scan",
+      "status": "PARTIAL",
+      "lastRunAt": "2026-09-27T12:10:00Z",
+      "reason": "one source skipped"
     }
   ]
 }

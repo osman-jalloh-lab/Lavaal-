@@ -150,6 +150,7 @@ function mockMailFetch(handler) {
 async function run() {
   const origFetch = global.fetch;
   process.env.OPS_AUTH_SECRET = SECRET;
+  delete process.env.OPS_SIGNIN_HARDENING_ENABLED;
   clearDeliveryEnv();
   delete process.env.OPS_PREVIEW_INSTANT_LOGIN;
   delete process.env.OPS_INSTANT_LOGIN;

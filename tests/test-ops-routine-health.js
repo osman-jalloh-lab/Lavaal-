@@ -503,10 +503,24 @@ async function run() {
       && !client.includes('insertAdjacentHTML')
       && !client.includes('outerHTML')
       && !client.includes('document.write'));
+    const realSlugs = [
+      'kit-registry-eod-sync',
+      'ceo-talk-bridge-poll',
+      'researchy-assign-wake-poll',
+      'overnight-ops-fix-morning-brief',
+      'jev-eod-decision-review',
+      'nightly-decision-flush-to-obsidian',
+      'researchy-next-new-thing-daily-channel-check',
+      'scout-weekly-minimal-x-scan',
+    ];
     check('docs give the box curl without a secret value',
       doc.includes('curl -sS -X POST "$ORIGIN/ops/api/ceo-bridge/routine-health"')
       && doc.includes('Authorization: Bearer $OPS_CEO_BRIDGE_SECRET')
-      && doc.includes('"slug": "overnight-morning-brief"')
+      && realSlugs.every((slug) => doc.includes(`"slug": "${slug}"`))
+      && !doc.includes('overnight-morning-brief"')
+      && !doc.includes('"slug": "eod-jev-review"')
+      && !doc.includes('"slug": "scout-scan"')
+      && !doc.includes('"slug": "kit-registry-sync"')
       && doc.includes('"status": "FAILED"')
       && doc.includes('20480')
       && !/Bearer\s+[A-Za-z0-9+/=_-]{16,}/.test(doc.replace(/\$OPS_CEO_BRIDGE_SECRET/g, '')));

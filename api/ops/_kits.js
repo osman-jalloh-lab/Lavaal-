@@ -28,8 +28,8 @@ const {
   normalizeEmail,
   peekSessionEmail,
   readCsrfToken,
-  readSession,
 } = require('./_lib');
+const { readLiveSession } = require('./_signin_hardening');
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const DRIVE_READONLY_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
@@ -353,9 +353,9 @@ async function hydrateKitsIfEmpty(session) {
   }
 }
 
-function kitsGuard(req) {
+async function kitsGuard(req) {
   if (looksLikeAgentRequest(req)) return { status: 403, error: 'agent_denied' };
-  const session = readSession(req);
+  const session = await readLiveSession(req);
   if (session) return { session };
   const claimed = peekSessionEmail(req) || normalizeEmail(header(req, 'x-ops-email') || '');
   if (claimed && !isAllowlisted(claimed)) return { status: 403, error: 'forbidden' };

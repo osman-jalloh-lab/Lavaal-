@@ -16,10 +16,10 @@ const {
   queryOf,
   readBody,
   readCsrfToken,
-  readSession,
   redirect,
   wantsJson,
 } = require('./_lib');
+const { readLiveSession } = require('./_signin_hardening');
 const {
   addTask,
   enqueueResearchyPending,
@@ -655,9 +655,9 @@ function sendJson(res, status, body) {
   return json(res, status, body);
 }
 
-function founderGuard(req) {
+async function founderGuard(req) {
   if (looksLikeAgentRequest(req)) return { status: 403, error: 'agent_denied' };
-  const session = readSession(req);
+  const session = await readLiveSession(req);
   if (session) return { session };
   const claimed = peekSessionEmail(req) || normalizeEmail(header(req, 'x-ops-email') || '');
   if (claimed && !isAllowlisted(claimed)) return { status: 403, error: 'forbidden' };
@@ -779,7 +779,7 @@ function sendAssignError(req, res, error) {
 
 async function handleAssignMessage(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
-  const access = founderGuard(req);
+  const access = await founderGuard(req);
   if (!access.session) return sendJson(res, access.status, { error: access.error });
   if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
   const body = readBody(req);
@@ -842,7 +842,7 @@ async function confirmResearchyAction({ messageId, founderEmail }) {
 
 async function handleResearchyConfirm(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
-  const access = founderGuard(req);
+  const access = await founderGuard(req);
   if (!access.session) return sendJson(res, access.status, { error: access.error });
   if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
   const body = readBody(req);
@@ -896,7 +896,7 @@ async function handleCeoAssign(req, res) {
   const kind = ceoAssignKind(req);
   const body = req.method === 'POST' ? readBody(req) : {};
   if (!kind && isCeoBridgeThread(req) && (req.method === 'GET' || req.method === 'HEAD')) {
-    const access = founderGuard(req);
+    const access = await founderGuard(req);
     if (access.session) await synthesizeOpenAssigns({ founderEmail: access.session.email });
     return false;
   }
