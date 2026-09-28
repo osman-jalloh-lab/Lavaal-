@@ -30,6 +30,7 @@ const {
   readCsrfToken,
 } = require('./_lib');
 const { readLiveSession } = require('./_signin_hardening');
+const storeEnv = require('./_store-env');
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const DRIVE_READONLY_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
@@ -49,7 +50,7 @@ function sheetId() {
   const raw = typeof process.env.KIT_REGISTRY_SHEET_ID === 'string'
     ? process.env.KIT_REGISTRY_SHEET_ID.trim()
     : '';
-  return raw || PREVIEW_KIT_REGISTRY_FILE_ID;
+  return storeEnv.kitRegistrySheetId(raw || PREVIEW_KIT_REGISTRY_FILE_ID);
 }
 
 function sheetTab() {

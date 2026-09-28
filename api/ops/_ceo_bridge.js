@@ -32,6 +32,7 @@ const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
 const { agentPendingItem } = require('./_untrusted');
 const { handleRoutineHealth } = require('./_routine_health');
+const storeEnv = require('./_store-env');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const PENDING_KEY = 'ops:ceo:pending';
@@ -93,14 +94,11 @@ function newId() {
 }
 
 function kvConfigured() {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  return storeEnv.kvConfigured();
 }
 
 function filePath() {
-  if (kvConfigured()) return '';
-  if (process.env.VERCEL) return '';
-  const custom = process.env.OPS_STORE_FILE;
-  return typeof custom === 'string' && custom.trim() ? `${custom.trim()}.ceo-bridge.json` : '';
+  return storeEnv.opsStoreFile('.ceo-bridge.json');
 }
 
 function storeMode() {
@@ -110,7 +108,11 @@ function storeMode() {
 }
 
 function threadKey(id) {
-  return `${THREAD_KEY_PREFIX}${clean(id, 40)}`;
+  return storeEnv.key(`${THREAD_KEY_PREFIX}${clean(id, 40)}`);
+}
+
+function pendingKey() {
+  return storeEnv.key(PENDING_KEY);
 }
 
 function threadIdFor(email) {
@@ -438,17 +440,7 @@ function decodeJson(raw, fallback) {
 }
 
 async function kvCommand(args) {
-  const base = process.env.KV_REST_API_URL.replace(/\/$/, '');
-  const response = await fetch(base, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(args),
-  });
-  if (!response.ok) throw new Error('kv_command_failed');
-  return response.json();
+  return storeEnv.kvCommand(args);
 }
 
 function readFileBlob() {
@@ -475,8 +467,9 @@ function writeFileBlob(next) {
 }
 
 async function readPending() {
+  storeEnv.assertIsolation();
   if (kvConfigured()) {
-    const payload = await kvCommand(['GET', PENDING_KEY]);
+    const payload = await kvCommand(['GET', pendingKey()]);
     return normalizePendingList(decodeJson(payload && payload.result, []));
   }
   if (filePath()) memory = readFileBlob();
@@ -484,9 +477,10 @@ async function readPending() {
 }
 
 async function writePending(list) {
+  storeEnv.assertIsolation();
   const pending = normalizePendingList(list);
   if (kvConfigured()) {
-    await kvCommand(['SET', PENDING_KEY, JSON.stringify(pending)]);
+    await kvCommand(['SET', pendingKey(), JSON.stringify(pending)]);
     return pending;
   }
   if (filePath()) {
@@ -501,6 +495,7 @@ async function writePending(list) {
 }
 
 async function readThread(id) {
+  storeEnv.assertIsolation();
   const threadId = clean(id, 40);
   if (!threadId) return null;
   if (kvConfigured()) {
@@ -513,6 +508,7 @@ async function readThread(id) {
 }
 
 async function writeThread(thread) {
+  storeEnv.assertIsolation();
   const next = normalizeThread(thread);
   if (!next.id) throw new Error('invalid_thread');
   if (kvConfigured()) {

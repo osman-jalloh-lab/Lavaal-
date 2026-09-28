@@ -1383,9 +1383,11 @@ async function run() {
       const text = fs.readFileSync(file, 'utf8');
       return text.includes("require('./_founders_dm')") || text.includes('lavaall-ops-founders-dm-v1');
     });
-    check('only the ops gate and the thread module reference the private store',
-      hits.length === 2
-      && hits.every((file) => file.endsWith(`${path.sep}index.js`) || file.endsWith(`${path.sep}_founders_dm.js`)));
+    check('only the ops gate, the thread module, and the store-env helper reference the private store',
+      hits.length === 3
+      && hits.every((file) => file.endsWith(`${path.sep}index.js`)
+        || file.endsWith(`${path.sep}_founders_dm.js`)
+        || file.endsWith(`${path.sep}_store-env.js`)));
     const env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
     check('.env.example documents the flag as off and does not set it',
       env.includes('FOUNDERS_DM_ENABLED')

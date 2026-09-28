@@ -29,6 +29,7 @@ const { normalizeTalkAgentId, officeAgentById } = require('./_office');
 const ceoBridge = require('./_ceo_bridge');
 const assign = require('./_assign');
 const { readLiveSession } = require('./_signin_hardening');
+const storeEnv = require('./_store-env');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const THREAD_KEY_PREFIX = 'ops:agent:thread:';
@@ -79,14 +80,11 @@ function newId() {
 }
 
 function kvConfigured() {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  return storeEnv.kvConfigured();
 }
 
 function filePath() {
-  if (kvConfigured()) return '';
-  if (process.env.VERCEL) return '';
-  const custom = process.env.OPS_STORE_FILE;
-  return typeof custom === 'string' && custom.trim() ? `${custom.trim()}.desk-talk.json` : '';
+  return storeEnv.opsStoreFile('.desk-talk.json');
 }
 
 function storeMode() {
@@ -115,7 +113,7 @@ function runtimeUnavailableCopy(agentId) {
 }
 
 function threadKey(agentId, id) {
-  return `${THREAD_KEY_PREFIX}${normalizeAgentId(agentId)}:${clean(id, 40)}`;
+  return storeEnv.key(`${THREAD_KEY_PREFIX}${normalizeAgentId(agentId)}:${clean(id, 40)}`);
 }
 
 function threadIdFor(agentId, email) {
@@ -261,17 +259,7 @@ function decodeJson(raw, fallback) {
 }
 
 async function kvCommand(args) {
-  const base = process.env.KV_REST_API_URL.replace(/\/$/, '');
-  const response = await fetch(base, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(args),
-  });
-  if (!response.ok) throw new Error('kv_command_failed');
-  return response.json();
+  return storeEnv.kvCommand(args);
 }
 
 function readFileBlob() {
@@ -302,6 +290,7 @@ function memoryKey(agentId, threadId) {
 }
 
 async function readThread(agentId, id) {
+  storeEnv.assertIsolation();
   const desk = normalizeAgentId(agentId);
   const threadId = clean(id, 40);
   if (!desk || !threadId) return null;
@@ -316,6 +305,7 @@ async function readThread(agentId, id) {
 }
 
 async function writeThread(thread) {
+  storeEnv.assertIsolation();
   const next = normalizeThread(thread);
   if (!next.id || !next.agentId) throw new Error('invalid_thread');
   if (kvConfigured()) {
