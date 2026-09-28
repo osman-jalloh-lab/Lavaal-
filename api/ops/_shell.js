@@ -140,6 +140,9 @@ textarea{min-height:88px;resize:vertical;}
 .ctx legend{color:var(--sky-deep);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
 .thread{list-style:none;display:grid;gap:10px;margin-bottom:16px;}
 .nav-unread{display:inline-block;margin-left:6px;min-width:1.15rem;padding:0 5px;border-radius:999px;background:var(--coral);color:#fff;font-size:11px;line-height:1.45;text-align:center;vertical-align:1px;}
+.dm-history{margin:0 0 12px;font-size:14px;}
+.dm-months{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}
+.dm-pager{display:flex;gap:12px;margin:12px 0;}
 .dm-compose{display:grid;gap:8px;}
 .dm-thread{max-height:min(62vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;}
 .dm-new{display:block;margin:0 auto 8px;width:auto;padding:6px 12px;border-radius:999px;border:1px solid rgba(46,196,255,.35);background:rgba(46,196,255,.16);color:var(--sky-deep);font:inherit;font-size:12px;font-weight:700;cursor:pointer;}
