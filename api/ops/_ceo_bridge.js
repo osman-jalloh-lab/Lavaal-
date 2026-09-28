@@ -35,7 +35,7 @@ const {
 const { formatOfficeTrustedContext, loadOfficeTrustedBundle } = require('./_office_context');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
-const { agentPendingItem } = require('./_untrusted');
+const { agentPendingItem, presentQueuedForAgent } = require('./_untrusted');
 const { handleRoutineHealth } = require('./_routine_health');
 
 const CEO_DESK_ID = 'lavaall-ceo';
@@ -43,7 +43,7 @@ const PENDING_KEY = 'ops:ceo:pending';
 const THREAD_KEY_PREFIX = 'ops:ceo:thread:';
 const THREAD_ROLES = Object.freeze(['founder', 'ceo']);
 const THREAD_STATUSES = Object.freeze(['pending', 'answered']);
-const PROVENANCE = Object.freeze(['human', 'xai_runtime', 'grok_bot_bridge', 'system', 'tool']);
+const PROVENANCE = Object.freeze(['human', 'xai_runtime', 'grok_bot_bridge', 'system', 'tool', 'desk_answer']);
 const RESPONSE_OWNERS = Object.freeze(['pending', 'xai_runtime', 'grok_bot_bridge']);
 const MAX_MESSAGES = 40;
 const MAX_PENDING = 40;
@@ -1044,7 +1044,14 @@ function ceoMessagesForXai(thread, options) {
     });
   return kept.slice(-20).map((item) => ({
     role: item.role === 'ceo' ? 'assistant' : 'user',
-    content: item.text,
+    content: item.role === 'ceo' && item.provenance === 'desk_answer'
+      ? presentQueuedForAgent({
+        text: item.text,
+        source: 'desk-answer',
+        sender: 'desk',
+        founderAuthenticated: false,
+      }).text
+      : item.text,
   }));
 }
 
@@ -1234,6 +1241,23 @@ async function talkToCeo(input) {
       reply: lastCeoText(queued.thread) || queued.reply || WAITING_COPY,
     });
   }
+  // Lazy require: _ceo_queries calls back into this module for append/claim.
+  if (!explicitWake) {
+    const queries = require('./_ceo_queries');
+    try {
+      await queries.sweepCeoDeskQueries();
+    } catch {
+      // A timeout note must not block the founder reply.
+    }
+    if (!queued.replay && queries.activeRoutingEnabled()) {
+      const routed = await queries.completeRoutedCeoReply({
+        threadId: queued.thread.id,
+        correlationId: queued.correlationId,
+        text: input.text || input.message,
+      });
+      if (routed) return routed;
+    }
+  }
   if (!tryXai) {
     return Object.assign({}, queued, {
       waiting: true,
@@ -1272,6 +1296,8 @@ function writeStatus(error) {
       return 503;
     case 'action_forbidden':
       return 403;
+    case 'query_expired':
+      return 409;
     case 'invalid_message':
     case 'no_action':
     case 'method_not_allowed':
@@ -1305,6 +1331,8 @@ function errorMessage(error) {
       return 'That queued text cannot trigger an action.';
     case 'no_action':
       return 'That queued text does not request a tool or side-effect action.';
+    case 'query_expired':
+      return 'That desk question expired. Ask again if you still need it.';
     default: {
       return 'Could not use the CEO bridge.';
     }
@@ -1358,6 +1386,12 @@ async function handleThread(req, res) {
   const requested = clean(firstQuery(req, 'id') || firstQuery(req, 'threadId'), 40);
   const ownId = threadIdFor(access.session.email);
   if (requested && requested !== ownId) return sendJson(res, 403, { error: 'forbidden' });
+  try {
+    const queries = require('./_ceo_queries');
+    await queries.sweepCeoDeskQueries();
+  } catch {
+    // A timeout note must not block the thread read.
+  }
   const loaded = await getFounderThread(access.session.email);
   if (loaded.error) return sendBridgeError(req, res, loaded.error);
   return sendJson(res, 200, {
@@ -1441,6 +1475,9 @@ async function handleReply(req, res) {
 }
 
 async function handleCeoBridge(req, res) {
+  // Lazy require: query routes call back into this module.
+  const queries = require('./_ceo_queries');
+  if (await queries.handleCeoQueryRoute(req, res)) return true;
   const kind = ceoBridgeKind(req);
   if (!kind) return false;
   switch (kind) {
@@ -1494,11 +1531,13 @@ Object.assign(module.exports, {
   WAITING_COPY,
   RUNTIME_UNAVAILABLE_COPY,
   appendCeoNotice,
+  appendOwnedCeoReply,
   bridgeSecretConfigured,
   ceoBridgeKind,
   ceoSystemPrompt,
   classifyCeoAsk,
   claimResponseOwner,
+  ceoMessagesForXai,
   emptyThread,
   enqueueFounderMessage,
   formatCeoStoreContext,
@@ -1516,6 +1555,7 @@ Object.assign(module.exports, {
   listPending,
   postCeoReply,
   publicThread,
+  releaseResponseOwner,
   resetCeoBridge,
   storeMode,
   talkToCeo,
