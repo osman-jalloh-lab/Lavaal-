@@ -154,6 +154,9 @@ textarea{min-height:88px;resize:vertical;}
 .bubble p{color:var(--text);overflow-wrap:anywhere;}
 .bubble.user{border-color:rgba(46,196,255,.35);background:rgba(46,196,255,.08);}
 .bubble.assistant{border-color:rgba(16,185,129,.28);background:var(--emerald-wash);}
+.bubble.ceo{border-color:rgba(120,90,60,.22);background:#FBF7F2;font-size:13px;padding:8px 10px;}
+.bubble.ceo p{font-size:13px;}
+.dm-ceo-notice{margin:0 0 10px;color:var(--muted);font-size:13px;}
 .ok{margin-bottom:12px;color:var(--emerald);background:var(--emerald-wash);border:1px solid #A7E9CF;border-radius:12px;padding:10px 12px;font-size:14px;}
 .err{margin-bottom:12px;color:#BE123C;background:#FDE8EA;border:1px solid #F9C5CB;border-radius:12px;padding:10px 12px;font-size:14px;}
 .inbox-body{white-space:pre-wrap;overflow-wrap:anywhere;}

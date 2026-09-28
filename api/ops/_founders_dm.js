@@ -41,6 +41,7 @@ function foundersDmKeys() {
     thread,
     read: prefix ? `${thread}:read` : READ_KEY,
     legacy: prefix ? `${thread}:legacy` : LEGACY_KEY,
+    ping: `${thread}:ping`,
   };
 }
 const FOUNDERS = Object.freeze([
@@ -65,7 +66,13 @@ const SECRET_FIELDS = Object.freeze(['preview', 'draft', 'attachmentName', 'atta
 
 let memoryMessages = [];
 let memoryRead = {};
+let memoryPing = {};
 let localHydrated = false;
+
+// Lazy: _founders_dm_ceo loads the office bundle, which loads this module.
+function ceoHelpers() {
+  return require('./_founders_dm_ceo');
+}
 
 function foundersDmEnabled() {
   const flag = String(process.env.FOUNDERS_DM_ENABLED || '').trim().toLowerCase();
@@ -231,9 +238,10 @@ function authorLabel(email, viewer) {
 
 function normalizeMessage(row) {
   if (!row || typeof row !== 'object') return null;
-  const from = normalizeEmail(row.from);
+  const rawFrom = typeof row.from === 'string' ? row.from.trim().toLowerCase() : '';
+  const from = rawFrom === 'ceo' ? 'ceo' : normalizeEmail(row.from);
   const text = cleanText(row.text);
-  if (!FOUNDERS.includes(from) || !text) return null;
+  if ((from !== 'ceo' && !FOUNDERS.includes(from)) || !text) return null;
   const createdAt = Number(row.createdAt);
   if (!Number.isFinite(createdAt)) return null;
   const id = typeof row.id === 'string' && /^[a-f0-9]{8,32}$/.test(row.id) ? row.id : newId();
@@ -246,8 +254,9 @@ function storedId(row) {
 
 function openStoredRow(row) {
   if (!row || typeof row !== 'object') return null;
-  const from = normalizeEmail(row.from);
-  if (!FOUNDERS.includes(from)) return null;
+  const rawFrom = typeof row.from === 'string' ? row.from.trim().toLowerCase() : '';
+  const from = rawFrom === 'ceo' ? 'ceo' : normalizeEmail(row.from);
+  if (from !== 'ceo' && !FOUNDERS.includes(from)) return null;
   const createdAt = Number(row.createdAt);
   if (!Number.isFinite(createdAt)) return null;
   const id = storedId(row);
@@ -289,10 +298,12 @@ function unreadCount(thread, email) {
 }
 
 function publicMessage(row, viewer) {
+  const ceo = row.from === 'ceo';
   return {
     id: row.id,
-    mine: row.from === normalizeEmail(viewer),
-    author: authorLabel(row.from, viewer),
+    mine: !ceo && row.from === normalizeEmail(viewer),
+    ceo,
+    author: ceo ? 'CEO' : authorLabel(row.from, viewer),
     text: row.text,
     createdAt: row.createdAt,
   };
@@ -522,7 +533,14 @@ async function readThread() {
   return currentThread();
 }
 
-async function appendMessage(message) {
+function readCursorFor(message, options) {
+  if (message && message.from === 'ceo') {
+    return normalizeEmail(options && options.markReadFor);
+  }
+  return message ? message.from : '';
+}
+
+async function appendMessage(message, options) {
   const keys = loadKeys();
   if (!keys.ok) {
     const err = new Error('encryption_not_configured');
@@ -531,6 +549,7 @@ async function appendMessage(message) {
   }
   const packed = JSON.stringify(sealStored(message, keys));
   const storeKeys = foundersDmKeys();
+  const reader = readCursorFor(message, options);
   if (kvConfigured()) {
     const pipe = [
       ['RPUSH', storeKeys.thread, packed],
@@ -542,7 +561,9 @@ async function appendMessage(message) {
       await migrateLegacyBlob();
       await kvCommand(pipe);
     }
-    await kvCommand(['HSET', storeKeys.read, message.from, String(message.createdAt)]);
+    if (FOUNDERS.includes(reader)) {
+      await kvCommand(['HSET', storeKeys.read, reader, String(message.createdAt)]);
+    }
     return readThread();
   }
   hydrateLocal();
@@ -550,7 +571,7 @@ async function appendMessage(message) {
   if (memoryMessages.length > MAX_MESSAGES) {
     memoryMessages = memoryMessages.slice(-MAX_MESSAGES);
   }
-  memoryRead[message.from] = message.createdAt;
+  if (FOUNDERS.includes(reader)) memoryRead[reader] = message.createdAt;
   if (!persistMessages()) {
     memoryMessages.pop();
     const err = new Error('encryption_not_configured');
@@ -614,14 +635,53 @@ async function sendMessage(email, text) {
       text: body,
       createdAt: Date.now(),
     };
-    const thread = await appendMessage(message);
+    let thread = await appendMessage(message);
+    if (ceoHelpers().foundersDmCeoEnabled() && ceoHelpers().isCeoAddressed(body)) {
+      thread = await appendCeoReply(thread, who);
+    }
     return publicPayload(thread, who);
   });
+}
+
+async function appendCeoReply(thread, asker) {
+  const ceo = ceoHelpers();
+  let reply = null;
+  try {
+    reply = await ceo.composeCeoReply({ messages: thread.messages });
+  } catch {
+    reply = { text: ceo.CEO_UNAVAILABLE };
+  }
+  if (!reply || !reply.text) return thread;
+  const text = cleanText(reply.text) || ceo.CEO_UNAVAILABLE;
+  return appendMessage({
+    id: newId(),
+    from: 'ceo',
+    text,
+    createdAt: Date.now(),
+  }, { markReadFor: asker });
+}
+
+async function readPings() {
+  if (kvConfigured()) {
+    const payload = await kvCommand(['HGETALL', foundersDmKeys().ping]);
+    return decodeHash(payload && payload.result);
+  }
+  return Object.assign({}, memoryPing);
+}
+
+async function writePing(email, at) {
+  const who = normalizeEmail(email);
+  if (!FOUNDERS.includes(who)) return;
+  memoryPing[who] = at;
+  if (kvConfigured()) {
+    await kvCommand(['HSET', foundersDmKeys().ping, who, String(at)]);
+  }
 }
 
 function resetFoundersDm() {
   memoryMessages = [];
   memoryRead = {};
+  memoryPing = {};
   localHydrated = false;
 }
 
@@ -709,7 +769,7 @@ function deny(req, res, access, kind) {
 function messageListHtml(messages) {
   if (!messages.length) return '';
   return messages.map((item) => (
-    `<li class="bubble ${item.mine ? 'user' : 'assistant'}" data-id="${escapeHtml(item.id)}">
+    `<li class="bubble ${item.ceo ? 'ceo' : (item.mine ? 'user' : 'assistant')}" data-id="${escapeHtml(item.id)}">
       <div class="kicker">${escapeHtml(item.author)}</div>
       <p>${escapeHtml(item.text)}</p>
     </li>`
@@ -719,7 +779,19 @@ function messageListHtml(messages) {
 function pageHtml(session, payload, extra) {
   const messages = payload && Array.isArray(payload.messages) ? payload.messages : [];
   const csrf = (payload && payload.csrf) || createCsrfToken(session.email);
-  const island = JSON.stringify({ csrf, pollMs: POLL_MS, badgeMs: BADGE_MS }).replace(/</g, '\\u003c');
+  const ceoOn = ceoHelpers().foundersDmCeoEnabled();
+  const island = JSON.stringify({
+    csrf,
+    pollMs: POLL_MS,
+    badgeMs: BADGE_MS,
+    ceo: ceoOn,
+  }).replace(/</g, '\\u003c');
+  const lead = ceoOn
+    ? 'Messages between Osman and Hameed. Text only. They stay in this thread.'
+    : 'Messages between Osman and Hameed only. Text only. They stay in this thread and are not sent to the office or any assistant.';
+  const ceoNotice = ceoOn
+    ? `<p class="dm-ceo-notice">${escapeHtml(ceoHelpers().NOTICE)}</p>`
+    : '';
   const emptyHidden = messages.length ? ' hidden' : '';
   const durable = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
     || Boolean(filePath());
@@ -733,10 +805,11 @@ function pageHtml(session, payload, extra) {
     body: `
       ${persistenceBanner(durable)}
       <h1>Private</h1>
-      <p class="lead">Messages between Osman and Hameed only. Text only. They stay in this thread and are not sent to the office or any assistant.</p>
+      <p class="lead">${lead}</p>
       <section class="card" id="founders-dm">
         <div class="kicker">Thread</div>
         <h2>Osman and Hameed</h2>
+        ${ceoNotice}
         <p class="empty" id="dm-empty"${emptyHidden}>No messages yet. Write the first one below.</p>
         <ol class="thread dm-thread" id="dm-thread" role="log" aria-live="polite">${messageListHtml(messages)}</ol>
         <button type="button" id="dm-new" class="dm-new" hidden>New messages</button>
@@ -863,6 +936,16 @@ async function handleApi(req, res, session) {
     return true;
   }
   const sent = await sendMessage(session.email, body.text || body.message || '');
+  if (!sent.error) {
+    await ceoHelpers().settleFounderNotify({
+      senderEmail: session.email,
+      founders: FOUNDERS,
+      labels: LABELS,
+      readThread,
+      readPings,
+      writePing,
+    });
+  }
   if (sent.error) {
     const status = failureStatus(sent.error);
     if (wantsJson(req)) sendJson(res, status, { error: sent.error });

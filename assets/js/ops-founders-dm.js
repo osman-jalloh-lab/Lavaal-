@@ -68,7 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const id = item && item.id ? String(item.id) : '';
       if (id && hasId(id)) return;
       const li = document.createElement('li');
-      li.className = `bubble ${item && item.mine ? 'user' : 'assistant'}`;
+      const ceo = item && (item.ceo || item.author === 'CEO');
+      li.className = `bubble ${ceo ? 'ceo' : (item && item.mine ? 'user' : 'assistant')}`;
       if (id) li.setAttribute('data-id', id);
       const kicker = document.createElement('div');
       kicker.className = 'kicker';
@@ -141,6 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function addressesCeo(text) {
+    const body = String(text || '');
+    if (/@ceo\b/i.test(body)) return true;
+    if (/(^|[^\w])ceo\s*[,:]/i.test(body)) return true;
+    if (/\bhey\s+ceo\b/i.test(body)) return true;
+    if (/\blaval\b/i.test(body)) return true;
+    return false;
+  }
+
   if (form) {
     form.addEventListener('submit', (event) => {
       if (typeof window.fetch !== 'function') return;
@@ -149,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const text = field ? field.value : '';
       const mine = ++seen;
       inFlight = true;
+      if (graph.ceo && addressesCeo(text) && status) status.textContent = 'CEO is thinking…';
       fetch('/ops/api/founders-dm', {
         method: 'POST',
         headers: {
