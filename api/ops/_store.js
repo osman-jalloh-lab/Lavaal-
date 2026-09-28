@@ -82,6 +82,7 @@ function emptyStore() {
     pendingBookings: [],
     assignSeq: 0,
     researchyPending: [],
+    ceoDeskQueries: [],
   };
 }
 
@@ -957,6 +958,9 @@ function normalizeStore(raw) {
     researchyPending: Array.isArray(src.researchyPending)
       ? src.researchyPending.map(normalizeResearchyPending).filter(Boolean).slice(-40)
       : [],
+    ceoDeskQueries: Array.isArray(src.ceoDeskQueries)
+      ? src.ceoDeskQueries.map(normalizeCeoDeskQuery).filter(Boolean).slice(0, 40)
+      : [],
   };
 }
 
@@ -985,6 +989,39 @@ function normalizeResearchyPending(row) {
 
 function listResearchyPending(storeData) {
   return ((storeData && storeData.researchyPending) || []).slice();
+}
+
+const CEO_QUERY_DESKS = Object.freeze(['growth', 'technical', 'sales', 'researchy']);
+const CEO_QUERY_STATUSES = Object.freeze(['open', 'answered', 'expired']);
+
+function normalizeCeoDeskQuery(row) {
+  const desk = clean(row && row.desk, 40).toLowerCase();
+  const question = clean(row && row.question, 2000);
+  const correlationId = clean(row && row.correlationId, 40);
+  const ceoThreadId = clean(row && row.ceoThreadId, 40);
+  if (!CEO_QUERY_DESKS.includes(desk) || !question || !correlationId || !ceoThreadId) return null;
+  const status = CEO_QUERY_STATUSES.includes(row && row.status) ? row.status : 'open';
+  return {
+    kind: 'ceo-query',
+    correlationId,
+    ceoThreadId,
+    desk,
+    question,
+    mayAct: false,
+    instruction: 'data-only-query',
+    createdAt: Number.isFinite(row && row.createdAt) ? row.createdAt : Date.now(),
+    status,
+    timeoutNotified: row && row.timeoutNotified === true,
+    expiredNotified: row && row.expiredNotified === true,
+    answeredAt: Number.isFinite(row && row.answeredAt) ? row.answeredAt : 0,
+  };
+}
+
+function listCeoDeskQueries(storeData, desk) {
+  const rows = ((storeData && storeData.ceoDeskQueries) || []).slice();
+  const id = clean(desk, 40).toLowerCase();
+  if (!id) return rows;
+  return rows.filter((row) => row.desk === id);
 }
 
 function unfinishedTasks(storeData) {
@@ -1719,6 +1756,50 @@ async function patchResearchyPending(id, patch) {
   });
 }
 
+async function enqueueCeoDeskQuery(fields) {
+  return mutate(async () => {
+    const item = normalizeCeoDeskQuery(Object.assign({}, fields, {
+      kind: 'ceo-query',
+      mayAct: false,
+      instruction: 'data-only-query',
+      status: 'open',
+      createdAt: Number.isFinite(fields && fields.createdAt) ? fields.createdAt : Date.now(),
+    }));
+    if (!item) return { error: 'invalid_query' };
+    const storeData = await readStore();
+    const rest = (storeData.ceoDeskQueries || []).filter((row) => row.correlationId !== item.correlationId);
+    storeData.ceoDeskQueries = [item].concat(rest).slice(0, 40);
+    await writeStore(storeData);
+    return { ok: true, query: item };
+  });
+}
+
+async function patchCeoDeskQuery(correlationId, patch) {
+  return mutate(async () => {
+    const storeData = await readStore();
+    const id = clean(correlationId, 40);
+    const index = (storeData.ceoDeskQueries || []).findIndex((row) => row.correlationId === id);
+    if (index === -1) return { error: 'pending_not_found' };
+    const current = storeData.ceoDeskQueries[index];
+    const nextPatch = patch && typeof patch === 'object' ? patch : {};
+    const item = normalizeCeoDeskQuery(Object.assign({}, current, {
+      status: nextPatch.status || current.status,
+      timeoutNotified: nextPatch.timeoutNotified !== undefined
+        ? nextPatch.timeoutNotified === true
+        : current.timeoutNotified,
+      expiredNotified: nextPatch.expiredNotified !== undefined
+        ? nextPatch.expiredNotified === true
+        : current.expiredNotified,
+      answeredAt: Number.isFinite(nextPatch.answeredAt) ? nextPatch.answeredAt : current.answeredAt,
+      createdAt: Number.isFinite(nextPatch.createdAt) ? nextPatch.createdAt : current.createdAt,
+    }));
+    if (!item) return { error: 'invalid_query' };
+    storeData.ceoDeskQueries[index] = item;
+    await writeStore(storeData);
+    return { ok: true, query: item };
+  });
+}
+
 async function takeResearchyPending(correlationId) {
   return mutate(async () => {
     const storeData = await readStore();
@@ -1805,6 +1886,9 @@ module.exports = {
   nextActionFrom,
   nextAssignSeq,
   enqueueResearchyPending,
+  enqueueCeoDeskQuery,
+  listCeoDeskQueries,
+  patchCeoDeskQuery,
   patchResearchyPending,
   normalizeDateAdded,
   normalizeKit,
