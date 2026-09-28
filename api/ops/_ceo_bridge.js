@@ -32,6 +32,7 @@ const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
 const { agentPendingItem } = require('./_untrusted');
 const { handleRoutineHealth } = require('./_routine_health');
+const { smsContextForCeo, smsPendingForBridge } = require('./_sms');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const PENDING_KEY = 'ops:ceo:pending';
@@ -1030,7 +1031,8 @@ function ceoSystemPrompt(context, options) {
   if (mode === 'phatic') {
     extras.push('Reply with a short fresh greeting only. Do not list Goal, Tasks, Assign status, or unfinished work.');
   }
-  const records = [extras.join('\n'), formatCeoStoreContext(context, { mode })].filter(Boolean).join('\n');
+  const smsFeed = options && typeof options.smsFeed === 'string' ? options.smsFeed.trim() : '';
+  const records = [extras.join('\n'), formatCeoStoreContext(context, { mode }), smsFeed].filter(Boolean).join('\n');
   return talkSystemPrompt('lavaall-ceo', records);
 }
 
@@ -1177,8 +1179,9 @@ async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
   }
   try {
     const context = await loadCeoTrustedContext({ mode });
+    const smsFeed = await smsContextForCeo();
     const result = await completeXai({
-      system: ceoSystemPrompt(context, { mode }),
+      system: ceoSystemPrompt(context, { mode, smsFeed }),
       messages: ceoMessagesForXai(claim.thread, { mode }),
     });
     if (result.error || !result.text) throw new Error('xai_failed');
@@ -1361,7 +1364,8 @@ async function handlePending(req, res) {
   const result = await listPending();
   if (result.error) return sendBridgeError(req, res, result.error);
   const pending = (result.pending || []).map(agentPendingItem);
-  return sendJson(res, 200, { ok: true, pending });
+  const sms = await smsPendingForBridge();
+  return sendJson(res, 200, { ok: true, pending: pending.concat(sms) });
 }
 
 async function confirmPendingAction({ messageId, founderEmail }) {

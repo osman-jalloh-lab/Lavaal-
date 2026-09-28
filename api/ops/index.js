@@ -4,6 +4,7 @@
 const { kitsDeniedPage, loginPage } = require('./_html');
 const { NAV, dashboardPage, runWithShellRequest } = require('./_shell');
 const { foundersNavFor, handleFoundersDm } = require('./_founders_dm');
+const { foundersSmsEnabled, handleSmsAction, handleSmsRoute, smsPanels } = require('./_sms');
 const { calendarPage, chatPage, inboxPage, issuesPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
 const { isTalkAgent, normalizeTalkAgentId, officePage } = require('./_office');
 const {
@@ -215,7 +216,19 @@ async function renderArea(req, res, session, extra) {
     signInPanel: area === 'dashboard' && signInHardeningEnabled()
       ? renderSignInHistory({ events: data.signInHistory || [], csrf })
       : '',
+    smsSettings: '',
+    smsFeed: '',
   };
+  if (foundersSmsEnabled() && (area === 'profile' || area === 'inbox')) {
+    try {
+      const panels = await smsPanels(session.email, csrf);
+      pageOpts.smsSettings = panels.settings;
+      pageOpts.smsFeed = panels.feed;
+    } catch {
+      pageOpts.smsSettings = '';
+      pageOpts.smsFeed = '';
+    }
+  }
 
   if (area === 'chat' && isTalkAgent(pageOpts.agentId)) {
     if (String(pageOpts.agentId) === CEO_DESK_ID) {
@@ -562,6 +575,37 @@ async function handleWrite(req, res, session) {
         prompt: body.prompt,
         contextNote: body.contextNote,
       }), { error: 'Could not update that routine.' });
+    case 'sms-send':
+    case 'sms-test':
+    case 'sms-confirm': {
+      const outcome = await handleSmsAction(req, res, session, action, body);
+      if (outcome.error) {
+        const message = outcome.error === 'csrf'
+          ? 'That text request was rejected. Reload and try again.'
+          : outcome.error === 'confirm_mismatch'
+            ? 'Type the masked number shown on screen before a test text.'
+            : outcome.error === 'not_allowlisted'
+              ? 'That number is not on the founders list.'
+              : outcome.error === 'opted_out'
+                ? 'That founder texted STOP. Text START to opt back in.'
+                : outcome.error === 'not_found'
+                  ? 'Text messages are off.'
+                  : 'Could not send that text.';
+        return wantsJson(req)
+          ? json(res, outcome.error === 'not_found' ? 404 : outcome.error === 'csrf' || outcome.error === 'forbidden' ? 403 : outcome.error === 'sms_unconfigured' || outcome.error === 'store_unavailable' ? 503 : 400, { error: outcome.error })
+          : renderArea(req, res, session, { error: message });
+      }
+      const notice = outcome.queued
+        ? 'Text is waiting for a founder to confirm.'
+        : outcome.replay
+          ? 'That text was already handled.'
+          : outcome.sent > 0
+            ? 'Text sent.'
+            : 'No text went out.';
+      return wantsJson(req)
+        ? json(res, 200, Object.assign({ ok: true }, outcome))
+        : renderArea(req, res, session, { notice });
+    }
     case 'copy-prompt': {
       const copied = await copyRoutinePrompt(body.id);
       if (copied.ok && !wantsJson(req)) {
@@ -730,6 +774,7 @@ async function handleMapApi(req, res) {
 }
 
 async function opsDispatch(req, res) {
+  if (await handleSmsRoute(req, res)) return;
   if (await handleFoundersDm(req, res)) return;
   if (await handleCeoAssign(req, res)) return;
   if (await handleCeoBridge(req, res)) return;

@@ -49,7 +49,7 @@ function stripRecommend(text) {
     .trim();
 }
 
-function profilePage({ email, store, snapshot, notice, error }) {
+function profilePage({ email, store, snapshot, notice, error, smsSettings }) {
   const profile = getProfile(store, email) || { role: '', timezone: '', writingPreferences: '' };
   const goal = store.goal || { title: '', definitionOfDone: '', nextStep: '', targetDate: '' };
   return shellPage({
@@ -98,6 +98,7 @@ function profilePage({ email, store, snapshot, notice, error }) {
           </form>
         </section>
       </div>
+      ${smsSettings || ''}
     `,
   });
 }
@@ -435,7 +436,7 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, c
   });
 }
 
-function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThread }) {
+function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThread, smsFeed }) {
   const setup = inboxSetup || { gmailConfigured: false, supportConnected: false, supportMailbox: 'support@lavaall.com' };
   const items = listInboxItems(store);
   const audit = listMailAudit(store).slice(0, 8);
@@ -529,6 +530,7 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
       ${persistenceBanner(snapshot.durable)}
       <h1>Inbox</h1>
       <p class="lead">Mail people sent us. Write a reply, then Confirm send. Nothing goes out before that.</p>
+      ${smsFeed || ''}
       <section class="card">
         <div class="kicker">Mail</div>
         <h2>What came in</h2>
