@@ -1,0 +1,23 @@
+{
+  "name": "LAVAALL OS",
+  "short_name": "LAVAALL OS",
+  "start_url": "/ops",
+  "scope": "/ops",
+  "display": "standalone",
+  "background_color": "#EDE7E0",
+  "theme_color": "#EDE7E0",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "140x36",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/logo.webp",
+      "sizes": "140x36",
+      "type": "image/webp",
+      "purpose": "any"
+    }
+  ]
+}

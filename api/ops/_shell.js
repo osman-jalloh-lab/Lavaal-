@@ -154,6 +154,13 @@ textarea{min-height:88px;resize:vertical;}
 .bubble p{color:var(--text);overflow-wrap:anywhere;}
 .bubble.user{border-color:rgba(46,196,255,.35);background:rgba(46,196,255,.08);}
 .bubble.assistant{border-color:rgba(16,185,129,.28);background:var(--emerald-wash);}
+.bubble.ceo{border-color:rgba(120,90,60,.22);background:#FBF7F2;font-size:13px;padding:8px 10px;}
+.bubble.ceo p{font-size:13px;}
+.dm-ceo-notice{margin:0 0 10px;color:var(--muted);font-size:13px;}
+.dm-push{margin:0 0 12px;}
+.dm-push .btn{width:auto;margin-top:0;}
+.dm-push-ios{margin:8px 0 0;color:var(--muted);font-size:13px;}
+.dm-push[hidden],.dm-push-ios[hidden],#dm-push-on[hidden],#dm-push-off[hidden]{display:none;}
 .ok{margin-bottom:12px;color:var(--emerald);background:var(--emerald-wash);border:1px solid #A7E9CF;border-radius:12px;padding:10px 12px;font-size:14px;}
 .err{margin-bottom:12px;color:#BE123C;background:#FDE8EA;border:1px solid #F9C5CB;border-radius:12px;padding:10px 12px;font-size:14px;}
 .inbox-body{white-space:pre-wrap;overflow-wrap:anywhere;}
@@ -333,6 +340,10 @@ function shellPage({ title, email, area, body, notice, error, scripts, head, pri
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>${escapeHtml(title)}</title>
 <meta name="robots" content="noindex,nofollow"/>
+<link rel="manifest" href="/ops-manifest.webmanifest"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="LAVAALL OS"/>
 ${typeof head === 'string' ? head : ''}
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self';"/>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin/>
