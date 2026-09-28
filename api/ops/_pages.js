@@ -440,13 +440,9 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
   const items = listInboxItems(store);
   const audit = listMailAudit(store).slice(0, 8);
   const open = openThread ? getInboxItem(store, openThread) : null;
-  const setupCard = setup.supportConnected
-    ? `<p>Live mailbox is ${escapeHtml(setup.supportMailbox)}. Opening Inbox lists support@ threads. Send still needs Confirm send.</p>
-       <form method="POST" action="/ops/inbox">
-         <input type="hidden" name="action" value="refresh-inbox"/>
-         <input type="hidden" name="returnTo" value="/ops/inbox"/>
-         <button class="btn btn-sm" type="submit">Refresh live mail</button>
-       </form>`
+  const disconnected = setup.previewIsolated
+    ? `<p class="empty">Live support@ not connected.</p>
+       <p>This Preview does not read or send the real support@ mailbox. Paste a snapshot below — it stays in the Preview store and is never marked as live mail. Nothing is sent to customers.</p>`
     : `<p class="empty">Live support@ not connected.</p>
        <p>To list mail from support@lavaall.com on this Preview:</p>
        <ol class="list">
@@ -455,6 +451,14 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
          <li>Scopes: <code>gmail.readonly</code> to list, <code>gmail.send</code> only for later Confirm send.</li>
        </ol>
        <p>Until then, paste a snapshot below — it is never marked as live mail. Nothing is sent to customers unless you click Confirm send.</p>`;
+  const setupCard = setup.supportConnected
+    ? `<p>Live mailbox is ${escapeHtml(setup.supportMailbox)}. Opening Inbox lists support@ threads. Send still needs Confirm send.</p>
+       <form method="POST" action="/ops/inbox">
+         <input type="hidden" name="action" value="refresh-inbox"/>
+         <input type="hidden" name="returnTo" value="/ops/inbox"/>
+         <button class="btn btn-sm" type="submit">Refresh live mail</button>
+       </form>`
+    : disconnected;
 
   const rows = items.length
     ? `<ul class="list">${items.map((item) => {

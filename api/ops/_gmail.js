@@ -2,6 +2,8 @@
 // OAuth refresh + users.messages.list/get/send via fetch. No npm.
 // Underscore prefix: not a Vercel function. Never log tokens.
 
+const storeEnv = require('./_store-env');
+
 const SUPPORT_MAILBOX = 'support@lavaall.com';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
@@ -23,7 +25,16 @@ function gmailFromAddress() {
 }
 
 function supportInboxConfigured() {
+  if (!storeEnv.supportMailboxAllowed()) return false;
   return gmailConfigured() && gmailFromAddress() === SUPPORT_MAILBOX;
+}
+
+function refuseSharedSupportMailbox() {
+  if (storeEnv.supportMailboxAllowed()) return;
+  const err = new Error('preview_support_blocked');
+  err.code = 'preview_support_blocked';
+  err.statusCode = 503;
+  throw err;
 }
 
 function describeGmailSetup() {
@@ -31,6 +42,7 @@ function describeGmailSetup() {
     gmailConfigured: gmailConfigured(),
     supportConnected: supportInboxConfigured(),
     supportMailbox: SUPPORT_MAILBOX,
+    previewIsolated: storeEnv.blocksProductionFounderIntegration(),
   };
 }
 
@@ -212,6 +224,7 @@ async function sendGmailMessage({ to, subject, text, html }) {
 }
 
 async function listGmailThreads({ max } = {}) {
+  refuseSharedSupportMailbox();
   const limit = Number.isFinite(max) ? Math.min(max, 20) : 12;
   const list = await gmailRequest(`threads?maxResults=${limit}&q=${encodeURIComponent('in:inbox')}`);
   if (!list.ok) throw deliveryError('list', list.status);
@@ -243,6 +256,7 @@ async function listGmailThreads({ max } = {}) {
 }
 
 async function readGmailMessage(id) {
+  refuseSharedSupportMailbox();
   const response = await gmailRequest(`messages/${encodeURIComponent(id)}?format=full`);
   if (!response.ok) throw deliveryError('read', response.status);
   const data = await response.json();
@@ -259,6 +273,7 @@ async function readGmailMessage(id) {
 }
 
 async function sendGmailReply({ to, subject, text, threadId, inReplyTo }) {
+  refuseSharedSupportMailbox();
   const accessToken = await refreshGmailAccessToken();
   const replySubject = /^re:/i.test(String(subject || '')) ? subject : `Re: ${subject || ''}`.trim();
   const html = `<p>${String(text || '').replace(/[<>]/g, '').replace(/\n/g, '<br/>')}</p>`;

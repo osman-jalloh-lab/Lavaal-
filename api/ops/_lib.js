@@ -11,6 +11,7 @@
 
 const crypto = require('crypto');
 const { gmailConfigured, sendGmailMessage } = require('./_gmail');
+const storeEnv = require('./_store-env');
 
 const ALLOWLIST = Object.freeze([
   'osmanjalloh104@gmail.com',
@@ -347,16 +348,23 @@ function clientIp(req) {
 
 // Sliding window of allowed hits. Omit maxHits for a one-hit lock (legacy email step).
 function rateLimited(key, windowMs, maxHits = 1) {
+  let scoped = '';
+  try {
+    scoped = storeEnv.scopeKey(String(key || ''));
+  } catch (err) {
+    if (err && err.statusCode === 503) return true;
+    throw err;
+  }
   const now = Date.now();
   const cutoff = now - windowMs;
-  const prev = recent.get(key);
+  const prev = recent.get(scoped);
   const hits = Array.isArray(prev) ? prev.filter((ts) => ts > cutoff) : [];
   if (hits.length >= maxHits) {
-    recent.set(key, hits);
+    recent.set(scoped, hits);
     return true;
   }
   hits.push(now);
-  recent.set(key, hits);
+  recent.set(scoped, hits);
   return false;
 }
 

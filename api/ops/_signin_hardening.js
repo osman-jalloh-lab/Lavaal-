@@ -11,6 +11,7 @@
 
 const crypto = require('crypto');
 const lib = require('./_lib');
+const storeEnv = require('./_store-env');
 
 const LOG_KEY = 'lavaall-ops-signin-log-v1';
 const GEN_KEY = 'lavaall-ops-session-gen-v1';
@@ -25,42 +26,18 @@ function signInHardeningEnabled() {
 }
 
 function signInKeys() {
-  const env = String(process.env.VERCEL_ENV || '').trim().toLowerCase();
-  const prefix = !env || env === 'production'
-    ? ''
-    : env.replace(/[^a-z0-9_-]/g, '').slice(0, 32);
   return {
-    log: prefix ? `${prefix}:${LOG_KEY}` : LOG_KEY,
-    generation: prefix ? `${prefix}:${GEN_KEY}` : GEN_KEY,
+    log: storeEnv.key(LOG_KEY),
+    generation: storeEnv.key(GEN_KEY),
   };
 }
 
 function kvConfigured() {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
-
-function fetchSignal() {
-  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
-    return AbortSignal.timeout(2500);
-  }
-  return undefined;
+  return storeEnv.kvConfigured();
 }
 
 async function kvCommand(args) {
-  const base = String(process.env.KV_REST_API_URL || '').replace(/\/$/, '');
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!base || !token) throw new Error('kv_unconfigured');
-  const response = await fetch(base, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(args),
-    signal: fetchSignal(),
-  });
-  if (!response || !response.ok) throw new Error('kv_command_failed');
-  return response.json();
+  return storeEnv.kvCommand(args, { timeoutMs: 2500 });
 }
 
 function domainOf(email) {

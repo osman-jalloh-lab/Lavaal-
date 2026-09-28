@@ -15,6 +15,7 @@ const {
   timingSafeEqualString,
 } = require('./_lib');
 const { readLiveSession } = require('./_signin_hardening');
+const storeEnv = require('./_store-env');
 
 const SNAPSHOT_KEY = 'lavaall-ops-routine-health-v1';
 const MAX_SNAPSHOT_BYTES = 20 * 1024;
@@ -45,22 +46,15 @@ function routineHealthEnabled() {
 }
 
 function routineHealthKey() {
-  const env = String(process.env.VERCEL_ENV || '').trim().toLowerCase();
-  const prefix = !env || env === 'production'
-    ? ''
-    : env.replace(/[^a-z0-9_-]/g, '').slice(0, 32);
-  return prefix ? `${prefix}:${SNAPSHOT_KEY}` : SNAPSHOT_KEY;
+  return storeEnv.key(SNAPSHOT_KEY);
 }
 
 function kvConfigured() {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  return storeEnv.kvConfigured();
 }
 
 function filePath() {
-  if (kvConfigured()) return '';
-  if (process.env.VERCEL) return '';
-  const custom = process.env.OPS_STORE_FILE;
-  return typeof custom === 'string' && custom.trim() ? `${custom.trim()}.routine-health.json` : '';
+  return storeEnv.opsStoreFile('.routine-health.json');
 }
 
 function sendJson(res, status, body) {
@@ -316,17 +310,7 @@ function decodeJson(raw) {
 }
 
 async function kvCommand(args) {
-  const base = process.env.KV_REST_API_URL.replace(/\/$/, '');
-  const response = await fetch(base, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(args),
-  });
-  if (!response.ok) throw new Error('kv_command_failed');
-  return response.json();
+  return storeEnv.kvCommand(args);
 }
 
 function readFileRecord() {
@@ -347,6 +331,7 @@ function writeFileRecord(record) {
 }
 
 async function readRecord() {
+  storeEnv.assertIsolation();
   if (kvConfigured()) {
     const payload = await kvCommand(['GET', routineHealthKey()]);
     return normalizeStored(decodeJson(payload && payload.result));
@@ -356,6 +341,7 @@ async function readRecord() {
 }
 
 async function writeRecord(record) {
+  storeEnv.assertIsolation();
   const clean = normalizeStored(record);
   if (!clean) throw new Error('invalid_snapshot');
   if (kvConfigured()) {

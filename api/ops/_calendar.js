@@ -4,6 +4,7 @@
 
 const { ALLOWLIST } = require('./_lib');
 const { refreshGmailAccessToken } = require('./_gmail');
+const storeEnv = require('./_store-env');
 const {
   addEvent,
   addInboxItem,
@@ -21,8 +22,8 @@ function calendarId() {
     ? process.env.OPS_GOOGLE_CALENDAR_ID.trim()
     : '';
   // Never fall back to Osman's primary calendar.
-  if (!raw || raw.toLowerCase() === 'primary') return '';
-  return raw;
+  if (!raw || raw.toLowerCase() === 'primary') return storeEnv.googleCalendarId('');
+  return storeEnv.googleCalendarId(raw);
 }
 
 function calendarRefreshToken() {

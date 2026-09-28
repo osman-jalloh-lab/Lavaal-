@@ -7,6 +7,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const storeEnv = require('./_store-env');
 
 const STORE_KEY = 'lavaall-ops-v2';
 const MAX_TASKS = 100;
@@ -86,14 +87,15 @@ function emptyStore() {
 }
 
 function kvConfigured() {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  return storeEnv.kvConfigured();
+}
+
+function officeKey() {
+  return storeEnv.key(STORE_KEY);
 }
 
 function filePath() {
-  if (kvConfigured()) return '';
-  if (process.env.VERCEL) return '';
-  const custom = process.env.OPS_STORE_FILE;
-  return typeof custom === 'string' && custom.trim() ? custom.trim() : '';
+  return storeEnv.opsStoreFile('');
 }
 
 function storeMode() {
@@ -939,26 +941,16 @@ function decodeKvResult(result) {
 }
 
 async function kvCommand(args) {
-  const base = process.env.KV_REST_API_URL.replace(/\/$/, '');
-  const response = await fetch(base, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(args),
-  });
-  if (!response.ok) throw new Error('kv_command_failed');
-  return response.json();
+  return storeEnv.kvCommand(args);
 }
 
 async function kvGet() {
-  const payload = await kvCommand(['GET', STORE_KEY]);
+  const payload = await kvCommand(['GET', officeKey()]);
   return decodeKvResult(payload && payload.result);
 }
 
 async function kvSet(storeData) {
-  await kvCommand(['SET', STORE_KEY, JSON.stringify(storeData)]);
+  await kvCommand(['SET', officeKey(), JSON.stringify(storeData)]);
 }
 
 function fileGet() {
@@ -988,8 +980,9 @@ async function persistSeededGoalIfNeeded(raw) {
 }
 
 async function readStore() {
+  storeEnv.assertIsolation();
   if (kvConfigured()) {
-    const payload = await kvCommand(['GET', STORE_KEY]);
+    const payload = await kvCommand(['GET', officeKey()]);
     const raw = payload && payload.result;
     memory = decodeKvResult(raw);
     await persistSeededGoalIfNeeded(raw);
@@ -1004,6 +997,7 @@ async function readStore() {
 }
 
 async function writeStore(next) {
+  storeEnv.assertIsolation();
   const normalized = normalizeStore(next);
   if (kvConfigured()) {
     await kvSet(normalized);

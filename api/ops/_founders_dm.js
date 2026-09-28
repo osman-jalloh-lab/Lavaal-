@@ -26,21 +26,17 @@ const {
 } = require('./_lib');
 const { readLiveSession } = require('./_signin_hardening');
 const { persistenceBanner, shellPage } = require('./_shell');
+const storeEnv = require('./_store-env');
 
 const DM_KEY = 'lavaall-ops-founders-dm-v1';
 const READ_KEY = 'lavaall-ops-founders-dm-v1:read';
 const LEGACY_KEY = 'lavaall-ops-founders-dm-v1:legacy';
 
 function foundersDmKeys() {
-  const env = String(process.env.VERCEL_ENV || '').trim().toLowerCase();
-  const prefix = !env || env === 'production'
-    ? ''
-    : env.replace(/[^a-z0-9_-]/g, '').slice(0, 32);
-  const thread = prefix ? `${prefix}:${DM_KEY}` : DM_KEY;
   return {
-    thread,
-    read: prefix ? `${thread}:read` : READ_KEY,
-    legacy: prefix ? `${thread}:legacy` : LEGACY_KEY,
+    thread: storeEnv.key(DM_KEY),
+    read: storeEnv.key(READ_KEY),
+    legacy: storeEnv.key(LEGACY_KEY),
   };
 }
 const FOUNDERS = Object.freeze([
@@ -80,14 +76,11 @@ function isFounderDmIdentity(email) {
 }
 
 function kvConfigured() {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  return storeEnv.kvConfigured();
 }
 
 function filePath() {
-  if (kvConfigured()) return '';
-  if (process.env.VERCEL) return '';
-  const custom = process.env.OPS_STORE_FILE;
-  return typeof custom === 'string' && custom.trim() ? `${custom.trim()}.founders-dm.json` : '';
+  return storeEnv.opsStoreFile('.founders-dm.json');
 }
 
 function foundersBodyTooLarge(req) {
@@ -329,18 +322,7 @@ function etagFor(payload) {
 }
 
 async function kvCommand(args) {
-  const base = process.env.KV_REST_API_URL.replace(/\/$/, '');
-  const pipelined = Array.isArray(args[0]);
-  const response = await fetch(pipelined ? `${base}/pipeline` : base, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(args),
-  });
-  if (!response.ok) throw new Error('kv_command_failed');
-  return response.json();
+  return storeEnv.kvCommand(args);
 }
 
 function readCursorPath() {
@@ -507,6 +489,7 @@ async function migrateLegacyBlob() {
 }
 
 async function readThread() {
+  storeEnv.assertIsolation();
   if (kvConfigured()) {
     let messages;
     try {
@@ -529,6 +512,7 @@ async function appendMessage(message) {
     err.code = 'encryption_not_configured';
     throw err;
   }
+  storeEnv.assertIsolation();
   const packed = JSON.stringify(sealStored(message, keys));
   const storeKeys = foundersDmKeys();
   if (kvConfigured()) {
@@ -721,8 +705,7 @@ function pageHtml(session, payload, extra) {
   const csrf = (payload && payload.csrf) || createCsrfToken(session.email);
   const island = JSON.stringify({ csrf, pollMs: POLL_MS, badgeMs: BADGE_MS }).replace(/</g, '\\u003c');
   const emptyHidden = messages.length ? ' hidden' : '';
-  const durable = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
-    || Boolean(filePath());
+  const durable = kvConfigured() || Boolean(filePath());
   return shellPage({
     title: 'LAVAALL OS — Private',
     email: session.email,
