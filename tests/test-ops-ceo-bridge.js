@@ -457,10 +457,10 @@ async function run() {
     check('status system prompt still receives Goal and unfinished Tasks',
       statusPrompt.includes('Goal: Ship Preview Slice 1')
       && statusPrompt.includes('Task: Wire Assign wake'));
-    check('answer-first prompt answers first and omits unfinished task dump',
+    check('answer-first prompt answers first and still carries trusted tasks',
       answerFirstPrompt.includes('Answer the founder question first')
       && answerFirstPrompt.includes('Do not auto-Assign')
-      && !answerFirstPrompt.includes('Wire Assign wake')
+      && answerFirstPrompt.includes('Task: Wire Assign wake')
       && answerFirstPrompt.includes('Goal: Ship Preview Slice 1'));
   }
 
@@ -670,13 +670,13 @@ async function run() {
         correlationId: 'corr-quality-1',
       },
     }), qualityAsk);
-    check('quality-style ask gets answer-first prompt without unfinished task dump',
+    check('quality-style ask gets answer-first prompt with trusted tasks',
       qualityAsk.statusCode === 200
       && qualityAsk.body.correlationId === 'corr-quality-1'
       && xaiCalls === xaiBeforeHi + 2
       && lastXaiBody
       && String(lastXaiBody.messages[0].content).includes('Answer the founder question first')
-      && !String(lastXaiBody.messages[0].content).includes('Wire Assign wake')
+      && String(lastXaiBody.messages[0].content).includes('Task: Wire Assign wake')
       && String(lastXaiBody.messages[0].content).includes('Do not auto-Assign'));
 
     const broaderGreetings = [
