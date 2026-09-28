@@ -4,6 +4,7 @@
 const { kitsDeniedPage, loginPage } = require('./_html');
 const { NAV, dashboardPage, runWithShellRequest } = require('./_shell');
 const { foundersNavFor, handleFoundersDm } = require('./_founders_dm');
+const { handleOpsPushAsset } = require('./_founders_dm_push');
 const { calendarPage, chatPage, inboxPage, issuesPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
 const { isTalkAgent, normalizeTalkAgentId, officePage } = require('./_office');
 const {
@@ -730,6 +731,7 @@ async function handleMapApi(req, res) {
 }
 
 async function opsDispatch(req, res) {
+  if (handleOpsPushAsset(req, res)) return;
   if (await handleFoundersDm(req, res)) return;
   if (await handleCeoAssign(req, res)) return;
   if (await handleCeoBridge(req, res)) return;

@@ -190,6 +190,95 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function bindPush() {
+    if (!root || !graph.push || !graph.push.publicKey) return;
+    const box = document.getElementById('dm-push');
+    const onBtn = document.getElementById('dm-push-on');
+    const offBtn = document.getElementById('dm-push-off');
+    const ios = document.getElementById('dm-push-ios');
+    if (!box || !onBtn || !offBtn) return;
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && typeof Notification === 'function';
+    if (!supported) return;
+    box.hidden = false;
+    const ua = navigator.userAgent || '';
+    const iosDevice = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    if (ios && iosDevice && !standalone) ios.hidden = false;
+
+    function showSubscribed(on) {
+      onBtn.hidden = on;
+      offBtn.hidden = !on;
+    }
+
+    function postAction(action, extra) {
+      return fetch('/ops/api/founders-dm', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        credentials: 'same-origin',
+        cache: 'no-store',
+        body: JSON.stringify(Object.assign({ action, csrf: graph.csrf || '' }, extra || {})),
+      }).then((res) => res.json().then((body) => ({ ok: res.ok, body })));
+    }
+
+    function urlBase64ToUint8Array(value) {
+      const padding = '='.repeat((4 - (value.length % 4)) % 4);
+      const base64 = (String(value) + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(base64);
+      const out = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
+      return out;
+    }
+
+    if (Notification.permission === 'granted') {
+      navigator.serviceWorker.register('/ops-sw.js', { scope: '/ops' }).then((reg) => (
+        reg.pushManager.getSubscription()
+      )).then((sub) => {
+        showSubscribed(Boolean(sub));
+      }).catch(() => {});
+    }
+
+    onBtn.addEventListener('click', () => {
+      Notification.requestPermission().then((permission) => {
+        if (permission !== 'granted') {
+          if (status) status.textContent = 'Notifications stay off until you allow them.';
+          return null;
+        }
+        return navigator.serviceWorker.register('/ops-sw.js', { scope: '/ops' }).then((reg) => (
+          reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(graph.push.publicKey),
+          })
+        )).then((sub) => postAction('push-subscribe', { subscription: sub.toJSON() })).then((result) => {
+          if (!result || !result.ok) {
+            if (status) status.textContent = 'Could not turn on notifications.';
+            return;
+          }
+          showSubscribed(true);
+          if (status) status.textContent = '';
+        });
+      }).catch(() => {
+        if (status) status.textContent = 'Could not turn on notifications.';
+      });
+    });
+
+    offBtn.addEventListener('click', () => {
+      navigator.serviceWorker.register('/ops-sw.js', { scope: '/ops' }).then((reg) => (
+        reg.pushManager.getSubscription()
+      )).then((sub) => {
+        const endpoint = sub && sub.endpoint;
+        const done = sub && typeof sub.unsubscribe === 'function' ? sub.unsubscribe() : Promise.resolve();
+        return done.then(() => postAction('push-unsubscribe', { endpoint: endpoint || '' }));
+      }).then((result) => {
+        if (result && result.ok) showSubscribed(false);
+      }).catch(() => {});
+    });
+  }
+
+  bindPush();
+
   function tabActive() {
     return !document.hidden && (typeof document.hasFocus !== 'function' || document.hasFocus());
   }

@@ -41,7 +41,7 @@ function foundersDmKeys() {
     thread,
     read: prefix ? `${thread}:read` : READ_KEY,
     legacy: prefix ? `${thread}:legacy` : LEGACY_KEY,
-    ping: `${thread}:ping`,
+    push: `${thread}:push`,
   };
 }
 const FOUNDERS = Object.freeze([
@@ -66,12 +66,16 @@ const SECRET_FIELDS = Object.freeze(['preview', 'draft', 'attachmentName', 'atta
 
 let memoryMessages = [];
 let memoryRead = {};
-let memoryPing = {};
+let memoryPush = {};
 let localHydrated = false;
 
-// Lazy: _founders_dm_ceo loads the office bundle, which loads this module.
+// Lazy: the CEO helper loads the office bundle, which loads this module.
 function ceoHelpers() {
   return require('./_founders_dm_ceo');
+}
+
+function pushHelpers() {
+  return require('./_founders_dm_push');
 }
 
 function foundersDmEnabled() {
@@ -661,27 +665,83 @@ async function appendCeoReply(thread, asker) {
   }, { markReadFor: asker });
 }
 
-async function readPings() {
-  if (kvConfigured()) {
-    const payload = await kvCommand(['HGETALL', foundersDmKeys().ping]);
-    return decodeHash(payload && payload.result);
+function parsePushList(raw) {
+  const push = pushHelpers();
+  let parsed = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return [];
+    }
   }
-  return Object.assign({}, memoryPing);
+  return (Array.isArray(parsed) ? parsed : [])
+    .map((row) => push.normalizeSubscription(row))
+    .filter(Boolean)
+    .slice(-push.MAX_PUSH_SUBS);
 }
 
-async function writePing(email, at) {
+function decodePushHash(result) {
+  const out = {};
+  const apply = (email, value) => {
+    const who = normalizeEmail(email);
+    if (!FOUNDERS.includes(who)) return;
+    out[who] = parsePushList(value);
+  };
+  if (Array.isArray(result)) {
+    for (let i = 0; i < result.length; i += 2) apply(result[i], result[i + 1]);
+    return out;
+  }
+  if (result && typeof result === 'object') {
+    Object.keys(result).forEach((key) => apply(key, result[key]));
+  }
+  return out;
+}
+
+async function readSubscriptions(email) {
+  const who = normalizeEmail(email);
+  if (!FOUNDERS.includes(who)) return [];
+  if (kvConfigured()) {
+    const payload = await kvCommand(['HGETALL', foundersDmKeys().push]);
+    const map = decodePushHash(payload && payload.result);
+    return map[who] || [];
+  }
+  return (memoryPush[who] || []).slice();
+}
+
+async function writeSubscriptions(email, list) {
   const who = normalizeEmail(email);
   if (!FOUNDERS.includes(who)) return;
-  memoryPing[who] = at;
+  const clean = parsePushList(list);
+  memoryPush[who] = clean;
   if (kvConfigured()) {
-    await kvCommand(['HSET', foundersDmKeys().ping, who, String(at)]);
+    await kvCommand(['HSET', foundersDmKeys().push, who, JSON.stringify(clean)]);
   }
+}
+
+async function saveSubscription(email, raw) {
+  const push = pushHelpers();
+  if (!push.foundersDmPushEnabled()) return { error: 'not_found' };
+  if (!push.vapidReady()) return { error: 'push_unavailable' };
+  const sub = push.normalizeSubscription(raw);
+  if (!sub) return { error: 'invalid_subscription' };
+  const current = await readSubscriptions(email);
+  await writeSubscriptions(email, push.upsertSubscriptions(current, sub));
+  return { ok: true };
+}
+
+async function deleteSubscription(email, endpoint) {
+  const push = pushHelpers();
+  if (!push.foundersDmPushEnabled()) return { error: 'not_found' };
+  const current = await readSubscriptions(email);
+  await writeSubscriptions(email, push.dropSubscription(current, endpoint));
+  return { ok: true };
 }
 
 function resetFoundersDm() {
   memoryMessages = [];
   memoryRead = {};
-  memoryPing = {};
+  memoryPush = {};
   localHydrated = false;
 }
 
@@ -780,12 +840,22 @@ function pageHtml(session, payload, extra) {
   const messages = payload && Array.isArray(payload.messages) ? payload.messages : [];
   const csrf = (payload && payload.csrf) || createCsrfToken(session.email);
   const ceoOn = ceoHelpers().foundersDmCeoEnabled();
+  const push = pushHelpers();
+  const pushKey = push.foundersDmPushEnabled() ? push.clientPublicKey() : '';
   const island = JSON.stringify({
     csrf,
     pollMs: POLL_MS,
     badgeMs: BADGE_MS,
     ceo: ceoOn,
+    push: pushKey ? { publicKey: pushKey } : null,
   }).replace(/</g, '\\u003c');
+  const pushControls = pushKey
+    ? `<div class="dm-push" id="dm-push" hidden>
+        <button type="button" class="btn" id="dm-push-on">Turn on notifications</button>
+        <button type="button" class="btn" id="dm-push-off" hidden>Turn off</button>
+        <p class="dm-push-ios" id="dm-push-ios" hidden>${escapeHtml(push.IOS_HINT)}</p>
+      </div>`
+    : '';
   const lead = ceoOn
     ? 'Messages between Osman and Hameed. Text only. They stay in this thread.'
     : 'Messages between Osman and Hameed only. Text only. They stay in this thread and are not sent to the office or any assistant.';
@@ -810,6 +880,7 @@ function pageHtml(session, payload, extra) {
         <div class="kicker">Thread</div>
         <h2>Osman and Hameed</h2>
         ${ceoNotice}
+        ${pushControls}
         <p class="empty" id="dm-empty"${emptyHidden}>No messages yet. Write the first one below.</p>
         <ol class="thread dm-thread" id="dm-thread" role="log" aria-live="polite">${messageListHtml(messages)}</ol>
         <button type="button" id="dm-new" class="dm-new" hidden>New messages</button>
@@ -845,7 +916,7 @@ function encryptionUnavailablePage(session) {
 }
 
 function failureStatus(error) {
-  if (error === 'store_unavailable' || error === 'encryption_not_configured') return 503;
+  if (error === 'store_unavailable' || error === 'encryption_not_configured' || error === 'push_unavailable') return 503;
   if (error === 'forbidden') return 403;
   if (error === 'not_found') return 404;
   return 400;
@@ -935,15 +1006,32 @@ async function handleApi(req, res, session) {
     else redirect(res, '/ops/founders');
     return true;
   }
+  const action = String(body.action || '').toLowerCase();
+  if (action === 'push-subscribe' || action === 'push-unsubscribe') {
+    const saved = action === 'push-subscribe'
+      ? await mutate(async () => saveSubscription(session.email, body.subscription))
+      : await mutate(async () => deleteSubscription(
+        session.email,
+        body.endpoint || (body.subscription && body.subscription.endpoint) || '',
+      ));
+    if (saved.error) {
+      const status = failureStatus(saved.error);
+      if (wantsJson(req)) sendJson(res, status, { error: saved.error });
+      else await renderPage(req, res, session, { error: 'Could not update notifications.' });
+      return true;
+    }
+    if (wantsJson(req)) sendJson(res, 200, saved);
+    else redirect(res, '/ops/founders');
+    return true;
+  }
   const sent = await sendMessage(session.email, body.text || body.message || '');
   if (!sent.error) {
-    await ceoHelpers().settleFounderNotify({
+    await pushHelpers().settleFounderPush({
       senderEmail: session.email,
       founders: FOUNDERS,
       labels: LABELS,
-      readThread,
-      readPings,
-      writePing,
+      readSubscriptions,
+      deleteSubscription,
     });
   }
   if (sent.error) {

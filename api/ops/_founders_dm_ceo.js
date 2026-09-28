@@ -1,12 +1,10 @@
-// Pure helpers for a CEO turn inside the founders thread, plus the Slack ping.
+// Pure helpers for a CEO turn inside the founders thread.
 // Does not read the private KV key and does not decrypt. The thread module
 // passes already-opened rows and stores the reply. No new paid provider.
 
 const { presentQueuedForAgent } = require('./_untrusted');
 const { talkSystemPrompt } = require('./_souls');
 const { completeXai } = require('./_xai');
-const { slackPostMessage } = require('../slack/_router/bridge');
-const { canUseWaitUntil, scheduleWaitUntil } = require('../slack/_lib');
 
 const CEO_FROM = 'ceo';
 const CEO_UNAVAILABLE = "CEO couldn't answer just now, try again";
@@ -15,8 +13,6 @@ const DEFAULT_CONTEXT_N = 20;
 const MAX_CONTEXT_N = 40;
 const CEO_LIMIT_PER_HOUR = 20;
 const HOUR_MS = 60 * 60 * 1000;
-const DEBOUNCE_MS = 10 * 60 * 1000;
-const ACTIVE_MS = 2 * 60 * 1000;
 const DEFAULT_TIMEOUT_MS = 20000;
 const LABELS = Object.freeze({
   'osmanjalloh104@gmail.com': 'Osman',
@@ -31,10 +27,6 @@ function envOn(name) {
 
 function foundersDmCeoEnabled() {
   return envOn('FOUNDERS_DM_CEO_ENABLED');
-}
-
-function foundersDmNotifyEnabled() {
-  return envOn('FOUNDERS_DM_NOTIFY_SLACK');
 }
 
 function contextLimit() {
@@ -154,128 +146,11 @@ async function composeCeoReply({ messages }) {
   return { text: String(result.text).trim() };
 }
 
-function parseSlackMap(raw) {
-  const out = {};
-  const text = String(raw || '').trim();
-  if (!text) return out;
-  if (text.startsWith('{')) {
-    try {
-      const parsed = JSON.parse(text);
-      if (!parsed || typeof parsed !== 'object') return out;
-      Object.keys(parsed).forEach((key) => {
-        const email = String(key || '').trim().toLowerCase();
-        const id = String(parsed[key] || '').trim();
-        if (email && /^U[A-Z0-9]+$/.test(id)) out[email] = id;
-      });
-    } catch {
-      return out;
-    }
-    return out;
-  }
-  text.split(',').forEach((part) => {
-    const idx = part.indexOf(':');
-    if (idx < 1) return;
-    const email = part.slice(0, idx).trim().toLowerCase();
-    const id = part.slice(idx + 1).trim();
-    if (email && /^U[A-Z0-9]+$/.test(id)) out[email] = id;
-  });
-  return out;
-}
-
-function slackNotifyText(senderLabel) {
-  const label = senderLabel === 'Hameed' ? 'Hameed' : 'Osman';
-  return `New message from ${label} in the LAVAALL founders chat — https://www.lavaall.com/ops`;
-}
-
-function pingDecision({ now, lastPing, readAt }) {
-  const clock = Number.isFinite(now) ? now : Date.now();
-  const seen = Number(readAt);
-  const ping = Number(lastPing);
-  if (Number.isFinite(seen) && seen > 0 && clock - seen < ACTIVE_MS) return 'active';
-  if (Number.isFinite(ping) && ping > 0 && clock - ping < DEBOUNCE_MS) return 'debounce';
-  return 'send';
-}
-
-async function postSlackDm({ channel, text }) {
-  const started = Date.now();
-  try {
-    const result = await slackPostMessage({ channel, text });
-    logCeo('slack_notify', { ok: Boolean(result && result.ok), ms: Date.now() - started });
-    return result || { ok: false };
-  } catch {
-    logCeo('slack_notify', { ok: false, ms: Date.now() - started });
-    return { ok: false };
-  }
-}
-
-async function notifyOtherFounder({ senderEmail, founders, labels, readThread, readPings, writePing }) {
-  if (!foundersDmNotifyEnabled()) return;
-  const sender = String(senderEmail || '').trim().toLowerCase();
-  const roster = Array.isArray(founders) ? founders : [];
-  const other = roster.find((email) => email !== sender);
-  if (!other) return;
-  if (!process.env.SLACK_BOT_TOKEN) {
-    logCeo('slack_notify_skipped', { reason: 'no_token' });
-    return;
-  }
-  const map = parseSlackMap(process.env.FOUNDERS_DM_SLACK_IDS);
-  const channel = map[other];
-  if (!channel) {
-    logCeo('slack_notify_skipped', { reason: 'no_mapping' });
-    return;
-  }
-  let thread;
-  let pings;
-  try {
-    thread = await readThread();
-    pings = await readPings();
-  } catch {
-    logCeo('slack_notify_skipped', { reason: 'store' });
-    return;
-  }
-  const now = Date.now();
-  const decision = pingDecision({
-    now,
-    lastPing: pings && pings[other],
-    readAt: thread && thread.readAt && thread.readAt[other],
-  });
-  if (decision !== 'send') {
-    logCeo('slack_notify_skipped', { reason: decision });
-    return;
-  }
-  try {
-    await writePing(other, now);
-  } catch {
-    logCeo('slack_notify_skipped', { reason: 'store' });
-    return;
-  }
-  const nameMap = labels && typeof labels === 'object' ? labels : {};
-  await postSlackDm({
-    channel,
-    text: slackNotifyText(nameMap[sender] || 'Osman'),
-  });
-}
-
-async function settleFounderNotify(args) {
-  try {
-    const work = notifyOtherFounder(args || {});
-    if (canUseWaitUntil()) {
-      scheduleWaitUntil(work);
-      return;
-    }
-    await work;
-  } catch {
-    logCeo('slack_notify', { ok: false });
-  }
-}
-
 module.exports = {
-  ACTIVE_MS,
   CEO_FROM,
   CEO_LIMIT_PER_HOUR,
   CEO_UNAVAILABLE,
   CONTEXT_CHARS,
-  DEBOUNCE_MS,
   NOTICE,
   buildCeoTranscript,
   ceoRepliesThisHour,
@@ -283,12 +158,5 @@ module.exports = {
   composeCeoReply,
   fenceFoundersTranscript,
   foundersDmCeoEnabled,
-  foundersDmNotifyEnabled,
   isCeoAddressed,
-  parseSlackMap,
-  notifyOtherFounder,
-  pingDecision,
-  postSlackDm,
-  settleFounderNotify,
-  slackNotifyText,
 };
