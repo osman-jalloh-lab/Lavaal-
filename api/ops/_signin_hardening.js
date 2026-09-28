@@ -339,6 +339,44 @@ function renderSignInHistory({ events, csrf }) {
     </section>`;
 }
 
+const FOUNDER_ROLE = Object.freeze({
+  'osmanjalloh104@gmail.com': 'Osman',
+  'abdulhbah55@gmail.com': 'Hameed',
+});
+
+function summarizeSignInRoles(events) {
+  const roles = {
+    Osman: { successes: 0, lastSuccessAt: 0 },
+    Hameed: { successes: 0, lastSuccessAt: 0 },
+  };
+  let rejected = 0;
+  (Array.isArray(events) ? events : []).forEach((event) => {
+    if (!event || typeof event !== 'object') return;
+    if (event.result === 'rejected') {
+      rejected += 1;
+      return;
+    }
+    if (event.result !== 'signed_in') return;
+    const role = FOUNDER_ROLE[String(event.who || '').trim().toLowerCase()];
+    if (!role) return;
+    roles[role].successes += 1;
+    const at = Number(event.at);
+    if (Number.isFinite(at) && at > roles[role].lastSuccessAt) roles[role].lastSuccessAt = at;
+  });
+  return { roles, rejected };
+}
+
+async function signInOfficeSummary() {
+  if (!signInHardeningEnabled() || !kvConfigured()) return { loaded: false };
+  try {
+    const events = await listSignInEvents();
+    const summary = summarizeSignInRoles(events);
+    return { loaded: true, roles: summary.roles, rejected: summary.rejected };
+  } catch {
+    return { loaded: false };
+  }
+}
+
 module.exports = {
   GEN_KEY,
   LOG_KEY,
@@ -355,6 +393,8 @@ module.exports = {
   renderSignInHistory,
   signInHardeningEnabled,
   signInKeys,
+  signInOfficeSummary,
+  summarizeSignInRoles,
   summarizeUserAgent,
   truncateIp,
 };

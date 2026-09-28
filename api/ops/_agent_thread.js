@@ -22,7 +22,8 @@ const {
   redirect,
   wantsJson,
 } = require('./_lib');
-const { formatKitsTrustedLine, kitsSummary, notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
+const { kitsSummary, readStore } = require('./_store');
+const { formatOfficeTrustedContext, loadOfficeTrustedBundle } = require('./_office_context');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
 const { normalizeTalkAgentId, officeAgentById } = require('./_office');
@@ -343,42 +344,14 @@ async function mutate(work) {
 }
 
 function formatStoreContext(data) {
-  const lines = ['Trusted LAVAALL OS records (KV). Use only these facts:'];
-  const goal = data && data.goal ? data.goal : null;
-  const tasks = data && Array.isArray(data.tasks) ? data.tasks : [];
-  const notes = data && Array.isArray(data.notes) ? data.notes : [];
-  if (!goal && !tasks.length && !notes.length) {
-    lines.push('None loaded. Do not invent goals, tasks, notes, prices, SKUs, or legal positions.');
-  } else {
-    if (goal) {
-      lines.push(`Goal: ${goal.title}`);
-      if (goal.definitionOfDone) lines.push(`Definition of done: ${goal.definitionOfDone}`);
-      if (goal.nextStep) lines.push(`Next step: ${goal.nextStep}`);
-      if (goal.targetDate) lines.push(`Target date: ${goal.targetDate}`);
-    }
-    tasks.forEach((task) => {
-      lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
-      if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
-    });
-    notes.forEach((note) => {
-      lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
-    });
-  }
-  lines.push(formatKitsTrustedLine(data));
-  return lines.join('\n');
+  return formatOfficeTrustedContext(data, { mode: 'default' });
 }
 
 async function loadTrustedContext() {
   try {
-    const data = await readStore();
-    return {
-      goal: data && data.goal ? data.goal : null,
-      tasks: unfinishedTasks(data || {}).slice(0, 12),
-      notes: notesSelectableForChat(data || {}).slice(0, 8),
-      kitsSummary: kitsSummary(data),
-    };
+    return await loadOfficeTrustedBundle();
   } catch {
-    return { goal: null, tasks: [], notes: [], kitsSummary: kitsSummary(null) };
+    return { store: {} };
   }
 }
 

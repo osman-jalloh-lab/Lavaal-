@@ -936,17 +936,132 @@ async function handleFoundersDm(req, res) {
   }
 }
 
+function foundersDmMetaRow(row) {
+  if (!row || typeof row !== 'object') return null;
+  const from = normalizeEmail(row.from);
+  const createdAt = Number(row.createdAt);
+  if (!FOUNDERS.includes(from) || !Number.isFinite(createdAt)) return null;
+  return { from, createdAt };
+}
+
+function chicagoDayStart(now) {
+  const clock = Number.isFinite(now) ? now : Date.now();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(clock));
+  const pick = (type) => {
+    const part = parts.find((item) => item.type === type);
+    return part ? Number(part.value) : 0;
+  };
+  const desired = Date.UTC(pick('year'), pick('month') - 1, pick('day'), 0, 0);
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const read = (ms) => {
+    const bits = fmt.formatToParts(new Date(ms));
+    const value = (type) => {
+      const part = bits.find((item) => item.type === type);
+      return part ? Number(part.value) : 0;
+    };
+    return Date.UTC(value('year'), value('month') - 1, value('day'), value('hour'), value('minute'));
+  };
+  let utc = desired;
+  for (let i = 0; i < 3; i += 1) {
+    const delta = desired - read(utc);
+    if (delta === 0) break;
+    utc += delta;
+  }
+  return utc;
+}
+
+function summarizeFoundersDmOffice(rows, readAt, now) {
+  const metas = (Array.isArray(rows) ? rows : []).map(foundersDmMetaRow).filter(Boolean);
+  const start = chicagoDayStart(now);
+  const clock = Number.isFinite(now) ? now : Date.now();
+  const messagesToday = metas.filter((row) => row.createdAt >= start && row.createdAt <= clock).length;
+  const lastMessageAt = metas.reduce((max, row) => Math.max(max, row.createdAt), 0) || null;
+  const unread = metas.filter((row) => {
+    const recipient = FOUNDERS.find((email) => email !== row.from);
+    const seen = readAt && Number(readAt[recipient]);
+    const cursor = Number.isFinite(seen) ? seen : 0;
+    return row.createdAt > cursor;
+  }).length;
+  return {
+    loaded: true,
+    total: metas.length,
+    messagesToday,
+    unread,
+    lastMessageAt,
+  };
+}
+
+function parseMetaOnly(item) {
+  let row = item;
+  if (typeof item === 'string') {
+    try {
+      row = JSON.parse(item);
+    } catch {
+      return null;
+    }
+  }
+  return foundersDmMetaRow(row);
+}
+
+function localFoundersMetas() {
+  if (!localHydrated) {
+    const target = filePath();
+    if (target && fs.existsSync(target)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(target, 'utf8'));
+        const rows = Array.isArray(raw) ? raw : (raw && raw.messages) || [];
+        return rows.map(parseMetaOnly).filter(Boolean);
+      } catch {
+        return [];
+      }
+    }
+  }
+  return memoryMessages.map(foundersDmMetaRow).filter(Boolean);
+}
+
+async function foundersDmOfficeSummary(now) {
+  if (!foundersDmEnabled()) return { loaded: false };
+  try {
+    if (kvConfigured()) {
+      const payload = await kvCommand(['LRANGE', foundersDmKeys().thread, '0', '-1']);
+      const rows = Array.isArray(payload && payload.result) ? payload.result : [];
+      const metas = rows.map(parseMetaOnly).filter(Boolean);
+      const readAt = await kvReadMap();
+      return summarizeFoundersDmOffice(metas, readAt, now);
+    }
+    return summarizeFoundersDmOffice(localFoundersMetas(), memoryRead, now);
+  } catch {
+    return { loaded: false };
+  }
+}
+
 module.exports = {
   BADGE_MS,
   DM_KEY,
   READ_KEY,
   LEGACY_KEY,
   foundersDmKeys,
+  foundersDmMetaRow,
+  foundersDmOfficeSummary,
   FOUNDERS,
   MAX_TEXT,
   POLL_MS,
   foundersDmEnabled,
   foundersDmKind,
+  summarizeFoundersDmOffice,
   foundersNavFor,
   handleFoundersDm,
   isFounderDmIdentity,

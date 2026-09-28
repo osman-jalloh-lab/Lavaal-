@@ -29,12 +29,10 @@ const {
 const { readLiveSession } = require('./_signin_hardening');
 const {
   formatKitsCountSentence,
-  formatKitsTrustedLine,
   kitsSummary,
-  notesSelectableForChat,
   readStore,
-  unfinishedTasks,
 } = require('./_store');
+const { formatOfficeTrustedContext, loadOfficeTrustedBundle } = require('./_office_context');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
 const { agentPendingItem } = require('./_untrusted');
@@ -308,8 +306,11 @@ function isGreetingOnlyReply(text) {
 }
 
 function statusReplyFromContext(context) {
-  const goal = context && context.goal ? context.goal : null;
-  const tasks = context && Array.isArray(context.tasks) ? context.tasks : [];
+  const store = context && context.store ? context.store : context;
+  const goal = store && store.goal ? store.goal : null;
+  const tasks = store && Array.isArray(store.tasks)
+    ? store.tasks.filter((task) => task && task.status !== 'done')
+    : [];
   const lines = [];
   if (goal && goal.title) {
     lines.push(`We're working on ${goal.title}.`);
@@ -986,54 +987,24 @@ async function enqueuePendingWake({ thread, founder, wakeReason }) {
 }
 
 function formatCeoStoreContext(data, options) {
-  const mode = normalizeCeoAskMode(options && options.mode);
-  const lines = ['Trusted LAVAALL OS records (KV). Use only these facts:'];
-  const goal = data && data.goal ? data.goal : null;
-  const tasks = data && Array.isArray(data.tasks) ? data.tasks : [];
-  const notes = data && Array.isArray(data.notes) ? data.notes : [];
-  const includeGoal = mode !== 'phatic' && Boolean(goal);
-  const includeTasks = (mode === 'status' || mode === 'default') && tasks.length > 0;
-  const includeNotes = mode !== 'phatic' && notes.length > 0;
-  const includeKits = mode === 'status' || mode === 'default' || mode === 'answer_first';
-  if (!includeGoal && !includeTasks && !includeNotes) {
-    lines.push('None loaded. Do not invent goals, tasks, notes, prices, SKUs, or legal positions.');
-  } else {
-    if (includeGoal) {
-      lines.push(`Goal: ${goal.title}`);
-      if (goal.definitionOfDone) lines.push(`Definition of done: ${goal.definitionOfDone}`);
-      if (goal.nextStep) lines.push(`Next step: ${goal.nextStep}`);
-      if (goal.targetDate) lines.push(`Target date: ${goal.targetDate}`);
-    }
-    if (includeTasks) {
-      tasks.forEach((task) => {
-        lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
-        if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
-      });
-    }
-    if (includeNotes) {
-      notes.forEach((note) => {
-        lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
-      });
-    }
-  }
-  if (includeKits) lines.push(formatKitsTrustedLine(data));
-  return lines.join('\n');
+  return formatOfficeTrustedContext(data, options);
 }
 
 async function loadCeoTrustedContext(options) {
   const mode = normalizeCeoAskMode(options && options.mode);
+  if (mode === 'phatic') return { mode: 'phatic' };
   try {
-    const data = await readStore();
-    return {
-      goal: mode === 'phatic' ? null : (data && data.goal ? data.goal : null),
-      tasks: (mode === 'status' || mode === 'default')
-        ? unfinishedTasks(data || {}).slice(0, 12)
-        : [],
-      notes: mode === 'phatic' ? [] : notesSelectableForChat(data || {}).slice(0, 8),
-      kitsSummary: kitsSummary(data),
-    };
+    const bundle = await loadOfficeTrustedBundle();
+    let pendingCount;
+    try {
+      const listed = await listPending();
+      pendingCount = listed && Array.isArray(listed.pending) ? listed.pending.length : undefined;
+    } catch {
+      pendingCount = undefined;
+    }
+    return Object.assign(bundle, { pendingCount, mode });
   } catch {
-    return { goal: null, tasks: [], notes: [], kitsSummary: kitsSummary(null) };
+    return { store: {}, foundersDm: { loaded: false }, signIns: { loaded: false }, routineHealth: { ok: false, empty: true, routines: [] }, mode };
   }
 }
 

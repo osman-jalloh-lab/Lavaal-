@@ -11,13 +11,13 @@ const { TALK_AGENT_IDS, normalizeTalkAgentId } = require('./_office');
 const {
   addChatProposals,
   appendChatTurn,
-  formatKitsTrustedLine,
   getSharedChat,
   kitsSummary,
   notesSelectableForChat,
   readStore,
   resolveChatContext,
 } = require('./_store');
+const { formatOfficeTrustedContext, loadOfficeTrustedBundle } = require('./_office_context');
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
@@ -79,26 +79,10 @@ function groundedReply(question, context) {
 }
 
 function formatContextBlock(context) {
-  const lines = ['Selected context (visible to the founder before send):'];
-  if (!context || !context.selected) {
-    lines.push('None selected.');
-  } else {
-    if (context.goal) {
-      lines.push(`Goal: ${context.goal.title}`);
-      if (context.goal.definitionOfDone) lines.push(`Definition of done: ${context.goal.definitionOfDone}`);
-      if (context.goal.nextStep) lines.push(`Next step: ${context.goal.nextStep}`);
-      if (context.goal.targetDate) lines.push(`Target date: ${context.goal.targetDate}`);
-    }
-    (context.tasks || []).forEach((task) => {
-      lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
-      if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
-    });
-    (context.notes || []).forEach((note) => {
-      lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
-    });
+  if (context && context.trustedBundle) {
+    return formatOfficeTrustedContext(context.trustedBundle, { mode: 'default' });
   }
-  lines.push(formatKitsTrustedLine(context));
-  return lines.join('\n');
+  return formatOfficeTrustedContext(context, { mode: 'default' });
 }
 
 function systemPrompt(route, context) {
@@ -106,7 +90,7 @@ function systemPrompt(route, context) {
   return [
     'You are the LAVAALL OS assistant, a helper to lead agent lavaall-ceo.',
     `CEO router: lead=${route && route.leadAgent || CEO_ID} verb=${route && route.verb || ''} risk=${route && route.risk || ''} helpers=${helpers}.`,
-    'Use only the selected goal/task/note records and the kit count summary (counts only). Do not invent prices, SKUs, legal positions, owners, completions, kit numbers, names, or emails.',
+    'Use only the trusted office records in the block below. Personal data is counts and short titles only. Do not invent prices, SKUs, legal positions, owners, completions, kit numbers, names, or emails.',
     'Drafts only. Never send mail, never deploy, never claim a store write happened.',
     'If you propose a store change, append one fenced JSON block: ```LAVAALL_DRAFT\\n{"kind":"add-note","title":"...","body":"..."}\\n```',
     'Allowed draft kinds: save-goal, add-task, add-note, update-task. No send-mail or deploy kinds.',
@@ -248,6 +232,7 @@ async function sendChatTurn({ question, selection, createdBy, agentId }) {
 
   const storeData = await readStore();
   const context = resolveChatContext(storeData, selection);
+  context.trustedBundle = await loadOfficeTrustedBundle();
   const route = pinTalkAgent(classify({ text, source: 'ops_chat' }), agentId);
   const grounded = groundedReply(text, context);
 
