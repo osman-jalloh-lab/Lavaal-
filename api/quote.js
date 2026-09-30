@@ -29,7 +29,7 @@ async function quote(req, res) {
   const webhook = process.env.QUOTE_WEBHOOK_URL;
   if (webhook) {
     try {
-      const delivery = await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestType, name, email, phone, company, country, quantity, message, context, receivedAt: new Date().toISOString() }) });
+      const delivery = await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: process.env.QUOTE_WEBHOOK_SECRET || undefined, requestType, name, email, phone, company, country, quantity, message, context, receivedAt: new Date().toISOString() }) });
       if (delivery.ok) return json(res, 202, { accepted: true });
     } catch {}
     return json(res, 502, { error: 'delivery_failed', message: 'We could not deliver your quote request. Please try again shortly.' });
