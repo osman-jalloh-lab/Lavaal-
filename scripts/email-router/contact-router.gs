@@ -36,6 +36,14 @@
  * 8. Submit one real test message from each inquiry type on the live
  *    Contact Us page and confirm it lands in the right inbox before
  *    calling this done.
+ *
+ * SECURITY: the secret check below is fail-closed -- if you redeploy this
+ * script to a project where CONTACT_WEBHOOK_SECRET has NOT been set yet
+ * (step 4), every request will now be rejected with 403 instead of silently
+ * accepting unauthenticated mail. Before redeploying this updated code over
+ * an existing live deployment, confirm CONTACT_WEBHOOK_SECRET is already
+ * set under that project's Script Properties, or the contact form will stop
+ * working until you set it.
  */
 
 var ALLOWED_SENDER_ALIASES = [
@@ -53,7 +61,10 @@ function doPost(e) {
 
     // Apps Script Web Apps cannot reliably read custom HTTP headers, so
     // api/contact.js sends the shared secret inside the JSON body instead.
-    if (secret && payload.secret !== secret) {
+    // Fail CLOSED: an unset Script Property must reject, not skip, the
+    // check -- otherwise a missed setup step silently accepts requests
+    // from anyone who finds this deployment's URL.
+    if (!secret || payload.secret !== secret) {
       return jsonOut({ error: 'forbidden' }, 403);
     }
 
