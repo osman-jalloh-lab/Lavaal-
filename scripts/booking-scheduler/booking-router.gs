@@ -37,6 +37,14 @@
  *      BOOKING_CALENDAR_ID    = target calendar ID, or "primary"
  *      BOOKING_WEBHOOK_SECRET = long random value (same value goes into
  *                               Vercel's BOOKING_WEBHOOK_SECRET)
+ *
+ * SECURITY: the secret check on register/book is fail-closed -- if you
+ * redeploy this updated code over an existing live deployment where
+ * BOOKING_WEBHOOK_SECRET has NOT been set yet, every register/book request
+ * will now be rejected with 403 instead of silently accepting unauthenticated
+ * bookings. Confirm BOOKING_WEBHOOK_SECRET is already set under that
+ * project's Script Properties before redeploying, or Schedule a Call will
+ * stop working until you set it.
  * 3. To offer Google Meet as a call method: Editor -> Services (+) ->
  *    add "Google Calendar API" (the ADVANCED service, not just CalendarApp,
  *    which is already built in). This is a one-time click only you can do
@@ -154,7 +162,10 @@ function doPost(e) {
   }
   try {
     var secret = PropertiesService.getScriptProperties().getProperty('BOOKING_WEBHOOK_SECRET');
-    if (secret && payload.secret !== secret) return jsonOut({ error: 'forbidden' }, 403);
+    // Fail CLOSED: an unset Script Property must reject, not skip, the
+    // check -- otherwise a missed setup step silently accepts requests
+    // from anyone who finds this deployment's URL.
+    if (!secret || payload.secret !== secret) return jsonOut({ error: 'forbidden' }, 403);
 
     if (payload.action === 'register') return handleRegister(payload);
     if (payload.action === 'book') return handleBook(payload);

@@ -78,10 +78,36 @@ async function run() {
   // availability (GET)
   {
     global.fetch = async (url) => { check('availability GET forwards the date param', String(url).includes('date=2026-09-07')); return { ok: true, status: 200, json: async () => ({ ok: true, slots: [] }) }; };
-    const req = { method: 'GET', query: { action: 'availability', date: '2026-09-07' } };
+    const req = { method: 'GET', headers: { 'x-forwarded-for': '10.9.9.1' }, query: { action: 'availability', date: '2026-09-07' } };
     const res = mockRes();
     await scheduleMod(req, res);
     check('availability returns 200', res.statusCode === 200);
+  }
+
+  // availability rate limiting (SECURITY-AUDIT.md finding L1): repeated
+  // immediate requests from the SAME IP get throttled, a DIFFERENT IP is
+  // unaffected (per-IP, not global), and the same IP works again once the
+  // (short, click-speed-generous) window has passed.
+  {
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ ok: true, slots: [] }) });
+    const sameIpReq = () => ({ method: 'GET', headers: { 'x-forwarded-for': '10.9.9.2' }, query: { action: 'availability', date: '2026-09-08' } });
+
+    const first = mockRes();
+    await scheduleMod(sameIpReq(), first);
+    check('availability: first request from an IP succeeds (200)', first.statusCode === 200);
+
+    const second = mockRes();
+    await scheduleMod(sameIpReq(), second);
+    check('availability: immediate repeat from the SAME IP is rate-limited (429)', second.statusCode === 429);
+
+    const otherIp = mockRes();
+    await scheduleMod({ method: 'GET', headers: { 'x-forwarded-for': '10.9.9.3' }, query: { action: 'availability', date: '2026-09-08' } }, otherIp);
+    check('availability: a DIFFERENT IP is not affected by the first IP\'s limit (200)', otherIp.statusCode === 200);
+
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const afterWindow = mockRes();
+    await scheduleMod(sameIpReq(), afterWindow);
+    check('availability: same IP succeeds again once the window has passed (200)', afterWindow.statusCode === 200);
   }
 
   // register: rejects invalid reason

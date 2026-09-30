@@ -1,0 +1,37 @@
+# Prevents test/tooling files from ever being deployed as api/ serverless
+# endpoints (see SECURITY-AUDIT.md finding H1 -- a test harness was once
+# discovered sitting inside api/, which Vercel builds one function per file).
+# Not currently a live issue on this branch (no test file sits under api/
+# any more), but kept as a structural safeguard against a recurrence.
+tests/
+*.test.js
+*.spec.js
+
+# Internal process notes, reports, and repo docs -- not part of the site.
+# Verified these were being served publicly at their literal paths (e.g.
+# https://www.lavaall.com/MAGNUM.md returned 200) before this exclusion.
+# See SECURITY-AUDIT.md finding L2.
+*.md
+# EXCEPT docs/ops/souls/*.md -- vercel.json's api/ops/index.js function
+# declares "includeFiles": "docs/ops/souls/**", which the /ops console
+# requires at runtime. The broad *.md rule above would otherwise also
+# exclude these and break /ops.
+!docs/**
+
+# Local tooling scripts and logs -- not needed at runtime.
+*.ps1
+*.bat
+debug.log
+*.log
+
+# Server-side implementation notes, Apps Script router source, and dev/QA
+# tooling -- never meant to be fetched by a browser. Verified this whole
+# directory was also being served publicly (e.g.
+# https://www.lavaall.com/scripts/email-router/contact-router.gs returned
+# 200) before this exclusion. See SECURITY-AUDIT.md finding L2.
+#
+# Does NOT touch docs/ -- vercel.json's api/ops/index.js function declares
+# "includeFiles": "docs/ops/souls/**", which IS required at runtime by the
+# /ops console. Confirmed no api/*.js or api/ops/*.js requires anything
+# from scripts/ or tests/ before excluding them.
+scripts/
