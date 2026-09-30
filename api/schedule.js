@@ -71,6 +71,12 @@ async function schedule(req, res) {
   const action = req.method === 'GET' ? req.query.action : req.body?.action;
 
   if (action === 'availability') {
+    const ip = String(req.headers?.['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+    // Generous per-IP throttle (2 req/sec) -- proxies straight through to
+    // the external booking backend with no validation of its own, so an
+    // unthrottled loop could exhaust that backend's quota. 500ms is well
+    // above normal date-picker click speed (see SECURITY-AUDIT.md L1).
+    if (rateLimited('availability_' + ip, 500)) return json(res, 429, { error: 'rate_limited' });
     const date = clean(req.query.date, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json(res, 400, { error: 'invalid_date' });
     const result = await callBackend('availability', { date }, false);
