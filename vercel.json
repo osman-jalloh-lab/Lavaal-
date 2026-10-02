@@ -3,6 +3,10 @@
     "api/ops/index.js": {
       "maxDuration": 30,
       "includeFiles": "docs/ops/souls/**"
+    },
+    "api/starlink/index.js": {
+      "maxDuration": 10,
+      "includeFiles": "api/starlink/_site/**"
     }
   },
   "headers": [
@@ -48,6 +52,9 @@
     { "source": "/ops/api/ceo-bridge/:kind", "destination": "/api/ops?area=api/ceo-bridge/:kind" },
     { "source": "/ops/api/ceo-assign/:kind", "destination": "/api/ops?area=api/ceo-assign/:kind" },
     { "source": "/ops/:path*", "destination": "/api/ops?area=:path*" },
+    { "source": "/starlink", "destination": "/api/starlink?area=" },
+    { "source": "/starlink/", "destination": "/api/starlink?area=" },
+    { "source": "/starlink/:path*", "destination": "/api/starlink?area=:path*" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/schedule", "destination": "/index.html" }
   ]

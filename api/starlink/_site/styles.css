@@ -1,0 +1,680 @@
+/* LAVAALL Starlink — Static V4. Tokens from Refero style 75c06591 ("Perk":
+   electric lime on warm parchment). Supersedes the Dala black canvas. */
+:root {
+  /* Perk palette, re-grounded on beige. No white anywhere: Osman asked for
+     beige + light green, so the canvas IS the parchment and the second field
+     is a lime-derived wash. Hexes below are sampled from the product shots so
+     each photo dissolves into the section behind it. */
+  --canvas:    #f3f3eb;  /* beige — replaces Perk's #ffffff page ground */
+  --field-leaf:  #eaf2da; /* light green, derived from the lime accent */
+  --field-mist:  #e3e7e5;
+  --field-slate: #dae0e5;
+  --field-dark:  #2e2d29; /* Perk's "dark island" — where the glow lives */
+  --parchment: #f5f5eb;
+  --ink:       #14140f;  /* never pure #000 */
+  --charcoal:  #30302a;
+  --graphite:  #6e6e64;
+  --stone:     #919183;
+  --smoke:     #b9b9b7;
+  --ash:       #d2d2c8;
+  --lime:      #beff50;  /* the ONLY filled-button colour */
+
+  /* Legacy names kept so every existing var() inverts in place.
+     --black was the page ground; --white was the foreground. */
+  --black: var(--canvas);
+  --white: var(--ink);
+  --gray-2: var(--graphite);
+  --gray-3: var(--stone);
+  --violet: var(--lime);
+  --violet-hover: #cfff7a;
+  --violet-text: var(--ink);  /* lime text fails contrast on white; ink carries copy */
+  --yellow: var(--graphite);  /* Perk allows no second accent — eyebrows go muted */
+
+  /* Configurator surfaces, re-cut for Perk (was the dark AuthKit panel) */
+  --ak-bg: var(--parchment);
+  --ak-panel: var(--canvas);
+  --ak-border: var(--ash);
+  --ak-border-strong: var(--stone);
+  --ak-muted: var(--graphite);
+  --ak-fill: var(--parchment);
+  --ak-shadow: none;          /* Perk: no box-shadows, tonal contrast only */
+
+  --r-card: 28px;             /* cards & buttons */
+  --r-inner: 18px;
+  --r-input: 8px;
+
+  /* Perk names OTSono (not licensed here); Inter is its stated fallback. */
+  --f-dala: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-display: "Inter", system-ui, sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+  --gut: 20px;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+}
+@media (min-width: 768px) { :root { --gut: 40px; } }
+@media (min-width: 1200px) { :root { --gut: 72px; } }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--black);
+  color: var(--white);
+  font: 400 16px/1.5 var(--f-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+figure { margin: 0; }
+::selection { background: var(--violet); color: var(--white); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip {
+  position: absolute; left: 16px; top: -64px; z-index: 50;
+  background: var(--violet); color: var(--white); padding: 12px 18px; border-radius: 999px;
+  font-weight: 600; text-decoration: none;
+}
+.skip:focus { top: 16px; }
+
+/* ---------- Nav — Dala: transparent, logo left, 3 uppercase links + violet pill right ---------- */
+.nav {
+  position: fixed; inset: 0 0 auto; z-index: 40;
+  display: flex; align-items: center; gap: 30px;
+  height: 100px; padding: 0 38px 0 40px;
+  pointer-events: none;
+}
+.nav > * { pointer-events: auto; }
+.nav { transition: height .3s var(--ease), background .3s; }
+.nav.is-scrolled { height: 76px; background: rgba(243, 243, 235, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--ash); }
+.unbox__bar { transition: opacity .3s; }
+.nav__mark { margin-right: auto; padding: 12px 0; font: 600 20px/1 var(--f-dala); letter-spacing: 0.06em; text-decoration: none; }
+.nav__links { display: flex; gap: 30px; }
+.nav__links a { padding: 12px 0; font: 400 14px/1 var(--f-dala); letter-spacing: .05em; text-transform: uppercase; color: var(--gray-2); text-decoration: none; transition: color .2s; }
+.nav__links a:hover { color: var(--white); }
+.pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 40px; padding: 0 16px; border-radius: 9999px;
+  background: var(--violet); color: var(--white); text-decoration: none;
+  font: 500 14px/1 var(--f-dala); letter-spacing: .02em; text-transform: uppercase;
+  transition: background .2s;
+}
+.pill:hover { background: var(--violet-hover); }
+@media (max-width: 1023px) { .nav__links { display: none; } }
+@media (max-width: 767px) {
+  .nav { height: 72px; padding: 0 16px 0 20px; }
+  .nav__mark { font-size: 17px; }
+  .pill--nav { height: 36px; padding: 0 14px; font-size: 12px; }
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 52px; padding: 0 26px; border-radius: var(--r-card);
+  font: 600 16px/1 var(--f-body); text-decoration: none; cursor: pointer;
+  border: 1px solid transparent; transition: background .2s, border-color .2s, transform .15s;
+}
+.btn:active { transform: scale(.98); }
+.btn--primary { background: var(--violet); color: var(--white); }
+.btn--primary:hover { background: var(--violet-hover); }
+.btn--primary:disabled { background: var(--ash); color: var(--stone); cursor: not-allowed; }
+.btn--ghost { color: var(--white); border-color: var(--ash); background: transparent; }
+.btn--ghost:hover { border-color: var(--white); }
+.btn--sm { min-height: 48px; padding: 0 24px; font-size: 15px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.actions--center { justify-content: center; }
+.link-btn {
+  background: none; border: 0; padding: 12px 4px; cursor: pointer;
+  font: 500 15px/1 var(--f-body); color: var(--ak-muted);
+}
+.link-btn:hover { color: var(--white); }
+
+/* =========================================================
+   01 HERO — Dala composition: narrow left copy column, artwork owns the right ~55% and bleeds off-canvas
+   Measured from the Dala preview @1440x900: headline x=120, 3 lines @106px pitch (y 218-510),
+   tagline y~558, body 4 lines @27px, CTA pill 40px tall at y~703.
+   ========================================================= */
+.hero { position: relative; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden; }
+.hero__copy {
+  position: absolute; left: 8.33vw; top: 50%;
+  translate: 0 -44%;
+  width: min(44vw, 640px);
+  z-index: 2;
+}
+.hero__title {
+  margin: 0;
+  font: 400 clamp(56px, 7.85vw, 113px)/0.94 var(--f-dala);
+  letter-spacing: -0.04em;
+}
+.hero__title span { display: block; }
+.hero__tag {
+  margin: 0.38em 0 0; padding-top: 34px;
+  font: 600 13px/1.2 var(--f-dala); letter-spacing: .02em; text-transform: uppercase;
+  color: var(--yellow);
+}
+.hero__body { margin: 12px 0 22px; max-width: 30ch; font: 400 18px/1.5 var(--f-dala); letter-spacing: -0.005em; color: var(--white); }
+
+.hero__art { position: absolute; inset: 0; pointer-events: none; }
+.art { position: absolute; max-width: none; height: auto; }
+/* hardware sculpture — positions in vw/vh so the composition scales like Dala's brain */
+.art--dish   { width: 55vw; left: 42.5vw; top: 16vh; }
+.art--router { width: 12.5vw; left: 42vw; top: 47vh; }
+.art--cable  { width: 23vw; left: 64vw; top: 75vh; }
+
+/* Pinned mode (desktop/tablet, motion OK): the hero overlaps the start of the unboxing track.
+   Its CSS artwork is hidden — the unboxing parts render the same composition at the same
+   coordinates (HERO_DESK / HERO_TAB in motion.js) and then separate on scroll. */
+.is-pinned .hero { height: 100vh; margin-bottom: -100vh; z-index: 2; pointer-events: none; }
+.is-pinned .hero__copy { pointer-events: auto; }
+.is-pinned .hero__art { display: none; }
+.js .world { opacity: 0; filter: none; transition: opacity 1.4s var(--ease); }
+.is-ready .world { opacity: 1; filter: none; }
+
+/* entrance from darkness */
+.js .art { opacity: 0; filter: none; transition: opacity 1.4s var(--ease); }
+.js .art--router { transition-delay: .25s; }
+.js .art--cable { transition-delay: .4s; }
+.js .hero__copy > * { opacity: 0; translate: 0 18px; transition: opacity .8s var(--ease), translate .8s var(--ease); }
+.js .hero__copy > :nth-child(2) { transition-delay: .12s; }
+.js .hero__copy > :nth-child(3) { transition-delay: .18s; }
+.js .hero__copy > :nth-child(4) { transition-delay: .24s; }
+.is-ready .art { opacity: 1; filter: brightness(1); }
+.is-ready .hero__copy > * { opacity: 1; translate: 0 0; }
+
+@media (max-width: 1023px) {
+  .hero__copy { left: 40px; width: 52vw; }
+  .art--dish { width: 64vw; left: 40vw; top: 20vh; }
+  .art--router { width: 19vw; left: 50vw; top: 46vh; }
+  .art--cable { width: 30vw; left: 72vw; top: 64vh; }
+}
+@media (max-width: 767px) {
+  .hero { min-height: 680px; }
+  .hero__copy { left: 20px; right: 20px; width: auto; top: auto; bottom: 36px; translate: none; }
+  .hero__title { font-size: clamp(52px, 15vw, 64px); line-height: 0.94; }
+  .hero__tag { padding-top: 20px; font-size: 12px; }
+  .hero__body { font-size: 16px; margin-bottom: 18px; }
+  .pill--cta { height: 44px; padding: 0 20px; }
+  .art--dish { width: 108vw; left: 6vw; top: 9svh; }
+  .art--router { width: 27vw; left: 4vw; top: 25svh; }
+  .art--cable { width: 40vw; left: 68vw; top: 33svh; }
+}
+
+/* =========================================================
+   02 UNBOXING — pinned camera over one continuous scene (desktop)
+   ========================================================= */
+.unbox { position: relative; }
+.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+/* 9 segments, with extra room over the unpack so the kit leaves the box
+   one piece at a time rather than in a rush. */
+.unbox__track { position: relative; height: 940vh; }
+.anchor { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+.unbox__stage {
+  position: sticky; top: 0;
+  height: 100vh; height: 100svh;
+  overflow: hidden;
+}
+.world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
+.part {
+  position: absolute; left: 0; top: 0;
+  width: 720px; height: 720px;
+  margin: -360px 0 0 -360px;
+  display: flex; align-items: center; justify-content: center;
+}
+.part > img { max-width: 100%; max-height: 100%; width: auto; height: auto; }
+.part--install { display: block; }
+.part > img.install__pole, .install > img.install__pole { position: absolute; left: 50%; bottom: 0; height: 60%; width: auto; max-width: none; max-height: none; translate: -50% 0; }
+.part > img.install__dish, .install > img.install__dish { position: absolute; left: 50%; top: 4%; width: 74%; height: auto; max-width: none; max-height: none; translate: -42% 0; }
+
+.unbox__intro, .unbox__statement, .unbox__final {
+  position: absolute; margin: 0; pointer-events: none;
+  font: 400 clamp(40px, 5.4vw, 78px)/0.9 var(--f-dala);
+  letter-spacing: -0.04em;
+  opacity: 0;
+}
+.unbox__intro { left: 8.33vw; top: 13vh; }
+.unbox__intro span, .unbox__final span { color: var(--gray-3); }
+.unbox__statement {
+  inset: 0; display: grid; place-content: center; text-align: center; padding: 0 var(--gut);
+  font-size: clamp(40px, 5.4vw, 78px);
+}
+.unbox__statement span { display: block; white-space: nowrap; }
+.unbox__statement span:first-child { color: var(--gray-3); }
+.unbox__statement span + span { margin-top: .3em; }
+/* Constrain to the left column so the converged artwork can't run under the headline. */
+.unbox__final { left: 8.33vw; top: 13vh; max-width: min(44vw, 620px); }
+.unbox__intro { max-width: min(44vw, 620px); }
+
+.unbox__label {
+  position: absolute; left: 8.33vw; bottom: 9vh;
+  display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+  opacity: 0;
+}
+.unbox__count { font: 500 13px/1 var(--f-mono); color: var(--gray-3); letter-spacing: .08em; }
+.unbox__name { font: 400 clamp(28px, 3vw, 48px)/1 var(--f-dala); letter-spacing: -0.03em; }
+.unbox__tag {
+  font: 500 12px/1 var(--f-mono); letter-spacing: .12em; color: var(--violet-text);
+  border: 1px solid rgba(128, 82, 255, .5); border-radius: 999px; padding: 6px 10px;
+}
+.unbox__bar { position: absolute; left: var(--gut); right: var(--gut); bottom: 5vh; height: 1px; background: var(--ash); }
+.unbox__bar span { display: block; height: 100%; width: 100%; background: var(--white); transform-origin: 0 50%; transform: scaleX(0); }
+
+/* Story: mobile + reduced-motion. Same parts, large, in order. */
+.story { display: none; padding: 40px var(--gut) 40px; max-width: 1100px; margin: 0 auto; }
+.story__intro, .story__statement {
+  margin: 0 0 40px; font: 400 clamp(38px, 11vw, 78px)/0.92 var(--f-dala);
+  letter-spacing: -0.04em;
+}
+.story__intro span { color: var(--gray-3); }
+.story__intro { text-wrap: balance; }
+.story__statement { margin: 72px 0; font-size: clamp(32px, 9vw, 64px); color: var(--gray-3); text-wrap: balance; }
+.story__statement em { font-style: normal; color: var(--white); display: block; margin-top: .3em; }
+.story__item { margin: 0 0 56px; }
+.story__item img { width: 100%; max-height: 62vh; object-fit: contain; margin: 0 auto; }
+.story__item figcaption {
+  margin-top: 6px; display: flex; gap: 12px; align-items: baseline;
+  font: 400 22px/1.1 var(--f-dala); letter-spacing: -0.02em;
+}
+.story__item figcaption span { font: 500 12px/1 var(--f-mono); color: var(--gray-3); letter-spacing: .08em; }
+.story__item--lv figcaption::after { content: "LAVAALL"; font: 500 11px/1 var(--f-mono); letter-spacing: .12em; color: var(--violet-text); margin-left: auto; }
+.story__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.story__pair .story__item figcaption { font-size: 17px; }
+.story .install { position: relative; display: block; height: 62vh; max-height: 560px; }
+.story .install .install__pole { height: 72%; }
+.story .install .install__dish { width: 82%; }
+.story__final { margin-top: 24px; }
+.story__system { position: relative; aspect-ratio: 1 / 1.05; max-width: 620px; margin: 0 auto; }
+.story__system img, .story__system .install { position: absolute; }
+.story .story__system .sys__install { left: 14%; top: 0; width: 72%; height: 78%; }
+.story__system .install .install__pole { height: 62%; }
+.story__system .install .install__dish { width: 92%; }
+.sys__router { left: 2%; bottom: 10%; width: 20%; }
+.sys__mesh { left: 18%; bottom: 0; width: 26%; }
+.sys__ups { right: 4%; bottom: 6%; width: 28%; }
+.sys__power { right: 30%; bottom: 0; width: 22%; }
+.story__item.reveal { opacity: 0; translate: 0 28px; transition: opacity .7s var(--ease), translate .7s var(--ease); }
+.story__item.reveal.is-in { opacity: 1; translate: 0 0; }
+
+.unbox.is-story .unbox__track { display: none; }
+.unbox.is-story .story { display: block; }
+@media (min-width: 768px) {
+  .story__pair { gap: 40px; }
+  .story__item img { max-height: min(56vh, 560px); }
+}
+
+/* =========================================================
+   03 WHAT LAVAALL ADDS — Dala split, mirrored: one huge installation close-up bleeding
+   off the top/bottom on the left, a narrow copy column on the right. Four labels only.
+   ========================================================= */
+/* `safe center` so tall copy overflows downward instead of being clipped off the top
+   by overflow:hidden on short viewports. */
+.adds { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; display: flex; align-items: safe center; }
+.adds__visual { position: absolute; inset: 0 auto 0 0; width: 62vw; pointer-events: none; }
+.adds .adds__install { position: absolute; display: block; left: 1vw; top: -3vh; width: 100vh; height: 108vh; }
+.adds__install .install__pole { height: 76%; }
+.adds__install .install__dish { width: 78%; top: 3%; }
+.adds__ups { position: absolute; left: 3vw; bottom: 3vh; width: 17vw; }
+.adds__mesh { position: absolute; left: 40vw; bottom: 7vh; width: 15vw; }
+.adds__copy { position: relative; margin-left: 63vw; width: min(32vw, 460px); padding: clamp(40px, 9vh, 120px) 0; }
+.adds__title {
+  margin: 0 0 48px;
+  font: 400 clamp(44px, 5.4vw, 78px)/0.9 var(--f-dala);
+  letter-spacing: -0.04em;
+}
+.adds__list { margin: 0; display: grid; gap: 26px; }
+.adds__list > div { display: grid; gap: 6px; }
+.adds__list dt { font: 400 clamp(22px, 2.5vw, 36px)/1 var(--f-dala); letter-spacing: -0.01em; text-transform: uppercase; }
+.adds__list dd { margin: 0; font: 400 16px/1.4 var(--f-dala); color: var(--gray-3); }
+@media (max-width: 1023px) {
+  .adds .adds__install { width: 70vh; height: 86vh; top: 7vh; left: -5vw; }
+  .adds__ups { width: 20vw; } .adds__mesh { left: 36vw; width: 17vw; }
+  .adds__copy { margin-left: 58vw; width: 38vw; }
+}
+@media (max-width: 767px) {
+  .adds { display: block; min-height: 0; padding-top: 0; }
+  .adds__visual { position: relative; width: 100%; height: 92vw; }
+  .adds .adds__install { width: 100vw; height: 100vw; left: -6vw; top: -6vw; }
+  .adds__ups { width: 34vw; left: 4vw; bottom: 0; }
+  .adds__mesh { width: 28vw; left: auto; right: 5vw; bottom: 2vw; }
+  .adds__copy { margin: 0; width: auto; padding: 32px var(--gut) 88px; }
+  .adds__title { margin-bottom: 32px; }
+  .adds__list { grid-template-columns: 1fr 1fr; gap: 24px 16px; }
+  .adds__list dt { font-size: 22px; }
+  .adds__list dd { font-size: 14px; }
+}
+
+/* =========================================================
+   04 BUILD YOUR SETUP — AuthKit onboarding stage
+   ========================================================= */
+/* Full-bleed two-column stage: copy left, configurator right (Dala's copy/art split),
+   instead of one narrow panel stranded mid-screen. */
+.setup {
+  background: var(--parchment);
+  padding: clamp(88px, 12vh, 140px) 8.33vw;
+  scroll-margin-top: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  column-gap: clamp(32px, 6vw, 110px);
+}
+.setup__title {
+  grid-column: 1; grid-row: 1; align-self: end;
+  margin: 0; text-align: left;
+  font: 400 clamp(44px, 5.4vw, 78px)/0.9 var(--f-dala);
+  letter-spacing: -0.04em;
+}
+.setup__sub {
+  grid-column: 1; grid-row: 2; align-self: start;
+  margin: 20px 0 0; max-width: 34ch; text-align: left;
+  font: 400 16px/1.4 var(--f-dala); color: var(--gray-3);
+}
+
+.panel {
+  grid-column: 2; grid-row: 1 / span 2;
+  max-width: none; margin: 0;
+  background: var(--ak-panel);
+  border: 1px solid var(--ak-border);
+  border-radius: var(--r-card);
+  box-shadow: var(--ak-shadow);
+  padding: 28px 28px 22px;
+}
+@media (min-width: 768px) { .panel { padding: 36px 40px 28px; } }
+
+.progress { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+.progress__text { font: 500 12px/1 var(--f-mono); color: var(--ak-muted); letter-spacing: .08em; white-space: nowrap; }
+.progress__track { flex: 1; height: 2px; background: var(--ak-border); border-radius: 2px; overflow: hidden; }
+.progress__fill { display: block; height: 100%; width: 20%; background: var(--violet); transition: width .3s var(--ease); }
+
+.step-host { position: relative; min-height: 300px; }
+.step { border: 0; margin: 0; padding: 0; min-width: 0; }
+.step__q {
+  display: block; padding: 0; margin: 0 0 6px;
+  font: 500 clamp(24px, 2.6vw, 30px)/1.15 var(--f-dala); letter-spacing: -0.03em;
+}
+.step__q:focus { outline: none; }
+.step__help { margin: 0 0 22px; color: var(--ak-muted); font-size: 15px; }
+.step.is-enter-fwd { animation: inFwd .26s var(--ease) both; }
+.step.is-enter-back { animation: inBack .26s var(--ease) both; }
+@keyframes inFwd { from { opacity: 0; transform: translateX(16px); } }
+@keyframes inBack { from { opacity: 0; transform: translateX(-16px); } }
+
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.opts--single { grid-template-columns: 1fr; }
+@media (max-width: 479px) { .opts { grid-template-columns: 1fr; } }
+.opt { position: relative; display: block; }
+.opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.opt span {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 56px; padding: 14px 16px;
+  border-radius: 12px; border: 1px solid var(--ak-border);
+  background: var(--ak-fill);
+  box-shadow: inset 0 1px 1px rgba(216, 236, 248, 0.06);
+  font-weight: 500; font-size: 16px;
+  transition: border-color .15s, background .15s;
+}
+.opt span::after {
+  content: ""; flex: none; width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid var(--ak-border-strong);
+  transition: background .15s, border-color .15s, box-shadow .15s;
+}
+.opt input:hover + span { border-color: var(--ak-border-strong); }
+.opt input:checked + span {
+  border-color: var(--violet);
+  background: rgba(128, 82, 255, 0.12);
+  box-shadow: inset 0 0 0 1px var(--violet);
+}
+.opt input:checked + span::after { background: var(--violet); border-color: var(--violet); box-shadow: inset 0 0 0 4px var(--canvas); }
+.opt input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.field { display: block; margin-top: 16px; }
+.field label { display: block; font-size: 14px; color: var(--ak-muted); margin-bottom: 8px; }
+.field input {
+  width: 100%; min-height: 52px; padding: 0 14px;
+  font: 400 16px var(--f-body); color: var(--white);
+  background: rgba(199, 211, 234, 0.06); border: 1px solid var(--ak-border); border-radius: 8px;
+}
+.field input::placeholder { color: var(--stone); }
+.field input:focus { border-color: var(--violet); outline: none; box-shadow: 0 0 0 3px rgba(128, 82, 255, .25); }
+
+.controls { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+.controls .link-btn[hidden] { display: inline-block; visibility: hidden; }
+
+/* result */
+.result[hidden], #wizard[hidden], .progress[hidden] { display: none; }
+.result { animation: inFwd .3s var(--ease) both; scroll-margin-top: 90px; }
+.result__eyebrow { margin: 0 0 6px; font: 500 12px/1 var(--f-mono); letter-spacing: .12em; color: var(--violet-text); text-transform: uppercase; }
+.result__title { margin: 0; font: 500 clamp(26px, 3vw, 34px)/1.1 var(--f-dala); letter-spacing: -0.03em; }
+.result__title:focus { outline: none; }
+.result__meta { margin: 8px 0 22px; color: var(--ak-muted); font-size: 15px; }
+.result__items { list-style: none; margin: 0 0 20px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.result__items li {
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 8px;
+  min-height: 132px; padding: 10px 12px 12px;
+  border: 1px solid var(--ak-border); border-radius: 12px; background: var(--ak-fill);
+  font-size: 14px; font-weight: 500; line-height: 1.25;
+}
+.result__items img { height: 74px; width: 100%; object-fit: contain; margin-bottom: auto; }
+.result__items .is-text { justify-content: space-between; }
+.result__items .is-text::before { content: "+"; font: 400 34px/1 var(--f-display); color: var(--violet); }
+@media (max-width: 479px) {
+  .result__items { grid-template-columns: 1fr 1fr; }
+  .code { gap: 4px 12px; }
+  .code__label { flex-basis: 100%; }
+}
+
+.code {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 14px 16px; border-radius: 12px;
+  border: 1px solid rgba(128, 82, 255, 0.45); background: rgba(128, 82, 255, 0.08);
+}
+.code__label { font-size: 13px; color: var(--ak-muted); }
+.code__value { font: 500 22px/1 var(--f-mono); letter-spacing: .06em; margin-right: auto; }
+.code__copy {
+  min-height: 40px; padding: 0 16px; border-radius: 999px; cursor: pointer;
+  font: 500 14px var(--f-body); color: var(--white); background: transparent; border: 1px solid var(--ak-border-strong);
+}
+.code__copy:hover { border-color: var(--white); }
+.result__note { margin: 14px 0 20px; font-size: 13px; color: var(--graphite); }
+.result__actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.result__actions .btn { padding: 0 12px; }
+.result__actions .btn--primary { grid-column: 1 / -1; }
+.result__restart { display: block; margin: 12px auto 0; }
+
+/* =========================================================
+   05 FINAL CTA — Dala: one sentence, one violet pill, quiet uppercase links
+   ========================================================= */
+.final { padding: clamp(120px, 20vh, 220px) var(--gut); text-align: center; }
+.final__title {
+  margin: 0 auto 44px; max-width: 14ch;
+  font: 400 clamp(40px, 5.4vw, 78px)/0.92 var(--f-dala);
+  letter-spacing: -0.04em; text-wrap: balance;
+}
+.final__actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px 30px; }
+.textlink {
+  padding: 12px 0; text-decoration: none;
+  font: 400 14px/1 var(--f-dala); letter-spacing: .05em; text-transform: uppercase; color: var(--gray-2);
+  transition: color .2s;
+}
+.textlink:hover { color: var(--white); }
+@media (max-width: 479px) { .final__actions .pill { flex-basis: 100%; height: 48px; } }
+
+.foot {
+  display: flex; flex-wrap: wrap; gap: 12px 40px; justify-content: space-between;
+  padding: 28px var(--gut) 40px; border-top: 1px solid var(--ash);
+}
+.foot__mark { font: 600 15px/1 var(--f-dala); letter-spacing: .06em; }
+.foot p { margin: 0; max-width: 62ch; font-size: 12px; line-height: 1.6; color: var(--graphite); }
+
+/* =========================================================
+   PERK SURFACE STACK — white canvas, parchment surfaces.
+   The cutouts were shot on parchment, so the scenes that float them sit on
+   parchment too; white hardware would otherwise vanish into a white page.
+   ========================================================= */
+/* Colour fields: the page moves beige -> leaf -> beige -> dark, so it never
+   reads as one flat sheet. Each product shot was lit on the ground it sits on. */
+.hero, .unbox, .story { background: var(--canvas); }
+.reach { background: var(--field-leaf); }
+.adds  { background: var(--field-mist); }
+.setup { background: var(--canvas); }
+.shop  { background: var(--canvas); }
+
+/* Perk holds imagery full-bleed or in 28px-radius cards. Each row carries its
+   product's own sampled ground, so the photo melts into the row. */
+.sku img, .kit__img { border-radius: var(--r-card); }
+.sku { --row: var(--canvas); background: var(--row); border-top: 0; }
+.sku:nth-child(1), .sku:nth-child(4) { --row: #f3f3eb; }
+.sku:nth-child(2), .sku:nth-child(5), .sku:nth-child(8) { --row: #e3e7e5; }
+.sku:nth-child(3), .sku:nth-child(6) { --row: #dae0e5; }
+.sku:nth-child(7) { --row: #f2f2ea; }
+/* Full-bleed the row colour past the section gutter. */
+.sku { box-shadow: 0 0 0 100vmax var(--row); clip-path: inset(0 -100vmax); }
+
+/* The kit is the dark island — the one inverted moment on the page. */
+.kit { background: var(--field-dark); color: var(--parchment); border-radius: var(--r-card); padding: clamp(24px, 4vw, 56px); }
+.kit .kit__body { color: #b9b9b7; }
+.kit__img { border-radius: var(--r-inner); }
+
+/* =========================================================
+   GLOBE — ambient behind the hero hardware, and the coverage scene.
+   Dala discipline: the globe is scenery, the copy stays the subject.
+   ========================================================= */
+.hero__globe {
+  position: absolute; z-index: 0;
+  left: 38vw; top: 50%; translate: 0 -50%;
+  width: 64vw; height: 92vh;
+  opacity: .5; pointer-events: none;
+}
+
+.reach { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; display: flex; align-items: center; }
+.reach__globe {
+  position: absolute; z-index: 0;
+  left: 40vw; top: 50%; translate: 0 -50%;
+  width: 62vw; height: 86vh;
+  pointer-events: none;
+}
+.reach__copy { position: relative; z-index: 2; margin-left: 8.33vw; width: min(40vw, 560px); }
+.reach__tag {
+  margin: 0 0 22px;
+  font: 600 13px/1.2 var(--f-dala); letter-spacing: .02em; text-transform: uppercase;
+  color: var(--yellow);
+}
+.reach__title {
+  margin: 0;
+  font: 400 clamp(40px, 5.2vw, 76px)/0.96 var(--f-dala);
+  letter-spacing: -0.035em;
+}
+.reach__body { margin: 22px 0 0; max-width: 32ch; font: 400 17px/1.55 var(--f-dala); color: var(--gray-2); }
+
+@media (max-width: 860px) {
+  .hero__globe { left: 50%; translate: -50% -50%; width: 124vw; height: 68vh; opacity: .34; }
+  .reach { min-height: auto; padding: 18vh 0 12vh; display: block; }
+  .reach__globe { position: relative; left: 50%; translate: -50% 0; top: 0; width: 118vw; height: 52vh; margin-bottom: 6vh; }
+  .reach__copy { margin: 0 8.33vw; width: auto; }
+}
+
+/* =========================================================
+   SHOP — media blocks on black, not a card grid.
+   Dala §2 rejects card grids, so these rows carry no border, fill or radius:
+   the photograph is the container. Violet stays CTA-only.
+   ========================================================= */
+.shop { padding: 18vh 8.33vw 14vh; }
+.shop__head { max-width: 900px; margin: 0 0 11vh; }
+.shop__tag {
+  margin: 0 0 22px;
+  font: 600 13px/1.2 var(--f-dala); letter-spacing: .02em; text-transform: uppercase;
+  color: var(--yellow);
+}
+.shop__title {
+  margin: 0;
+  font: 400 clamp(40px, 5.2vw, 76px)/0.96 var(--f-dala);
+  letter-spacing: -0.035em; text-wrap: balance;
+}
+
+/* The kit leads: one dominant object, copy offset right. */
+.kit {
+  display: grid; grid-template-columns: 1.15fr .85fr; align-items: center;
+  gap: clamp(24px, 5vw, 80px); margin-bottom: 12vh;
+  text-decoration: none; color: inherit;
+}
+.kit__img { width: 100%; height: auto; }
+.kit__copy { display: block; }
+.kit__name { display: block; font: 400 clamp(30px, 3.6vw, 52px)/1 var(--f-dala); letter-spacing: -0.03em; }
+.kit__body { display: block; margin: 18px 0 30px; max-width: 34ch; font: 400 17px/1.55 var(--f-dala); color: var(--gray-2); }
+.kit:hover .kit__name { color: var(--violet-text); }
+
+.skus { list-style: none; margin: 0; padding: 0; }
+.sku {
+  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); align-items: center;
+  gap: clamp(24px, 5vw, 90px);
+  padding: clamp(48px, 8vh, 96px) 0; border-top: 1px solid var(--ash);
+}
+.sku img { width: 100%; height: auto; }
+.sku h3 { margin: 0; font: 400 clamp(32px, 4vw, 58px)/1.02 var(--f-dala); letter-spacing: -0.03em; }
+.sku p { margin: 14px 0 0; max-width: 28ch; font: 400 17px/1.55 var(--f-dala); color: var(--gray-3); }
+.sku a {
+  display: inline-block; margin-top: 20px;
+  font: 500 13px/1 var(--f-dala); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--violet-text); text-decoration: none;
+  border-bottom: 1px solid rgba(169, 140, 255, .35); padding-bottom: 6px;
+}
+.sku a:hover { color: var(--white); border-bottom-color: var(--white); }
+
+/* Mirror every second row so the catalogue keeps Dala's asymmetry instead of marching. */
+.sku:nth-child(even) { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
+.sku:nth-child(even) img { order: 2; }
+
+/* Products drift and tilt so the catalogue doesn't read as a static sheet.
+   NOTE: this is a float, not a true turntable — a real 360 spin needs a rendered
+   frame sequence per product (see ASSET-NEEDS). */
+@keyframes sku-drift {
+  0%   { transform: translateY(0) rotate3d(0, 1, 0, -3deg); }
+  50%  { transform: translateY(-10px) rotate3d(0, 1, 0, 3deg); }
+  100% { transform: translateY(0) rotate3d(0, 1, 0, -3deg); }
+}
+.sku img, .kit__img { animation: sku-drift 9s ease-in-out infinite; will-change: transform; }
+.sku:nth-child(even) img { animation-duration: 11s; animation-delay: -3s; }
+.sku:nth-child(3n) img { animation-duration: 13s; animation-delay: -6s; }
+
+/* "More than the box" artwork tracks the scroll where the browser supports it;
+   elsewhere it simply sits still. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes adds-rise { from { transform: translateY(7vh) scale(1.04); } to { transform: translateY(-7vh) scale(1); } }
+    .adds__visual { animation: adds-rise linear both; animation-timeline: view(); animation-range: entry 0% exit 100%; }
+  }
+}
+
+@media (max-width: 980px) {
+  .setup { grid-template-columns: 1fr; }
+  .setup__title, .setup__sub, .panel { grid-column: 1; }
+  .setup__title { grid-row: 1; }
+  .setup__sub { grid-row: 2; margin-bottom: 40px; }
+  .panel { grid-row: 3; max-width: 580px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sku img, .kit__img { animation: none; }
+}
+
+@media (max-width: 860px) {
+  .shop { padding: 12vh 8.33vw 10vh; }
+  .shop__head { margin-bottom: 7vh; }
+  .kit { grid-template-columns: 1fr; gap: 28px; margin-bottom: 8vh; }
+  .sku, .sku:nth-child(even) { grid-template-columns: 1fr; gap: 14px; padding: 36px 0; }
+  .sku:nth-child(even) img { order: 0; }
+  .sku h3 { font-size: 30px; }
+  .sku a { margin-top: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; transition-delay: 0s !important; }
+}
+
+
+
