@@ -1,4 +1,4 @@
-﻿# LAVAALL Starlink backend: L3 / L4 approval pack (DRAFTS, nothing run)
+# LAVAALL Starlink backend: L3 / L4 approval pack (DRAFTS, nothing run)
 
 _Prepared Fri Oct 2, 2026 (CT) for Osman. PR [#49](https://github.com/osman-jalloh-lab/Lavaal-/pull/49), branch `starlink/v4-backend-test`, draft._
 _Every command below is a **draft. None of it has been run.** Each step needs its own "Osman OK"._
@@ -7,7 +7,7 @@ Levels: **L2** = branch-only work (done or doable without you). **L3** = merge, 
 
 | # | Step | Level | Summary |
 |---|---|---|---|
-| 1 | Pre-merge checklist | L2 â†’ you check | Tests, conflict check, prod env check, and Preview reachability checks. |
+| 1 | Pre-merge checklist | L2 → you check | Tests, conflict check, prod env check, and Preview reachability checks. |
 | 2 | Merge PR #49 | L3 | Squash-merge. `vercel.json` gains 3 rewrites + 1 function entry, with no overlap with existing routes. |
 | 3 | Post-merge smoke + revert | L3 | 12 curl checks, plus a one-command Vercel rollback. |
 | 4 | Real email (Resend) | L3 | Small code change + 3 env vars. Test to yourself on Preview first. Free tier. |
@@ -33,7 +33,7 @@ Levels: **L2** = branch-only work (done or doable without you). **L3** = merge, 
    - `/tests/test-public-contact.js`
    - `/scripts/catalog-import/README.md`
 
-   (all 200). After a merge, `docs/starlink/` (this pack and the NatCA letter) would have been readable at www.lavaall.com/docs/starlink/â€¦
+   (all 200). After a merge, `docs/starlink/` (this pack and the NatCA letter) would have been readable at www.lavaall.com/docs/starlink/…
    - **Fixed on the branch (L2):** a new `.vercelignore` with `docs/starlink/`, `scripts/starlink/` and `tests/test-starlink.js`. Step 1 has a Preview check that it works.
    - Vercel documents `.vercelignore`, but third-party notes disagree on whether Git-triggered deploys honour it. That's why the check is needed.
    - The existing exposure of MAGNUM.md, AGENTS.md, docs/ops, tests/ and scripts/ is a separate, pre-existing issue. I didn't change it.
@@ -52,14 +52,14 @@ Levels: **L2** = branch-only work (done or doable without you). **L3** = merge, 
 
 | Check | Command / place | Expected | Status |
 |---|---|---|---|
-| PR still draft, base unchanged | `gh pr view 49 --repo osman-jalloh-lab/Lavaal- --json isDraft,baseRefOid` | `isDraft: true`, base `f072d70â€¦` | done Oct 2 |
+| PR still draft, base unchanged | `gh pr view 49 --repo osman-jalloh-lab/Lavaal- --json isDraft,baseRefOid` | `isDraft: true`, base `f072d70…` | done Oct 2 |
 | No conflicts | `git fetch origin && git merge-tree --write-tree origin/main origin/starlink/v4-backend-test` | prints a tree id, no `CONFLICT` | clean Oct 2 |
-| Tests | `node tests/test-starlink.js` Â· `node tests/test-public-contact.js` Â· `node tests/test-inquiry-and-schedule.js` | all pass (68/68, 12/12, 64/64) | pass Oct 2 |
+| Tests | `node tests/test-starlink.js` · `node tests/test-public-contact.js` · `node tests/test-inquiry-and-schedule.js` | all pass (68/68, 12/12, 64/64) | pass Oct 2 |
 | Prod has no `STARLINK_*` | from a folder linked to the `lavaal` project: `vercel env ls production --scope osman14` | no `STARLINK_ENABLED` row | **you run it**, because my access is denied |
 | Preview page | open the [Preview](https://lavaal-l43jsxbb0-osman14.vercel.app/starlink/) while signed in to Vercel | v4 page renders, builder gives a code | you |
-| Preview: page files not static | `â€¦/api/starlink/_site/index.html` and `â€¦/api/starlink/_lib/flag.js` | **404** | you |
-| Preview: docs hidden | `â€¦/docs/starlink/README.md` and `â€¦/docs/starlink/L3-L4-APPROVAL-PACK.md` | **404** (proves `.vercelignore`) | you |
-| Preview health | `â€¦/starlink/api/health` | `"env":"preview"`, `"delivery":{"mode":"test","sends":falseâ€¦}` | you |
+| Preview: page files not static | `…/api/starlink/_site/index.html` and `…/api/starlink/_lib/flag.js` | **404** | you |
+| Preview: docs hidden | `…/docs/starlink/README.md` and `…/docs/starlink/L3-L4-APPROVAL-PACK.md` | **404** (proves `.vercelignore`) | you |
+| Preview health | `…/starlink/api/health` | `"env":"preview"`, `"delivery":{"mode":"test","sends":false…}` | you |
 
 - **If the docs return 200 on the Preview:** before merging, move `docs/starlink/` to `api/starlink/_docs/`. Files under `api/` are proven unreachable. (L2, I can do it.)
 - **Touches:** nothing. **Risk:** none. **Rollback:** n/a.
@@ -90,9 +90,9 @@ Osman OK: [ ]
      { "source": "/schedule", "destination": "/index.html" }
 ```
 **Route review:**
-- The existing sources are `/ops`, `/ops/â€¦`, `/` and `/schedule`. None start with `/starlink`, so nothing is shadowed.
+- The existing sources are `/ops`, `/ops/…`, `/` and `/schedule`. None start with `/starlink`, so nothing is shadowed.
 - Static files take precedence over rewrites on Vercel, and there is no `starlink` file or folder at the repo root.
-- `headers` are unchanged, so the global security headers (X-Frame-Options DENY, HSTSâ€¦) also cover `/starlink`.
+- `headers` are unchanged, so the global security headers (X-Frame-Options DENY, HSTS…) also cover `/starlink`.
 - No `redirects`, `cleanUrls` or `trailingSlash` changes.
 
 ### Draft commands (NOT run)
@@ -137,7 +137,7 @@ Also by eye:
 ```bash
 vercel rollback "$PREV_PROD_URL" --scope osman14
 ```
-- After an instant rollback, new pushes don't auto-promote until you promote again (Vercel dashboard â†’ Deployments â†’ Promote).
+- After an instant rollback, new pushes don't auto-promote until you promote again (Vercel dashboard → Deployments → Promote).
 - The git-level undo, which is itself a push to main (L3), is: `git revert <squash-sha> && git push origin main`.
 
 - **Touches:** nothing for the checks. The rollback switches production back to the previous deployment.
@@ -204,18 +204,18 @@ Production later uses the same vars without the allowlist, and only after step 7
 > Thanks for building your setup with LAVAALL. Your setup code is **LV-XXXXX**.
 >
 > Your setup: Complete Starlink setup (Starlink kit, Roof / pole mount, Professional installation, Ongoing support)
-> Home Â· Freetown, Sierra Leone Â· Small space
+> Home · Freetown, Sierra Leone · Small space
 >
 > Our team will review your setup and confirm pricing and install timing. Just reply to this email if you have questions, and keep your code handy when you talk to us.
 >
-> LAVAALL Â· support@lavaall.com
+> LAVAALL · support@lavaall.com
 > LAVAALL is independent and not affiliated with or endorsed by Starlink or SpaceX.
 
 ### Draft team handoff (to support@lavaall.com, via the existing Customer Requests webhook `CONTACT_WEBHOOK_URL`)
 > **Subject:** [Lavaall Website - Starlink Setup] LV-XXXXX Complete Starlink setup
 >
 > Starlink setup code: LV-XXXXX
-> Home Â· Freetown, Sierra Leone Â· Small space
+> Home · Freetown, Sierra Leone · Small space
 > Need: New complete setup
 > Priority: Lowest starting cost
 > Recommended: Starlink kit, Roof / pole mount, Professional installation, Ongoing support
@@ -258,14 +258,14 @@ Non-secret:
 - `STARLINK_WHATSAPP_TEMPLATE=lavaall_setup_code`
 - `STARLINK_WHATSAPP_NUMBER` (also fixes the `wa.me/00000000000` placeholder)
 
-### Draft template (submit in WhatsApp Manager â†’ Message templates)
-- **Name:** `lavaall_setup_code` Â· **Category:** Utility (Meta may re-classify it as Marketing, which costs more) Â· **Language:** English (`en`)
+### Draft template (submit in WhatsApp Manager → Message templates)
+- **Name:** `lavaall_setup_code` · **Category:** Utility (Meta may re-classify it as Marketing, which costs more) · **Language:** English (`en`)
 - **Body:**
   > Hello from LAVAALL. Your setup code is {{1}}. Our team will review your setup and confirm pricing and install timing with you here. Reply to this message with any questions. LAVAALL is independent and not affiliated with Starlink or SpaceX.
 - **Sample for review:** {{1}} = `LV-5DLHT`
 - **Footer:** `Reply STOP to stop messages`
 - **Krio line, OSMAN TO CONFIRM wording (UNVERIFIED, written by me, not a native speaker):**
-  > TÉ›nki fÉ” we yu bil yu setup wit LAVAALL. Yu setup kod na {{1}}. Wi go kÉ”ntakt yu kwik.
+  > Tɛnki fɔ we yu bil yu setup wit LAVAALL. Yu setup kod na {{1}}. Wi go kɔntakt yu kwik.
 
   Meta has no Krio template language, so this would sit inside the English body or go in a second template only after you confirm the spelling.
 
@@ -281,7 +281,7 @@ Source: https://developers.facebook.com/docs/whatsapp/pricing ("Updated Sep 30, 
 - Also free: all messages in a 7-day free entry-point window after a click-to-WhatsApp **ad**.
 - Customer messages to us are free.
 - Since Oct 1, 2026, utility messages inside an open window are **charged again**.
-- **Estimate (mine, not Meta's):** 100 setup-code messages/month to SL as Utility â‰ˆ **$0.40/month**. As Marketing â‰ˆ $2.25.
+- **Estimate (mine, not Meta's):** 100 setup-code messages/month to SL as Utility ≈ **$0.40/month**. As Marketing ≈ $2.25.
 
 - **Touches:** Meta Business (verification, number, billing), 4 new Vercel secrets, a code change, and a small UI change for opt-in.
 - **Risk:**
@@ -291,7 +291,7 @@ Source: https://developers.facebook.com/docs/whatsapp/pricing ("Updated Sep 30, 
   - Token leak. Mitigation: system-user token only in Vercel env, rotate on suspicion.
 - **Rollback:** remove `STARLINK_WHATSAPP_TOKEN` (or the live flag) and redeploy. Sending stops and the outbox keeps recording. Revoke the system-user token in Meta Business settings.
 
-Osman OK (Meta setup + spend): [ ]  Â·  Osman OK (Krio line wording): [ ]
+Osman OK (Meta setup + spend): [ ]  ·  Osman OK (Krio line wording): [ ]
 
 ---
 
@@ -302,12 +302,12 @@ Today codes and leads are in memory on Vercel, so they're lost on a cold start. 
 | Option | What | Cost | Risk |
 |---|---|---|---|
 | **A. Share the existing /ops KV** | `STARLINK_STORE=kv` (already coded). Keys `starlink:setup:*` (180-day TTL) and `starlink:outbox` (last 500). | $0, no new secret | Customer PII sits in the same database as founder /ops data. One token can read and write both. They share the free-tier quota. If Preview and Production share the KV, preview test leads land next to real ones. A bug can't touch other keys (Starlink code only uses the `starlink:` prefix), but the blast radius of a leaked token covers both. |
-| **B. Separate free Upstash Redis (recommended)** | Vercel â†’ Storage â†’ Marketplace â†’ Upstash Redis "lavaall-starlink", connected to `lavaal` with env prefix `STARLINK_KV` â†’ `STARLINK_KV_REST_API_URL` / `_TOKEN`. One-line code change in `store.js` to read those names first. | Free tier (check the limits on the Upstash page at signup) | New store + 2 injected secrets (L4). Cleanly isolated, and can be deleted without touching /ops. |
+| **B. Separate free Upstash Redis (recommended)** | Vercel → Storage → Marketplace → Upstash Redis "lavaall-starlink", connected to `lavaal` with env prefix `STARLINK_KV` → `STARLINK_KV_REST_API_URL` / `_TOKEN`. One-line code change in `store.js` to read those names first. | Free tier (check the limits on the Upstash page at signup) | New store + 2 injected secrets (L4). Cleanly isolated, and can be deleted without touching /ops. |
 | C. Customer Requests sheet only | Leads go to Sales through the existing contact webhook (step 4 team handoff); setup codes stay in memory. | $0 | Lookups of old codes fail after a cold start. OK for a pilot, not as the source of truth. |
 
 **Recommendation:** B for codes and leads, plus C (team handoff) so Sales sees every lead in the sheet they already use. Connect it to Production and to this branch's Preview separately, so test leads never mix with real ones.
 
-**Draft steps (NOT run):** Vercel dashboard â†’ `lavaal` â†’ Storage â†’ Create â†’ Upstash Redis â†’ name `lavaall-starlink` â†’ env prefix `STARLINK_KV` â†’ environments: Preview (this branch) first â†’ redeploy the Preview â†’ `/starlink/api/health` shows `store.mode: "kv"`.
+**Draft steps (NOT run):** Vercel dashboard → `lavaal` → Storage → Create → Upstash Redis → name `lavaall-starlink` → env prefix `STARLINK_KV` → environments: Preview (this branch) first → redeploy the Preview → `/starlink/api/health` shows `store.mode: "kv"`.
 
 - **Rollback:** disconnect the store and unset `STARLINK_STORE`. It falls back to memory.
 
@@ -324,7 +324,7 @@ Osman OK (option): A [ ]  B [ ]  C [ ]
 - [ ] **Real LAVAALL WhatsApp number** set as `STARLINK_WHATSAPP_NUMBER`. Today the links go to `wa.me/00000000000`.
 - [ ] **Countries:** remove or relabel **Guinea** (Starlink not licensed, ARPT stop order) and **Guinea-Bissau** (only Starlink itself may provide service) in the builder, or route them to "not available yet". Liberia only with an authorized reseller partner. (L2 code change, I can draft it.)
 - [ ] Copy check: "Get connected for less" is a comparative price claim. Confirm or soften it. No LAVAALL prices; SLE only if Starlink's published price is ever shown, with its check date.
-- [ ] Steps 4â€“6 decided (at least C for leads), so a real lead can't be lost.
+- [ ] Steps 4–6 decided (at least C for leads), so a real lead can't be lost.
 - [ ] Decide whether to keep `noindex`. It's on now; remove it only if you want search traffic.
 
 **Draft commands (NOT run):**
