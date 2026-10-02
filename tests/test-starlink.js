@@ -165,6 +165,9 @@ async function run() {
   for (const f of ['index.html', 'privacy.html', 'terms.html', 'assets/js/catalog.js']) {
     check(`${f} has no link to /starlink`, !/href=["'][^"']*\/?starlink/i.test(fs.readFileSync(path.join(root, f), 'utf8')));
   }
+  const ignore = fs.readFileSync(path.join(root, '.vercelignore'), 'utf8').split(/\r?\n/).map((l) => l.trim());
+  check('.vercelignore keeps Starlink docs, dev runner and test off the public site', ['docs/starlink/', 'scripts/starlink/', 'tests/test-starlink.js'].every((e) => ignore.includes(e)));
+  check('.vercelignore does not hide anything the site or functions need', !ignore.some((l) => /^(api|assets|images|index\.html|docs\/ops)/.test(l)));
   const client = fs.readFileSync(path.join(root, 'api/starlink/_site/app.js'), 'utf8');
   check('client keeps offline fallback to client-side code', client.includes('state.code = code(); state.server = false;'));
 

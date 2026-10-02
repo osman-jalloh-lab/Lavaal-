@@ -1,0 +1,7 @@
+# Keep Starlink planning docs, the local dev runner and its test off the
+# public site. Everything else deploys as before (no other entries).
+# The page itself lives in api/starlink/_site and is only reachable through
+# api/starlink/index.js, which answers 404 unless the section is switched on.
+docs/starlink/
+scripts/starlink/
+tests/test-starlink.js
