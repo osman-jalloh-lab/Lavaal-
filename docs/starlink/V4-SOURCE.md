@@ -2,7 +2,7 @@
 
 Copied from Osman's `OneDrive\Desktop\startlink\` (read-only source, not a git repo) on Fri Oct 2, 2026 ~7:30 PM CT.
 The `v4/` + `assets/product/` layout is kept as-is so every file except the three integration edits is byte-identical.
-SHA-256 below is of the **OneDrive source file**. `tests/test-starlink.js` checks every `identical` row still matches.
+SHA-256 below is of the **OneDrive source file** (text files hashed with line endings normalised to LF, so Windows checkouts match; `v4/motion.js` is CRLF at source and is kept CRLF). `tests/test-starlink.js` checks every `identical` row still matches.
 
 Not copied (docs, not served): `v4/CHANGELOG.md`, `v4/ASSET-NEEDS.md`, `assets/product/README.md`. The old `assets/product/cutout/` set is no longer used by v4 and was dropped.
 
@@ -33,7 +33,7 @@ Not copied (docs, not served): `v4/CHANGELOG.md`, `v4/ASSET-NEEDS.md`, `assets/p
 | `v4/app.js` | `9bc12ac0d5c227eaa34a9e16de68b6bdc0294a0f6f623323ca9147446661c954` | edited |
 | `v4/globe.js` | `f251401640a2fc911183fd9de6efcfd78eef1095f2d3ec72aff0d488ca6348d6` | identical |
 | `v4/index.html` | `2cfecfe4ba7ed4969a27b49220e82a6af08296bc76338ea192405584ec5c6396` | edited |
-| `v4/motion.js` | `765aa7dc90ee2ae4785be8ab305327e1094744c2d44f5f82adb63415fe1592ac` | identical |
+| `v4/motion.js` | `1a9fa6d1edda2811663ba7d6d289d0decf50a886f7dafca1294a9b051addca0a` | identical |
 | `v4/styles.css` | `2854553ce1d26d2d8b0f809abcbc51b71721b08ae769d452f27a82b663e669ff` | edited |
 
 ## Integration edits

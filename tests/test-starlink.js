@@ -22,7 +22,13 @@ const store = require('../api/starlink/_lib/store');
 const { normalizePhone } = require('../api/starlink/_lib/validate');
 const crypto = require('crypto');
 const SITE = path.join(root, 'api/starlink/_site');
-const sha = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+// Text files are hashed with line endings normalised to LF so a Windows checkout
+// (core.autocrlf) still matches; binaries are hashed raw.
+const sha = (f) => {
+  let buf = fs.readFileSync(f);
+  if (/\.(js|html|css|md)$/i.test(f)) buf = Buffer.from(buf.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
+  return crypto.createHash('sha256').update(buf).digest('hex');
+};
 
 let ipSeq = 0;
 function call(method, area, body, opts = {}) {
