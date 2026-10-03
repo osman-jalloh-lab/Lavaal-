@@ -5,8 +5,10 @@
 // lavaall.com points here. Delivery is TEST MODE ONLY (see _lib/delivery.js).
 //
 // Routes (vercel.json rewrites /starlink/:path* -> /api/starlink?area=:path*):
-//   GET  /starlink/                          the v4 page (static files in _site/)
+//   GET  /starlink/                          the v4 page (_site/v4/index.html, base /starlink/v4/)
+//   GET  /starlink/v4/*, /starlink/assets/*  static files in _site/ (v4 layout kept as-is)
 //   GET  /starlink/api/health                flag, store and delivery status
+//   GET  /starlink/api/config                contact links the page uses (server-configured)
 //   POST /starlink/api/setups                builder answers -> stored setup code
 //   GET  /starlink/api/setups/:code          look a setup code up (no contact details)
 //   POST /starlink/api/setups/:code/connect  "Get connected": record lead, prepare delivery
@@ -21,7 +23,10 @@ const { recommend } = require('./_lib/recommend');
 const { newCode, normalizeCode } = require('./_lib/codes');
 
 const SITE = path.join(__dirname, '_site');
-const BASE_HREF = '/starlink/';
+const BASE_HREF = '/starlink/v4/';
+const PAGE = 'v4/index.html';
+const PAGE_AREAS = new Set(['', 'index.html', 'v4', 'v4/index.html']);
+const OG_DEFAULT = 'https://lavaall.com/starlink/';
 const MAX_BODY = 8_000;
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -180,19 +185,44 @@ async function outbox(req, res) {
   return json(res, 200, { mode: 'test', count: rows.length, rows: rows.map(delivery.masked) });
 }
 
+// The request's own origin, for absolute og:image URLs on Preview/local.
+function requestOrigin(req) {
+  const h = req.headers || {};
+  const host = String(h['x-forwarded-host'] || h.host || '').split(',')[0].trim();
+  if (!/^[A-Za-z0-9.-]+(:[0-9]{1,5})?$/.test(host)) return '';
+  const local = /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
+  const proto = String(h['x-forwarded-proto'] || (local ? 'http' : 'https')).split(',')[0].trim();
+  return (proto === 'http' || proto === 'https') ? proto + '://' + host : '';
+}
+
+function pageConfig() {
+  const c = delivery.publicContact();
+  return { api: '/starlink/api', contact: { whatsapp: c.whatsapp, call: c.call, email: c.email } };
+}
+
+function renderPage(req, raw) {
+  let html = raw.toString('utf8');
+  const cfg = JSON.stringify(pageConfig()).replace(/</g, '\\u003c');
+  html = html.replace('<head>', `<head>\n<base href="${BASE_HREF}">\n<script>window.LV_CONFIG=${cfg};(function(l){var p="${BASE_HREF}";if(l.pathname!==p&&window.history&&history.replaceState)history.replaceState(null,"",p+l.search+l.hash);})(location);</script>`);
+  const origin = requestOrigin(req);
+  if (origin) html = html.split(OG_DEFAULT).join(origin + '/starlink/');
+  return Buffer.from(html);
+}
+
 function serveStatic(req, res, area) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'method_not_allowed' });
-  const rel = area === '' ? 'index.html' : area;
+  const rel = PAGE_AREAS.has(area) ? PAGE : area;
   if (!/^[A-Za-z0-9._\-/]+$/.test(rel) || rel.split('/').some((seg) => seg === '..' || seg.startsWith('.'))) return notFound(res);
   const file = path.join(SITE, rel);
   if (!file.startsWith(SITE + path.sep)) return notFound(res);
   const type = TYPES[path.extname(file).toLowerCase()];
   if (!type || !fs.existsSync(file) || !fs.statSync(file).isFile()) return notFound(res);
   let body = fs.readFileSync(file);
-  if (rel === 'index.html') {
-    // The page is served from /starlink/ (with or without the trailing
-    // slash), so pin relative asset URLs to it.
-    body = Buffer.from(body.toString('utf8').replace('<head>', `<head>\n<base href="${BASE_HREF}">`));
+  if (rel === PAGE) {
+    // The page is served from /starlink/ (and /starlink/v4/). Pin relative
+    // URLs to /starlink/v4/ so the v4 files keep their ../assets/ paths, and
+    // move the address bar there too so in-page #anchors stay same-document.
+    body = renderPage(req, body);
     res.setHeader('Cache-Control', 'no-store');
   } else {
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -210,6 +240,10 @@ async function handler(req, res) {
       const m = req.method;
       if (parts[0] === 'health' && parts.length === 1 && m === 'GET') {
         return json(res, 200, { ok: true, enabled: true, env: deployEnv(), store: { mode: store.mode(), durable: store.isDurable() }, delivery: delivery.status() });
+      }
+      if (parts[0] === 'config' && parts.length === 1 && m === 'GET') {
+        const c = delivery.publicContact();
+        return json(res, 200, { ...pageConfig(), placeholders: c.placeholders });
       }
       if (parts[0] === 'setups' && parts.length === 1 && m === 'POST') return await createSetup(req, res);
       if (parts[0] === 'setups' && parts.length === 2 && m === 'GET') return await getSetup(res, parts[1]);

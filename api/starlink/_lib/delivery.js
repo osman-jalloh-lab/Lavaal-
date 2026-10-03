@@ -30,6 +30,24 @@ function config() {
   };
 }
 
+// Contact destinations the page uses for its WhatsApp / Call / Email links.
+// Server-configured (optional env vars, none required); the v4 placeholders
+// stay as the defaults so nothing changes until real numbers are set.
+const PLACEHOLDER_CALL = '+00000000000';
+const PLACEHOLDER_EMAIL = 'hello@lavaall.com';
+function publicContact() {
+  const c = config();
+  const call = String(process.env.STARLINK_CALL_NUMBER || '').replace(/[^0-9]/g, '');
+  const email = String(process.env.STARLINK_CONTACT_EMAIL || process.env.STARLINK_TEAM_EMAIL || '').trim();
+  const okEmail = /^[^\s@<>"'`]+@[^\s@<>"'`]+\.[^\s@<>"'`]{2,}$/.test(email);
+  return {
+    whatsapp: 'https://wa.me/' + c.businessWhatsapp,
+    call: 'tel:' + (call ? '+' + call : PLACEHOLDER_CALL),
+    email: okEmail ? email : PLACEHOLDER_EMAIL,
+    placeholders: { whatsapp: c.businessWhatsappIsPlaceholder, call: !call, email: !okEmail },
+  };
+}
+
 function liveBlocked() {
   const e = new Error('live_delivery_not_enabled');
   e.code = 'live_delivery_not_enabled';
@@ -219,4 +237,4 @@ function masked(row) {
   return out;
 }
 
-module.exports = { providers, mode, status, prepare, links, masked, maskEmail, maskPhone, DISCLAIMER };
+module.exports = { providers, mode, status, prepare, links, masked, maskEmail, maskPhone, publicContact, DISCLAIMER };

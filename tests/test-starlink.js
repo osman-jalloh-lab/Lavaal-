@@ -9,7 +9,8 @@ const root = path.join(__dirname, '..');
 const results = [];
 function check(name, cond) { results.push({ name, pass: !!cond }); }
 
-const ENV_KEYS = ['VERCEL', 'VERCEL_ENV', 'STARLINK_ENABLED', 'STARLINK_STORE', 'STARLINK_STORE_FILE', 'KV_REST_API_URL', 'KV_REST_API_TOKEN'];
+const ENV_KEYS = ['VERCEL', 'VERCEL_ENV', 'STARLINK_ENABLED', 'STARLINK_STORE', 'STARLINK_STORE_FILE', 'KV_REST_API_URL', 'KV_REST_API_TOKEN',
+  'STARLINK_WHATSAPP_NUMBER', 'STARLINK_CALL_NUMBER', 'STARLINK_CONTACT_EMAIL', 'STARLINK_TEAM_EMAIL'];
 const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 function env(vars) {
   for (const k of ENV_KEYS) delete process.env[k];
@@ -19,6 +20,9 @@ function env(vars) {
 const handler = require('../api/starlink/index.js');
 const store = require('../api/starlink/_lib/store');
 const { normalizePhone } = require('../api/starlink/_lib/validate');
+const crypto = require('crypto');
+const SITE = path.join(root, 'api/starlink/_site');
+const sha = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
 
 let ipSeq = 0;
 function call(method, area, body, opts = {}) {
@@ -27,7 +31,7 @@ function call(method, area, body, opts = {}) {
   req.method = method;
   req.url = '/api/starlink?area=' + encodeURIComponent(area);
   req.query = { area };
-  req.headers = { 'x-forwarded-for': opts.ip || '10.0.0.' + (++ipSeq % 250) };
+  req.headers = { 'x-forwarded-for': opts.ip || '10.0.0.' + (++ipSeq % 250), ...(opts.headers || {}) };
   if (opts.parsed) req.body = body;
   return new Promise((resolve) => {
     const res = {
@@ -48,7 +52,7 @@ const ANSWERS = { place: 'Home', country: 'Sierra Leone', city: 'Freetown', need
 async function run() {
   // ---- Off on Production by default ----
   env({ VERCEL: '1', VERCEL_ENV: 'production' });
-  for (const area of ['', 'index.html', 'app.js', 'api/health', 'api/outbox']) {
+  for (const area of ['', 'index.html', 'v4', 'v4/app.js', 'assets/product/fields/og.jpg', 'api/health', 'api/config', 'api/outbox']) {
     const r = await call('GET', area);
     check(`production default: /starlink/${area} is 404`, r.status === 404 && r.text === 'Not found');
   }
@@ -139,24 +143,91 @@ async function run() {
   for (let i = 0; i < 31; i++) last = await call('POST', 'api/setups', ANSWERS, { ip: '9.9.9.9' });
   check('create is rate limited per IP', last.status === 429);
 
-  // ---- Static page ----
+  // ---- Static page (v4 layout kept: _site/v4/* + _site/assets/*) ----
   const page = await call('GET', '');
-  check('page served with base href /starlink/', page.status === 200 && page.text.includes('<base href="/starlink/">') && page.headers['content-type'].startsWith('text/html'));
+  check('page served with base href /starlink/v4/', page.status === 200 && page.text.includes('<base href="/starlink/v4/">') && page.headers['content-type'].startsWith('text/html'));
+  for (const area of ['index.html', 'v4', 'v4/index.html']) {
+    const r = await call('GET', area);
+    check(`/starlink/${area} serves the same page`, r.status === 200 && r.text.includes('<base href="/starlink/v4/">') && r.text.includes('id="getConnected"'));
+  }
+  check('page moves the address bar to /starlink/v4/ so #anchors stay same-document', page.text.includes('history.replaceState(null,"",p+l.search+l.hash)'));
   check('page is noindex', page.headers['x-robots-tag'] === 'noindex, nofollow' && page.text.includes('name="robots" content="noindex, nofollow"'));
   check('page keeps the non-affiliation footer', page.text.includes('Not affiliated with or endorsed by Starlink or SpaceX'));
-  check('page has the Get connected contact fields', page.text.includes('id="connectWhatsapp"') && page.text.includes('id="connectEmail"'));
-  check('page has no ../assets paths left', !page.text.includes('../assets/'));
-  const css = await call('GET', 'styles.css');
-  check('styles.css served', css.status === 200 && css.headers['content-type'].startsWith('text/css'));
+  check('page has the Get connected contact fields + status line', page.text.includes('id="connectWhatsapp"') && page.text.includes('id="connectEmail"')
+    && page.text.includes('id="connectWebsite"') && page.text.includes('id="connectStatus"'));
+  check('page keeps v4 ../assets/ paths (resolved by the base href)', page.text.includes('src="../assets/product/perk-cut/dish.webp"'));
+  check('og:image is absolute (default https://lavaall.com/starlink/...)', /<meta property="og:image" content="https:\/\/[^"]+\/starlink\/assets\/product\/fields\/og\.jpg">/.test(page.text));
+  const ogPrev = await call('GET', '', null, { headers: { 'x-forwarded-host': 'lavaal-git-starlink-x.vercel.app', 'x-forwarded-proto': 'https' } });
+  check('og:image uses the request origin on Preview', ogPrev.text.includes('content="https://lavaal-git-starlink-x.vercel.app/starlink/assets/product/fields/og.jpg"'));
+  const ogBad = await call('GET', '', null, { headers: { host: 'evil.example"><script>' } });
+  check('og:image ignores a malformed Host header', ogBad.text.includes('content="https://lavaall.com/starlink/assets/product/fields/og.jpg"') && !ogBad.text.includes('evil.example'));
+  const css = await call('GET', 'v4/styles.css');
+  check('v4/styles.css served', css.status === 200 && css.headers['content-type'].startsWith('text/css'));
   const img = await call('GET', 'assets/product/perk-cut/dish.webp');
   check('product image served', img.status === 200 && img.headers['content-type'] === 'image/webp');
+  const ogImg = await call('GET', 'assets/product/fields/og.jpg');
+  check('og.jpg served', ogImg.status === 200 && ogImg.headers['content-type'] === 'image/jpeg');
   const html = page.text;
+  const v4dir = path.join(SITE, 'v4');
   const refs = [...html.matchAll(/(?:src|href)="([^"#:]+?)(?:\?[^"]*)?"/g)].map((m) => m[1]).filter((u) => !u.startsWith('/') && !u.startsWith('data'));
-  const missing = refs.filter((u) => !fs.existsSync(path.join(root, 'api/starlink/_site', u)));
-  check('every relative src/href in the page exists in _site', refs.length > 20 && missing.length === 0);
+  const missing = refs.filter((u) => { const f = path.resolve(v4dir, u); return !f.startsWith(SITE + path.sep) || !fs.existsSync(f); });
+  check('every relative src/href in the page resolves inside _site', refs.length > 20 && missing.length === 0);
+  const client = fs.readFileSync(path.join(v4dir, 'app.js'), 'utf8');
+  const jsImgs = [...client.matchAll(/IMG \+ "([^"]+)"/g)].map((m) => m[1]);
+  check('every builder result image exists', jsImgs.length >= 5 && jsImgs.every((f) => fs.existsSync(path.join(SITE, 'assets/product/perk-cut', f))));
   check('path traversal blocked', (await call('GET', '../index.js')).status === 404 && (await call('GET', '_lib/flag.js')).status === 404
-    && (await call('GET', 'assets/../../index.js')).status === 404);
+    && (await call('GET', 'assets/../../index.js')).status === 404 && (await call('GET', 'v4/../../index.js')).status === 404);
   check('hidden files blocked', (await call('GET', '.env')).status === 404);
+
+  // ---- Server-configured contact links (placeholders stay the defaults) ----
+  const cfgDefault = await call('GET', 'api/config');
+  check('config: defaults are the v4 placeholders', cfgDefault.status === 200 && cfgDefault.json.contact.whatsapp === 'https://wa.me/00000000000'
+    && cfgDefault.json.contact.call === 'tel:+00000000000' && cfgDefault.json.contact.email === 'hello@lavaall.com'
+    && cfgDefault.json.placeholders.whatsapp && cfgDefault.json.placeholders.call && cfgDefault.json.placeholders.email);
+  check('page injects LV_CONFIG with the same contact values', page.text.includes('window.LV_CONFIG={"api":"/starlink/api","contact":{"whatsapp":"https://wa.me/00000000000","call":"tel:+00000000000","email":"hello@lavaall.com"}}'));
+  env({ VERCEL: '1', VERCEL_ENV: 'preview', STARLINK_WHATSAPP_NUMBER: '+232 76 000 111', STARLINK_CALL_NUMBER: '+232 76 000 222', STARLINK_CONTACT_EMAIL: 'starlink@lavaall.com' });
+  const cfgSet = await call('GET', 'api/config');
+  check('config: env values replace the placeholders', cfgSet.json.contact.whatsapp === 'https://wa.me/23276000111' && cfgSet.json.contact.call === 'tel:+23276000222'
+    && cfgSet.json.contact.email === 'starlink@lavaall.com' && !cfgSet.json.placeholders.whatsapp && !cfgSet.json.placeholders.call && !cfgSet.json.placeholders.email);
+  const pageSet = await call('GET', '');
+  check('page picks up configured contacts', pageSet.text.includes('"whatsapp":"https://wa.me/23276000111"') && pageSet.text.includes('"email":"starlink@lavaall.com"'));
+  env({ VERCEL: '1', VERCEL_ENV: 'preview', STARLINK_CONTACT_EMAIL: 'x"><script>alert(1)</script>' });
+  const cfgEvil = await call('GET', '');
+  check('config: bad email env falls back to placeholder, never injected raw', cfgEvil.text.includes('"email":"hello@lavaall.com"') && !cfgEvil.text.includes('alert(1)'));
+  env({ VERCEL: '1', VERCEL_ENV: 'preview' });
+
+  // ---- Frontend integration contract (HANDOFF-BACKEND.md) ----
+  const motion = fs.readFileSync(path.join(v4dir, 'motion.js'), 'utf8');
+  const raw = fs.readFileSync(path.join(v4dir, 'index.html'), 'utf8');
+  const q = (src, name) => { const m = src.match(new RegExp('var ' + name + ' = matchMedia\\("([^"]+)"\\)')); return m && m[1]; };
+  const inline = raw.match(/<script>\s*\/\*[\s\S]*?\*\/\s*\(function \(h\) \{([\s\S]*?)\}\)\(document\.documentElement\);\s*<\/script>/);
+  check('inline .is-pinned script matches motion.js narrow/reduce queries', inline && q(motion, 'narrow') === '(max-width: 767px)' && q(motion, 'reduce') === '(prefers-reduced-motion: reduce)'
+    && inline[1].includes('!matchMedia("' + q(motion, 'narrow') + '").matches') && inline[1].includes('!matchMedia("' + q(motion, 'reduce') + '").matches') && inline[1].includes('add("is-pinned")'));
+  check('motion.js toggles is-pinned from the same narrow||reduce rule', /var story = narrow\.matches \|\| reduce\.matches;[\s\S]*?active = !story;[\s\S]*?classList\.toggle\("is-pinned", active\)/.test(motion));
+  const { ALPHABET } = require('../api/starlink/_lib/codes');
+  check('client fallback code uses the server alphabet', client.includes('var c = "' + ALPHABET + '"') && client.includes('/^LV-[' + ALPHABET + ']{5}$/'));
+  check('client keeps offline fallback to client-side code', client.includes('state.code = code(); state.server = false;'));
+  check('client posts builder answers to /setups and connect to /setups/:code/connect', client.includes('api("POST", "/setups", answers)')
+    && client.includes('api("POST", "/setups/" + encodeURIComponent(state.code) + "/connect"'));
+  check('client restores return visits via GET /setups/:code', client.includes('api("GET", "/setups/" + encodeURIComponent(want))') && client.includes('lv-setup-code'));
+  check('client keeps sessionStorage lv-setup and the state.a keys', client.includes('sessionStorage.setItem("lv-setup"') && ['place', 'country', 'need', 'size', 'priority'].every((k) => client.includes('key: "' + k + '"')));
+  check('client keeps the data-sku shop enquiry text', client.includes('"Hi LAVAALL, I\'d like to ask about the " + sku + "."'));
+  check('client contact placeholders kept as defaults, overridable by LV_CONFIG', client.includes('whatsapp: "https://wa.me/00000000000"') && client.includes('window.LV_CONFIG'));
+  check('client is still ES5-level (no arrow functions, let/const, template strings)', !/=>|\blet\s|\bconst\s|`/.test(client));
+  check('9 data-sku enquiries still on the page', (raw.match(/data-sku="/g) || []).length === 9);
+  check('builder still offers Guinea + Guinea-Bissau (flagged for Osman, not removed)', client.includes('"Guinea", "Guinea-Bissau"'));
+  check('no prices on the page or in the client', !/\b(SLE|SLL|USD|GNF|LRD)\s?[0-9]|[$€£]\s?[0-9]|\bLe\s?[0-9]/.test(raw + client));
+  const cssText = fs.readFileSync(path.join(v4dir, 'styles.css'), 'utf8');
+  const added = cssText.slice(cssText.indexOf('Backend wiring (api/starlink)')).replace(/^[\s\S]*?\*\//, '');
+  check('added CSS uses no gradients, no shadows, no new colours', added.length > 100 && !/gradient|box-shadow|#[0-9a-f]{3,8}\b|rgba?\(/i.test(added));
+
+  // ---- Byte-identical to Osman's v4 except the integration edits (docs/starlink/V4-SOURCE.md) ----
+  const manifest = fs.readFileSync(path.join(root, 'docs/starlink/V4-SOURCE.md'), 'utf8');
+  const rows = [...manifest.matchAll(/^\| `([^`]+)` \| `([0-9a-f]{64})` \| (identical|edited) \|/gm)];
+  const ident = rows.filter((r) => r[3] === 'identical');
+  check('source manifest lists every _site file', rows.length > 25 && rows.length === walk(SITE).length);
+  check('untouched files are byte-identical to the OneDrive v4 snapshot', ident.length > 20 && ident.every((r) => fs.existsSync(path.join(SITE, r[1])) && sha(path.join(SITE, r[1])) === r[2]));
+  check('only index.html, styles.css and app.js carry integration edits', rows.filter((r) => r[3] === 'edited').map((r) => r[1]).sort().join() === 'v4/app.js,v4/index.html,v4/styles.css');
 
   // ---- Never public on lavaall.com ----
   const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
@@ -168,9 +239,6 @@ async function run() {
   const ignore = fs.readFileSync(path.join(root, '.vercelignore'), 'utf8').split(/\r?\n/).map((l) => l.trim());
   check('.vercelignore keeps Starlink docs, dev runner and test off the public site', ['docs/starlink/', 'scripts/starlink/', 'tests/test-starlink.js'].every((e) => ignore.includes(e)));
   check('.vercelignore does not hide anything the site or functions need', !ignore.some((l) => /^(api|assets|images|index\.html|docs\/ops)/.test(l)));
-  const client = fs.readFileSync(path.join(root, 'api/starlink/_site/app.js'), 'utf8');
-  check('client keeps offline fallback to client-side code', client.includes('state.code = code(); state.server = false;'));
-
   for (const k of ENV_KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
 
   let failed = 0;
@@ -180,6 +248,10 @@ async function run() {
   }
   console.log(`\n${results.length - failed}/${results.length} passed`);
   process.exit(failed ? 1 : 0);
+}
+
+function walk(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? walk(path.join(dir, d.name)) : [path.join(dir, d.name)]));
 }
 
 run().catch((e) => { console.error(e); process.exit(1); });

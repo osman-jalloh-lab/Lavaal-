@@ -7,15 +7,24 @@
     call: "tel:+00000000000",
     email: "hello@lavaall.com"
   };
+  // Backend wiring: api/starlink injects window.LV_CONFIG (server-configured
+  // contact values). The placeholders above stay as the defaults.
+  var CFG = window.LV_CONFIG || {};
+  if (CFG.contact) {
+    if (CFG.contact.whatsapp) CONTACT.whatsapp = CFG.contact.whatsapp;
+    if (CFG.contact.call) CONTACT.call = CFG.contact.call;
+    if (CFG.contact.email) CONTACT.email = CFG.contact.email;
+  }
+  var API = CFG.api || "../api";
 
-  var IMG = "assets/product/cutout/";
+  var IMG = "../assets/product/perk-cut/";
   var ITEMS = {
-    kit:     { label: "Starlink kit", img: IMG + "starlink-dish.webp" },
-    mount:   { label: "Roof / pole mount", img: IMG + "lavaall-pole-mount.webp" },
-    mesh:    { label: "Mesh Wi-Fi", img: IMG + "lavaall-mesh.webp" },
-    meshPlus:{ label: "Multi-node mesh", img: IMG + "lavaall-mesh.webp" },
-    power:   { label: "Power protection + UPS", img: IMG + "lavaall-ups.webp" },
-    router:  { label: "Router setup", img: IMG + "starlink-router.webp" },
+    kit:     { label: "Starlink kit", img: IMG + "dish.webp" },
+    mount:   { label: "Roof / pole mount", img: IMG + "polemount.webp" },
+    mesh:    { label: "Mesh Wi-Fi", img: IMG + "mesh.webp" },
+    meshPlus:{ label: "Multi-node mesh", img: IMG + "mesh.webp" },
+    power:   { label: "Power protection + UPS", img: IMG + "ups.webp" },
+    router:  { label: "Router setup", img: IMG + "router.webp" },
     install: { label: "Professional installation" },
     support: { label: "Ongoing support" }
   };
@@ -43,14 +52,17 @@
     if (saved && saved.a && saved.code) state = saved;
   } catch (e) {}
 
-  function save() { try { sessionStorage.setItem("lv-setup", JSON.stringify(state)); } catch (e) {} }
+  function save() {
+    try { sessionStorage.setItem("lv-setup", JSON.stringify(state)); } catch (e) {}
+    // Server codes are remembered across visits (code only, no answers or contact).
+    try { if (state.code && state.server) localStorage.setItem("lv-setup-code", state.code); } catch (e) {}
+  }
 
-  // ---------- Backend (api/starlink). Relative to <base href="/starlink/">. ----------
-  // If the API is not reachable (e.g. the page is opened from a plain static
-  // server), the page falls back to the original client-side code + wa.me link.
+  // ---------- Backend (api/starlink) ----------
+  // If the API can't be reached (e.g. the page is opened from a plain static
+  // server), the page falls back to the client-side code + wa.me link.
   function api(method, path, body) {
-    if (!window.fetch) return Promise.reject(new Error("no_fetch"));
-    return fetch("api" + path, {
+    return fetch(API + path, {
       method: method,
       headers: body ? { "Content-Type": "application/json" } : {},
       body: body ? JSON.stringify(body) : undefined,
@@ -62,6 +74,8 @@
       });
     });
   }
+  var canApi = !!(window.fetch && window.Promise);
+  var CODE_RE = /^LV-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/;
 
   function el(tag, attrs, text) {
     var n = document.createElement(tag);
@@ -132,7 +146,7 @@
     if (state.i > 0) { state.i--; render("back", true); }
   });
 
-  // ---------- Recommendation (deterministic; same rules in api/starlink/_lib/recommend.js) ----------
+  // ---------- Recommendation (deterministic, client-side only) ----------
   function recommend(a) {
     var big = a.size === "Large" || a.size === "Multiple buildings";
     var mid = a.size === "Medium";
@@ -199,11 +213,15 @@
 
   function showResult(moveFocus) {
     if (state.code) return paint(moveFocus);
+    if (!canApi) { state.code = code(); state.server = false; return paint(moveFocus); }
     next.disabled = true;
     var answers = { place: state.a.place, country: state.a.country, city: state.a.city || "", need: state.a.need, size: state.a.size, priority: state.a.priority };
     api("POST", "/setups", answers).then(function (j) {
+      if (!j || !CODE_RE.test(j.code || "")) throw new Error("bad_code");
       state.code = j.code; state.server = true;
     }, function () {
+      state.code = code(); state.server = false;
+    }).then(null, function () {
       state.code = code(); state.server = false;
     }).then(function () {
       next.disabled = false;
@@ -228,6 +246,7 @@
     var n = result.querySelector(".result__note");
     n.textContent = (rec.note ? rec.note + " " : "") + "Pricing and install timing are confirmed after we review your setup.";
     wireContacts();
+    connectView();
     if (moveFocus) {
       $("resultTitle").focus({ preventScroll: true });
       var top = $("panel").getBoundingClientRect().top + scrollY - 88;
@@ -252,35 +271,67 @@
     gc.href = CONTACT.whatsapp + "?text=" + encodeURIComponent(msg); gc.target = "_blank"; gc.rel = "noopener";
   }
 
-  function say(node, text) { node.textContent = text; node.hidden = !text; }
+  // ---------- Get connected ----------
+  function say(text, kind) {
+    var st = $("connectStatus");
+    st.textContent = text || "";
+    st.hidden = !text;
+    if (kind) st.setAttribute("data-state", kind); else st.removeAttribute("data-state");
+  }
+
+  function connectView() {
+    var gc = $("getConnected");
+    gc.removeAttribute("aria-disabled");
+    $("connect").hidden = !state.server;
+    if (state.connected) {
+      gc.textContent = "Details saved";
+      say("We have your details for setup " + state.code + ". We'll reach out about pricing and install timing.", "ok");
+    } else {
+      gc.textContent = "Get connected";
+      say("");
+    }
+  }
+
+  function invalid(id, bad) {
+    var n = $(id);
+    if (bad) n.setAttribute("aria-invalid", "true"); else n.removeAttribute("aria-invalid");
+  }
 
   $("getConnected").addEventListener("click", function (e) {
-    // Offline fallback keeps the original behaviour (href set in wireContacts).
+    // Offline fallback keeps the original behaviour (wa.me href set in wireContacts).
     if (!state.code || !state.server) return;
     e.preventDefault();
-    var gc = this, st = $("connectStatus");
+    var gc = this;
     if (gc.getAttribute("aria-disabled") === "true") return;
     var wa = $("connectWhatsapp").value.trim(), em = $("connectEmail").value.trim();
+    invalid("connectWhatsapp", false); invalid("connectEmail", false);
     if (!wa && !em) {
-      say(st, "Add a WhatsApp number or email so we can reach you.");
+      say("Add a WhatsApp number or email so we can reach you.", "error");
+      invalid("connectWhatsapp", true);
       $("connectWhatsapp").focus();
       return;
     }
     gc.setAttribute("aria-disabled", "true");
-    say(st, "Saving\u2026");
+    say("Saving your details\u2026", "busy");
     api("POST", "/setups/" + encodeURIComponent(state.code) + "/connect", { whatsapp: wa, email: em, website: $("connectWebsite").value })
       .then(function (j) {
         state.connected = true; save();
         var via = [j.contact && j.contact.whatsapp ? "WhatsApp" : "", j.contact && j.contact.email ? "email" : ""].filter(Boolean).join(" and ");
-        say(st, "Saved. We'll reach you on " + via + " about setup " + state.code + "." +
-          (j.delivery && j.delivery.mode === "test" ? " (Test mode: nothing was sent.)" : ""));
+        gc.textContent = "Details saved";
+        say("Saved. We'll reach you on " + (via || "the details you gave") + " about setup " + state.code + "." +
+          (j.delivery && j.delivery.mode === "test" ? " (Test mode: nothing was sent.)" : ""), "ok");
         if (j.links) {
           result.querySelectorAll('[data-contact="whatsapp"]').forEach(function (a) { a.href = j.links.whatsapp; });
           result.querySelectorAll('[data-contact="email"]').forEach(function (a) { a.href = j.links.mailto; });
         }
       }, function (err) {
-        if (err && err.status === 404) { state.server = false; }
-        say(st, err && err.body && err.body.message ? err.body.message : "We couldn't save that. Use WhatsApp or Email below.");
+        var b = err && err.body || {};
+        if (err && err.status === 404) { state.server = false; save(); wireContacts(); $("connect").hidden = true; }
+        (b.fields || []).forEach(function (f) {
+          if (f === "whatsapp") invalid("connectWhatsapp", true);
+          if (f === "email") invalid("connectEmail", true);
+        });
+        say(b.message || "We couldn't save that right now. Use WhatsApp, Call or Email below.", "error");
       }).then(function () { gc.removeAttribute("aria-disabled"); });
   });
 
@@ -292,18 +343,51 @@
   $("restart").addEventListener("click", function () {
     state = { i: 0, a: {}, code: null };
     try { sessionStorage.removeItem("lv-setup"); } catch (e) {}
-    say($("connectStatus"), "");
+    try { localStorage.removeItem("lv-setup-code"); } catch (e) {}
+    $("connectWhatsapp").value = ""; $("connectEmail").value = "";
+    invalid("connectWhatsapp", false); invalid("connectEmail", false);
+    say("");
     result.hidden = true; form.hidden = false; progress.hidden = false;
     render(null, true);
     wireContacts();
   });
 
+  // ---------- Return visits: restore a server code via GET /setups/:code ----------
+  function fromServer(j) {
+    var a = j.answers || {};
+    state = { i: STEPS.length - 1, a: a, code: j.code, server: true, connected: j.status === "lead" };
+    paint(false);
+  }
+
+  function urlCode() {
+    try { var c = (new URLSearchParams(location.search).get("code") || "").trim().toUpperCase(); return CODE_RE.test(c) ? c : ""; } catch (e) { return ""; }
+  }
+
+  function restore(want) {
+    if (!want) { try { want = localStorage.getItem("lv-setup-code") || ""; } catch (e) { want = ""; } }
+    if (!canApi || !CODE_RE.test(want) || want === state.code) return false;
+    api("GET", "/setups/" + encodeURIComponent(want)).then(fromServer, function (err) {
+      if (err && err.status === 404) { try { localStorage.removeItem("lv-setup-code"); } catch (e) {} }
+    });
+    return true;
+  }
+
   wireContacts();
-  if (state.code) {
+  var linked = urlCode();
+  if (linked && linked !== state.code) {
+    // A ?code=LV-XXXXX link (e.g. from the WhatsApp message) wins over this tab's state.
+    if (state.code) paint(false); else render(null, false);
+    restore(linked);
+  } else if (state.code) {
     paint(false);
     // Re-check a saved server code; if the server no longer has it, make a new one.
-    if (state.server) api("GET", "/setups/" + encodeURIComponent(state.code)).catch(function (err) {
-      if (err && err.status === 404) { state.code = null; state.server = false; showResult(false); }
+    if (state.server && canApi) api("GET", "/setups/" + encodeURIComponent(state.code)).then(function (j) {
+      if (j.status === "lead" && !state.connected) { state.connected = true; save(); connectView(); }
+    }, function (err) {
+      if (err && err.status === 404) { state.code = null; state.server = false; state.connected = false; showResult(false); }
     });
-  } else render(null, false);
+  } else {
+    render(null, false);
+    restore();
+  }
 })();

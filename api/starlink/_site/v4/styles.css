@@ -159,12 +159,34 @@ figure { margin: 0; }
 }
 .hero__body { margin: 12px 0 22px; max-width: 30ch; font: 400 18px/1.5 var(--f-dala); letter-spacing: -0.005em; color: var(--white); }
 
+/* The kit sits on a framed stage on the right, as in the scrollcraft reference —
+   but in Perk's own colours, not the reference's cyan. The panel stays put while
+   the pinned track animates the hardware across it. */
+.hero__panel, .stage__panel {
+  position: absolute; z-index: 0;
+  left: 39vw; top: 11vh; width: 55vw; height: 74vh;
+  background: var(--field-leaf);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--r-card);
+  pointer-events: none;
+}
+/* When pinned, .hero sits at z-index 2 and its own panel would paint OVER the
+   hardware (which lives in the sticky stage). The stage copy is the one that
+   renders behind the parts. */
+.stage__panel { display: none; }
+.is-pinned .stage__panel { display: block; }
+.is-pinned .hero__panel { display: none; }
 .hero__art { position: absolute; inset: 0; pointer-events: none; }
 .art { position: absolute; max-width: none; height: auto; }
 /* hardware sculpture — positions in vw/vh so the composition scales like Dala's brain */
-.art--dish   { width: 55vw; left: 42.5vw; top: 16vh; }
-.art--router { width: 12.5vw; left: 42vw; top: 47vh; }
-.art--cable  { width: 23vw; left: 64vw; top: 75vh; }
+/* Exploded inside the framed stage — these MUST match HERO_DESK in motion.js,
+   or the hand-off into the pinned track jumps. */
+.art--dish   { width: 34vw; left: 50vw; top: 15vh; }
+.art--router { width: 11vw; left: 74vw; top: 49vh; }
+.art--cable  { width: 14vw; left: 58vw; top: 60vh; }
+.art--box    { width: 13vw; left: 41vw; top: 20vh; }
+.art--kick   { width: 10vw; left: 55vw; top: 45vh; }
+.art--power  { width: 11vw; left: 43vw; top: 57vh; }
 
 /* Pinned mode (desktop/tablet, motion OK): the hero overlaps the start of the unboxing track.
    Its CSS artwork is hidden — the unboxing parts render the same composition at the same
@@ -208,7 +230,29 @@ figure { margin: 0; }
    02 UNBOXING — pinned camera over one continuous scene (desktop)
    ========================================================= */
 .unbox { position: relative; }
-.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+/* Decorative overlays inside the sticky stage. `contain` stops their internal
+   resizing being reported as a document-level layout shift. */
+.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; display: block; }
+.unbox__stage { contain: layout paint; }
+
+/* Leader-line callouts, one per part — the "piece by piece" treatment.
+   Positioned from motion.js; the dashed leaders are drawn on .wires. */
+/* Parts take a depth-sorted z-index in the hundreds (set in motion.js), so the
+   callout layer has to clear that or the hardware paints over the chips. */
+.plabs { position: absolute; inset: 0; pointer-events: none; z-index: 2000; }
+.plab {
+  position: absolute; top: 0; left: 0; display: grid; gap: 2px;
+  padding: 9px 14px; border-radius: var(--r-inner);
+  background: var(--canvas); border: 1.5px solid var(--ink);
+  /* hidden until motion.js places it — otherwise the font-swap reflow of ten
+     chips parked at 0,0 registers as a large layout shift */
+  opacity: 0; visibility: hidden;
+  will-change: transform, opacity; contain: layout style;
+}
+.plab b { font: 500 15px/1.1 var(--f-dala); letter-spacing: -0.01em; color: var(--ink); }
+.plab i { font: 500 10px/1.1 var(--f-mono); letter-spacing: .1em; font-style: normal; color: var(--graphite); }
+.plab--lv b::after { content: "·  LAVAALL"; color: var(--graphite); font-size: 10px; letter-spacing: .08em; margin-left: 6px; }
+@media (max-width: 860px) { .plab { padding: 6px 10px; } .plab b { font-size: 13px; } .plab i { font-size: 9px; } }
 
 /* 9 segments, with extra room over the unpack so the kit leaves the box
    one piece at a time rather than in a rush. */
@@ -246,9 +290,10 @@ figure { margin: 0; }
 .unbox__statement span { display: block; white-space: nowrap; }
 .unbox__statement span:first-child { color: var(--gray-3); }
 .unbox__statement span + span { margin-top: .3em; }
-/* Constrain to the left column so the converged artwork can't run under the headline. */
-.unbox__final { left: 8.33vw; top: 13vh; max-width: min(44vw, 620px); }
-.unbox__intro { max-width: min(44vw, 620px); }
+/* Constrain to the left column so the artwork can't run under the headline.
+   36vw clears the box, which renders right of centre during the dive. */
+.unbox__final { left: 8.33vw; top: 13vh; max-width: min(36vw, 480px); }
+.unbox__intro { max-width: min(36vw, 480px); }
 
 .unbox__label {
   position: absolute; left: 8.33vw; bottom: 9vh;
@@ -519,6 +564,9 @@ figure { margin: 0; }
 /* Colour fields: the page moves beige -> leaf -> beige -> dark, so it never
    reads as one flat sheet. Each product shot was lit on the ground it sits on. */
 .hero, .unbox, .story { background: var(--canvas); }
+/* Pinned, the hero overlays the sticky stage at z-index 2 — an opaque background
+   here hides the entire kit animation behind it. */
+.is-pinned .hero { background: transparent; }
 .reach { background: var(--field-leaf); }
 .adds  { background: var(--field-mist); }
 .setup { background: var(--canvas); }
@@ -678,3 +726,29 @@ figure { margin: 0; }
 
 
 
+
+/* =========================================================
+   Backend wiring (api/starlink): Get connected fields + status.
+   Existing tokens only: tonal fields, 1px borders, no shadows,
+   no gradients, lime stays the only fill (the status dot).
+   ========================================================= */
+.connect { margin: 0 0 18px; }
+.connect .field:first-child { margin-top: 0; }
+.connect__status {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 14px 0 0; padding: 12px 14px;
+  border: 1px solid var(--ak-border-strong); border-radius: var(--r-input);
+  background: var(--ak-fill); color: var(--ink); font-size: 14px; line-height: 1.4;
+}
+.connect__status[hidden] { display: none; }
+.connect__status::before {
+  content: ""; flex: 0 0 auto; width: 10px; height: 10px; margin-top: 4px;
+  border-radius: 9999px; border: 1px solid var(--ink);
+}
+.connect__status[data-state="ok"] { background: var(--field-leaf); border-color: var(--ink); }
+.connect__status[data-state="ok"]::before { background: var(--lime); }
+.connect__status[data-state="error"] { background: var(--field-mist); border-color: var(--ink); }
+.connect__status[data-state="error"]::before { content: "!"; width: auto; height: auto; margin-top: 0; border: 0; font: 500 14px/1.4 var(--f-mono); }
+.connect__status[data-state="busy"]::before { border-style: dashed; }
+.field input[aria-invalid="true"] { border-color: var(--ink); }
+#getConnected[aria-disabled="true"] { opacity: .6; cursor: progress; }

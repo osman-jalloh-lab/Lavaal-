@@ -85,6 +85,8 @@
     var cycle = opts.cycle || 5200;
 
     var w = 0, h = 0, R = 0, cx = 0, cy = 0, dpr = 1;
+    var bucket = [[], [], [], [], []];   // reused per frame, never reallocated
+    var visible = true;
     var rot = opts.rotation || 0;
     var scrollRot = 0;
     var raf = null, last = 0, t0 = 0;
@@ -152,6 +154,9 @@
     }
 
     function frame(now) {
+      // Off-screen globes were still projecting every dot every frame for the
+      // entire page. Skip the work, keep the loop cheap.
+      if (!visible) { raf = global.requestAnimationFrame(frame); last = 0; return; }
       if (!w) resize();
       if (!last) last = now;
       var dt = Math.min(now - last, 64);
@@ -161,14 +166,35 @@
       ctx.clearRect(0, 0, w, h);
       var r = rot + scrollRot;
 
+      // Bucket dots by depth and draw each bucket as ONE path. Previously this
+      // built a colour string and issued a separate fillRect per dot (~1500 state
+      // changes per globe per frame), which dominated the frame budget.
       var baseAlpha = ambient ? 0.3 : 0.8;
       var size = ambient ? 1 : 1.7;
+      var BUCKETS = 5;
+      for (var bq = 0; bq < BUCKETS; bq++) bucket[bq].length = 0;
+
+      // Project once. Inlined rather than calling project() so the hot loop
+      // avoids 1500 array allocations per frame.
+      var sr = Math.sin(r), cr = Math.cos(r);
       for (var i = 0; i < dots.length; i++) {
-        var p = project(dots[i], r);
-        if (p[2] <= 0.02) continue;
-        var a = baseAlpha * (0.3 + 0.7 * p[2]);
-        ctx.fillStyle = "rgba(" + landColor + "," + a.toFixed(3) + ")";
-        ctx.fillRect(p[0] - size / 2, p[1] - size / 2, size, size);
+        var d = dots[i];
+        var z = d[0] * sr + d[2] * cr;
+        if (z <= 0.02) continue;
+        var bx = d[0] * cr - d[2] * sr;
+        var q = bucket[z >= 1 ? BUCKETS - 1 : (z * BUCKETS) | 0];
+        q.push(cx + bx * R, cy - d[1] * R);
+      }
+      for (var bk = 0; bk < BUCKETS; bk++) {
+        var arr = bucket[bk];
+        if (!arr.length) continue;
+        ctx.beginPath();
+        for (var j = 0; j < arr.length; j += 2) {
+          ctx.rect(arr[j] - size / 2, arr[j + 1] - size / 2, size, size);
+        }
+        var midz = (bk + 0.5) / BUCKETS;
+        ctx.fillStyle = "rgba(" + landColor + "," + (baseAlpha * (0.3 + 0.7 * midz)).toFixed(3) + ")";
+        ctx.fill();
       }
 
       if (!t0) t0 = now;
@@ -185,6 +211,11 @@
 
     resize();
     global.addEventListener("resize", resize);
+    if (global.IntersectionObserver) {
+      new global.IntersectionObserver(function (es) {
+        visible = es[0].isIntersecting;
+      }, { rootMargin: "120px" }).observe(canvas);
+    }
     raf = global.requestAnimationFrame(frame);
 
     return {

@@ -5,20 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LAVAALL Starlink — Get connected for less</title>
 <meta name="description" content="Starlink hardware, installation, Wi-Fi coverage, power protection and support built around your space.">
-<meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#f3f3eb">
 <meta property="og:type" content="website">
 <meta property="og:title" content="LAVAALL Starlink — Get connected for less">
 <meta property="og:description" content="Starlink hardware, installation, Wi-Fi coverage, power protection and support built around your space.">
-<meta property="og:image" content="assets/product/fields/og.jpg">
+<meta property="og:image" content="https://lavaall.com/starlink/assets/product/fields/og.jpg">
+<meta name="robots" content="noindex, nofollow">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%238052FF'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="assets/product/perk-cut/dish.webp">
-<link rel="stylesheet" href="styles.css?v=cp4c">
-<script>document.documentElement.classList.add("js")</script>
+<link rel="preload" as="image" href="../assets/product/perk-cut/dish.webp">
+<link rel="stylesheet" href="styles.css?v=cp4c-be1">
+<script>
+/* Decide pinning BEFORE first paint. motion.js runs at end of body, so toggling
+   .is-pinned there reflowed the page (.hero gains margin-bottom:-100vh) and cost
+   ~0.63 CLS. Must stay in sync with `narrow`/`reduce` in motion.js. */
+(function (h) {
+  h.classList.add("js");
+  if (!matchMedia("(max-width: 767px)").matches &&
+      !matchMedia("(prefers-reduced-motion: reduce)").matches) h.classList.add("is-pinned");
+})(document.documentElement);
+</script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -37,11 +46,15 @@
 
 <!-- 01 HERO -->
 <section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="hero__panel" aria-hidden="true"></div>
   <canvas class="hero__globe" data-globe="ambient" aria-hidden="true"></canvas>
   <div class="hero__art" aria-hidden="true">
-    <img class="art art--dish" src="assets/product/perk-cut/dish.webp" alt="" width="1232" height="1232" fetchpriority="high">
-    <img class="art art--router" src="assets/product/perk-cut/router.webp" alt="" width="1232" height="1232">
-    <img class="art art--cable" src="assets/product/perk-cut/cable.webp" alt="" width="1232" height="1232">
+    <img class="art art--dish" src="../assets/product/perk-cut/dish.webp" alt="" width="1232" height="1232" fetchpriority="high">
+    <img class="art art--router" src="../assets/product/perk-cut/router.webp" alt="" width="1232" height="1232">
+    <img class="art art--cable" src="../assets/product/perk-cut/cable.webp" alt="" width="1232" height="1232">
+    <img class="art art--box" src="../assets/product/perk-cut/box.webp" alt="" width="1232" height="1232">
+    <img class="art art--kick" src="../assets/product/perk-cut/kickstand.webp" alt="" width="1232" height="1232">
+    <img class="art art--power" src="../assets/product/perk-cut/power.webp" alt="" width="1232" height="1232">
   </div>
   <div class="hero__copy">
     <h1 class="hero__title" id="hero-title"><span>Get</span> <span>connected</span> <span>for less.</span></h1>
@@ -65,22 +78,35 @@
   <div class="unbox__track" id="unboxTrack" aria-hidden="true">
     <span class="anchor" id="how"></span>
     <div class="unbox__stage">
+      <div class="stage__panel" id="stagePanel" aria-hidden="true"></div>
       <canvas class="wires" id="wires" aria-hidden="true"></canvas>
+      <div class="plabs" id="plabs" aria-hidden="true">
+        <span class="plab" data-p="0"><b>Starlink box</b><i>THE KIT</i></span>
+        <span class="plab" data-p="1"><b>Dish</b><i>FLAT PANEL ANTENNA</i></span>
+        <span class="plab" data-p="2"><b>Kickstand</b><i>MAST + BASE</i></span>
+        <span class="plab" data-p="3"><b>Router</b><i>WI-FI</i></span>
+        <span class="plab" data-p="4"><b>Cable</b><i>DISH TO ROUTER</i></span>
+        <span class="plab" data-p="5"><b>Power supply</b><i>MAINS OR DC</i></span>
+        <span class="plab plab--lv" data-p="6"><b>Mounting</b><i>ROOF OR POLE</i></span>
+        <span class="plab plab--lv" data-p="7"><b>Power protection</b><i>SURGE + UPS</i></span>
+        <span class="plab plab--lv" data-p="8"><b>Mesh Wi-Fi</b><i>COVERAGE</i></span>
+        <span class="plab plab--lv" data-p="9"><b>Installation</b><i>FITTED ON SITE</i></span>
+      </div>
       <div class="world" id="world">
         <!-- Starlink kit. Positions are world units, set in motion.js -->
-        <figure class="part" data-i="0"><img src="assets/product/perk-cut/box.webp" alt="" width="1232" height="1232"></figure>
-        <figure class="part" data-i="1"><img src="assets/product/perk-cut/dish.webp" alt="" width="1232" height="1232"></figure>
-        <figure class="part" data-i="2"><img src="assets/product/perk-cut/kickstand.webp" alt="" width="1232" height="1232"></figure>
-        <figure class="part" data-i="3"><img src="assets/product/perk-cut/router.webp" alt="" width="1232" height="1232"></figure>
-        <figure class="part" data-i="4"><img src="assets/product/perk-cut/cable.webp" alt="" width="1232" height="1232"></figure>
-        <figure class="part" data-i="5"><img src="assets/product/perk-cut/power.webp" alt="" width="1232" height="1232"></figure>
+        <figure class="part" data-i="0"><img src="../assets/product/perk-cut/box.webp" alt="" width="1232" height="1232"></figure>
+        <figure class="part" data-i="1"><img src="../assets/product/perk-cut/dish.webp" alt="" width="1232" height="1232"></figure>
+        <figure class="part" data-i="2"><img src="../assets/product/perk-cut/kickstand.webp" alt="" width="1232" height="1232"></figure>
+        <figure class="part" data-i="3"><img src="../assets/product/perk-cut/router.webp" alt="" width="1232" height="1232"></figure>
+        <figure class="part" data-i="4"><img src="../assets/product/perk-cut/cable.webp" alt="" width="1232" height="1232"></figure>
+        <figure class="part" data-i="5"><img src="../assets/product/perk-cut/power.webp" alt="" width="1232" height="1232"></figure>
         <!-- LAVAALL additions -->
-        <figure class="part part--lv" data-i="6"><img src="assets/product/perk-cut/polemount.webp" alt="" width="1232" height="1232"></figure>
-        <figure class="part part--lv" data-i="7"><img src="assets/product/perk-cut/ups.webp" alt="" width="1232" height="1232"></figure>
-        <figure class="part part--lv" data-i="8"><img src="assets/product/perk-cut/mesh.webp" alt="" width="1232" height="1232"></figure>
+        <figure class="part part--lv" data-i="6"><img src="../assets/product/perk-cut/polemount.webp" alt="" width="1232" height="1232"></figure>
+        <figure class="part part--lv" data-i="7"><img src="../assets/product/perk-cut/ups.webp" alt="" width="1232" height="1232"></figure>
+        <figure class="part part--lv" data-i="8"><img src="../assets/product/perk-cut/mesh.webp" alt="" width="1232" height="1232"></figure>
         <figure class="part part--lv part--install" data-i="9">
-          <img class="install__pole" src="assets/product/perk-cut/polemount.webp" alt="" width="1232" height="1232">
-          <img class="install__dish" src="assets/product/perk-cut/dish.webp" alt="" width="1232" height="1232">
+          <img class="install__pole" src="../assets/product/perk-cut/polemount.webp" alt="" width="1232" height="1232">
+          <img class="install__dish" src="../assets/product/perk-cut/dish.webp" alt="" width="1232" height="1232">
         </figure>
       </div>
 
@@ -100,29 +126,29 @@
   <!-- Mobile + reduced-motion story: same parts, big, one after another -->
   <div class="story" id="story" aria-hidden="true">
     <p class="story__intro">One complete setup.<br><span>Built piece by piece.</span></p>
-    <figure class="story__item"><img src="assets/product/perk-cut/box.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>01</span>Starlink box</figcaption></figure>
-    <figure class="story__item"><img src="assets/product/perk-cut/dish.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>02</span>Dish</figcaption></figure>
+    <figure class="story__item"><img src="../assets/product/perk-cut/box.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>01</span>Starlink box</figcaption></figure>
+    <figure class="story__item"><img src="../assets/product/perk-cut/dish.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>02</span>Dish</figcaption></figure>
     <div class="story__pair">
-      <figure class="story__item"><img src="assets/product/perk-cut/kickstand.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>03</span>Kickstand</figcaption></figure>
-      <figure class="story__item"><img src="assets/product/perk-cut/router.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>04</span>Router</figcaption></figure>
+      <figure class="story__item"><img src="../assets/product/perk-cut/kickstand.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>03</span>Kickstand</figcaption></figure>
+      <figure class="story__item"><img src="../assets/product/perk-cut/router.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>04</span>Router</figcaption></figure>
     </div>
     <div class="story__pair">
-      <figure class="story__item"><img src="assets/product/perk-cut/cable.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>05</span>Cable</figcaption></figure>
-      <figure class="story__item"><img src="assets/product/perk-cut/power.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>06</span>Power supply</figcaption></figure>
+      <figure class="story__item"><img src="../assets/product/perk-cut/cable.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>05</span>Cable</figcaption></figure>
+      <figure class="story__item"><img src="../assets/product/perk-cut/power.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>06</span>Power supply</figcaption></figure>
     </div>
     <p class="story__statement">Starlink provides the connection. <em>LAVAALL builds the setup around it.</em></p>
-    <figure class="story__item story__item--lv"><img src="assets/product/perk-cut/polemount.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>07</span>Mounting</figcaption></figure>
-    <figure class="story__item story__item--lv"><img src="assets/product/perk-cut/ups.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>08</span>Power protection + UPS</figcaption></figure>
-    <figure class="story__item story__item--lv"><img src="assets/product/perk-cut/mesh.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>09</span>Mesh Wi-Fi</figcaption></figure>
-    <figure class="story__item story__item--lv story__install"><span class="install"><img class="install__pole" src="assets/product/perk-cut/polemount.webp" alt="" loading="lazy" width="1232" height="1232"><img class="install__dish" src="assets/product/perk-cut/dish.webp" alt="" loading="lazy" width="1232" height="1232"></span><figcaption><span>10</span>Installation</figcaption></figure>
+    <figure class="story__item story__item--lv"><img src="../assets/product/perk-cut/polemount.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>07</span>Mounting</figcaption></figure>
+    <figure class="story__item story__item--lv"><img src="../assets/product/perk-cut/ups.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>08</span>Power protection + UPS</figcaption></figure>
+    <figure class="story__item story__item--lv"><img src="../assets/product/perk-cut/mesh.webp" alt="" loading="lazy" width="1232" height="1232"><figcaption><span>09</span>Mesh Wi-Fi</figcaption></figure>
+    <figure class="story__item story__item--lv story__install"><span class="install"><img class="install__pole" src="../assets/product/perk-cut/polemount.webp" alt="" loading="lazy" width="1232" height="1232"><img class="install__dish" src="../assets/product/perk-cut/dish.webp" alt="" loading="lazy" width="1232" height="1232"></span><figcaption><span>10</span>Installation</figcaption></figure>
     <div class="story__final">
       <p class="story__intro">The complete setup.</p>
       <div class="story__system">
-        <span class="install sys__install"><img class="install__pole" src="assets/product/perk-cut/polemount.webp" alt="" loading="lazy" width="1232" height="1232"><img class="install__dish" src="assets/product/perk-cut/dish.webp" alt="" loading="lazy" width="1232" height="1232"></span>
-        <img class="sys__router" src="assets/product/perk-cut/router.webp" alt="" loading="lazy" width="1232" height="1232">
-        <img class="sys__mesh" src="assets/product/perk-cut/mesh.webp" alt="" loading="lazy" width="1232" height="1232">
-        <img class="sys__ups" src="assets/product/perk-cut/ups.webp" alt="" loading="lazy" width="1232" height="1232">
-        <img class="sys__power" src="assets/product/perk-cut/power.webp" alt="" loading="lazy" width="1232" height="1232">
+        <span class="install sys__install"><img class="install__pole" src="../assets/product/perk-cut/polemount.webp" alt="" loading="lazy" width="1232" height="1232"><img class="install__dish" src="../assets/product/perk-cut/dish.webp" alt="" loading="lazy" width="1232" height="1232"></span>
+        <img class="sys__router" src="../assets/product/perk-cut/router.webp" alt="" loading="lazy" width="1232" height="1232">
+        <img class="sys__mesh" src="../assets/product/perk-cut/mesh.webp" alt="" loading="lazy" width="1232" height="1232">
+        <img class="sys__ups" src="../assets/product/perk-cut/ups.webp" alt="" loading="lazy" width="1232" height="1232">
+        <img class="sys__power" src="../assets/product/perk-cut/power.webp" alt="" loading="lazy" width="1232" height="1232">
       </div>
     </div>
   </div>
@@ -146,7 +172,7 @@
   </header>
 
   <a class="kit" href="#" data-contact="whatsapp" data-sku="complete Starlink kit">
-    <img class="kit__img" src="assets/product/fields/system.webp" alt="A Starlink terminal, router and mesh node together" loading="lazy" width="1232" height="1232">
+    <img class="kit__img" src="../assets/product/fields/system.webp" alt="A Starlink terminal, router and mesh node together" loading="lazy" width="1232" height="1232">
     <span class="kit__copy">
       <span class="kit__name">The complete kit</span>
       <span class="kit__body">Terminal, router, cable, power and mount — installed and configured around your space.</span>
@@ -155,14 +181,14 @@
   </a>
 
   <ul class="skus">
-    <li class="sku"><img src="assets/product/fields/dish.webp" alt="Flat-panel satellite terminal" loading="lazy" width="1232" height="1232"><div><h3>Terminal</h3><p>The flat-panel dish.</p><a href="#" data-contact="whatsapp" data-sku="Starlink terminal">Reach out</a></div></li>
-    <li class="sku"><img src="assets/product/fields/router.webp" alt="Wi-Fi router" loading="lazy" width="1232" height="1232"><div><h3>Router</h3><p>Wi-Fi for the whole setup.</p><a href="#" data-contact="whatsapp" data-sku="router">Reach out</a></div></li>
-    <li class="sku"><img src="assets/product/fields/power.webp" alt="Power supply with a UK three-pin plug" loading="lazy" width="1232" height="1232"><div><h3>Power supply</h3><p>Lost or damaged? Replace just this.</p><a href="#" data-contact="whatsapp" data-sku="power supply">Reach out</a></div></li>
-    <li class="sku"><img src="assets/product/fields/cable.webp" alt="Connecting cable" loading="lazy" width="1232" height="1232"><div><h3>Cable</h3><p>Terminal to router.</p><a href="#" data-contact="whatsapp" data-sku="cable">Reach out</a></div></li>
-    <li class="sku"><img src="assets/product/fields/kickstand.webp" alt="Kickstand" loading="lazy" width="1232" height="1232"><div><h3>Kickstand</h3><p>Ground and balcony placement.</p><a href="#" data-contact="whatsapp" data-sku="kickstand">Reach out</a></div></li>
-    <li class="sku"><img src="assets/product/fields/polemount.webp" alt="Pole mount bracket" loading="lazy" width="1232" height="1232"><div><h3>Pole mount</h3><p>Roof and wall mounting.</p><a href="#" data-contact="whatsapp" data-sku="pole mount">Reach out</a></div></li>
-    <li class="sku"><img src="assets/product/fields/ups.webp" alt="UPS power protection unit with UK sockets" loading="lazy" width="1232" height="1232"><div><h3>Power protection</h3><p>UPS for outages and surges.</p><a href="#" data-contact="whatsapp" data-sku="UPS / power protection">Reach out</a></div></li>
-    <li class="sku"><img src="assets/product/fields/mesh.webp" alt="Mesh Wi-Fi node" loading="lazy" width="1232" height="1232"><div><h3>Mesh node</h3><p>Coverage past the first wall.</p><a href="#" data-contact="whatsapp" data-sku="mesh node">Reach out</a></div></li>
+    <li class="sku"><img src="../assets/product/fields/dish.webp" alt="Flat-panel satellite terminal" loading="lazy" width="1232" height="1232"><div><h3>Terminal</h3><p>The flat-panel dish.</p><a href="#" data-contact="whatsapp" data-sku="Starlink terminal">Reach out</a></div></li>
+    <li class="sku"><img src="../assets/product/fields/router.webp" alt="Wi-Fi router" loading="lazy" width="1232" height="1232"><div><h3>Router</h3><p>Wi-Fi for the whole setup.</p><a href="#" data-contact="whatsapp" data-sku="router">Reach out</a></div></li>
+    <li class="sku"><img src="../assets/product/fields/power.webp" alt="Power supply with a UK three-pin plug" loading="lazy" width="1232" height="1232"><div><h3>Power supply</h3><p>Lost or damaged? Replace just this.</p><a href="#" data-contact="whatsapp" data-sku="power supply">Reach out</a></div></li>
+    <li class="sku"><img src="../assets/product/fields/cable.webp" alt="Connecting cable" loading="lazy" width="1232" height="1232"><div><h3>Cable</h3><p>Terminal to router.</p><a href="#" data-contact="whatsapp" data-sku="cable">Reach out</a></div></li>
+    <li class="sku"><img src="../assets/product/fields/kickstand.webp" alt="Kickstand" loading="lazy" width="1232" height="1232"><div><h3>Kickstand</h3><p>Ground and balcony placement.</p><a href="#" data-contact="whatsapp" data-sku="kickstand">Reach out</a></div></li>
+    <li class="sku"><img src="../assets/product/fields/polemount.webp" alt="Pole mount bracket" loading="lazy" width="1232" height="1232"><div><h3>Pole mount</h3><p>Roof and wall mounting.</p><a href="#" data-contact="whatsapp" data-sku="pole mount">Reach out</a></div></li>
+    <li class="sku"><img src="../assets/product/fields/ups.webp" alt="UPS power protection unit with UK sockets" loading="lazy" width="1232" height="1232"><div><h3>Power protection</h3><p>UPS for outages and surges.</p><a href="#" data-contact="whatsapp" data-sku="UPS / power protection">Reach out</a></div></li>
+    <li class="sku"><img src="../assets/product/fields/mesh.webp" alt="Mesh Wi-Fi node" loading="lazy" width="1232" height="1232"><div><h3>Mesh node</h3><p>Coverage past the first wall.</p><a href="#" data-contact="whatsapp" data-sku="mesh node">Reach out</a></div></li>
   </ul>
 </section>
 
@@ -170,11 +196,11 @@
 <section class="adds" id="adds" aria-labelledby="adds-title">
   <div class="adds__visual" aria-hidden="true">
     <span class="install adds__install">
-      <img class="install__pole" src="assets/product/perk-cut/polemount.webp" alt="" loading="lazy" width="1232" height="1232">
-      <img class="install__dish" src="assets/product/perk-cut/dish.webp" alt="" loading="lazy" width="1232" height="1232">
+      <img class="install__pole" src="../assets/product/perk-cut/polemount.webp" alt="" loading="lazy" width="1232" height="1232">
+      <img class="install__dish" src="../assets/product/perk-cut/dish.webp" alt="" loading="lazy" width="1232" height="1232">
     </span>
-    <img class="adds__ups" src="assets/product/perk-cut/ups.webp" alt="" loading="lazy" width="1232" height="1232">
-    <img class="adds__mesh" src="assets/product/perk-cut/mesh.webp" alt="" loading="lazy" width="1232" height="1232">
+    <img class="adds__ups" src="../assets/product/perk-cut/ups.webp" alt="" loading="lazy" width="1232" height="1232">
+    <img class="adds__mesh" src="../assets/product/perk-cut/mesh.webp" alt="" loading="lazy" width="1232" height="1232">
   </div>
   <div class="adds__copy">
     <h2 class="adds__title" id="adds-title">More than<br>the box.</h2>
@@ -218,8 +244,8 @@
         <span class="visually-hidden" role="status" id="copyStatus"></span>
       </div>
       <p class="result__note">Pricing and install timing confirmed after we review your setup.</p>
-      <!-- Backend wiring (v4-backend): where to send the setup code. Uses the
-           wizard's existing .field style; no new CSS. -->
+      <!-- Backend wiring: where to reach the visitor about this setup code. Uses the
+           wizard's existing .field style. -->
       <div class="connect" id="connect">
         <div class="field">
           <label for="connectWhatsapp">WhatsApp number</label>
@@ -230,7 +256,7 @@
           <input id="connectEmail" name="email" type="email" autocomplete="email" placeholder="you@example.com">
         </div>
         <input class="visually-hidden" id="connectWebsite" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <p class="result__note" id="connectStatus" role="status" aria-live="polite" hidden></p>
+        <p class="connect__status" id="connectStatus" role="status" aria-live="polite" hidden></p>
       </div>
       <div class="result__actions">
         <a class="btn btn--primary" id="getConnected" href="#">Get connected</a>
@@ -262,7 +288,7 @@
 </footer>
 
 <script src="globe.js?v=cp4c"></script>
-<script src="app.js?v=cp4c-api1"></script>
+<script src="app.js?v=cp4c-be1"></script>
 <script src="motion.js?v=cp4c"></script>
 </body>
 </html>

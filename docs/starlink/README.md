@@ -24,17 +24,36 @@ left untouched) plus a small backend that:
 | `api/starlink/_lib/store.js` | Storage (memory / local file / existing KV, opt-in). |
 | `api/starlink/_lib/delivery.js` | Switchable sender: email (Resend), WhatsApp (Cloud API), team (Customer Requests webhook). Test mode only. |
 | `api/starlink/_lib/validate.js`, `codes.js`, `recommend.js` | Answer validation, phone/email normalising, code generation, recommendation rules. |
-| `api/starlink/_site/` | The v4 page copy and the product images it uses. Underscore folder: not a route, only served through the function. |
+| `api/starlink/_site/` | `v4/` (the page) + `assets/product/` (images), same layout as OneDrive. Underscore folder: not a route, only served through the function. |
+| `docs/starlink/V4-SOURCE.md` | SHA-256 manifest of the OneDrive snapshot + the list of integration edits. |
+| `docs/starlink/HANDOFF-BACKEND.md` | Osman's frontend integration contract (copy). |
 | `scripts/starlink/dev-server.js` | Local runner, no dependencies. |
 | `tests/test-starlink.js` | Tests (`node tests/test-starlink.js`). |
 | `vercel.json` | `/starlink` rewrites + `includeFiles` for `_site`. |
 
-### Changes to the v4 copy (no visual changes)
-- `../assets/...` paths -> `assets/...` (images copied into `_site/assets/product/`).
-- `<meta name="robots" content="noindex, nofollow">`; the server also sets `X-Robots-Tag` and a `<base href="/starlink/">`.
-- In the result panel, above the buttons: a WhatsApp number field, an Email field (both use the wizard's existing `.field` style, no new CSS), a hidden honeypot and a status line.
-- `app.js`: the setup code now comes from `POST api/setups`. **Get connected** posts the contact details to `api/setups/:code/connect`, shows "Saved… (Test mode: nothing was sent.)" and points the WhatsApp/Email buttons at the returned links. If the API can't be reached (e.g. the page is opened from `python -m http.server`), it falls back to the original client-side code and `wa.me` link.
-- `styles.css`, `motion.js`, `globe.js`: unchanged.
+### Changes to the v4 copy
+Source: Osman's `OneDrive\Desktop\startlink\v4` + `..\assets\product`, snapshot Fri Oct 2, 2026 ~7:30 PM CT
+(v4 files last edited 7:10 PM; perk-cut images re-exported 7:03-7:06 PM). Contract: `HANDOFF-BACKEND.md` (copied here).
+The `v4/` + `assets/product/` layout is kept, so every file except `v4/index.html`, `v4/app.js` and `v4/styles.css`
+is byte-identical to OneDrive; `V4-SOURCE.md` lists the SHA-256 of each and the tests enforce it.
+
+- **Serving:** `/starlink/` (and `/starlink/v4/`) return `_site/v4/index.html` with `<base href="/starlink/v4/">`, so v4's own `../assets/...` paths resolve to `/starlink/assets/...`. A one-line script moves the address bar to `/starlink/v4/` so in-page `#anchors` stay same-document. The server also injects `window.LV_CONFIG` (contact links + API base).
+- `index.html`: absolute `og:image` (`https://lavaall.com/starlink/assets/product/fields/og.jpg`; on Preview/local the server swaps in the request origin); `noindex`; WhatsApp + Email fields, honeypot and a status line in the result panel; `?v=cp4c-be1` on `styles.css`/`app.js`. The inline `.is-pinned` script is unchanged: it already matches `narrow`/`reduce` in `motion.js`, and a test now fails if they drift.
+- `app.js`: when the builder finishes it calls `POST api/setups` and shows the server's code (same `LV-` + `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` alphabet). If the API is unreachable it falls back to the original client `code()` and `wa.me` link. **Get connected** posts to `api/setups/:code/connect` and shows a busy, success ("Saved... Test mode: nothing was sent.") or error state (missing/invalid number or email, field marked `aria-invalid`). Return visits: a `?code=LV-XXXXX` link, or the code remembered in `localStorage` (`lv-setup-code`, code only), is restored with `GET api/setups/:code`. `sessionStorage` `lv-setup` and the `state.a` keys are unchanged. Shop `data-sku` enquiries unchanged.
+- `styles.css`: one appended block (`.connect`, `.connect__status`) using existing tokens only; no gradients, no shadows; lime only as the success dot.
+- `motion.js`, `globe.js`, all images: unchanged. The older `assets/product/cutout/` set is no longer used by v4 and was dropped.
+
+### Contact links (server-configured, placeholders by default)
+`GET /starlink/api/config` and the injected `window.LV_CONFIG` carry the WhatsApp / Call / Email destinations.
+Nothing is set today, so the page keeps v4's placeholders. Optional env vars (not set by this PR; setting them is an L3 config change):
+
+| Var | Used for | Default |
+|---|---|---|
+| `STARLINK_WHATSAPP_NUMBER` | `wa.me` links on the page and in Get connected links | `00000000000` |
+| `STARLINK_CALL_NUMBER` | `tel:` link | `+00000000000` |
+| `STARLINK_CONTACT_EMAIL` (else `STARLINK_TEAM_EMAIL`) | `mailto:` on the page | `hello@lavaall.com` |
+
+Note: after Get connected, the result's Email button switches to the server's team address (`STARLINK_TEAM_EMAIL`, default `support@lavaall.com`), while the page default is v4's `hello@lavaall.com`. Osman to pick one.
 
 ## On/off switch
 | Where | Default | Override |
@@ -59,6 +78,7 @@ All JSON. Base: `/starlink/api`.
 
 | Method | Path | Body | Answer |
 |---|---|---|---|
+| GET | `/config` | | `{ api, contact:{whatsapp, call, email}, placeholders:{whatsapp, call, email} }` |
 | GET | `/health` | | `{ enabled, env, store:{mode,durable}, delivery:{mode:"test", sends:false, channels} }` |
 | POST | `/setups` | `{ place, country, city?, need, size, priority }` (exact v4 option labels) | `201 { code, status:"new", answers, recommendation, createdAt }` / `400 { error:"invalid_answers", fields }` |
 | GET | `/setups/:code` | | `{ code, status, answers, recommendation, contact:{whatsapp:bool,email:bool} }` (no contact details) / 404 |
