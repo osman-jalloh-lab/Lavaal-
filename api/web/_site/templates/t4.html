@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morning Bakery | Sample bakery template</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --ink: #2B2E3A; --soft: #F0F1FA; --peach: #FBEFE3; --sun: #F6C978; --crust: #C98A4B; --mute: #6B6F80; }
+  body { background: #fff; color: var(--ink); font: 400 16px/1.6 Inter, system-ui, sans-serif; }
+  .nav { display: flex; justify-content: space-between; align-items: center; padding: 20px clamp(18px, 4vw, 48px); }
+  .nav b { font: 600 17px "Inter Tight", sans-serif; }
+  .nav a { background: var(--soft); padding: 10px 18px; border-radius: 99px; font-size: 14px; font-weight: 500; }
+  .hero { padding: 8px clamp(18px, 4vw, 48px) 0; display: grid; gap: 28px; }
+  .art { position: relative; height: clamp(260px, 42vw, 460px); border-radius: 36px; background: var(--peach); overflow: hidden; }
+  .sun { position: absolute; width: 30%; aspect-ratio: 1; right: 10%; top: -10%; border-radius: 50%; background: var(--sun); animation: rise 3s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes rise { from { transform: translateY(40%); } }
+  .loaf { position: absolute; width: 58%; height: 46%; left: 12%; bottom: -8%; border-radius: 50% 50% 8% 8% / 90% 90% 8% 8%; background: var(--crust); box-shadow: inset 0 -18px 0 #B37438; animation: bake 1.4s cubic-bezier(.22,1,.36,1) .2s both; }
+  @keyframes bake { from { transform: translateY(30%) scale(.9); } }
+  .loaf i { position: absolute; top: 22%; width: 4%; height: 32%; border-radius: 9px; background: #E7B57E; transform: rotate(24deg); }
+  .loaf i:nth-child(1) { left: 28%; } .loaf i:nth-child(2) { left: 46%; } .loaf i:nth-child(3) { left: 64%; }
+  .steam { position: absolute; bottom: 42%; width: 3%; height: 18%; border-radius: 9px; background: rgba(255,255,255,.75); filter: blur(2px); animation: steam 3s ease-in-out infinite; }
+  .steam:nth-of-type(1) { left: 34%; } .steam:nth-of-type(2) { left: 46%; animation-delay: .8s; } .steam:nth-of-type(3) { left: 58%; animation-delay: 1.6s; }
+  @keyframes steam { 0% { opacity: 0; transform: translateY(20%); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-60%); } }
+  h1 { font: 600 clamp(2.6rem, 7vw, 5.5rem)/1 "Inter Tight", sans-serif; letter-spacing: -.045em; max-width: 14ch; }
+  .lead { color: var(--mute); max-width: 40ch; margin-top: 14px; font-size: 18px; }
+  section { padding: clamp(56px, 10vh, 110px) clamp(18px, 4vw, 48px); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+  .chips button { font: 500 14px Inter, sans-serif; border: 0; padding: 10px 18px; border-radius: 99px; background: var(--soft); color: var(--ink); cursor: pointer; transition: background .3s, color .3s; }
+  .chips button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .menu { display: grid; gap: 14px; }
+  .item { display: flex; gap: 16px; align-items: center; padding: 16px; border-radius: 24px; background: var(--soft); transition: transform .4s cubic-bezier(.22,1,.36,1); }
+  .item:hover { transform: translateY(-3px); }
+  .blob { width: 64px; height: 64px; border-radius: 22px; flex: none; }
+  .item h3 { font: 600 17px "Inter Tight", sans-serif; }
+  .item p { color: var(--mute); font-size: 14px; }
+  .order { border-radius: 36px; background: var(--peach); padding: clamp(24px, 4vw, 48px); display: grid; gap: 14px; max-width: 640px; }
+  .order h2 { font: 600 clamp(1.8rem, 4vw, 2.8rem)/1.05 "Inter Tight", sans-serif; letter-spacing: -.035em; }
+  .field { background: #fff; border-radius: 18px; padding: 16px 18px; color: var(--mute); }
+  .go { background: var(--ink); color: #fff; text-align: center; border-radius: 99px; padding: 16px; font-weight: 600; }
+  footer { padding: 26px clamp(18px, 4vw, 48px); color: var(--mute); font-size: 13px; display: flex; justify-content: space-between; }
+  @media (min-width: 860px) { .hero { grid-template-columns: 1fr 1.1fr; align-items: center; } .menu { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+  <header class="nav"><b>Morning Bakery</b><a href="#menu">Menu</a></header>
+  <section class="hero" style="padding-top:8px">
+    <div class="rv"><h1>Fresh bread, ready when you arrive.</h1><p class="lead">Order on WhatsApp before 7am, pick up warm on your way to work.</p></div>
+    <div class="art rv d1" aria-hidden="true"><span class="sun"></span><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="loaf"><i></i><i></i><i></i></span></div>
+  </section>
+  <section id="menu">
+    <div class="chips rv" role="group" aria-label="Menu"><button type="button" aria-pressed="true">Bread</button><button type="button" aria-pressed="false">Cakes</button><button type="button" aria-pressed="false">Coffee</button></div>
+    <div class="menu">
+      <article class="item rv"><span class="blob" style="background:#C98A4B"></span><div><h3>Morning loaf</h3><p>Soft white, baked at 5am</p></div></article>
+      <article class="item rv d1"><span class="blob" style="background:#E7B57E"></span><div><h3>Butter rolls</h3><p>Pack of six</p></div></article>
+      <article class="item rv d2"><span class="blob" style="background:#F6C978"></span><div><h3>Coconut bread</h3><p>Sweet, with toasted coconut</p></div></article>
+    </div>
+  </section>
+  <section>
+    <div class="order rv"><h2>Order for pickup</h2><span class="field">Your name</span><span class="field">What would you like?</span><span class="go">Send on WhatsApp</span></div>
+  </section>
+  <footer><span>Morning Bakery</span><span>Sample template</span></footer>
+  <span class="sample-badge">Sample template &middot; LAVAALL Web</span>
+  <script src="base.js"></script>
+  <script>
+    document.querySelectorAll('.chips button').forEach(function (b, i, all) { b.addEventListener('click', function () { all.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); }); });
+  </script>
+</body>
+</html>

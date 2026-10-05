@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Social posting demo</title><link rel="stylesheet" href="base.css"><style>
+.ph1{width:230px;height:230px;background:var(--bg3);border:1px solid var(--line);position:absolute;top:130px}
+.ph1 s{position:absolute;left:14px;bottom:14px;font:500 13px var(--mono);color:var(--t2);text-decoration:none}
+.ph1 i{position:absolute;left:30px;top:40px;width:80px;height:80px;border:2px solid var(--t2);border-radius:0;opacity:.6}
+.ph1 u{position:absolute;right:26px;top:90px;width:100px;height:60px;border:2px solid var(--t2);opacity:.35}
+.cp{left:56px;width:710px;top:390px;height:130px;padding:18px 22px;font-size:20px;line-height:1.45;color:var(--text)}
+.cal{left:810px;top:130px;width:414px;height:390px}
+.cd{position:absolute;width:56px;height:56px;border:1px solid var(--line);font:500 14px var(--mono);padding:6px 8px}
+.cd.on{border-color:var(--accent);color:var(--accent)}
+</style></head><body><div id="stage">
+<div class="title"><b>02</b><span class="lab">Social posting</span></div>
+<div class="ph1" id="p1" style="left:56px"><i></i><u></u><s>Photo 1</s></div>
+<div class="ph1" id="p2" style="left:310px"><i></i><u></u><s>Photo 2</s></div>
+<div class="ph1" id="p3" style="left:564px"><i></i><u></u><s>Photo 3</s></div>
+<div class="panel cp" id="cp"><div class="lab" style="margin-bottom:8px">Draft caption</div><span id="cpt"></span></div>
+<div class="btn" id="ap" style="left:56px;top:550px">Approve</div>
+<div class="btn" id="ed" style="left:210px;top:550px;border-color:var(--line);color:var(--t2)">Edit</div>
+<div class="panel cal" id="cal"><div class="ph"><span>Posting calendar</span><span>Facebook Page, Instagram</span></div>
+<div class="cd" id="d1" style="left:24px;top:64px">Mon</div><div class="cd" id="d2" style="left:92px;top:64px">Tue</div><div class="cd" id="d3" style="left:160px;top:64px">Wed</div><div class="cd" id="d4" style="left:228px;top:64px">Thu</div><div class="cd" id="d5" style="left:296px;top:64px">Fri</div>
+<div id="sc1" class="row" style="top:150px;height:50px;left:0;right:0"><span class="m">TUE 10:00</span><span>Photo 1</span><span class="sp"></span><span class="chip a">Scheduled</span></div>
+<div id="sc2" class="row" style="top:200px;height:50px"><span class="m">THU 10:00</span><span>Photo 2</span><span class="sp"></span><span class="chip a">Scheduled</span></div>
+<div id="sc3" class="row" style="top:250px;height:50px"><span class="m">FRI 10:00</span><span>Photo 3</span><span class="sp"></span><span class="chip a">Scheduled</span></div>
+</div>
+
+<div class="cap" id="cap"></div><div class="wm">Illustrative demo</div>
+</div><script src="engine.js"></script><script>
+vis('p1',500,null,{dx:-30,dy:0});vis('p2',900,null,{dx:-30,dy:0});vis('p3',1300,null,{dx:-30,dy:0});
+vis('cp',2200);typeText('cpt','Fresh catch on the grill tonight. Come hungry. Sample Restaurant, open from 6pm.',2400,4000);
+vis('ap',3600);vis('ed',3600);cls('ap','on',5000);seq('ap',[[0,'Approve'],[5000,'Approved']]);pulse('ap',5000);
+vis('cal',3200);vis('d1',3300);vis('d2',3300);vis('d3',3300);vis('d4',3300);vis('d5',3300);cls('d2','on',5800);cls('d4','on',6300);cls('d5','on',6800);
+vis('sc1',5800);vis('sc2',6300);vis('sc3',6800);
+seq('cap',[[0,'Photos arrive from the owner'],[2200,'Caption drafted'],[3600,'<i>Owner approves</i> before anything posts'],[5800,'Posts scheduled']]);</script></body></html>

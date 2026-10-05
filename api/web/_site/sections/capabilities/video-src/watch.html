@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Competitor and price watch demo</title><link rel="stylesheet" href="base.css"><style>
+.chip.chg{border-color:var(--accent);color:var(--accent)}
+.row.od{background:#2a2823}
+.sm{left:56px;top:470px;width:1168px;height:110px;padding:16px 22px;font-size:20px;line-height:1.45;color:var(--text);border-color:var(--accent)}
+</style></head><body><div id="stage">
+<div class="title"><b>07</b><span class="lab">Competitor and price watch</span></div>
+<div class="panel" style="left:56px;top:100px;width:1168px;height:340px;overflow:hidden"><div class="ph"><span>Rival price check</span><span id="chk">Checking</span></div><div class="row" id="w1" style="top:46px;"><span style="width:300px">Rival A, standard room</span><span class="m" style="width:200px">Last week: 50</span><span class="sp"></span><span class="m" id="p1">50</span><span class="chip" style="width:110px;text-align:center" id="t1">No change</span></div><div class="row" id="w2" style="top:102px;"><span style="width:300px">Rival B, standard room</span><span class="m" style="width:200px">Last week: 60</span><span class="sp"></span><span class="m" id="p2">60</span><span class="chip" style="width:110px;text-align:center" id="t2">No change</span></div><div class="row" id="w3" style="top:158px;"><span style="width:300px">Rival C, standard room</span><span class="m" style="width:200px">Last week: 55</span><span class="sp"></span><span class="m" id="p3">55</span><span class="chip" style="width:110px;text-align:center" id="t3">No change</span></div><div class="row" id="w4" style="top:214px;"><span style="width:300px">Rival D, standard room</span><span class="m" style="width:200px">Last week: 70</span><span class="sp"></span><span class="m" id="p4">70</span><span class="chip" style="width:110px;text-align:center" id="t4">No change</span></div><div class="row" id="w5" style="top:270px;border-bottom:0"><span style="width:300px">Rival E, standard room</span><span class="m" style="width:200px">Last week: 65</span><span class="sp"></span><span class="m" id="p5">65</span><span class="chip" style="width:110px;text-align:center" id="t5">No change</span></div></div>
+<div class="panel sm" id="sm"><div class="lab" style="margin-bottom:6px">Summary</div><span id="smt"></span></div>
+<div class="cap" id="cap"></div><div class="wm">Illustrative demo</div>
+</div><script src="engine.js"></script><script>
+['w1','w2','w3','w4','w5'].forEach((id,i)=>vis(id,500+i*250,null,{dy:10}));
+seq('chk',[[0,'Checking'],[2600,'Done']]);
+cls('w3','od',3200);
+seq('p3',[[0,'55'],[3200,'48']]);seq('t3',[[0,'No change'],[3200,'Lower']]);cls('t3','chg',3200);
+vis('sm',4500);typeText('smt','Only Rival C changed. Its standard room price went down by 7 since last week. The others are the same.',4700,6400);
+seq('cap',[[0,'Checking rival prices'],[3200,'One change <i>highlighted</i>'],[4500,'One-line summary for the owner']]);
+</script></body></html>

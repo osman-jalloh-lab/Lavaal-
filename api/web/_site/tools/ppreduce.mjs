@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+const errs = []; p.on('pageerror', e => errs.push(String(e))); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+await p.goto('http://localhost:8080/showcase/pour-play/', { waitUntil: 'load' });
+await p.waitForFunction(() => document.querySelector('[data-loader]').classList.contains('done'), null, { timeout: 30000 });
+await p.waitForTimeout(800);
+await p.screenshot({ path: '../qa/pp-reduce.png' });
+console.log(JSON.stringify({ errs, h: await p.evaluate(() => document.documentElement.scrollHeight) }));
+await b.close();

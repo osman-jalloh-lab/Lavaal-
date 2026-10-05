@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ channel: 'chrome', headless: true, args: ['--autoplay-policy=user-gesture-required'] });
+const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+const logs = []; p.on('console', m => logs.push(m.type() + ': ' + m.text().slice(0, 160))); p.on('pageerror', e => logs.push('ERR ' + e));
+await p.goto('http://localhost:8080/showcase/triple-t/', { waitUntil: 'load' });
+await p.waitForSelector('[data-sound]:not([hidden])', { timeout: 30000 });
+await p.waitForTimeout(3000);
+const st = () => p.evaluate(() => { const f = document.querySelector('[data-film] iframe'); const pl = window.YT && YT.get && f && YT.get(f.id); return pl ? { state: pl.getPlayerState(), muted: pl.isMuted(), t: Math.round(pl.getCurrentTime()) } : 'no player'; });
+console.log('before', JSON.stringify(await st()));
+await p.click('[data-sound]');
+await p.waitForTimeout(3000);
+console.log('after', JSON.stringify(await st()));
+console.log(logs.filter(l => /mute|autoplay|paused|error|ERR/i.test(l)).slice(0, 8).join('\n'));
+await b.close();

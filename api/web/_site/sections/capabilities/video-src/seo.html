@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Search visibility demo</title><link rel="stylesheet" href="base.css"><style>
+.sb{left:56px;top:100px;width:1168px;height:60px;display:flex;align-items:center;padding:0 20px;font:500 18px var(--mono);color:var(--text)}
+.res{left:56px;width:760px;height:96px;padding:12px 20px;background:var(--bg2);border:1px solid var(--line)}
+.res .u{font:500 14px var(--mono);color:var(--t2)} .res .tt{font-size:21px;color:var(--text);margin:2px 0}.res .d{font-size:16px;color:var(--t2)}
+.res.me{border-color:var(--accent)} .res.me .tt{color:var(--accent)}
+.rk{left:860px;top:190px;width:364px;height:330px}
+</style></head><body><div id="stage">
+<div class="title"><b>04</b><span class="lab">Search visibility</span></div>
+<div class="panel sb"><span class="lab" style="margin-right:16px">Search</span><span id="qt"></span></div>
+<div class="res" id="r1" style="position:absolute;top:190px"><div class="u">sample-bakery.example</div><div class="tt">Sample Bakery, fresh bread daily</div><div class="d">Open every day. Order by phone.</div></div>
+<div class="res" id="r2" style="position:absolute;top:296px"><div class="u">other-shop.example</div><div class="tt">Other Shop, bread and cakes</div><div class="d">Delivery in town.</div></div>
+<div class="res" id="r3" style="position:absolute;top:402px"><div class="u">another.example</div><div class="tt">Another Bakery</div><div class="d">Birthday cakes and pastries.</div></div>
+<div class="res me" id="me" style="position:absolute;top:508px"><div class="u">your-shop.example</div><div class="tt">Your Shop, bread near you</div><div class="d">Updated page, clear name, opening hours.</div><span class="chip a abs" style="right:16px;top:14px">Your listing</span></div>
+<div class="panel rk" id="rk"><div class="ph"><span>Position</span><span>Sample search</span></div><div id="pos" style="font:600 120px/1 var(--mono);color:var(--text);padding:40px 28px 0">#4</div><div style="padding:6px 28px;font-size:17px" id="pn">Page needs work</div>
+<div class="chip abs" style="left:28px;top:262px" id="fx">Fix: page title, hours, map entry</div></div>
+
+<div class="cap" id="cap"></div><div class="wm">Illustrative demo</div>
+</div><script src="engine.js"></script><script>
+typeText('qt','bread near me',300,1400);
+['r1','r2','r3','me'].forEach((id,i)=>vis(id,1600+i*200,null,{dy:10}));
+vis('rk',2400);vis('fx',3400);
+move('me',4300,6200,[0,0],[0,-318]);
+move('r1',4300,6200,[0,0],[0,106]);move('r2',4300,6200,[0,0],[0,106]);move('r3',4300,6200,[0,0],[0,106]);
+seq('pos',[[0,'#4'],[5000,'#3'],[5500,'#2'],[6000,'#1']]);
+seq('pn',[[0,'Page needs work'],[4300,'Climbing']]);
+seq('cap',[[0,'A search people really make'],[3400,'Page <i>fixes</i> listed for the owner'],[4300,'Your listing moves up']]);</script></body></html>

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workflow video: Restaurant, Friday night</title>
+<style>
+  @font-face { font-family: "Inter"; font-weight: 100 900; src: url(../assets/fonts/inter-var.woff2) format("woff2"); }
+  @font-face { font-family: "Inter Tight"; font-weight: 600; src: url(../assets/fonts/inter-tight-600.woff2) format("woff2"); }
+  @font-face { font-family: "Geist Mono"; font-weight: 500; src: url(../assets/fonts/geist-mono-500.woff2) format("woff2"); }
+  @font-face { font-family: "Instrument Serif"; font-weight: 400; src: url(../assets/fonts/instrument-serif-400.woff2) format("woff2"); }
+  :root { --teal: #0B252A; --teal2: #10323A; --cream: #F5ECE5; --sun: #F7E04A; --ink: #0E1A1C; --wa: #ECE5DD; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; background: var(--teal); font-family: Inter, sans-serif; }
+  .stage { position: relative; width: 1280px; height: 720px; overflow: hidden; }
+  .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(.45) saturate(1.1); }
+  .scrim { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(11,37,42,.2), rgba(11,37,42,.85)); }
+  .layer { position: absolute; inset: 0; opacity: 0; }
+
+  /* Title + end cards */
+  .card { display: grid; place-content: center; text-align: center; gap: 18px; color: #fff; }
+  .card .k { font: 500 14px "Geist Mono", monospace; letter-spacing: .2em; text-transform: uppercase; color: var(--sun); }
+  .card h1 { font: 400 84px/1 "Instrument Serif", serif; letter-spacing: -.01em; }
+  .card p { font: 400 22px Inter; color: rgba(255,255,255,.85); }
+  .cta { justify-self: center; margin-top: 10px; background: var(--sun); color: var(--teal); font: 600 20px Inter; padding: 14px 28px; border-radius: 99px; }
+
+  /* Three-panel workflow */
+  .flow { display: grid; grid-template-columns: 300px 1fr 300px; gap: 40px; align-items: center; padding: 40px 56px 110px; }
+  .col-h { font: 500 12px "Geist Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.75); margin-bottom: 12px; text-align: center; }
+  .phone { width: 280px; height: 500px; margin: 0 auto; border-radius: 38px; border: 9px solid #0B0F10; background: var(--wa); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 30px 70px rgba(0,0,0,.5); }
+  .ph-top { display: flex; align-items: center; gap: 10px; padding: 12px; background: #0B3D36; color: #fff; }
+  .av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 600 12px "Inter Tight"; }
+  .ph-top b { font: 600 14px "Inter Tight"; display: block; } .ph-top span { font-size: 11px; opacity: .8; }
+  .log { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 8px; justify-content: flex-end; }
+  .msg { max-width: 84%; padding: 8px 10px; border-radius: 10px; font-size: 14px; line-height: 1.35; background: #fff; box-shadow: 0 1px 1px rgba(0,0,0,.08); opacity: 0; transform: translateY(8px); }
+  .msg.me { align-self: flex-end; background: #D9FDD3; }
+  .msg small { display: block; font: 600 10px Inter; color: #0B6B5C; margin-bottom: 2px; }
+  .owner .phone { background: #F4F1EC; }
+  .owner .log { justify-content: flex-start; }
+  .busy { margin: 18px auto 0; font: 500 13px Inter; color: #45484A; text-align: center; }
+  .notif { margin: 12px 10px 0; padding: 12px; border-radius: 16px; background: var(--teal); color: #fff; display: grid; gap: 8px; opacity: 0; transform: translateY(-10px); }
+  .notif .k { font: 500 10px "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--sun); }
+  .notif p { font-size: 14px; line-height: 1.35; }
+  .btns { display: flex; gap: 8px; }
+  .btns span { padding: 8px 14px; border-radius: 99px; font: 600 13px Inter; border: 1px solid rgba(255,255,255,.4); }
+  .btns .ok { background: var(--sun); color: var(--teal); border-color: var(--sun); position: relative; }
+  .tap { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 3px solid #fff; left: 50%; top: 50%; margin: -22px 0 0 -22px; opacity: 0; }
+  .done { font: 600 13px Inter; color: #9BE7C4; }
+
+  .lava { background: var(--cream); border-radius: 24px; padding: 22px; color: var(--ink); box-shadow: 0 30px 70px rgba(0,0,0,.4); min-height: 440px; display: grid; grid-template-rows: auto auto 1fr; gap: 18px; }
+  .lava-h { display: flex; justify-content: space-between; align-items: center; }
+  .lava-h b { font: 400 30px "Instrument Serif", serif; }
+  .status { font: 500 12px "Geist Mono", monospace; padding: 6px 10px; border-radius: 99px; background: #E3F6EE; color: #0B6B5C; }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+  .step { display: grid; justify-items: center; gap: 8px; text-align: center; font: 500 12px Inter; color: #525A5C; position: relative; }
+  .step i { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font: 700 12px "Inter Tight"; font-style: normal; background: #E3DED7; color: #525A5C; transition: none; }
+  .step.on i { background: var(--sun); color: var(--teal); box-shadow: 0 0 0 4px #fff, 0 0 0 6px #18A957; }
+  .step.ok i { background: #0B6B5C; color: #fff; }
+  .step.on, .step.ok { color: var(--ink); font-weight: 600; }
+  .screen { background: #fff; border-radius: 16px; padding: 14px; display: grid; gap: 10px; align-content: start; }
+  .screen .k { font: 500 11px "Geist Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: #525A5C; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font: 500 11px "Geist Mono", monospace; color: #525A5C; padding: 6px 8px; border-bottom: 1px solid #ECE6DF; }
+  td { padding: 8px; border-bottom: 1px solid #F3EEE8; }
+  tr.new td { background: #FFF6C7; font-weight: 600; }
+  .draft { font-size: 16px; line-height: 1.45; min-height: 3em; }
+
+  .cap { position: absolute; left: 0; right: 0; bottom: 30px; text-align: center; font: 400 34px/1.15 "Instrument Serif", serif; color: #fff; text-shadow: 0 2px 18px rgba(0,0,0,.6); opacity: 0; }
+  .badge { position: absolute; right: 22px; top: 18px; font: 500 11px "Geist Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.35); padding: 6px 9px; }
+
+  /* 9:16 vertical layout for WhatsApp Status / Reels (?v=916) */
+  html.v916, html.v916 body, .v916 .stage { width: 720px; height: 1280px; }
+  .v916 .card h1 { font-size: 72px; padding: 0 30px; }
+  .v916 .card p { font-size: 26px; padding: 0 40px; }
+  .v916 .flow { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 26px 20px; padding: 70px 26px 210px; align-content: start; }
+  .v916 .flow > .lava { grid-column: 1 / -1; grid-row: 1; min-height: 0; }
+  .v916 .flow > div:first-child { grid-column: 1; grid-row: 2; }
+  .v916 .flow > .owner { grid-column: 2; grid-row: 2; }
+  .v916 .phone { width: 318px; height: 560px; transform: scale(.98); }
+  .v916 .cap { font-size: 46px; bottom: 70px; padding: 0 40px; }
+  .v916 .badge { top: 22px; right: 22px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <img class="bg" src="../assets/photo/hero-poster.webp" alt="">
+  <div class="scrim"></div>
+
+  <div class="layer card" id="title"><p class="k">Friday &middot; 7:42pm</p><h1>The kitchen is full.</h1><p>And the messages keep coming.</p></div>
+
+  <div class="layer flow" id="flow">
+    <div><p class="col-h">Your customers</p>
+      <div class="phone"><div class="ph-top"><span class="av" style="background:#F7E04A;color:#0B252A">L</span><div><b>Night Kitchen</b><span>WhatsApp</span></div></div>
+        <div class="log">
+          <p class="msg me" id="m1">Hi! Table for 4 at 8:30 tonight?</p>
+          <p class="msg me" id="m2">Do you still have jollof?</p>
+          <p class="msg" id="m3"><small>Lava</small>Yes! Jollof is on until 11pm.</p>
+          <p class="msg" id="m4"><small>Lava</small>You're booked: table for 4 at 8:30. See you soon!</p>
+        </div></div></div>
+    <div class="lava">
+      <div class="lava-h"><b>Lava is working</b><span class="status" id="st">Reading messages</span></div>
+      <div class="steps"><div class="step" id="s1"><i>WA</i>Reads message</div><div class="step" id="s2"><i>Sh</i>Checks tables</div><div class="step" id="s3"><i>L</i>Writes reply</div><div class="step" id="s4"><i>You</i>You approve</div></div>
+      <div class="screen" id="scr">
+        <p class="k" id="scr-k">Tonight&rsquo;s tables</p>
+        <table id="tbl"><thead><tr><th>Time</th><th>Guests</th><th>Name</th></tr></thead><tbody>
+          <tr><td>7:30</td><td>2</td><td>Musa</td></tr><tr><td>8:00</td><td>6</td><td>Grace</td></tr><tr id="newrow" style="display:none" class="new"><td>8:30</td><td>4</td><td>Aminata</td></tr><tr><td>9:15</td><td>2</td><td>Kofi</td></tr></tbody></table>
+        <p class="draft" id="draft" style="display:none"></p>
+      </div>
+    </div>
+    <div class="owner"><p class="col-h">You, at the stove</p>
+      <div class="phone"><div class="ph-top" style="background:#0B252A"><span class="av" style="background:#fff;color:#0B252A">You</span><div><b>Lava</b><span>Owner alerts</span></div></div>
+        <p class="busy" id="busy">Phone in your pocket. Lava has it.</p>
+        <div class="notif" id="nt"><span class="k">Needs your OK</span><p>New booking: table for 4 at 8:30 tonight, Aminata.</p><div class="btns" id="btns"><span class="ok">Approve<span class="tap" id="tap"></span></span><span>Not now</span></div></div>
+      </div></div>
+  </div>
+
+  <div class="layer card" id="end"><p class="k">Lava by LAVAALL Web</p><h1>Two customers answered.<br>You never left the stove.</h1><span class="cta">Try Lava on our site</span></div>
+
+  <p class="cap" id="cap"></p>
+  <span class="badge">Illustrative demo &middot; sample restaurant</span>
+</div>
+<script>
+if (location.search.includes('v=916')) document.documentElement.classList.add('v916');
+// Deterministic timeline: render(t) draws the frame at t seconds (0 to 26). Used for preview and frame-by-frame recording.
+const $ = id => document.getElementById(id);
+const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const show = (el, v, dy = 8) => { el.style.opacity = v; el.style.transform = `translateY(${(1 - v) * dy}px)`; };
+const REPLY = "You're booked: table for 4 at 8:30. See you soon!";
+const CAPS = [[3.5, 8, 'Two customers message at once.'], [8, 13, 'Lava answers the easy one straight away.'], [13, 17.5, 'Bookings wait for one tap from you.'], [17.5, 22, 'The table is booked and your sheet is updated.']];
+function render(t) {
+  const title = sm(0, 0.6, t) * (1 - sm(3, 3.6, t));
+  $('title').style.opacity = title;
+  $('flow').style.opacity = sm(3.2, 3.9, t) * (1 - sm(22.4, 23, t));
+  $('end').style.opacity = sm(22.8, 23.6, t);
+  show($('m1'), sm(4, 4.4, t)); show($('m2'), sm(5.4, 5.8, t)); show($('m3'), sm(10.2, 10.6, t)); show($('m4'), sm(18.2, 18.6, t));
+  const steps = ['s1', 's2', 's3', 's4'], on = [[6, 8], [8, 9.6], [9.6, 13], [13, 17.6]];
+  steps.forEach((s, i) => { const el = $(s); el.classList.toggle('on', t >= on[i][0] && t < on[i][1]); el.classList.toggle('ok', t >= on[i][1]); });
+  $('st').textContent = t < 8 ? 'Reading messages' : t < 9.6 ? 'Checking tables' : t < 13 ? 'Writing replies' : t < 17.6 ? 'Waiting for you' : 'Done';
+  $('st').style.background = t >= 13 && t < 17.6 ? '#FFF6C7' : '#E3F6EE'; $('st').style.color = t >= 13 && t < 17.6 ? '#4A3F00' : '#0B6B5C';
+  const drafting = t >= 11 && t < 17.6;
+  $('tbl').style.display = drafting ? 'none' : ''; $('draft').style.display = drafting ? '' : 'none';
+  $('scr-k').textContent = drafting ? 'Reply draft to Aminata' : 'Tonight’s tables';
+  $('draft').textContent = REPLY.slice(0, Math.floor(REPLY.length * sm(11, 12.8, t)));
+  $('newrow').style.display = t >= 18.6 ? '' : 'none';
+  $('busy').style.opacity = 1 - sm(13, 13.4, t);
+  show($('nt'), sm(13.2, 13.7, t), -10);
+  if (t >= 16.4) { $('btns').innerHTML = '<span class="done">✓ You approved this.</span>'; }
+  else {
+    if (!$('tap')) $('btns').innerHTML = '<span class="ok">Approve<span class="tap" id="tap"></span></span><span>Not now</span>';
+    const tapT = sm(15.6, 16.1, t) * (1 - sm(16.2, 16.6, t));
+    $('tap').style.opacity = tapT; $('tap').style.transform = `scale(${0.6 + tapT * 0.6})`;
+  }
+  const c = CAPS.find(([a, b]) => t >= a && t < b);
+  $('cap').textContent = c ? c[2] : '';
+  $('cap').style.opacity = c ? sm(c[0], c[0] + 0.4, t) * (1 - sm(c[1] - 0.4, c[1], t)) : 0;
+}
+window.render = render;
+if (!location.search.includes('rec')) { const t0 = performance.now(); (function loop(now) { render(((now - t0) / 1000) % 26); requestAnimationFrame(loop); })(t0); }
+else render(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,419 @@
+{
+  "_note": "Phase 1 copy, English. Keys are stable so fr.json can mirror them. No pricing, no client names, no unmeasured metrics. Open items are listed in TODO.md.",
+  "meta": {
+    "title": "LAVAALL Web | Websites and automation for West African businesses",
+    "description": "Websites, animated storefronts and AI automation for restaurants, hotels, shops and marketers in Sierra Leone, Guinea and Liberia."
+  },
+  "nav": {
+    "work": "Work",
+    "automation": "Automation",
+    "templates": "Templates",
+    "contact": "Contact"
+  },
+  "hero": {
+    "eyebrow": "LAVAALL Web",
+    "h1": "Your business, online and answering for you.",
+    "sub": "We build fast websites and automations for restaurants, hotels, shops and marketers in Sierra Leone, Guinea and Liberia.",
+    "cta": "Talk to us",
+    "cta2": "See the work"
+  },
+  "work": {
+    "h2": "Things we have built",
+    "sub": "Four real projects. Each one is running or has a working build.",
+    "items": [
+      {
+        "id": "lavaall",
+        "name": "LAVAALL",
+        "kind": "Wholesale and retail catalogue site",
+        "text": "Browse by category, brand and model, then request a quote for any item. Built for a distributor selling IT, electrical and cooling equipment.",
+        "tags": [
+          "Catalogue",
+          "Quote requests",
+          "FAQ"
+        ]
+      },
+      {
+        "id": "starlink",
+        "name": "LAVAALL Starlink",
+        "kind": "Product concept",
+        "text": "An image-first concept for selling satellite internet kits. Few words, big pictures, one clear path to a quote. A design concept, not a live store.",
+        "tags": [
+          "Concept",
+          "Image-first",
+          "Mobile"
+        ]
+      },
+      {
+        "id": "hermes",
+        "name": "Hermes OS",
+        "kind": "AI operating system",
+        "text": "Eleven specialised agents handle email, calendar, finance, memory and research from one dashboard and a Telegram chat. Agents draft; a person approves before anything is sent.",
+        "tags": [
+          "AI agents",
+          "Dashboard",
+          "Approval queue"
+        ]
+      },
+      {
+        "id": "portfolio",
+        "name": "Portfolio",
+        "kind": "Personal portfolio site",
+        "text": "A single-page React site with project write-ups and certifications, deployed live.",
+        "tags": [
+          "React",
+          "Vite",
+          "Live"
+        ]
+      }
+    ],
+    "morph": {
+      "h3": "One site, three screens",
+      "text": "The same page adapts to desktop, tablet and phone. Most of your customers will see it on a phone, so we design that one first.",
+      "labels": {
+        "desktop": "Desktop",
+        "tablet": "Tablet",
+        "phone": "Phone"
+      },
+      "notes": {
+        "desktop": "Wide layout: navigation and the main button are visible at once.",
+        "tablet": "The layout narrows and spacing adapts.",
+        "phone": "One column, with large buttons within thumb reach."
+      }
+    }
+  },
+  "demos": {
+    "h2": "Watch it work",
+    "sub": "These are illustrations of how an automation runs. They are not live connections.",
+    "badge": "Illustrative demo",
+    "items": [
+      {
+        "id": "poster",
+        "title": "Post for you",
+        "steps": [
+          "New photos land in a folder",
+          "Agent writes captions",
+          "You tap Approve",
+          "Posts go to Instagram and your Facebook Page"
+        ],
+        "result": "A week of posts, ready in minutes."
+      },
+      {
+        "id": "listings",
+        "title": "Write your listings",
+        "steps": [
+          "You photograph a product",
+          "Agent writes title and description",
+          "Listing is added to your shop catalogue",
+          "Shared to your channels"
+        ],
+        "result": "New stock online the same day."
+      },
+      {
+        "id": "replies",
+        "title": "Answer customers",
+        "steps": [
+          "A message arrives",
+          "Agent checks your menu, rooms or prices",
+          "Sends a reply, or asks you",
+          "Booking or order is noted"
+        ],
+        "result": "No customer left waiting overnight."
+      },
+      {
+        "id": "checkup",
+        "title": "Weekly check-up",
+        "steps": [
+          "Agent reads your sales sheet",
+          "Finds what is slow",
+          "Suggests what to promote",
+          "Sends you one short summary"
+        ],
+        "result": "You see where you are losing sales."
+      }
+    ],
+    "trust": "Agents draft. You approve. Nothing is posted or sent without your say-so."
+  },
+  "capabilities": {
+    "h2": "What we can set up for you",
+    "sub": "Pick one, or build up to a full business system.",
+    "videoNote": "Short loops show how each one works.",
+    "groups": [
+      {
+        "id": "customers",
+        "label": "Get customers"
+      },
+      {
+        "id": "sell",
+        "label": "Sell more"
+      },
+      {
+        "id": "time",
+        "label": "Save time"
+      },
+      {
+        "id": "numbers",
+        "label": "Know your numbers"
+      },
+      {
+        "id": "team",
+        "label": "Hire"
+      }
+    ],
+    "items": [
+      {
+        "id": "dm",
+        "group": "customers",
+        "title": "Instagram and WhatsApp replies",
+        "text": "Answers common questions from your menu, rooms or catalogue, and passes the rest to you.",
+        "video": true
+      },
+      {
+        "id": "social",
+        "group": "customers",
+        "title": "Social posting",
+        "text": "Captions and a posting calendar drafted for you. You approve.",
+        "video": true
+      },
+      {
+        "id": "leads",
+        "group": "customers",
+        "title": "Lead finder",
+        "text": "Builds a list of businesses and buyers near you and scores who to contact first.",
+        "video": true
+      },
+      {
+        "id": "seo",
+        "group": "customers",
+        "title": "Search visibility",
+        "text": "Gets your business showing when people search for what you sell.",
+        "video": true
+      },
+      {
+        "id": "support",
+        "group": "sell",
+        "title": "Shop support agent",
+        "text": "Answers order and delivery questions for your online shop.",
+        "video": false
+      },
+      {
+        "id": "writing",
+        "group": "sell",
+        "title": "Natural-sounding writing",
+        "text": "Final pass so captions and replies read like you wrote them.",
+        "video": false
+      },
+      {
+        "id": "inbox",
+        "group": "time",
+        "title": "Inbox and replies",
+        "text": "Sorts messages and drafts answers.",
+        "video": true
+      },
+      {
+        "id": "docs",
+        "group": "time",
+        "title": "Quotes, invoices and documents",
+        "text": "Makes a quote or invoice from your template in seconds.",
+        "video": false
+      },
+      {
+        "id": "money",
+        "group": "numbers",
+        "title": "Invoice chasing",
+        "text": "Flags unpaid invoices and drafts polite reminders.",
+        "video": true
+      },
+      {
+        "id": "watch",
+        "group": "numbers",
+        "title": "Competitor and price watch",
+        "text": "Checks rivals and tells you in one paragraph what changed.",
+        "video": true
+      },
+      {
+        "id": "feedback",
+        "group": "numbers",
+        "title": "Customer feedback",
+        "text": "Reads your reviews and flags the complaints first.",
+        "video": false
+      },
+      {
+        "id": "hiring",
+        "group": "team",
+        "title": "Hiring helper",
+        "text": "Writes the job post and scores applicants against the role. You decide.",
+        "video": true
+      }
+    ]
+  },
+  "os": {
+    "h2": "A business system, not just a website",
+    "sub": "Modelled on how Hermes OS runs: separate agents, one dashboard, you approve the important moves.",
+    "modules": [
+      {
+        "id": "inbox",
+        "name": "Inbox",
+        "text": "Customer messages sorted and answered."
+      },
+      {
+        "id": "schedule",
+        "name": "Schedule",
+        "text": "Bookings, staff time and clashes."
+      },
+      {
+        "id": "brief",
+        "name": "Daily brief",
+        "text": "A short morning summary of sales and risks."
+      },
+      {
+        "id": "money",
+        "name": "Money",
+        "text": "Costs and cash in one view. It never moves money."
+      },
+      {
+        "id": "memory",
+        "name": "Memory",
+        "text": "Remembers products, regulars and prices."
+      },
+      {
+        "id": "market",
+        "name": "Market watch",
+        "text": "Rival prices and what people are searching for."
+      },
+      {
+        "id": "builder",
+        "name": "Builder",
+        "text": "Drafts promotions, pages and campaigns."
+      }
+    ]
+  },
+  "templates": {
+    "h2": "Pick a starting style",
+    "sub": "Six directions, each shown on a sample business. Sample only: these are not real clients.",
+    "badge": "Sample",
+    "items": [
+      {
+        "id": "t1",
+        "name": "Guesthouse",
+        "style": "Quiet and cinematic",
+        "text": "Big room photos, one clear Book button."
+      },
+      {
+        "id": "t2",
+        "name": "Events and music",
+        "style": "Bold and glowing",
+        "text": "Posters, dates and tickets up front."
+      },
+      {
+        "id": "t3",
+        "name": "Supplies and logistics",
+        "style": "Technical and sharp",
+        "text": "Stock lists, delivery tracking, quote button."
+      },
+      {
+        "id": "t4",
+        "name": "Clinic or pharmacy",
+        "style": "Light and friendly",
+        "text": "Opening hours, services, call now."
+      },
+      {
+        "id": "t5",
+        "name": "School or NGO",
+        "style": "Editorial and clear",
+        "text": "Programmes, stories, donate or enrol."
+      },
+      {
+        "id": "t6",
+        "name": "Restaurant at night",
+        "style": "Dark and atmospheric",
+        "text": "Menu, photos, reserve a table."
+      }
+    ]
+  },
+  "region": {
+    "h2": "Built for how people here use the web",
+    "sub": "Most visitors are on phones, and data costs money.",
+    "points": [
+      {
+        "title": "Light pages",
+        "text": "Designed to load quickly on slow connections. We will publish the measured numbers once the build is tested."
+      },
+      {
+        "title": "Any device, same feel",
+        "text": "Opens in the browser on any phone, tablet or laptop. No app to install, and it looks and feels the same everywhere."
+      },
+      {
+        "title": "WhatsApp-ready",
+        "text": "A message button on every page.",
+        "todo": "WhatsApp number: Osman to provide later"
+      }
+    ]
+  },
+  "contact": {
+    "h2": "Contact the right team",
+    "sub": "Tell us about your business and what you want to automate.",
+    "roles": [
+      {
+        "id": "projects",
+        "title": "New projects and quotes",
+        "email": "support@lavaall.com",
+        "subject": "LAVAALL Web project"
+      },
+      {
+        "id": "support",
+        "title": "Help with an existing site",
+        "email": "support@lavaall.com",
+        "subject": "LAVAALL Web support"
+      },
+      {
+        "id": "general",
+        "title": "General questions",
+        "email": "support@lavaall.com",
+        "subject": "LAVAALL Web inquiry"
+      }
+    ],
+    "mailApp": "Open in mail app",
+    "form": {
+      "name": "Your name",
+      "business": "Business name",
+      "type": "Type of business",
+      "types": [
+        "Restaurant",
+        "Hotel or guesthouse",
+        "Online shop",
+        "Marketing or agency",
+        "Other"
+      ],
+      "country": "Country",
+      "countries": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Other"
+      ],
+      "need": "What do you need?",
+      "needs": [
+        "Website",
+        "Animated website",
+        "Automation",
+        "AI agent",
+        "Full business system",
+        "Not sure yet"
+      ],
+      "contact": "Phone, WhatsApp or email",
+      "message": "Tell us more",
+      "submit": "Send inquiry",
+      "note": "We will only contact you about this inquiry. No spam.",
+      "_handoff": "BACKEND HAND-OFF: form id 'web-inquiry' posts to a future endpoint. Fields: name, business, type, country, need, contact, message. Add honeypot and rate limit server-side."
+    }
+  },
+  "footer": {
+    "line": "LAVAALL Web, a division of LAVAALL.",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  },
+  "whatsapp": {
+    "number": "",
+    "_todo": "Osman will provide. Leave empty: the button must stay hidden or disabled until this is filled."
+  }
+}

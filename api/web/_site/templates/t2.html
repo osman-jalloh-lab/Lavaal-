@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kora/studio | Sample marketing studio template</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --bg: #111; --peri: #8395F2; --ink: #F2F3FF; --mute: #9EA3BF; --line: rgba(255,255,255,.1); }
+  body { background: var(--bg); color: var(--ink); font: 400 16px/1.6 Inter, system-ui, sans-serif; overflow-x: hidden; }
+  .glow { position: fixed; z-index: 0; width: 70vmax; height: 70vmax; right: -25vmax; top: -30vmax; border-radius: 50%; background: radial-gradient(circle, rgba(131,149,242,.45), rgba(131,149,242,0) 62%); animation: drift 12s ease-in-out infinite alternate; pointer-events: none; }
+  @keyframes drift { to { transform: translate(-8vmax, 10vmax) scale(1.1); } }
+  .wrap { position: relative; z-index: 1; }
+  .nav { display: flex; justify-content: space-between; align-items: center; padding: 22px clamp(20px, 4vw, 48px); }
+  .nav b { font: 600 18px "Inter Tight", sans-serif; letter-spacing: -.02em; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--peri); box-shadow: 0 0 18px var(--peri); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(.7); opacity: .6; } }
+  .hero { padding: clamp(60px, 14vh, 150px) clamp(20px, 4vw, 48px) clamp(60px, 10vh, 100px); }
+  h1 { font: 600 clamp(3rem, 9.5vw, 8.5rem)/.95 "Inter Tight", sans-serif; letter-spacing: -.05em; max-width: 12ch; }
+  h1 em { font-style: normal; color: var(--peri); }
+  .lead { margin-top: 28px; max-width: 44ch; color: var(--mute); font-size: 18px; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+  .pill { padding: 15px 26px; border-radius: 99px; background: var(--peri); color: #0B0C14; font-weight: 600; box-shadow: 0 10px 40px rgba(131,149,242,.35); transition: transform .3s; }
+  .pill:hover { transform: translateY(-2px); }
+  .sq { padding: 15px 26px; border: 1px solid rgba(255,255,255,.3); font-weight: 500; }
+  .marquee { border-block: 1px solid var(--line); padding: 22px 0; font: 600 clamp(1.5rem, 4vw, 3rem) "Inter Tight", sans-serif; letter-spacing: -.03em; color: rgba(242,243,255,.85); }
+  .marquee i { font-style: normal; color: var(--peri); }
+  section { padding: clamp(70px, 12vh, 140px) clamp(20px, 4vw, 48px); }
+  .k { font: 500 11px "Geist Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); margin-bottom: 24px; }
+  .work { display: grid; gap: 16px; }
+  .tile { position: relative; border-radius: 22px; overflow: hidden; aspect-ratio: 4 / 3; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; transition: transform 1s cubic-bezier(.22,1,.36,1); }
+  .tile:hover img { transform: scale(1.05); }
+  .tile figcaption { position: absolute; left: 16px; bottom: 16px; right: 16px; display: flex; justify-content: space-between; align-items: end; }
+  .tile b { font: 600 22px "Inter Tight", sans-serif; letter-spacing: -.02em; }
+  .tag { font: 500 11px "Geist Mono", monospace; text-transform: uppercase; letter-spacing: .08em; padding: 7px 10px; border-radius: 99px; background: rgba(17,17,17,.7); backdrop-filter: blur(8px); }
+  .tile.c { background: var(--peri); color: #0B0C14; display: grid; place-content: center; text-align: center; padding: 24px; }
+  .tile.c p { font: 600 clamp(1.5rem, 3vw, 2.4rem)/1.05 "Inter Tight", sans-serif; letter-spacing: -.03em; }
+  .svc li { display: grid; grid-template-columns: 56px 1fr; gap: 12px; padding: 26px 0; border-top: 1px solid var(--line); transition: padding .4s; }
+  .svc li:hover { padding-left: 10px; }
+  .svc li:last-child { border-bottom: 1px solid var(--line); }
+  .svc span { font: 500 12px "Geist Mono", monospace; color: var(--peri); padding-top: 8px; }
+  .svc h3 { font: 600 clamp(1.5rem, 3.4vw, 2.75rem)/1.05 "Inter Tight", sans-serif; letter-spacing: -.035em; }
+  .svc p { color: var(--mute); margin-top: 6px; }
+  .hero { display: grid; gap: 48px; }
+  .stack { position: relative; height: 340px; }
+  .card { position: absolute; width: 220px; border-radius: 20px; overflow: hidden; background: #1B1C24; box-shadow: 0 30px 60px rgba(0,0,0,.5); animation: float 6s ease-in-out infinite; }
+  .card img { width: 100%; height: 150px; object-fit: cover; }
+  .card p { padding: 12px 14px 14px; font-size: 13px; line-height: 1.4; }
+  .card small { display: block; font: 500 10px "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--peri); margin-bottom: 4px; }
+  .card:nth-child(1) { left: 0; top: 40px; transform: rotate(-6deg); }
+  .card:nth-child(2) { left: 30%; top: 0; z-index: 2; animation-delay: -2s; }
+  .card:nth-child(3) { right: 0; top: 70px; transform: rotate(6deg); animation-delay: -4s; }
+  @keyframes float { 50% { translate: 0 -12px; } }
+  @media (min-width: 960px) { .hero { grid-template-columns: 1.1fr 1fr; align-items: center; } .stack { height: 420px; } .card { width: 250px; } .card img { height: 180px; } }
+  @media (max-width: 520px) { .card { width: 170px; } .card img { height: 110px; } .stack { height: 280px; } }
+  .end h2 { font: 600 clamp(2.75rem, 9vw, 8rem)/.9 "Inter Tight", sans-serif; letter-spacing: -.05em; }
+  footer { padding: 28px clamp(20px, 4vw, 48px); color: var(--mute); font-size: 13px; display: flex; justify-content: space-between; border-top: 1px solid var(--line); }
+  @media (min-width: 860px) { .work { grid-template-columns: 1.4fr 1fr; } .tile.big { grid-row: span 2; aspect-ratio: auto; } }
+</style>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="nav"><b>kora/studio</b><span class="dot" aria-hidden="true"></span></header>
+    <section class="hero" style="padding-top:clamp(60px,14vh,150px)">
+      <div>
+      <h1 class="rv">Campaigns people <em>stop scrolling</em> for.</h1>
+      <p class="lead rv d1">We plan, shoot and post for restaurants, hotels and shops. One folder of photos in, a week of posts out.</p>
+      <div class="ctas rv d2"><a class="pill" href="#end">Start a campaign</a><a class="sq" href="#work">See work</a></div>
+      </div>
+      <div class="stack rv d2" aria-hidden="true">
+        <div class="card"><img src="../assets/photo/shopfront.webp" alt=""><p><small>Tue &middot; Post</small>Night market is open till late.</p></div>
+        <div class="card"><img src="../assets/photo/restaurant.webp" alt=""><p><small>Fri &middot; Reel</small>Friday nights at the grill.</p></div>
+        <div class="card"><img src="../assets/photo/hotel.webp" alt=""><p><small>Sun &middot; Story</small>Weekend rooms by the sea.</p></div>
+      </div>
+    </section>
+    <div class="marquee" aria-hidden="true"><div><span>Restaurants <i>&bull;</i></span><span>Hotels <i>&bull;</i></span><span>Shops <i>&bull;</i></span><span>Launches <i>&bull;</i></span><span>Events <i>&bull;</i></span><span>Restaurants <i>&bull;</i></span><span>Hotels <i>&bull;</i></span><span>Shops <i>&bull;</i></span><span>Launches <i>&bull;</i></span><span>Events <i>&bull;</i></span></div></div>
+    <section id="work">
+      <p class="k rv">Selected work (samples)</p>
+      <div class="work">
+        <figure class="tile big rv" style="margin:0"><img src="../assets/photo/restaurant.webp" alt="Golden hour restaurant interior" loading="lazy"><figcaption><b>Friday at the grill</b><span class="tag">Reels</span></figcaption></figure>
+        <figure class="tile rv d1" style="margin:0"><img src="../assets/photo/shopfront.webp" alt="Shopfront at dusk" loading="lazy"><figcaption><b>Night market</b><span class="tag">Posters</span></figcaption></figure>
+        <div class="tile c rv d2"><p>A week of posts, approved in one tap.</p></div>
+      </div>
+    </section>
+    <section>
+      <p class="k rv">What we do</p>
+      <ul class="svc">
+        <li class="rv"><span>01</span><div><h3>Content calendars</h3><p>Every post planned a week ahead, ready for your yes.</p></div></li>
+        <li class="rv"><span>02</span><div><h3>Photo and reel shoots</h3><p>Food, rooms and products, shot for phones first.</p></div></li>
+        <li class="rv"><span>03</span><div><h3>Ads that sell out nights</h3><p>Small budgets, aimed at people near you.</p></div></li>
+      </ul>
+    </section>
+    <section class="end" id="end">
+      <h2 class="rv">Let's make<br>noise.</h2>
+      <div class="ctas rv d1"><a class="pill" href="#end">Book a call</a></div>
+    </section>
+    <footer><span>kora/studio</span><span>Sample template</span></footer>
+  </div>
+  <span class="sample-badge">Sample template &middot; LAVAALL Web</span>
+  <script src="base.js"></script>
+</body>
+</html>

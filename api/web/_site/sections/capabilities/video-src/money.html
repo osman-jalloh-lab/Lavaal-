@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Invoice chasing demo</title><link rel="stylesheet" href="base.css"><style>
+.row.od{background:#2a2823}
+.dr{left:56px;top:480px;width:760px;height:140px;padding:16px 22px;font-size:19px;line-height:1.45;color:var(--text);border-color:var(--accent)}
+</style></head><body><div id="stage">
+<div class="title"><b>06</b><span class="lab">Invoice chasing</span></div>
+<div class="panel" style="left:56px;top:100px;width:1168px;height:350px;overflow:hidden"><div class="ph"><span>Invoices</span><span>Sample data</span></div><div class="row" id="i1" style="top:46px;"><span class="m" style="width:90px">INV-001</span><span style="width:260px">Sample Customer A</span><span class="m">Due 03 Oct</span><span class="sp"></span><span class="chip" id="s1">Paid</span></div><div class="row" id="i2" style="top:102px;"><span class="m" style="width:90px">INV-002</span><span style="width:260px">Sample Customer B</span><span class="m">Due 12 Sep</span><span class="sp"></span><span class="chip" id="s2">Due 12 Sep</span></div><div class="row" id="i3" style="top:158px;"><span class="m" style="width:90px">INV-003</span><span style="width:260px">Sample Customer C</span><span class="m">Due 20 Oct</span><span class="sp"></span><span class="chip" id="s3">Not due</span></div><div class="row" id="i4" style="top:214px;"><span class="m" style="width:90px">INV-004</span><span style="width:260px">Sample Customer D</span><span class="m">Due 28 Aug</span><span class="sp"></span><span class="chip" id="s4">Due 28 Aug</span></div><div class="row" id="i5" style="top:270px;border-bottom:0"><span class="m" style="width:90px">INV-005</span><span style="width:260px">Sample Customer E</span><span class="m">Due 05 Nov</span><span class="sp"></span><span class="chip" id="s5">Not due</span></div></div>
+<div class="panel dr" id="dr"><div class="lab" style="margin-bottom:6px">Draft reminder to Customer B</div><span id="drt"></span></div>
+<div class="btn go" id="ap" style="left:860px;top:480px">Approve and send</div>
+<div class="btn" id="ed" style="left:860px;top:546px;border-color:var(--line);color:var(--t2)">Edit first</div>
+<div class="cap" id="cap"></div><div class="wm">Illustrative demo</div>
+</div><script src="engine.js"></script><script>
+['i1','i2','i3','i4','i5'].forEach((id,i)=>vis(id,500+i*250,null,{dy:10}));
+cls('i2','od',2600);cls('i4','od',2900);
+seq('s2',[[0,'Due 12 Sep'],[2600,'Overdue 21 days']]);seq('s4',[[0,'Due 28 Aug'],[2900,'Overdue 44 days']]);
+vis('dr',4000);typeText('drt','Hello, a friendly reminder that invoice INV-002 is now past its due date. Please let us know when payment is on its way. Thank you.',4200,5700);
+vis('ap',5500);vis('ed',5700);cls('ap','on',7000);pulse('ap',7000);
+seq('cap',[[0,'Invoice list'],[2600,'Overdue invoices <i>flagged</i>'],[4000,'Polite reminder drafted'],[5500,'<i>Owner approves</i> before it sends']]);
+</script></body></html>

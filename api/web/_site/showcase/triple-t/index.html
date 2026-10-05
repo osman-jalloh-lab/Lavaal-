@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triple T | Official artist hub</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Triple T (Triple Threat Team) from Sierra Leone: new music, the Affairs series, Kam Dae ft. King Boss LA, videos, shows and bookings.">
+<meta name="theme-color" content="#0A0706">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #0A0706; --bg2: #16100D; --rust: #E2552B; --lime: #D4FF3A; --bone: #F4ECE4; --mute: #B5A89E; --line: rgba(244,236,228,.14); }
+  * { box-sizing: border-box; } html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--bone); font: 400 17px/1.6 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, p { margin: 0; } a { color: inherit; } img { display: block; max-width: 100%; }
+  :focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; }
+  .concept { position: sticky; top: 0; z-index: 40; background: var(--lime); color: #0A0706; font: 700 12px Inter; letter-spacing: .06em; text-transform: uppercase; text-align: center; padding: 8px 14px; }
+  .k { font: 700 12px Inter; letter-spacing: .22em; text-transform: uppercase; color: var(--rust); }
+  .wrap { padding: 0 clamp(18px, 5vw, 64px); }
+  section { padding: clamp(70px, 12vh, 130px) 0; }
+  h2 { font: 400 clamp(3rem, 9vw, 7rem)/.88 Anton, Impact, sans-serif; text-transform: uppercase; letter-spacing: .01em; }
+
+  .hero { position: relative; min-height: calc(100svh - 34px); display: grid; align-items: end; overflow: hidden; isolation: isolate; padding: 0 0 clamp(36px, 7vh, 72px); }
+  .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; animation: drift 24s ease-in-out infinite alternate; }
+  @keyframes drift { from { transform: scale(1.08) translateX(-1.5%); } to { transform: scale(1.14) translateX(1.5%); } }
+  .hero-film { position: absolute; inset: 0; z-index: -2; overflow: hidden; opacity: 0; transition: opacity 1s ease; pointer-events: none; }
+  .hero-film.on { opacity: 1; }
+  .hero-film iframe { position: absolute; top: 50%; left: 50%; width: 177.78vh; height: 56.25vw; min-width: 100%; min-height: 100%; transform: translate(-50%, -50%) scale(1.15); border: 0; }
+  .sound { position: absolute; right: clamp(18px, 5vw, 64px); top: 24px; z-index: 2; display: inline-flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 18px; border: 2px solid var(--bone); background: rgba(10,7,6,.6); color: var(--bone); font: 700 13px Inter; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+  .sound[aria-pressed="true"] { background: var(--lime); color: #0A0706; border-color: var(--lime); }
+  .sound-i { width: 14px; height: 14px; background: currentColor; clip-path: polygon(0 30%, 35% 30%, 75% 0, 75% 100%, 35% 70%, 0 70%); }
+  .vm { width: min(1200px, 94vw); padding: 0; border: 0; background: #000; color: var(--bone); }
+  .vm::backdrop { background: rgba(0,0,0,.88); }
+  .vm-frame { position: relative; aspect-ratio: 16 / 9; }
+  .vm-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .vm-x { position: absolute; right: 8px; top: 8px; z-index: 2; width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font: 400 26px/1 Inter; cursor: pointer; }
+  .vm-cap { padding: 12px 14px; font: 500 13px Inter; color: var(--mute); }
+  .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10,7,6,.35), rgba(10,7,6,.15) 35%, rgba(10,7,6,.92)); }
+  .hero .wrap > .k { position: relative; z-index: 1; margin-bottom: 14px; }
+  .hero h1 { font: 400 clamp(5.5rem, 24vw, 22rem)/.8 Anton, Impact, sans-serif; letter-spacing: -.01em; text-transform: uppercase; }
+  .hero h1 span { color: var(--rust); }
+  .hero .sub { display: flex; flex-wrap: wrap; gap: 10px 26px; margin-top: 18px; align-items: center; }
+  .hero .sub p { font: 500 15px Inter; color: var(--mute); }
+  .credit { position: absolute; right: 14px; bottom: 10px; font: 500 11px Inter; color: rgba(244,236,228,.6); }
+  .now { display: grid; gap: 12px; margin-top: 28px; padding: 18px; max-width: 560px; background: rgba(10,7,6,.7); backdrop-filter: blur(10px); border-left: 4px solid var(--rust); }
+  .now b { font: 400 34px/1 Anton, Impact, sans-serif; text-transform: uppercase; }
+  .btns { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn { display: inline-flex; align-items: center; min-height: 46px; padding: 0 20px; font: 700 14px Inter; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; border: 2px solid var(--bone); }
+  .btn.solid { background: var(--rust); border-color: var(--rust); color: #0A0706; }
+  .btn:hover { background: var(--lime); border-color: var(--lime); color: #0A0706; }
+
+  .drop { background: var(--rust); color: #0A0706; padding: 26px 0; }
+  .drop .wrap { display: flex; flex-wrap: wrap; gap: 16px 30px; align-items: center; justify-content: space-between; }
+  .drop b { font: 400 clamp(1.8rem, 4vw, 2.8rem)/1 Anton, Impact, sans-serif; text-transform: uppercase; }
+  .drop form { display: flex; flex-wrap: wrap; gap: 8px; }
+  .drop input { min-height: 48px; padding: 0 14px; border: 2px solid #0A0706; background: var(--bone); font: 500 16px Inter; min-width: 230px; }
+  .drop button { min-height: 48px; padding: 0 18px; border: 0; background: #0A0706; color: var(--lime); font: 700 14px Inter; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+  .drop .status { flex-basis: 100%; font-weight: 700; min-height: 1.2em; }
+
+  .album { display: grid; gap: 28px; margin-top: 40px; align-items: center; }
+  .cover { aspect-ratio: 1; background: radial-gradient(circle at 30% 30%, var(--rust), #3A140A 60%, var(--bg)); display: grid; place-items: center; text-align: center; padding: 20px; border: 1px solid var(--line); }
+  .cover b { font: 400 clamp(3rem, 8vw, 6rem)/.85 Anton, Impact, sans-serif; text-transform: uppercase; }
+  .cover small { display: block; font: 700 11px Inter; letter-spacing: .2em; text-transform: uppercase; margin-top: 12px; color: var(--bone); opacity: .8; }
+  .tracks { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .tracks li { display: grid; grid-template-columns: 34px 1fr auto; gap: 14px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .tracks .n { font: 700 13px Inter; color: var(--rust); }
+  .tracks b { font: 400 26px/1 Anton, Impact, sans-serif; text-transform: uppercase; display: block; }
+  .tracks span { font-size: 14px; color: var(--mute); }
+  .tracks a { font: 700 12px Inter; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; border-bottom: 2px solid var(--rust); padding-bottom: 2px; }
+
+  .vids { display: grid; gap: 16px; margin-top: 40px; }
+  .yt { position: relative; aspect-ratio: 16 / 9; background: #000; overflow: hidden; border: 0; padding: 0; cursor: pointer; width: 100%; display: block; }
+  .yt img { width: 100%; height: 100%; object-fit: cover; opacity: .82; transition: opacity .3s, transform .6s cubic-bezier(.22,1,.36,1); }
+  .yt:hover img { opacity: 1; transform: scale(1.04); }
+  .yt .play { position: absolute; left: 16px; bottom: 16px; display: inline-flex; gap: 10px; align-items: center; background: var(--rust); color: #0A0706; font: 700 13px Inter; letter-spacing: .06em; text-transform: uppercase; padding: 10px 14px; }
+  .yt .play::before { content: ""; border-style: solid; border-width: 6px 0 6px 10px; border-color: transparent transparent transparent #0A0706; }
+  .yt iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .vcap { margin-top: 10px; display: flex; justify-content: space-between; gap: 12px; }
+  .vcap b { font: 400 24px/1 Anton, Impact, sans-serif; text-transform: uppercase; }
+  .vcap span { font-size: 13px; color: var(--mute); }
+
+  .lede { color: var(--mute); max-width: 52ch; margin-top: 14px; font-size: 1.05rem; }
+  .row3, .grid4 { display: grid; gap: 16px; margin-top: 36px; }
+  .tracks span { display: block; }
+  .circle { list-style: none; margin: 34px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+  .circle li { border: 1px solid var(--line); padding: 14px 18px; display: grid; gap: 2px; }
+  .circle b { font: 400 26px/1 Anton, Impact, sans-serif; text-transform: uppercase; }
+  .circle span { font-size: 13px; color: var(--mute); }
+  @media (min-width: 760px) { .row3 { grid-template-columns: repeat(3, 1fr); } .grid4 { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1100px) { .grid4 { grid-template-columns: repeat(4, 1fr); } }
+  .shows { margin-top: 36px; border-top: 1px solid var(--line); }
+  .show { display: grid; grid-template-columns: 110px 1fr auto; gap: 16px; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--line); }
+  .show .d { font: 400 30px/1 Anton, Impact, sans-serif; color: var(--rust); text-transform: uppercase; }
+  .show b { display: block; font: 700 18px Inter; } .show span { color: var(--mute); font-size: 14px; }
+  .tag { font: 700 11px Inter; letter-spacing: .1em; text-transform: uppercase; border: 1px dashed var(--mute); color: var(--mute); padding: 6px 8px; }
+  .empty { margin-top: 24px; color: var(--mute); }
+
+  .about { display: grid; gap: 30px; align-items: center; }
+  .photo-slot { aspect-ratio: 4 / 5; border: 2px dashed var(--line); display: grid; place-items: center; text-align: center; padding: 24px; color: var(--mute); font-size: 15px; background: repeating-linear-gradient(45deg, var(--bg2), var(--bg2) 12px, var(--bg) 12px, var(--bg) 24px); }
+  .about p { font-size: 1.15rem; max-width: 46ch; } .about p + p { margin-top: 14px; color: var(--mute); font-size: 1rem; }
+
+  .book { background: var(--bg2); }
+  .book form { display: grid; gap: 14px; max-width: 760px; margin-top: 30px; }
+  .book label { display: grid; gap: 6px; font: 700 12px Inter; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+  .book input, .book textarea, .book select { font: 400 16px Inter; color: var(--bone); background: var(--bg); border: 1px solid var(--line); padding: 14px; min-height: 50px; color-scheme: dark; }
+  .book textarea { min-height: 110px; }
+  .book button { justify-self: start; min-height: 50px; padding: 0 24px; border: 0; background: var(--lime); color: #0A0706; font: 700 14px Inter; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+  .socials { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .socials a { font: 700 13px Inter; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; border: 1px solid var(--line); padding: 10px 14px; }
+  .socials a:hover { border-color: var(--lime); color: var(--lime); }
+  footer { padding: 30px 0 40px; border-top: 1px solid var(--line); color: var(--mute); font-size: 13px; }
+  @media (min-width: 900px) { .album { grid-template-columns: .8fr 1.2fr; gap: 56px; } .vids { grid-template-columns: 1.4fr 1fr; } .vids { grid-template-columns: 1fr 1fr; } .vids > .big { grid-column: 1 / -1; } .about { grid-template-columns: .8fr 1.2fr; gap: 64px; } .book form { grid-template-columns: 1fr 1fr; } .book .full { grid-column: 1 / -1; } }
+  @media (max-width: 560px) { .hero img { object-position: 72% center; } .vids { grid-template-columns: 1fr; } .show { grid-template-columns: 1fr; gap: 6px; } .tracks li { grid-template-columns: 26px 1fr; } .tracks a { grid-column: 2; justify-self: start; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .hero img { animation: none; transform: scale(1.08); } .yt img { transition: none; } }
+</style>
+</head>
+<body>
+  <p class="concept">Triple T &middot; part of <a href="../salone-artists/">Salone Sound</a> &middot; built by LAVAALL Web</p>
+  <main>
+    <header class="hero">
+      <img src="https://i.ytimg.com/vi/XgD9fmydrJ4/maxresdefault.jpg" alt="" width="1280" height="720">
+      <div class="hero-film" data-film aria-hidden="true"></div>
+      <div class="wrap">
+        <p class="k">Triple Threat Team &middot; Sierra Leone</p>
+        <h1>Triple <span>T</span></h1>
+        <div class="now">
+          <p class="k" style="color:var(--lime)">Latest release</p>
+          <b>Affairs Session 3 <small style="font:500 16px Inter;text-transform:none;color:var(--mute)">ft. Kracktwist</small></b>
+          <div class="btns">
+            <a class="btn solid" href="#affairs">Watch the series</a>
+            <a class="btn" href="#music">Full catalog</a>
+          </div>
+        </div>
+      </div>
+      <button class="sound" type="button" data-sound aria-pressed="false" hidden><span class="sound-i" aria-hidden="true"></span><span data-sound-t>Watch with sound</span></button>
+      <p class="credit">Kam Dae ft. King Boss LA, studio session &middot; Triple Threat Team</p>
+    </header>
+
+    <div class="drop">
+      <div class="wrap">
+        <b>Next drop? Get it first.</b>
+        <form data-drop novalidate>
+          <label class="sr" for="wa" style="position:absolute;left:-9999px">WhatsApp number</label>
+          <input id="wa" name="wa" inputmode="tel" autocomplete="tel" placeholder="Your WhatsApp number">
+          <button type="submit">Tell me on WhatsApp</button>
+          <p class="status" data-drop-status role="status"></p>
+        </form>
+      </div>
+    </div>
+
+    <section class="wrap" id="affairs" aria-labelledby="affairs-h">
+      <p class="k">The series</p>
+      <h2 id="affairs-h">Affairs</h2>
+      <p class="lede">Three sessions, one story. Triple T&rsquo;s newest run, released on their own channel.</p>
+      <div class="row3">
+        <div><button class="yt" type="button" data-yt="Mt9FoWaDl_I" aria-label="Play Session 1"><img src="https://i.ytimg.com/vi/Mt9FoWaDl_I/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Session 1</b><span>Official visualizer</span></div></div>
+        <div><button class="yt" type="button" data-yt="imCNZrB5pAY" aria-label="Play Session 2"><img src="https://i.ytimg.com/vi/imCNZrB5pAY/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Session 2</b><span>Official video</span></div></div>
+        <div><button class="yt" type="button" data-yt="y70K4m8sp0g" aria-label="Play Session 3"><img src="https://i.ytimg.com/vi/y70K4m8sp0g/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Session 3</b><span>ft. Kracktwist &middot; official video</span></div></div>
+      </div>
+    </section>
+
+    <section class="wrap" id="kamdae" aria-labelledby="kamdae-h" style="padding-top:clamp(48px,9vh,96px)">
+      <p class="k">With King Boss LA</p>
+      <h2 id="kamdae-h">Kam Dae</h2>
+      <p class="lede">Made in one studio night, then shot by Lens Studios. Watch it from the session to the video.</p>
+      <div class="vids">
+        <div class="big"><button class="yt" type="button" data-yt="DprVtS6yAvQ" aria-label="Play Kam Dae"><img src="https://i.ytimg.com/vi/DprVtS6yAvQ/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Kam Dae</b><span>ft. King Boss LA &middot; official video, dir. Lens Studios</span></div></div>
+        <div><button class="yt" type="button" data-yt="XgD9fmydrJ4" aria-label="Play How it was made"><img src="https://i.ytimg.com/vi/XgD9fmydrJ4/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>How it was made</b><span>Studio session</span></div></div>
+        <div><button class="yt" type="button" data-yt="AR5uPSxoneU" aria-label="Play Kam Dae"><img src="https://i.ytimg.com/vi/AR5uPSxoneU/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Kam Dae</b><span>Official audio</span></div></div>
+      </div>
+      <div class="btns" style="margin-top:22px"><a class="btn solid" href="https://song.link/KamDae" target="_blank" rel="noopener">Stream Kam Dae everywhere</a></div>
+    </section>
+
+    <section class="wrap" id="music" aria-labelledby="music-h" style="padding-top:clamp(48px,9vh,96px)">
+      <p class="k">The album &middot; 13 December 2022</p>
+      <h2 id="music-h">Next Up</h2>
+      <div class="album">
+        <div class="cover" role="img" aria-label="Placeholder for the Next Up album artwork"><div><b>Next<br>Up</b><small>Official artwork goes here</small></div></div>
+        <div>
+          <ol class="tracks">
+            <li><span class="n">01</span><div><b>Intro</b></div></li>
+            <li><span class="n">02</span><div><b>Everyday</b></div></li>
+            <li><span class="n">03</span><div><b>Look At Me Now</b></div></li>
+            <li><span class="n">04</span><div><b>Man Dem</b></div></li>
+            <li><span class="n">05</span><div><b>Whistle</b><span>Prod. Nashito Kulala</span></div></li>
+            <li><span class="n">06</span><div><b>Next One</b></div></li>
+            <li><span class="n">07</span><div><b>Party</b></div></li>
+            <li><span class="n">08</span><div><b>Aye</b></div></li>
+            <li><span class="n">09</span><div><b>Enter Body</b></div></li>
+            <li><span class="n">10</span><div><b>Fala Me</b></div></li>
+            <li><span class="n">11</span><div><b>Fatima</b></div></li>
+            <li><span class="n">12</span><div><b>Ole Am Dae</b></div></li>
+          </ol>
+          <div class="btns" style="margin-top:22px"><a class="btn solid" href="https://audiomack.com/hejenahentertainment/album/next-up-1" target="_blank" rel="noopener">Play on Audiomack</a><a class="btn" href="https://ffm.to/kxenvor" target="_blank" rel="noopener">Other platforms</a></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap" id="videos" aria-labelledby="videos-h" style="padding-top:clamp(48px,9vh,96px)">
+      <p class="k">From the vault</p>
+      <h2 id="videos-h">Videos</h2>
+      <div class="grid4">
+        <div><button class="yt" type="button" data-yt="WiJ4ro2FEJM" aria-label="Play Ole Am Dae"><img src="https://i.ytimg.com/vi/WiJ4ro2FEJM/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Ole Am Dae</b><span>Official video</span></div></div>
+        <div><button class="yt" type="button" data-yt="U84m20BLcmk" aria-label="Play Lover"><img src="https://i.ytimg.com/vi/U84m20BLcmk/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Lover</b><span>Official video</span></div></div>
+        <div><button class="yt" type="button" data-yt="_pQoE7ehE9g" aria-label="Play Gbet Pa D Boi"><img src="https://i.ytimg.com/vi/_pQoE7ehE9g/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Gbet Pa D Boi</b><span>Official video &middot; 2020</span></div></div>
+        <div><button class="yt" type="button" data-yt="sEibFZ0LfMs" aria-label="Play Mohamed Kallon"><img src="https://i.ytimg.com/vi/sEibFZ0LfMs/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Mohamed Kallon</b><span>Lyric video &middot; for the football legend</span></div></div>
+        <div><button class="yt" type="button" data-yt="aQDYmwwcRkg" aria-label="Play Run Pass"><img src="https://i.ytimg.com/vi/aQDYmwwcRkg/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Run Pass</b><span>ft. Adfega &middot; studio visualizer</span></div></div>
+        <div><button class="yt" type="button" data-yt="cQoh12XErg4" aria-label="Play Whistle"><img src="https://i.ytimg.com/vi/cQoh12XErg4/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Whistle</b><span>Studio session</span></div></div>
+        </div>
+    </section>
+
+    <section class="wrap" aria-labelledby="collab-h" style="padding-top:clamp(48px,9vh,96px)">
+      <p class="k">On records with</p>
+      <h2 id="collab-h">The circle</h2>
+      <ul class="circle"><li><b>King Boss LA</b><span>Kam Dae</span></li><li><b>Kracktwist</b><span>Affairs Session 3</span></li><li><b>Adfega</b><span>Run Pass</span></li><li><b>Nashito Kulala</b><span>Producer &middot; Whistle</span></li><li><b>Hejenah Entertainment</b><span>Label home of Next Up</span></li></ul>
+    </section>
+
+    <section class="wrap" id="shows" aria-labelledby="shows-h" style="padding-top:clamp(48px,9vh,96px)">
+      <p class="k">Shows</p>
+      <h2 id="shows-h">Live</h2>
+      <p class="empty">No dates announced yet. Join the WhatsApp list above to hear first when tickets drop.</p>
+      <div class="shows">
+        <div class="show"><span class="d">Dec 28</span><div><b>Example: Freetown show</b><span>Venue and ticket link appear here</span></div><span class="tag">Layout example, not a real date</span></div>
+      </div>
+    </section>
+
+    <section class="wrap about" aria-labelledby="about-h" style="padding-top:clamp(48px,9vh,96px)">
+      <div class="photo-slot">Official press photo goes here<br>(only with Triple T's approval)</div>
+      <div>
+        <p class="k">About</p>
+        <h2 id="about-h" style="margin:8px 0 22px">Triple Threat Team</h2>
+        <p>Triple Threat Team: Sierra Leonean Afro-trap and Salone pop, sung in Krio. Street anthems like &ldquo;Gbet Pa D Boi&rdquo; and &ldquo;Ole Am Dae&rdquo;, a tribute to football legend Mohamed Kallon, love songs like &ldquo;Lover&rdquo; and &ldquo;Fatima&rdquo;, and now the Affairs sessions. The studio is part of the story: the crew films how the songs get made.</p>
+        <p>Bio to be written with the artists and their team before anything goes live.</p>
+      </div>
+    </section>
+
+    <section class="book" id="book" aria-labelledby="book-h">
+      <div class="wrap">
+        <p class="k">Promoters and brands</p>
+        <h2 id="book-h">Book Triple T</h2>
+        <form data-book novalidate>
+          <label>Your name<input name="name" autocomplete="name" required></label>
+          <label>Company or event<input name="org"></label>
+          <label>Event date<input type="date" name="date"></label>
+          <label>City<input name="city"></label>
+          <label class="full">Tell us about the event<textarea name="msg"></textarea></label>
+          <button type="submit">Send booking request</button>
+          <p class="status full" data-book-status role="status"></p>
+        </form>
+        <div class="socials"><a href="https://www.instagram.com/teamtriplet/" target="_blank" rel="noopener">Instagram</a><a href="https://linktr.ee/triple__t" target="_blank" rel="noopener">All links</a></div>
+      </div>
+    </section>
+  </main>
+  <dialog class="vm" id="vm" aria-label="Kam Dae studio session, with sound">
+    <button type="button" class="vm-x" data-vm-close aria-label="Close video">&times;</button>
+    <div class="vm-frame" data-vm-frame></div>
+    <p class="vm-cap">Kam Dae ft. King Boss LA &middot; studio session &middot; Triple Threat Team</p>
+  </dialog>
+  <footer><div class="wrap">Triple T (Triple Threat Team), Sierra Leone. Site by LAVAALL Web, with the artists' approval. Music and videos remain the property of their owners. Sign-up and booking forms are not connected yet.</div></footer>
+  <script>
+    // Hero: the Kam Dae studio session loops muted behind the name.
+    // Browsers only allow YouTube sound when the tap reaches YouTube's own player, so
+    // "Watch with sound" opens the full player (autoplay with sound; if a browser holds back, one tap on play).
+    (function () {
+      var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var film = document.querySelector('[data-film]'), btn = document.querySelector('[data-sound]');
+      var VID = 'XgD9fmydrJ4';
+      var vm = document.getElementById('vm'), frame = vm.querySelector('[data-vm-frame]');
+      if (film && !reduce) {
+        var f = document.createElement('iframe');
+        f.src = 'https://www.youtube-nocookie.com/embed/' + VID + '?autoplay=1&mute=1&loop=1&playlist=' + VID + '&controls=0&modestbranding=1&playsinline=1&rel=0';
+        f.title = 'Kam Dae studio session (silent background)';
+        f.setAttribute('allow', 'autoplay; encrypted-media');
+        f.setAttribute('tabindex', '-1');
+        f.addEventListener('load', function () { film.classList.add('on'); });
+        film.appendChild(f);
+      }
+      btn.hidden = false;
+      btn.addEventListener('click', function () {
+        frame.innerHTML = '<iframe src="https://www.youtube.com/embed/' + VID + '?autoplay=1&mute=0&rel=0&playsinline=1" title="Kam Dae studio session" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+        if (typeof vm.showModal === 'function') vm.showModal(); else vm.setAttribute('open', '');
+        vm.querySelector('[data-vm-close]').focus();
+      });
+      function closeVm() { frame.innerHTML = ''; if (vm.open) vm.close(); }
+      vm.querySelector('[data-vm-close]').addEventListener('click', closeVm);
+      vm.addEventListener('click', function (e) { if (e.target === vm) closeVm(); });
+      vm.addEventListener('close', function () { frame.innerHTML = ''; btn.focus(); });
+    })();
+    // Lite YouTube embeds: load the official player only when tapped. Starting one video
+    // (or "Watch with sound") puts any other playing video back to its thumbnail, so songs never overlap.
+    const ytBtns = document.querySelectorAll('[data-yt]');
+    ytBtns.forEach(b => { b.dataset.thumb = b.innerHTML; b.dataset.label = b.getAttribute('aria-label'); });
+    function stopInline(except) {
+      ytBtns.forEach(b => {
+        if (b === except || !b.querySelector('iframe')) return;
+        b.innerHTML = b.dataset.thumb; b.setAttribute('aria-label', b.dataset.label); b.style.cursor = '';
+      });
+    }
+    ytBtns.forEach(b => b.addEventListener('click', () => {
+      if (b.querySelector('iframe')) return;
+      stopInline(b);
+      const id = b.dataset.yt;
+      b.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="${b.dataset.label.replace('Play ', '')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      b.removeAttribute('aria-label'); b.style.cursor = 'default';
+    }));
+    document.querySelector('[data-sound]').addEventListener('click', () => stopInline(null));
+    const drop = document.querySelector('[data-drop]'), ds = document.querySelector('[data-drop-status]');
+    drop.addEventListener('submit', e => { e.preventDefault(); ds.textContent = drop.wa.value.trim().length >= 7 ? "You're on the list. (Preview: not connected yet.)" : 'Please add your WhatsApp number.'; });
+    const book = document.querySelector('[data-book]'), bs = document.querySelector('[data-book-status]');
+    book.addEventListener('submit', e => { e.preventDefault(); bs.textContent = book.name.value.trim() ? 'Thanks. In the live site this goes to Triple T’s management. (Preview: not connected yet.)' : 'Please add your name.'; });
+  </script>
+</body>
+</html>

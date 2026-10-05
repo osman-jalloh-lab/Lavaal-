@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Night Kitchen | Sample restaurant template</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --cy: #5FE1FF; --ink: #DDF8FF; --mute: #8FA5AB; --line: rgba(255,255,255,.1); }
+  body { background: #000; color: var(--ink); font: 400 16px/1.6 Inter, system-ui, sans-serif; }
+  .mono { font: 500 11px "Geist Mono", monospace; letter-spacing: .16em; text-transform: uppercase; }
+  .pill { position: fixed; z-index: 10; left: 50%; top: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; padding: 12px 22px; border-radius: 99px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 0 40px rgba(80,220,255,.14); }
+  .pill i { width: 48px; height: 1px; background: rgba(221,248,255,.5); }
+  .hero { min-height: 100svh; display: grid; place-items: center; text-align: center; padding: 100px 20px 60px; position: relative; overflow: hidden; }
+  .hero::before { content: ""; position: absolute; width: 90vmin; height: 90vmin; border-radius: 50%; background: radial-gradient(closest-side, rgba(80,220,255,.18), transparent); animation: breathe 6s ease-in-out infinite; }
+  @keyframes breathe { 50% { transform: scale(1.12); opacity: .7; } }
+  .dish { position: relative; width: min(62vmin, 460px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; margin: 0 auto; box-shadow: 0 0 0 1px rgba(80,220,255,.35), 0 0 80px rgba(80,220,255,.2); animation: spin-in 1.6s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes spin-in { from { transform: scale(.85) rotate(-8deg); opacity: 0; } }
+  .dish video { width: 100%; height: 100%; object-fit: cover; }
+  .hero h1 { position: relative; font: 400 clamp(3rem, 10vw, 8rem)/.9 "Instrument Serif", serif; letter-spacing: -.02em; margin-top: 28px; }
+  .hero p { position: relative; color: var(--cy); margin-top: 16px; }
+  section { padding: clamp(70px, 12vh, 140px) clamp(20px, 5vw, 64px); max-width: 1000px; margin: 0 auto; }
+  .menu li { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 16px; padding: 24px 0; border-top: 1px solid var(--line); cursor: default; }
+  .menu li:last-child { border-bottom: 1px solid var(--line); }
+  .menu h3 { font: 400 clamp(1.8rem, 4.5vw, 3.4rem)/1 "Instrument Serif", serif; transition: color .4s, transform .5s cubic-bezier(.22,1,.36,1); }
+  .menu li:hover h3 { color: var(--cy); transform: translateX(12px); }
+  .menu p { grid-column: 1 / -1; color: var(--mute); max-height: 0; overflow: hidden; transition: max-height .5s; }
+  .menu li:hover p { max-height: 3em; }
+  .menu span { color: var(--cy); }
+  .book { text-align: center; }
+  .book h2 { font: 400 clamp(2.6rem, 8vw, 6rem)/.95 "Instrument Serif", serif; }
+  .book a { display: inline-flex; margin-top: 30px; padding: 16px 30px; border-radius: 99px; border: 1px solid var(--cy); color: var(--cy); transition: background .3s, color .3s; }
+  .book a:hover { background: var(--cy); color: #000; }
+  footer { text-align: center; padding: 30px; color: var(--mute); }
+</style>
+</head>
+<body>
+  <nav class="pill mono" aria-label="Main"><a href="#menu">Menu</a><i aria-hidden="true"></i><a href="#book">Book</a></nav>
+  <section class="hero" style="max-width:none">
+    <div>
+      <div class="dish"><video data-auto muted playsinline loop poster="../assets/photo/restaurant.webp" src="../assets/video/clip-restaurant.mp4"></video></div>
+      <h1>Night Kitchen</h1>
+      <p class="mono">Tonight &nbsp;/&nbsp; open until 11pm</p>
+    </div>
+  </section>
+  <section id="menu">
+    <p class="mono rv" style="color:var(--mute);margin-bottom:20px">Tonight's menu</p>
+    <ul class="menu">
+      <li class="rv"><h3>Grilled fish</h3><span class="mono">01</span><p>Whole snapper, pepper sauce, fried plantain.</p></li>
+      <li class="rv"><h3>Jollof rice</h3><span class="mono">02</span><p>Smoky party jollof with grilled chicken.</p></li>
+      <li class="rv"><h3>Cassava leaf</h3><span class="mono">03</span><p>Slow-cooked with fish and palm oil, served with rice.</p></li>
+      <li class="rv"><h3>Ginger beer</h3><span class="mono">04</span><p>Made here, served ice cold.</p></li>
+    </ul>
+  </section>
+  <section class="book" id="book">
+    <h2 class="rv">Book a table<br>for tonight.</h2>
+    <a class="rv d1" href="#book">Reserve on WhatsApp</a>
+  </section>
+  <footer class="mono">Night Kitchen &middot; Sample template</footer>
+  <span class="sample-badge">Sample template &middot; LAVAALL Web</span>
+  <script src="base.js"></script>
+</body>
+</html>
