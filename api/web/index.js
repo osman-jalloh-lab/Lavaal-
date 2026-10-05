@@ -3,19 +3,26 @@
 // Same pattern as api/starlink: Osman's folder is kept as-is in _site/ and only
 // served through this function. Off-by-default: on Production every /web URL
 // is a plain 404 unless WEB_ENABLED=1 (see _lib/flag.js). No nav link, menu
-// item or card on lavaall.com points here. There is no backend: the inquiry
-// form says "Preview only ... nothing was sent" (app.js) and posts nowhere.
+// item or card on lavaall.com points here. The inquiry form has its own
+// switch (WEB_INQUIRY_ENABLED, also OFF on Production by default).
 //
 // Routes (vercel.json rewrites /web/:path* -> /api/web?area=:path*):
-//   GET /web/                     the page (_site/index.html, base /web/)
-//   GET /web/<dir>/               <dir>/index.html (showcase/terra/, ...)
-//   GET /web/<file>               static files in _site/ (folder layout kept)
+//   GET  /web/                    the page (_site/index.html, base /web/)
+//   GET  /web/work/               Our work page (_site/work/index.html, base /web/work/)
+//   GET  /web/<dir>/              <dir>/index.html (showcase/terra/, ...)
+//   GET  /web/<file>              static files in _site/ (folder layout kept)
+//   POST /web/api/inquiry         the inquiry form -> support@lavaall.com via the
+//                                 main site's email router (see _lib/inquiry.js)
+//   GET  /web/api/health          flag + transport status (no secrets)
+//   GET  /web/api/outbox          mock-transport outbox (never on Production)
 //
 // Work folders are committed with the snapshot but never served (404):
 // see WORK_FOLDERS and docs/web/README.md ("Deploy-optional folders").
 const fs = require('fs');
 const path = require('path');
-const { isEnabled } = require('./_lib/flag');
+const { isEnabled, isProduction } = require('./_lib/flag');
+const inquiry = require('./_lib/inquiry');
+const MAX_BODY = 8_000;
 
 const SITE = path.join(__dirname, '_site');
 const BASE = '/web/';
@@ -66,6 +73,61 @@ function areaOf(req) {
   return String(area || '').replace(/^\/+/, '');
 }
 
+function json(res, status, body) {
+  res.setHeader('Cache-Control', 'no-store');
+  send(res, status, JSON.stringify(body), 'application/json; charset=utf-8');
+}
+
+function clientIp(req) {
+  return String((req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || (req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim();
+}
+
+async function readBody(req) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
+  let raw = '';
+  if (typeof req.body === 'string') raw = req.body;
+  else if (Buffer.isBuffer(req.body)) raw = req.body.toString('utf8');
+  else if (typeof req.on === 'function') {
+    raw = await new Promise((resolve, reject) => {
+      let data = '';
+      req.on('data', (c) => { data += c; if (data.length > MAX_BODY) reject(Object.assign(new Error('too_large'), { code: 'too_large' })); });
+      req.on('end', () => resolve(data));
+      req.on('error', reject);
+    });
+  }
+  if (raw.length > MAX_BODY) throw Object.assign(new Error('too_large'), { code: 'too_large' });
+  if (!raw) return {};
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { throw Object.assign(new Error('bad_json'), { code: 'bad_json' }); }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw Object.assign(new Error('bad_json'), { code: 'bad_json' });
+  return parsed;
+}
+
+// WhatsApp number for the page's WhatsApp buttons: content/en.json whatsapp.number
+// (digits only). Empty -> the buttons stay hidden.
+function whatsappNumber() {
+  try {
+    const en = JSON.parse(fs.readFileSync(path.join(SITE, 'content/en.json'), 'utf8'));
+    return String((en.whatsapp && en.whatsapp.number) || '').replace(/\D/g, '').slice(0, 15);
+  } catch { return ''; }
+}
+
+async function api(req, res, parts) {
+  const m = req.method;
+  if (parts[0] === 'health' && parts.length === 1 && m === 'GET') return json(res, 200, { ok: true, inquiry: inquiry.status() });
+  if (parts[0] === 'inquiry' && parts.length === 1) {
+    if (m !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { error: 'method_not_allowed' }); }
+    const body = await readBody(req);
+    const r = await inquiry.handleInquiry(body, clientIp(req));
+    return json(res, r.status, r.body);
+  }
+  if (parts[0] === 'outbox' && parts.length === 1 && m === 'GET') {
+    if (isProduction() || inquiry.mode() !== 'mock') return json(res, 404, { error: 'not_found' });
+    return json(res, 200, { mode: 'mock', count: inquiry.outbox.length, rows: inquiry.outbox });
+  }
+  return json(res, 404, { error: 'not_found' });
+}
+
 function isWorkFile(rel) {
   return WORK_FOLDERS.some((re) => re.test(rel));
 }
@@ -109,7 +171,8 @@ function renderPage(req, raw, hit) {
   let html = raw.toString('utf8');
   const base = BASE + hit.dir;
   const canon = JSON.stringify(hit.canonical);
-  html = html.replace(/<head>/i, `<head>\n<base href="${base}">\n<script>(function(l){var p=${canon};if(l.pathname!==p&&window.history&&history.replaceState)history.replaceState(null,"",p+l.search+l.hash);})(location);</script>`);
+  const cfg = JSON.stringify({ api: BASE + 'api', whatsapp: whatsappNumber() }).replace(/</g, '\\u003c');
+  html = html.replace(/<head>/i, `<head>\n<base href="${base}">\n<script>window.LV_WEB=${cfg};(function(l){var p=${canon};if(l.pathname!==p&&window.history&&history.replaceState)history.replaceState(null,"",p+l.search+l.hash);})(location);</script>`);
   const origin = requestOrigin(req);
   if (origin) html = html.split(OG_DEFAULT).join(origin + BASE);
   return Buffer.from(html);
@@ -152,13 +215,23 @@ function serveFile(req, res, hit) {
 
 async function handler(req, res) {
   if (!isEnabled()) return notFound(res);
+  const area = areaOf(req);
+  if (area === 'api' || area.startsWith('api/')) {
+    try {
+      return await api(req, res, area.replace(/\/+$/, '').split('/').slice(1));
+    } catch (err) {
+      if (err && err.code === 'too_large') return json(res, 413, { error: 'payload_too_large' });
+      if (err && err.code === 'bad_json') return json(res, 400, { error: 'invalid_json' });
+      return json(res, 500, { error: 'server_error' });
+    }
+  }
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.setHeader('Allow', 'GET, HEAD');
     res.setHeader('Cache-Control', 'no-store');
     return send(res, 405, 'Method not allowed', 'text/plain; charset=utf-8');
   }
   try {
-    const hit = resolve(areaOf(req));
+    const hit = resolve(area);
     if (!hit) return notFound(res);
     return serveFile(req, res, hit);
   } catch {
@@ -169,3 +242,4 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports.WORK_FOLDERS = WORK_FOLDERS;
+module.exports.inquiry = inquiry;

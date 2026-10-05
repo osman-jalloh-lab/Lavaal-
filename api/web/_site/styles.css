@@ -996,3 +996,45 @@ footer a:hover { color: var(--text); }
 .ad-ctl .pri { background: #0B252A; color: #F7E04A; border-color: #0B252A; }
 @media (max-width: 700px) { .ad-head { grid-template-columns: auto 1fr auto; } .ad-badge { display: none; } .ad-rail button { width: 32px; height: 32px; } .ad-line { top: 15px; left: 16px; right: 16px; } .ad-post { grid-template-columns: 1fr; } .ad-cal li { grid-template-columns: 1fr auto; } .ad-cal time { grid-column: 1 / -1; } .ad-stage { min-height: 260px; } }
 @media (prefers-reduced-motion: reduce) { .ad-view, .ad-view [style*="--d"], .ad-bars b::before, .ad-sheet tr, .ad-ok, .ad-tick, .ad-done li { animation: none !important; } .ad-btns .yes { animation: none; } .ad-line i { transition: none; } }
+
+/* ---- Umbrella v2 (Oct 4, 2026): Our work page, work teaser, inquiry states ---- */
+/* Work teaser on the main page: one short strip that links to /web/work/ */
+.wt { padding-block: clamp(56px, 10vh, 112px); border-bottom: 1px solid var(--line); }
+.wt-in { display: grid; gap: 32px; max-width: 1400px; }
+.wt-copy { display: grid; gap: 14px; align-content: start; justify-items: start; }
+.wt-copy h2 { font: 400 clamp(2rem, 5vw, 4rem)/1 var(--serif); letter-spacing: -.02em; }
+.wt-copy p { max-width: 46ch; }
+.wt-shots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.wt-shots a { display: grid; gap: 8px; text-decoration: none; color: var(--text-2); font-size: .8125rem; line-height: 1.35; }
+.wt-shots img { width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; object-position: top center; background: var(--bg-2); border: 1px solid var(--line); transition: transform .3s var(--ease); }
+.wt-shots a:hover img { transform: translateY(-3px); }
+.wt-shots a:hover span { color: var(--text); }
+@media (max-width: 560px) { .wt-shots { grid-template-columns: 1fr 1fr; } .wt-shots li:nth-child(3) { display: none; } }
+@media (min-width: 960px) { .wt-in { grid-template-columns: .8fr 1.4fr; align-items: center; gap: 64px; } }
+
+/* Our work page header and closing call to action */
+.wk-hero { padding: clamp(120px, 20vh, 200px) var(--gutter) clamp(48px, 8vh, 88px); display: grid; gap: 20px; max-width: 1400px; }
+.wk-hero .label a { color: inherit; text-decoration: none; }
+.wk-hero .label a:hover { color: var(--text); text-decoration: underline; }
+.wk-hero h1 { font-size: clamp(3rem, 8vw, 7.5rem); line-height: .92; }
+.wk-hero > p { max-width: 56ch; font-size: 1.125rem; }
+.wk-jump { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.wk-jump a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 99px; text-decoration: none; color: var(--text); font-size: .875rem; }
+.wk-jump a:hover { border-color: var(--text-2); }
+.wk-cta { display: grid; gap: 16px; justify-items: start; }
+.wk-cta h2 { font: 400 clamp(2rem, 5vw, 4rem)/1 var(--serif); letter-spacing: -.02em; }
+.wk-cta p { max-width: 52ch; }
+.wk-cta-a { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+
+/* Inquiry form: honeypot, busy, error and success states (text carries the meaning, colour only helps) */
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+#web-inquiry { position: relative; }
+#web-inquiry button[aria-busy="true"] { opacity: .7; cursor: progress; }
+.status[data-state="error"] { color: #FFC9BE; }
+.status[data-state="ok"] { color: var(--text); }
+.status a { color: inherit; }
+#web-inquiry [aria-invalid="true"] { border-color: #FFC9BE; border-style: dashed; }
+
+/* Follow one request: keep the heading clear of the station cards on short or narrow screens */
+@media (prefers-reduced-motion: no-preference) and (min-width: 701px) { .fx-st { width: min(clamp(280px, 40vw, 520px), calc((100svh - 460px) * 1.3)); min-width: 240px; } }
+@media (prefers-reduced-motion: no-preference) and (max-width: 700px) { .fx-st { width: min(82vw, calc((100svh - 420px) * 1.3)); min-width: 220px; } }

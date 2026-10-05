@@ -82,6 +82,19 @@ PORT=8851 node scripts/web/dev-server.js
 node tests/test-web.js
 ```
 
+## v2 (Oct 4, 2026): shorter main page, Our work page, inquiry, phone data
+
+- **Main page `/web/`** keeps the hero, Meet Lava (WhatsApp demo plus the workflow film), Who it is for, a short "See what we have built" teaser, How it works with the FAQ, and Contact. At 1440 the height went from 22,908 px to 6,679 px.
+- **Our work `/web/work/`** (`_site/work/index.html`) holds the moved showcase: POUR / PLAY, TERRA, LAVAALL Starlink, LAVAALL and Hermes OS recordings, the automations player, Business OS (with the "Table for 4?" walk-through), Salone / Triple T and the templates gallery. It uses `../styles.css` and `../app.js`, and `<html data-root="../">` tells the script where assets live. It is served by `api/web/index.js` through the existing `/web/:path*` rewrite, so `vercel.json` did not change.
+- **Inquiry API** `POST /web/api/inquiry` (`api/web/_lib/inquiry.js`) reuses the main site's server-side path: `CONTACT_WEBHOOK_URL` with `CONTACT_WEBHOOK_SECRET`, which goes to `scripts/email-router/contact-router.gs` (GmailApp). `routeTo` is always support@lavaall.com. It has a honeypot, validation, a rate limit of 5 per 10 minutes per IP, and an 8 KB body limit. It is not mailto-only and does not use Outlook.
+  - `WEB_INQUIRY_ENABLED` is off on Production by default, and the form then answers 503 and shows "Online inquiries are not switched on yet." with the Gmail fallback. It is on in Preview and locally.
+  - `WEB_INQUIRY_TRANSPORT=mock` records to an in-memory outbox (`GET /web/api/outbox`) and never sends. It is ignored on Production. Tests mock the transport and `fetch`; no real sends.
+  - `GET /web/api/health` reports the flags. No secrets are in code.
+- **WhatsApp CTAs** (hero, contact, work page) read `content/en.json` `whatsapp.number`, which the function injects as `window.LV_WEB.whatsapp`. They stay hidden while the number is empty.
+- **Phone data:** the hero film is fetched after load plus idle time. It is skipped on reduced motion, save-data, 2g/3g or slow links, and the poster stays. At 760px or narrower it uses `hero-sm.mp4` (523 KB), otherwise `hero-lite.mp4` (834 KB). Recordings and clips are served as `-lite` re-encodes (ffmpeg H.264, CRF 30 to 33, faststart). The originals stay in the repo but are no longer referenced. Images are WebP and below the fold is lazy.
+- **Fix:** the Business OS "From Table for 4? to booked" heading no longer overlaps the step cards on short desktop windows.
+- **Run locally with mock sends:** `WEB_INQUIRY_TRANSPORT=mock PORT=8852 node scripts/web/dev-server.js`.
+
 ## Open items (from the folder's TODO.md plus integration)
 - No backend: the inquiry form posts nowhere. WhatsApp number not set.
 - SEO: canonical, `og:image`, favicon, sitemap, JSON-LD all missing (page is `noindex` while hidden).

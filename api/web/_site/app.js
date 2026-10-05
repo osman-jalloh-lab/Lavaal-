@@ -1,5 +1,8 @@
 (function () {
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Page root for asset paths built in script ("" on /web/, "../" on /web/work/).
+  var ROOT = document.documentElement.getAttribute('data-root') || '';
+  var CFG = window.LV_WEB || {};
 
   // Reveal on scroll
   var items = document.querySelectorAll('.rv');
@@ -14,22 +17,99 @@
     items.forEach(function (el) { io.observe(el); });
   }
 
-  // WhatsApp button stays hidden until a number exists (TODO.md)
-  var WHATSAPP_NUMBER = ''; // Osman to provide, digits only with country code
-  var wa = document.getElementById('wa');
-  if (WHATSAPP_NUMBER) {
-    wa.href = 'https://wa.me/' + WHATSAPP_NUMBER;
-    wa.hidden = false;
+  // Lazy posters: below-the-fold videos carry data-poster and get it only near the screen.
+  var lazy = document.querySelectorAll('video[data-poster]');
+  function poster(v) { if (!v.getAttribute('poster')) v.setAttribute('poster', v.getAttribute('data-poster')); }
+  if (!('IntersectionObserver' in window)) { lazy.forEach(poster); } else if (lazy.length) {
+    var pio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { poster(e.target); pio.unobserve(e.target); } });
+    }, { rootMargin: '600px 0px' });
+    lazy.forEach(function (v) { pio.observe(v); });
   }
 
-  // Inquiry form: preview only, no backend yet
+  // WhatsApp buttons (top and bottom) stay hidden until content/en.json whatsapp.number is filled in.
+  // The server passes that number to the page as window.LV_WEB.whatsapp (digits only).
+  var WHATSAPP_NUMBER = String(CFG.whatsapp || '').replace(/\D/g, '');
+  if (WHATSAPP_NUMBER) {
+    document.querySelectorAll('[data-wa]').forEach(function (a) {
+      a.href = 'https://wa.me/' + WHATSAPP_NUMBER;
+      a.target = '_blank'; a.rel = 'noopener';
+      a.hidden = false;
+    });
+  }
+
+  // Inquiry form: posts to /web/api/inquiry, which hands it to the main site's email router (support@lavaall.com).
   var form = document.getElementById('web-inquiry');
+  if (!form) return;
   var status = document.getElementById('form-status');
+  var btn = form.querySelector('button[type="submit"]');
+  var API = (CFG.api || '/web/api') + '/inquiry';
+  var SUPPORT = 'support@lavaall.com';
+  var busy = false;
+  function compose() {
+    return 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(SUPPORT) + '&su=' + encodeURIComponent('LAVAALL Web inquiry');
+  }
+  function say(text, state, link) {
+    status.setAttribute('data-state', state || '');
+    status.textContent = text;
+    if (link) {
+      status.appendChild(document.createTextNode(' '));
+      var a = document.createElement('a');
+      a.href = compose(); a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = 'Email ' + SUPPORT;
+      status.appendChild(a);
+    }
+  }
+  // Prefill from "Use this look" on the Our work page (?look=...&type=...).
+  try {
+    var q = new URLSearchParams(location.search);
+    var look = (q.get('look') || '').slice(0, 60), ltype = q.get('type') || '';
+    if (ltype && form.elements.type) {
+      Array.prototype.forEach.call(form.elements.type.options, function (o) { if (o.value === ltype) form.elements.type.value = ltype; });
+    }
+    if (look && form.elements.message && !form.elements.message.value) form.elements.message.value = 'I like the "' + look + '" template.';
+  } catch (e) {}
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    var missing = Array.prototype.some.call(form.querySelectorAll('[required]'), function (f) { return !f.value.trim(); });
-    if (missing) { status.textContent = 'Please add your name and a way to reach you.'; return; }
-    status.textContent = 'Preview only: this form is not connected yet, so nothing was sent.';
+    if (busy) return;
+    var bad = Array.prototype.filter.call(form.querySelectorAll('[required]'), function (f) { return !f.value.trim(); });
+    form.querySelectorAll('[aria-invalid]').forEach(function (f) { f.removeAttribute('aria-invalid'); });
+    if (bad.length) {
+      bad.forEach(function (f) { f.setAttribute('aria-invalid', 'true'); });
+      say('Please add your name and a way to reach you.', 'error');
+      bad[0].focus();
+      return;
+    }
+    var data = {};
+    ['name', 'business', 'type', 'country', 'need', 'contact', 'message', 'website'].forEach(function (k) {
+      if (form.elements[k]) data[k] = form.elements[k].value;
+    });
+    busy = true; btn.disabled = true; btn.setAttribute('aria-busy', 'true');
+    say('Sending...', 'busy');
+    var ctrl = 'AbortController' in window ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 15000);
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), signal: ctrl ? ctrl.signal : undefined })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, body: j }; }); })
+      .then(function (r) {
+        if (r.status >= 200 && r.status < 300 && r.body && r.body.ok) {
+          form.reset();
+          say(r.body.mode === 'mock'
+            ? 'Test mode: your inquiry was checked and recorded, but no email was sent.'
+            : 'Thank you. Your inquiry was sent to our team at ' + SUPPORT + '. We will reply to the contact you gave us.', 'ok');
+          return;
+        }
+        if (r.status === 400 && r.body && r.body.fields) {
+          r.body.fields.forEach(function (k) { if (form.elements[k]) form.elements[k].setAttribute('aria-invalid', 'true'); });
+          say(r.body.message || 'Please check the highlighted fields.', 'error');
+          return;
+        }
+        var msg = r.body && r.body.message ? r.body.message : 'Your inquiry could not be sent.';
+        say(msg + ' Nothing was sent. You can also', 'error', true);
+      })
+      .catch(function () {
+        say('We could not reach our server, so nothing was sent. Please try again, or', 'error', true);
+      })
+      .then(function () { clearTimeout(timer); busy = false; btn.disabled = false; btn.removeAttribute('aria-busy'); });
   });
 })();
 
@@ -453,7 +533,11 @@
   var form = document.getElementById('web-inquiry');
   document.querySelectorAll('[data-tp-use]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (!form) return;
+      if (!form) {
+        var root = document.documentElement.getAttribute('data-root') || '';
+        location.href = root + '?look=' + encodeURIComponent(btn.getAttribute('data-name')) + '&type=' + encodeURIComponent(btn.getAttribute('data-type')) + '#contact';
+        return;
+      }
       var type = form.elements.type, msg = form.elements.message;
       if (type) type.value = btn.getAttribute('data-type');
       var line = 'I like the "' + btn.getAttribute('data-name') + '" template.';
@@ -470,15 +554,23 @@
   var conn = navigator.connection || {};
   var lowData = conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '');
 
-  // Hero film: loads after the page, skipped on reduced motion or data saver (poster stays).
+  // Hero film: never blocks first paint. Starts after load + idle, only on a good connection,
+  // and is skipped on reduced motion, data saver and slow links (2g/3g, or under 0.7 Mbps). The poster stays.
+  var slow = /(^|-)(2g|3g)$/.test(conn.effectiveType || '') || (typeof conn.downlink === 'number' && conn.downlink > 0 && conn.downlink < 0.7);
   var hv = document.querySelector('.hero-video');
   var pause = document.querySelector('.hero-pause');
-  if (hv && !reduce && !lowData) {
-    window.addEventListener('load', function () {
-      hv.src = hv.getAttribute('data-src');
+  if (hv && !reduce && !lowData && !slow) {
+    var startFilm = function () {
+      var small = window.matchMedia('(max-width: 760px)').matches && hv.getAttribute('data-src-sm');
+      hv.src = small || hv.getAttribute('data-src');
       hv.addEventListener('playing', function () { hv.classList.add('on'); }, { once: true });
       hv.play().then(function () { pause.hidden = false; }).catch(function () {});
-    });
+    };
+    var afterPaint = function () {
+      var idle = window.requestIdleCallback || function (fn) { return setTimeout(fn, 1200); };
+      setTimeout(function () { idle(startFilm, { timeout: 3000 }); }, 600);
+    };
+    if (document.readyState === 'complete') afterPaint(); else window.addEventListener('load', afterPaint, { once: true });
     pause.addEventListener('click', function () {
       var paused = pause.getAttribute('aria-pressed') === 'true';
       if (paused) { hv.play(); } else { hv.pause(); }
@@ -514,6 +606,7 @@
   // Lava: scripted chat. Customer taps a reply, Lava answers, the owner approves before anything is confirmed.
   var log = document.querySelector('[data-lava-log]');
   if (!log) return;
+  var LR = document.documentElement.getAttribute('data-root') || '';
   var replies = document.querySelector('[data-lava-replies]');
   var bizEl = document.querySelector('[data-lava-biz]');
   var phone = document.getElementById('lava-phone');
@@ -522,7 +615,7 @@
 
   var S = {
     restaurant: {
-      biz: 'Sample restaurant', bg: 'assets/photo/restaurant.webp',
+      biz: 'Sample restaurant', bg: LR + 'assets/photo/restaurant.webp',
       start: 'open',
       steps: {
         open: { me: 'Hi, are you open tonight?', bot: ['Hi! Yes, we are open until 11pm tonight. Would you like the menu or a table?'], next: [['See the menu', 'menu'], ['Book a table', 'book']] },
@@ -532,7 +625,7 @@
       }
     },
     hotel: {
-      biz: 'Sample guesthouse', bg: 'assets/photo/hotel.webp',
+      biz: 'Sample guesthouse', bg: LR + 'assets/photo/hotel.webp',
       start: 'open',
       steps: {
         open: { me: 'Do you have a room this Friday?', bot: ['Hello! Yes, a sea view double is free on Friday. Shall I hold it for you?'], next: [['Is breakfast included?', 'bf'], ['Yes, hold it', 'name']] },
@@ -542,7 +635,7 @@
       }
     },
     shop: {
-      biz: 'Sample phone shop', bg: 'assets/photo/shopfront.webp',
+      biz: 'Sample phone shop', bg: LR + 'assets/photo/shopfront.webp',
       start: 'open',
       steps: {
         open: { me: 'Do you have phone chargers?', bot: ['Yes, we have USB-C and iPhone chargers in stock. Which one do you need?'], next: [['USB-C', 'how'], ['iPhone', 'how']] },
@@ -641,7 +734,8 @@
 (function () {
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var vids = document.querySelectorAll('video[data-inview]');
-  if (!vids.length || reduce || !('IntersectionObserver' in window)) return;
+  var c = navigator.connection || {};
+  if (!vids.length || reduce || c.saveData || /(^|-)2g$/.test(c.effectiveType || '') || !('IntersectionObserver' in window)) return;
   vids.forEach(function (v) {
     var btn = v.parentNode.querySelector('.live-toggle');
     if (btn) btn.addEventListener('click', function () {
@@ -715,7 +809,7 @@
   var screen = app.querySelector('[data-au-screen]'), logEl = app.querySelector('[data-au-log]');
   var titleEl = app.querySelector('[data-au-title]'), trigEl = app.querySelector('[data-au-trig]');
   var statusEl = app.querySelector('[data-au-status]'), panel = app.querySelector('[data-au-panel]');
-  var IMG = 'assets/photo/';
+  var IMG = (document.documentElement.getAttribute('data-root') || '') + 'assets/photo/';
   var A = {
     lava: ['L', '#F7E04A', '#0B252A'], you: ['You', '#0B252A', '#F7E04A'], ig: ['IG', 'linear-gradient(135deg,#F58529,#DD2A7B 60%,#8134AF)', '#fff'],
     fb: ['f', '#1877F2', '#fff'], wa: ['WA', '#25D366', '#fff'], g: ['G', '#fff', '#4285F4'], sheet: ['Sh', '#0F9D58', '#fff'],
@@ -1003,6 +1097,7 @@
 (function () {
   var tabs = document.querySelectorAll('[data-wf]');
   if (!tabs.length) return;
+  var WR = document.documentElement.getAttribute('data-root') || '';
   var v = document.querySelector('[data-wf-video]'), h = document.querySelector('[data-wf-h]'), p = document.querySelector('[data-wf-p]'), dl = document.querySelector('[data-wf-dl]'), fig = document.getElementById('wf-film');
   var D = {
     rest: { f: 'restaurant', h: 'Friday, 7:42pm. The kitchen is full.', p: 'Watch two customers get answered while the owner keeps cooking. Lava handles the easy question, and the booking waits for one tap.', a: 'Illustrative demo: on a busy Friday night two customers message a restaurant on WhatsApp. Lava answers that jollof is available, drafts a booking for 4 at 8:30, the owner taps Approve, and the booking is added to the table sheet.' },
@@ -1013,9 +1108,9 @@
     tabs.forEach(function (t, k) { t.setAttribute('aria-selected', String(k === i)); t.tabIndex = k === i ? 0 : -1; });
     var d = D[tabs[i].getAttribute('data-wf')];
     fig.setAttribute('aria-labelledby', tabs[i].id);
-    h.textContent = d.h; p.textContent = d.p; dl.href = 'assets/video/workflows/' + d.f + '-9x16.mp4';
-    v.setAttribute('aria-label', d.a); v.poster = 'assets/video/workflows/' + d.f + '-16x9.webp';
-    var src = 'assets/video/workflows/' + d.f + '-16x9.mp4';
+    h.textContent = d.h; p.textContent = d.p; dl.href = WR + 'assets/video/workflows/' + d.f + '-9x16.mp4';
+    v.setAttribute('aria-label', d.a); v.poster = WR + 'assets/video/workflows/' + d.f + '-16x9.webp';
+    var src = WR + 'assets/video/workflows/' + d.f + '-16x9-lite.mp4';
     v.setAttribute('data-src', src);
     if (v.getAttribute('src')) { v.src = src; v.play().catch(function () {}); }
   }
@@ -1116,7 +1211,7 @@
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var $ = function (s) { return dlg.querySelector(s); };
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-  var IMG = 'assets/photo/';
+  var IMG = (document.documentElement.getAttribute('data-root') || '') + 'assets/photo/';
   var A = {
     Lava: { c: '#F7E04A', r: 'Front desk', trig: 'Whenever a customer messages', steps: [
       { t: 'A customer messages on WhatsApp', v: { k: 'chat', who: 'Aminata', msgs: [['in', 'Hi! Table for 4 at 8:30 tonight?'], ['in', 'Do you still have jollof?']] } },

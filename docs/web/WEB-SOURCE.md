@@ -10,6 +10,7 @@ SHA-256 below is of the **OneDrive source file**; text files (`html css js mjs j
 `.env.example`) are hashed with line endings normalised to LF. The 32 source files that were CRLF were
 converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` checks every `identical` row.
 "work (not served)" = deploy-optional folder, committed but never served (see `README.md`).
+`added` rows are files made in the repo, not on OneDrive (the Our work page, smaller `-lite` / `-sm` video encodes, the phone-size hero poster); their hash is of the repo file.
 
 | File | Source SHA-256 | Status | Deploy |
 |---|---|---|---|
@@ -23,13 +24,14 @@ converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` chec
 | `RESEARCH-v2.md` | `84e762ed1e43ed281b170bcd3c0f50cc5f14b20e69c2190941e689ba20d46065` | identical | site |
 | `TODO.md` | `04ce77f40f791ceff7321c29598eb378e119945a6cea4f93de42951bf9e6d5cf` | identical | site, CRLF→LF |
 | `VISION-artists-and-workflows.md` | `8c9f1a854ddd85dfb3e8391f65cc47292a978247909a0c9ef3e28f48d2ca9942` | identical | site |
-| `app.js` | `9db1b2d20e522351e00be2c1a0310c1798cbac87f3a69f38bbaa265cf4bae970` | identical | site, CRLF→LF |
+| `app.js` | `9db1b2d20e522351e00be2c1a0310c1798cbac87f3a69f38bbaa265cf4bae970` | edited | site, CRLF→LF |
 | `assets/fonts/geist-mono-500.woff2` | `72971bd4908d3984fa1b1426bb363730e4957e16a0f58bfbca76993095715488` | identical | site |
 | `assets/fonts/instrument-serif-400.woff2` | `5eb09b5ac0e28b67c2f041c8ba6d244604ca0c0980d65912ab2d47fed84ddc31` | identical | site |
 | `assets/fonts/inter-tight-600.woff2` | `db1a039d03ed646ef6a899f9ff92bf2f6fe382a49f1b0992066e85caf88b5be9` | identical | site |
 | `assets/fonts/inter-var.woff2` | `3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62` | identical | site |
 | `assets/photo/ecommerce.png` | `1b3f96764d4cf3e7a28f1cf1104cbc67ea256a4498c94fc370cdb0290f414a56` | identical | site |
 | `assets/photo/ecommerce.webp` | `73ff432317c07aae32e5b62930b42fa71a30fb4019ca277ca1148d25b8e4923e` | identical | site |
+| `assets/photo/hero-poster-sm.webp` | `66bef30a4611fd1cb65c151cc262012be1b95d0682e84d12d779e9f911be566e` | added | site |
 | `assets/photo/hero-poster.webp` | `137ea337d5f3185f8e23c69f7e8324b0527545badb027e3d801f8d4251001d5a` | identical | site |
 | `assets/photo/hotel.png` | `42d06b11996e3199a00bd672994dca51aa3075a192a17b0c2ad878f3717835f2` | identical | site |
 | `assets/photo/hotel.webp` | `81b21156c7c80df9a2676a454bcce2ffc485168900ff426be79849309aca2682` | identical | site |
@@ -39,13 +41,19 @@ converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` chec
 | `assets/photo/restaurant.webp` | `52212bc71f85bce600d4ba9f66d87655bdc16c16122f5bcddff98bda7e4823ea` | identical | site |
 | `assets/photo/shopfront.png` | `5891027975cee9e1f3815a3b496d0af6fcd603233eff16cdaad9cb318dee905b` | identical | site |
 | `assets/photo/shopfront.webp` | `a65cbaa10ca4fd8e94dd0ed51f834c38c8376192dfa375eebb7955f8bc42f4f9` | identical | site |
+| `assets/video/clip-hotel-lite.mp4` | `4414b7d84ba0e1a5bb37789f4f98f57c5bfd98e394b47781eaddf9a54b90b44f` | added | site |
 | `assets/video/clip-hotel.mp4` | `407c41630000435ba8a25af9b8308d04e279471913e6b666a3ca218c95b981e6` | identical | site |
+| `assets/video/clip-marketer-lite.mp4` | `e79c53c34a06b80f680d915723f19140f81ad1d572751f324a11a531096cde45` | added | site |
 | `assets/video/clip-marketer.mp4` | `7ac30589227811dc3dc184fee9b9dea331f9589053133bf4f7e5ad6ab51a35d3` | identical | site |
+| `assets/video/clip-restaurant-lite.mp4` | `35ed0d9770b5828c2a1040277a168e7d3a2be574f87fac16158a6656417ac5ee` | added | site |
 | `assets/video/clip-restaurant.mp4` | `a446711214370788ba139688a39d2128b0546402c278421eeae864d92986668b` | identical | site |
+| `assets/video/clip-shop-lite.mp4` | `80fb9a4601be838b51b4dabd417e075086f9feb405c86722fa1175c78c08c1d7` | added | site |
 | `assets/video/clip-shop.mp4` | `d6706295188663a0f11070d0443662cacd88a3e8bd6d1a2f704765b8ef74ea54` | identical | site |
 | `assets/video/dm.jpg` | `283a1cf2a0fdc8e49d103d8dc720475ca650afcd83a72bc91b545b497bd43de9` | identical | site |
 | `assets/video/dm.mp4` | `0a669ec50d91ba89370859cad3c5eb8c3c2b585d8d8f856ed80be0fd8a706550` | identical | site |
 | `assets/video/dm.webm` | `67c11a64e85bbcee359bc446738240cc32a4184bb5036d6362ac53b9e2e490c6` | identical | site |
+| `assets/video/hero-lite.mp4` | `9f24e85e5867d3abce44f68f7432ceb81bdb665a7fe6dc016ee3b6c71c878849` | added | site |
+| `assets/video/hero-sm.mp4` | `d39d2105a2910a05a27b4261f5cbdc2abacb19c2881208357053329fb29c9b65` | added | site |
 | `assets/video/hero.mp4` | `899cd14a12489535aa16c3816c79587c1f8ec018a3ac2642e5c3dea04671d403` | identical | site |
 | `assets/video/hiring.jpg` | `cec54c3f13fed6372b2c9d968897f6655fd410527035279ae9114f02d31177c0` | identical | site |
 | `assets/video/hiring.mp4` | `085a7d0f432cb03022f53f610de5aba02b3c5b28e73b4bafd587d62951449a4c` | identical | site |
@@ -73,12 +81,15 @@ converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` chec
 | `assets/video/watch.jpg` | `5ed0c152193461a2dfbf05c5194ca6b3a60088ebea54c5634676ac3c8080b2eb` | identical | site |
 | `assets/video/watch.mp4` | `b410e15928858b91935c3fa8ac9906ec74c92b4c596c1edcf5b3f5ba72776dd2` | identical | site |
 | `assets/video/watch.webm` | `f601bd6089f8abd0eef48e31a8275dcf29d1b5f2a685b66f049f7a478128039e` | identical | site |
+| `assets/video/workflows/hotel-16x9-lite.mp4` | `013227a31f230c997747a72bb7ffc8080e99c55ce01d2b9dcc132240dd6e2b47` | added | site |
 | `assets/video/workflows/hotel-16x9.mp4` | `2fa5d7667648b02c3d493062c20866b495730e71b5003b4aea652eab65c15519` | identical | site |
 | `assets/video/workflows/hotel-16x9.webp` | `8229cfd5beb689686148d0e4dc5bde69fd1ddeba5febc2003eb47d9269840932` | identical | site |
 | `assets/video/workflows/hotel-9x16.mp4` | `7b8270db375a4707d9119c3f8456d1161620cbd3e148a0755433412f6c5f1128` | identical | site |
+| `assets/video/workflows/restaurant-16x9-lite.mp4` | `6daa9d05289696e6413c2a0edd233c64ccaea6ada540961d07e81ce26b4f5cd4` | added | site |
 | `assets/video/workflows/restaurant-16x9.mp4` | `825b87cdeeec5b904cfd5a5098a3f181e5ce65f2131b037197abfa796b2f9732` | identical | site |
 | `assets/video/workflows/restaurant-16x9.webp` | `d0e64f2bcbc76e4eb60bffc86bb9f4d621aacb1bba43953c4118090949a70a68` | identical | site |
 | `assets/video/workflows/restaurant-9x16.mp4` | `976ab1f2ff72e2e447439dc6639bcdcb7484d9c22dbfef61bb1326201a6effcf` | identical | site |
+| `assets/video/workflows/shop-16x9-lite.mp4` | `7b2e6bc77dd19254c777128dd50cd41c171d420e12e5a738c9dae0d639e8ba59` | added | site |
 | `assets/video/workflows/shop-16x9.mp4` | `ccb663c2e5b70535381029a72f757218b24f3504d817b0b05b3e6ecb3398712f` | identical | site |
 | `assets/video/workflows/shop-16x9.webp` | `4e9a6f2369bda3b11da3650216ca010f19404e5adc8b3fd3662fe429e5e033cb` | identical | site |
 | `assets/video/workflows/shop-9x16.mp4` | `84f9e7945a6d2d52f26de27c650622f372af7abbde182e2183bd7e5695bbd383` | identical | site |
@@ -87,16 +98,21 @@ converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` chec
 | `assets/work/lavaall-phone.jpg` | `0ab3c765a382427be1041a84c344157ff922caf7fa8859b612adcde2dfdf691d` | identical | site |
 | `assets/work/lavaall-tablet.jpg` | `2537972b1aa3009465f010dd7675ec03b8455a8be2323b311b26fab7fba4de6d` | identical | site |
 | `assets/work/portfolio.jpg` | `ed741e5a5654b8d645171782932c0a6088443aa51e4eaa89ccc6758e33ed3003` | identical | site |
+| `assets/work/rec-hermes-lite.mp4` | `c01d2d0addb405ae78969f306a39b72243e79fc72cc3fe26fe519469128e2533` | added | site |
 | `assets/work/rec-hermes.mp4` | `48032903fe8411efa8cee484b9c2a09d85b831fedf3d96a76e781d46bd618e11` | identical | site |
 | `assets/work/rec-hermes.webp` | `5dda2ac30e2de628b93d8cac046e45c072a7b2eb294a82031e0746f037d02b96` | identical | site |
+| `assets/work/rec-lav-lite.mp4` | `ce756efa01b5217e02ce0c8f9c17038248e0384e70e901f08e005253b22aa5a3` | added | site |
 | `assets/work/rec-lav.mp4` | `ff91de0eb3c5ce98d5944a1be1983fe0834be00396a825c13f66d03418af7e16` | identical | site |
 | `assets/work/rec-lav.webp` | `a809f278fb67a3ad9f056f1a607f15f4e92fe9f0e11207e06e87c723eef5e1b8` | identical | site |
 | `assets/work/rec-port.mp4` | `2f478732fd26f7d7d4f5add066391fb6602e961c457f30c842c5ec64d803a08b` | identical | site |
 | `assets/work/rec-port.webp` | `ab6b03d20f85f99f0e508437053dc2b64fdd117a027cf7f6206b83485e01ab2d` | identical | site |
+| `assets/work/rec-pourplay-lite.mp4` | `e35ae74ce83511a341ac0be3091e7ff1964cb0914faad9e2ccd6ed436c8255d8` | added | site |
 | `assets/work/rec-pourplay.mp4` | `079d6242ae97517023216a9d82f7f29a6eb4b5481a19c494a12c770a78806cf2` | identical | site |
 | `assets/work/rec-pourplay.webp` | `0f418f8393e881c2d5c6b45b77cc16e45ef79300a8d84e21a1a2c28376908803` | identical | site |
+| `assets/work/rec-star-lite.mp4` | `88576145ba6ea7b2f67e08b686f7aa86b9ed8a8462620fd7de3a5de77e35a47b` | added | site |
 | `assets/work/rec-star.mp4` | `b3643674e2ce1bf7aa4ae497d6dd5387e6e5e54daa06554a22e34e35e5973d88` | identical | site |
 | `assets/work/rec-star.webp` | `c62e1c3db56b7381ec5cd8cef9f7d682f558480e41ef0a44753651d674324e3f` | identical | site |
+| `assets/work/rec-terra-lite.mp4` | `29d2678348622139acb0c414bf3abb06d39b136131943f579b3379ac2c7ec846` | added | site |
 | `assets/work/rec-terra.mp4` | `57cffcdea82d2df134ea8ae0ed87115fe96e003b67b1f19992f631d741964cde` | identical | site |
 | `assets/work/rec-terra.webp` | `b34c39c7f307d8632a72fc6d4fc424b959eb23f09c6b9c30b3d3581a08a2946b` | identical | site |
 | `assets/work/starlink.jpg` | `cfc250a01f045ec66e0a556b33af138fec738f5ad5373b9a6f014c867c38c4aa` | identical | site |
@@ -502,7 +518,7 @@ converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` chec
 | `showcase/triple-t/NOTES.md` | `e41bfc87ab419aa17c59c2025c46f7279a4a0c8b8b7fb847ca09ea50a5101f6e` | identical | site, CRLF→LF |
 | `showcase/triple-t/assets/crowd.webp` | `3b2df5790f89e6c8da4e5373a20a1b93b5f7888f21f07dbcae0f6bf67f169bc1` | identical | site |
 | `showcase/triple-t/index.html` | `755f701e6d5c4da581e84072096ee6a857fab9a731631eba7364f49dc150346e` | identical | site, CRLF→LF |
-| `styles.css` | `c8cf2d6642a7c81af0a4a95b315ae17d0db652d47bc0013262c8d61a419077d9` | identical | site, CRLF→LF |
+| `styles.css` | `c8cf2d6642a7c81af0a4a95b315ae17d0db652d47bc0013262c8d61a419077d9` | edited | site, CRLF→LF |
 | `templates/base.css` | `48d419b052b6bbdd06916e12b7d2df6eafafc864e8a3fd8fdbceb676e34c2f1b` | identical | site |
 | `templates/base.js` | `abd88b0436fa9db36a001e0f242ea4c23458ca99dd6f7294c7fcef7836cb4545` | identical | site, CRLF→LF |
 | `templates/t1.html` | `0064001773082a790dfdefe34baebcb4412b418bbca6563e4b301e82167a2740` | identical | site |
@@ -577,11 +593,23 @@ converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` chec
 | `videos/hotel.html` | `505641739c70caacfc84486878234b36504c71ca1c7640a60720777577eb37c5` | identical | site, CRLF→LF |
 | `videos/restaurant.html` | `e148757f30081bf5185ac6c11fffd77f5282efc6ae4c5802f112af34e343c230` | identical | site, CRLF→LF |
 | `videos/shop.html` | `4ec4676881b66b3ea92e5470bec0ee8f7c860a6aa12fca1b711d132747701270` | identical | site, CRLF→LF |
+| `work/index.html` | `9f064118320dcb5fb056f204d727d31759388ef5913e37aad0e9b8ee61425571` | added | site |
 
 ## Integration edits
 - `index.html`: `<meta name="robots" content="noindex, nofollow">` (hidden section, same as Starlink); the
   contact cards' `sales@lavaall.com` and `info@lavaall.com` links now go to `support@lavaall.com` (one LAVAALL
   mailbox). The three role headings and mail subjects are unchanged so the team can still tell them apart.
 - `content/en.json`: the same email change in `contact.roles[].email`.
-- Nothing else changed. `app.js` already hides the WhatsApp button while the number is empty, and the
-  form already says nothing was sent.
+- v2 (Oct 4, 2026, Osman approved 8:39 PM CT): the page was split in two and made lighter. See `README.md` ("v2").
+  - `index.html`: keeps hero, Meet Lava, the workflow film, Who it is for, a short "Our work" teaser strip, How it works / FAQ
+    and Contact. Builds, Automations, Business OS, Follow one request, For artists, Templates and the agent dialog moved to
+    `work/index.html` (added). Nav: Try Lava, Who it is for, How it works, **Our work**, Contact. Hero + contact WhatsApp
+    buttons (`data-wa`, hidden while `whatsapp.number` is empty). Hero poster `srcset` with a 640px WebP; hero film and
+    tiles use `-lite` / `-sm` clips; below-the-fold video posters are `data-poster` (lazy). Form: honeypot field, `aria-live`
+    status. Footer links to the umbrella's `/privacy.html` and `/terms.html`.
+  - `app.js`: form posts to `/web/api/inquiry` with busy / success / mock / honest error states; WhatsApp number comes from the
+    server (`window.LV_WEB.whatsapp`, read from `content/en.json`); lazy posters; hero film after load + idle, skipped on
+    reduced motion, save-data and 2g/3g / < 0.7 Mbps; recordings skipped on save-data / 2g; `data-root` prefix for asset paths
+    built in script; "Use this look" on the Our work page opens the main form prefilled; lite workflow films.
+  - `styles.css`: one appended block (teaser, Our work header + CTA, form states, Follow one request card width capped so
+    the heading never sits under the station cards on short screens). Existing tokens only.

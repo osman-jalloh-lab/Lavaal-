@@ -7,6 +7,7 @@
 <title>LAVAALL Web | Websites and automation for West African businesses</title>
 <meta name="description" content="Websites, animated storefronts and AI automation for restaurants, hotels, shops and marketers in Sierra Leone, Guinea and Liberia.">
 <meta name="theme-color" content="#0B252A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230B252A'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23F7E04A'/%3E%3C/svg%3E">
 <script>document.documentElement.classList.remove('no-js')</script>
 <meta property="og:type" content="website">
 <meta property="og:title" content="LAVAALL Web | Websites and automation for West African businesses">
@@ -21,18 +22,17 @@
 <nav class="nav" aria-label="Main">
   <a class="brand" href="#top">LAVAALL Web</a>
   <a class="link hide-sm" href="#lava">Try Lava</a>
-  <a class="link hide-sm" href="#work">Work</a>
-  <a class="link hide-sm" href="#artists">Artists</a>
-  <a class="link hide-sm" href="#templates">Templates</a>
+  <a class="link hide-sm" href="#for">Who it is for</a>
   <a class="link hide-sm" href="#how">How it works</a>
+  <a class="link" href="work/">Our work</a>
   <a class="btn btn-solid" href="#contact">Contact</a>
 </nav>
 
 <main id="top">
   <header class="hero">
     <div class="hero-media" aria-hidden="true">
-      <img class="hero-poster" src="assets/photo/hero-poster.webp" alt="" width="1280" height="716" fetchpriority="high">
-      <video class="hero-video" muted playsinline loop preload="none" data-src="assets/video/hero.mp4" poster="assets/photo/hero-poster.webp"></video>
+      <img class="hero-poster" src="assets/photo/hero-poster.webp" srcset="assets/photo/hero-poster-sm.webp 640w, assets/photo/hero-poster.webp 1280w" sizes="100vw" alt="" width="1280" height="716" fetchpriority="high">
+      <video class="hero-video" muted playsinline loop preload="none" data-src="assets/video/hero-lite.mp4" data-src-sm="assets/video/hero-sm.mp4"></video>
     </div>
     <div class="hero-in">
       <p class="label rv">LAVAALL Web &middot; Sierra Leone &middot; Guinea &middot; Liberia</p>
@@ -42,7 +42,8 @@
         <div class="hero-cta">
           <div class="hero-actions">
             <a class="btn btn-sun" href="#lava">Try Lava, our assistant</a>
-            <a class="btn btn-glass" href="#work">See our work</a>
+            <a class="btn btn-glass" href="work/">See our work</a>
+            <a class="btn btn-glass" data-wa href="#" hidden>Message us on WhatsApp</a>
           </div>
           <p class="hero-small">Free demo in your browser. No sign-up.</p>
         </div>
@@ -98,7 +99,7 @@
         <a class="wf-dl rv" data-wf-dl href="assets/video/workflows/restaurant-9x16.mp4" download>Download the vertical version for WhatsApp Status</a>
       </div>
       <figure class="wf-film frame-live rv" id="wf-film" role="tabpanel" aria-labelledby="wft-rest">
-        <video muted playsinline loop preload="none" data-inview data-src="assets/video/workflows/restaurant-16x9.mp4" poster="assets/video/workflows/restaurant-16x9.webp" data-wf-video aria-label="Illustrative demo: on a busy Friday night two customers message a restaurant on WhatsApp. Lava answers that jollof is available, drafts a booking for 4 at 8:30, the owner taps Approve, and the booking is added to the table sheet."></video>
+        <video muted playsinline loop preload="none" data-inview data-src="assets/video/workflows/restaurant-16x9-lite.mp4" data-poster="assets/video/workflows/restaurant-16x9.webp" data-wf-video aria-label="Illustrative demo: on a busy Friday night two customers message a restaurant on WhatsApp. Lava answers that jollof is available, drafts a booking for 4 at 8:30, the owner taps Approve, and the booking is added to the table sheet."></video>
         <button class="live-toggle" type="button" aria-pressed="false" hidden><span class="lt-t">Pause</span></button>
       </figure>
     </div>
@@ -111,7 +112,7 @@
     </div>
     <div class="biz-grid">
       <article class="biz-card bz-rest rv">
-        <video muted playsinline loop preload="none" data-src="assets/video/clip-restaurant.mp4" poster="assets/photo/restaurant.webp" aria-hidden="true"></video>
+        <video muted playsinline loop preload="none" data-src="assets/video/clip-restaurant-lite.mp4" data-poster="assets/photo/restaurant.webp" aria-hidden="true"></video>
         <div class="bz-ui bz-notes" aria-hidden="true">
           <div class="bz-note"><span class="bz-ic">WA</span><span><b>New booking</b>Table for 4 tonight, 7pm</span><i>now</i></div>
           <div class="bz-note"><span class="bz-ic">WA</span><span><b>Answered by Lava</b>Yes, the kitchen is open until 11pm</span><i>2m</i></div>
@@ -120,7 +121,7 @@
         <div class="biz-cap"><p class="bz-k">Restaurants</p><h3>Every booking answered, even in the dinner rush.</h3></div>
       </article>
       <article class="biz-card bz-hotel rv">
-        <video muted playsinline loop preload="none" data-src="assets/video/clip-hotel.mp4" poster="assets/photo/hotel.webp" aria-hidden="true"></video>
+        <video muted playsinline loop preload="none" data-src="assets/video/clip-hotel-lite.mp4" data-poster="assets/photo/hotel.webp" aria-hidden="true"></video>
         <div class="bz-ui bz-cal" aria-hidden="true">
           <p class="bz-cal-h">Sea view double</p>
           <div class="bz-week"><span>M</span><span>T</span><span>W</span><span>T</span><span class="bz-hold">F</span><span>S</span><span>S</span></div>
@@ -129,7 +130,7 @@
         <div class="biz-cap"><p class="bz-k">Hotels and guesthouses</p><h3>Rooms held day and night. You confirm.</h3></div>
       </article>
       <article class="biz-card bz-shop rv">
-        <video muted playsinline loop preload="none" data-src="assets/video/clip-shop.mp4" poster="assets/photo/shopfront.webp" aria-hidden="true"></video>
+        <video muted playsinline loop preload="none" data-src="assets/video/clip-shop-lite.mp4" data-poster="assets/photo/shopfront.webp" aria-hidden="true"></video>
         <div class="bz-ui bz-order" aria-hidden="true">
           <p class="bz-order-h"><b>Order 0042</b><span>1 USB-C charger</span></p>
           <ol class="bz-steps"><li>Ordered</li><li>Packed</li><li>On the way</li></ol>
@@ -137,9 +138,9 @@
         <div class="biz-cap"><p class="bz-k">Shops</p><h3>Orders sorted before you pick up the phone.</h3></div>
       </article>
       <article class="biz-card bz-mkt rv">
-        <video muted playsinline loop preload="none" data-src="assets/video/clip-marketer.mp4" poster="assets/photo/marketer.webp" aria-hidden="true"></video>
+        <video muted playsinline loop preload="none" data-src="assets/video/clip-marketer-lite.mp4" data-poster="assets/photo/marketer.webp" aria-hidden="true"></video>
         <div class="bz-ui bz-post" aria-hidden="true">
-          <img src="assets/photo/restaurant.webp" alt="" width="800" height="450" loading="lazy">
+          <img src="assets/photo/restaurant.webp" alt="" width="800" height="450" loading="lazy" decoding="async">
           <div class="bz-post-b">
             <p class="bz-post-k">Draft for client &middot; Friday 6pm</p>
             <p class="bz-post-t">Friday nights at the grill. Book your table on WhatsApp.</p>
@@ -152,293 +153,20 @@
     <p class="biz-note">Scenes are illustrative, not client locations.</p>
   </section>
 
-  <section id="work" class="light" aria-labelledby="work-h">
-    <div class="sec-head">
-      <p class="label rv">Work</p>
-      <h2 id="work-h" class="rv">Things we have built</h2>
-      <p class="rv">Real builds, recorded running. No mockups.</p>
-    </div>
-
-    <div class="frames">
-      <article class="frame rv">
-        <figure class="frame-live">
-          <video muted playsinline loop preload="none" data-inview data-src="assets/work/rec-pourplay.mp4" poster="assets/work/rec-pourplay.webp" aria-label="Recording of the POUR / PLAY site: realistic film of a coffee grinder, a gooseneck kettle pouring into a pour-over, and coffee poured into a terracotta cup, changing as the page scrolls."></video>
-          <button class="live-toggle" type="button" aria-pressed="false" hidden><span class="lt-t">Pause</span></button>
-          <span class="live-tag">Recorded from the real build</span>
-        </figure>
-        <div class="frame-cap">
-          <h3>POUR / PLAY</h3>
-          <div class="meta">
-            <p class="label">Scroll-driven film site &middot; sample brand</p>
-            <p>A coffee journey you scroll through: grind, pour, sip, then shop. Cinematic product films change as you scroll, built for a fictional brand. <a class="tp-open" href="showcase/pour-play/" target="_blank" rel="noopener">Open the live site<span aria-hidden="true"> &#8599;</span><span class="sr"> (opens in a new tab)</span></a></p>
-            <ul class="tags"><li>Film</li><li>Scroll story</li><li>Shop</li></ul>
-          </div>
-        </div>
-      </article>
-
-      <article class="frame rv">
-        <figure class="frame-live">
-          <video muted playsinline loop preload="none" data-inview data-src="assets/work/rec-terra.mp4" poster="assets/work/rec-terra.webp" aria-label="Recording of the TERRA restaurant site: realistic films of burrata being cut open, a pizza slice lifted with a long cheese pull, and suya skewers flaring over glowing coals, changing as the page scrolls."></video>
-          <button class="live-toggle" type="button" aria-pressed="false" hidden><span class="lt-t">Pause</span></button>
-          <span class="live-tag">Recorded from the real build</span>
-        </figure>
-        <div class="frame-cap">
-          <h3>TERRA</h3>
-          <div class="meta">
-            <p class="label">Fine-dining restaurant site &middot; sample brand</p>
-            <p>Italian craft, American smoke, West African fire. A candlelit course journey in real food films, a full menu and wine list, and a reservation flow, built for a fictional restaurant. <a class="tp-open" href="showcase/terra/" target="_blank" rel="noopener">Open the live site<span aria-hidden="true"> &#8599;</span><span class="sr"> (opens in a new tab)</span></a></p>
-            <ul class="tags"><li>Film</li><li>Restaurant</li><li>Reservations</li></ul>
-          </div>
-        </div>
-      </article>
-
-      <article class="frame rv">
-        <figure class="frame-live">
-          <video muted playsinline loop preload="none" data-inview data-src="assets/work/rec-star.mp4" poster="assets/work/rec-star.webp" aria-label="Recording of the LAVAALL Starlink site: the kit parts assemble piece by piece as the page scrolls."></video>
-          <button class="live-toggle" type="button" aria-pressed="false" hidden><span class="lt-t">Pause</span></button>
-          <span class="live-tag">Recorded from the real build</span>
-        </figure>
-        <div class="frame-cap">
-          <h3>LAVAALL Starlink</h3>
-          <div class="meta">
-            <p class="label">Product concept</p>
-            <p>An image-first concept for selling satellite internet kits. The kit builds itself piece by piece as you scroll, with one clear path to a quote. A design concept, not a live store.</p>
-            <ul class="tags"><li>Scroll animation</li><li>Image-first</li><li>Mobile</li></ul>
-          </div>
-        </div>
-      </article>
-
-      <article class="frame rv">
-        <figure class="frame-live">
-          <video muted playsinline loop preload="none" data-inview data-src="assets/work/rec-lav.mp4" poster="assets/work/rec-lav.webp" aria-label="Recording of the LAVAALL website: the animated hero, service cards and delivery section scrolling past."></video>
-          <button class="live-toggle" type="button" aria-pressed="false" hidden><span class="lt-t">Pause</span></button>
-          <span class="live-tag">Recorded from the real build</span>
-        </figure>
-        <div class="frame-cap">
-          <h3>LAVAALL</h3>
-          <div class="meta">
-            <p class="label">Wholesale and retail catalogue site</p>
-            <p>Browse by category, brand and model, then request a quote for any item. Built for a distributor selling IT, electrical and cooling equipment, in three languages.</p>
-            <ul class="tags"><li>Catalogue</li><li>Quote requests</li><li>EN / FR / KR</li></ul>
-          </div>
-        </div>
-      </article>
-
-      <article class="frame rv">
-        <figure class="frame-live">
-          <video muted playsinline loop preload="none" data-inview data-src="assets/work/rec-hermes.mp4" poster="assets/work/rec-hermes.webp" aria-label="Recording of the Hermes OS dashboard: the agent office, approval queue and finance panels scrolling past."></video>
-          <button class="live-toggle" type="button" aria-pressed="false" hidden><span class="lt-t">Pause</span></button>
-          <span class="live-tag">Recorded from the live site</span>
-        </figure>
-        <div class="frame-cap">
-          <h3>Hermes OS</h3>
-          <div class="meta">
-            <p class="label">AI operating system</p>
-            <p>Eleven specialised agents handle email, calendar, finance, memory and research from one dashboard and a Telegram chat. Agents draft; a person approves before anything is sent.</p>
-            <ul class="tags"><li>AI agents</li><li>Dashboard</li><li>Approval queue</li></ul>
-          </div>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <section id="auto" class="light au" aria-labelledby="au-h">
-    <div class="sec-head">
-      <p class="label rv">Automations</p>
-      <h2 id="au-h" class="rv">Watch the work happen.</h2>
-      <p class="rv">Pick an automation and watch every step run, with the real words it writes. Anything that goes out to a customer waits for your approval.</p>
-    </div>
-
-    <div class="au-app rv" data-au>
-      <div class="au-bar">
-        <span class="au-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="au-name">Lava &middot; Automations</span>
-        <span class="au-status" data-au-status><i aria-hidden="true"></i><span>Ready</span></span>
-        <span class="au-badge">Illustrative demo</span>
+  <section id="work-teaser" class="light wt" aria-labelledby="wt-h">
+    <div class="wt-in">
+      <div class="wt-copy">
+        <p class="label rv">Our work</p>
+        <h2 id="wt-h" class="rv">See what we have built.</h2>
+        <p class="rv">Real sites recorded running, six live templates, the automations player and the agent office. All on one page.</p>
+        <a class="btn btn-solid rv" href="work/">See our work</a>
       </div>
-      <div class="au-body">
-        <div class="au-list" role="tablist" aria-label="Automations" aria-orientation="vertical" data-au-list></div>
-        <div class="au-main" role="tabpanel" data-au-panel>
-          <div class="au-head">
-            <div><p class="au-trig" data-au-trig></p><h3 class="au-title" data-au-title></h3></div>
-            <button type="button" class="au-replay" data-au-replay>Run again</button>
-          </div>
-          <ol class="au-pipe" data-au-pipe aria-label="Steps"></ol>
-          <div class="au-split">
-            <div class="au-screen" data-au-screen aria-live="polite"></div>
-            <div class="au-logwrap"><p class="au-logh">Run log</p><ol class="au-log" data-au-log></ol></div>
-          </div>
-        </div>
-      </div>
+      <ul class="wt-shots rv" aria-label="From our work">
+        <li><a href="work/#work"><img src="assets/work/rec-terra.webp" alt="" width="1280" height="800" loading="lazy" decoding="async"><span>TERRA, sample restaurant site</span></a></li>
+        <li><a href="work/#work"><img src="assets/work/rec-pourplay.webp" alt="" width="1280" height="800" loading="lazy" decoding="async"><span>POUR / PLAY, sample coffee site</span></a></li>
+        <li><a href="work/#work"><img src="assets/work/rec-star.webp" alt="" width="1280" height="800" loading="lazy" decoding="async"><span>LAVAALL Starlink concept</span></a></li>
+      </ul>
     </div>
-    <p class="au-also rv"><span>Also available:</span> search visibility, quotes and invoices, hiring helper, customer feedback, shop support agent.</p>
-  </section>
-
-  <section class="os2" id="os" aria-labelledby="os-h">
-    <div class="sec-head">
-      <p class="label rv">Business OS</p>
-      <h2 id="os-h" class="rv">An office of agents, working for you.</h2>
-      <p class="rv">Each agent has one job. They work all day, and bring anything important to your approval queue. Modelled on Hermes OS, which runs this way every day.</p>
-    </div>
-    <div class="of rv" data-of>
-      <div class="of-top">
-        <div><p class="of-hi">Good morning, Owner.</p><p class="of-sub">The office is open. 8 agents on shift.</p></div>
-        <div class="of-stats"><span>Waiting for you <b data-of-wait>0</b></span><span>Done today <b data-of-done>0</b></span><span class="of-badge">Illustrative demo</span></div>
-      </div>
-      <div class="of-grid">
-        <div class="of-floor" data-of-floor></div>
-        <aside class="of-queue" aria-labelledby="of-qh">
-          <p class="of-qh" id="of-qh">Awaiting your approval</p>
-          <ol data-of-queue aria-live="polite"></ol>
-          <p class="of-empty" data-of-empty>All clear. Nothing needs you right now.</p>
-        </aside>
-      </div>
-    </div>
-  </section>
-
-  <section class="fx" id="flow" aria-labelledby="fx-h">
-    <div class="fx-pin" data-fx>
-      <div class="fx-head">
-        <p class="label">Follow one request</p>
-        <h2 id="fx-h">From &ldquo;Table for 4?&rdquo; to booked, desk by desk.</h2>
-        <p class="fx-sub">Scroll to walk the request across the office. Each agent does one job, then hands it on.</p>
-      </div>
-      <div class="fx-view">
-        <ol class="fx-track" data-fx-track></ol>
-        <div class="fx-packet" data-fx-packet aria-hidden="true"><span class="fx-pk-k">Request</span><b data-fx-pk>New WhatsApp message</b></div>
-      </div>
-      <div class="fx-progress" aria-hidden="true"><i data-fx-bar></i></div>
-      <p class="fx-badge">Illustrative demo &middot; sample restaurant</p>
-    </div>
-  </section>
-
-  <section id="artists" class="ar" aria-labelledby="ar-h">
-    <div class="ar-grid">
-      <div class="ar-copy">
-        <p class="label rv">For artists</p>
-        <h2 id="ar-h" class="rv">Your music. Your fans. Your money.</h2>
-        <p class="rv">Most artists rent their audience from Instagram, YouTube and flyers. We build you your own home: one place for your songs, videos, shows and drops, and a fan list you own. You decide what goes out, when, and how you get paid.</p>
-        <ul class="ar-points rv">
-          <li><b>Your own fan list</b><span>Fans join on WhatsApp. On drop day they hear from you directly, not from an algorithm.</span></li>
-          <li><b>Control what you release</b><span>Pre-listens for your list, release dates you set, and your whole catalog in one place.</span></li>
-          <li><b>Ways to earn</b><span>Ticket links for every show, merch drops, paid early access and booking requests from promoters and brands.</span></li>
-          <li><b>Lava works for you too</b><span>Answers fans about shows and tickets day and night. Anything about money or bookings goes to your manager first.</span></li>
-        </ul>
-        <div class="ar-cta rv">
-          <a class="btn btn-sun" href="showcase/triple-t/" target="_blank" rel="noopener">See Triple T&rsquo;s hub<span class="sr"> (opens in a new tab)</span></a>
-          <a class="btn btn-line" href="showcase/salone-artists/" target="_blank" rel="noopener">Salone Sound catalog<span class="sr"> (opens in a new tab)</span></a>
-        </div>
-        <p class="ar-note rv">Live example: Triple T (Triple Threat Team), shown with the artists&rsquo; approval.</p>
-      </div>
-      <div class="ar-device rv">
-        <div class="tp-live ar-phone" data-tp-live>
-          <iframe src="about:blank" data-src="showcase/triple-t/" title="Live preview of the Triple T artist hub" tabindex="-1" aria-hidden="true" loading="lazy" scrolling="no"></iframe>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="templates" class="tp" aria-labelledby="tp-h">
-    <div class="sec-head">
-      <p class="label rv">Templates</p>
-      <h2 id="tp-h" class="rv">Pick a look. We fill it with your business.</h2>
-      <p class="rv">Six real, working sites, running live below as they would on a phone. The businesses are made up. Open any one to try it full screen.</p>
-    </div>
-
-    <div class="tp-ctl">
-      <p class="tp-hint" id="tp-hint">Swipe or scroll sideways. <span class="tp-count" data-tp-count aria-live="polite">1 of 6</span></p>
-      <div class="tp-btns">
-        <button class="tp-btn" type="button" data-tp-prev aria-label="Previous template" aria-controls="tp-strip"><span aria-hidden="true">&larr;</span></button>
-        <button class="tp-btn" type="button" data-tp-next aria-label="Next template" aria-controls="tp-strip"><span aria-hidden="true">&rarr;</span></button>
-      </div>
-    </div>
-
-    <ol class="tp-strip" id="tp-strip" tabindex="0" aria-label="Template styles" aria-describedby="tp-hint">
-
-      <li class="tp-card">
-        <div class="tp-live" data-tp-live>
-          <iframe src="about:blank" data-src="templates/t1.html" title="Live preview: Harbour House guesthouse sample template" tabindex="-1" aria-hidden="true" loading="lazy" scrolling="no"></iframe>
-        </div>
-        <div class="tp-info">
-          <p class="tp-meta"><span>01</span><span>Monumental dark</span></p>
-          <h3>Guesthouse</h3>
-          <p>A big name, one strong room photo and booking up front. For hotels and guesthouses that want to feel premium.</p>
-          <p class="tp-tags"><span class="tp-sample">Sample business</span><span>Inspired by Exo Ape</span></p>
-          <button class="tp-use" type="button" data-tp-use data-type="Hotel or guesthouse" data-name="Monumental dark">Use this look</button>
-          <a class="tp-open" href="templates/t1.html" target="_blank" rel="noopener">Open live preview<span aria-hidden="true"> &#8599;</span><span class="sr"> (opens in a new tab)</span></a>
-        </div>
-      </li>
-
-      <li class="tp-card">
-        <div class="tp-live" data-tp-live>
-          <iframe src="about:blank" data-src="templates/t2.html" title="Live preview: kora/studio marketing studio sample template" tabindex="-1" aria-hidden="true" loading="lazy" scrolling="no"></iframe>
-        </div>
-        <div class="tp-info">
-          <p class="tp-meta"><span>02</span><span>Glow and pills</span></p>
-          <h3>Marketing studio</h3>
-          <p>Bold colour, soft glow and a content calendar on show. For marketers and promoters who sell attention.</p>
-          <p class="tp-tags"><span class="tp-sample">Sample business</span><span>Inspired by OHZI</span></p>
-          <button class="tp-use" type="button" data-tp-use data-type="Marketing or agency" data-name="Glow and pills">Use this look</button>
-          <a class="tp-open" href="templates/t2.html" target="_blank" rel="noopener">Open live preview<span aria-hidden="true"> &#8599;</span><span class="sr"> (opens in a new tab)</span></a>
-        </div>
-      </li>
-
-      <li class="tp-card">
-        <div class="tp-live" data-tp-live>
-          <iframe src="about:blank" data-src="templates/t3.html" title="Live preview: Volt Supply electronics shop sample template" tabindex="-1" aria-hidden="true" loading="lazy" scrolling="no"></iframe>
-        </div>
-        <div class="tp-info">
-          <p class="tp-meta"><span>03</span><span>Bold and technical</span></p>
-          <h3>Online electronics shop</h3>
-          <p>Stock, delivery and order status in plain view. For shops that sell online and deliver.</p>
-          <p class="tp-tags"><span class="tp-sample">Sample business</span><span>Inspired by basement.studio</span></p>
-          <button class="tp-use" type="button" data-tp-use data-type="Online shop" data-name="Bold and technical">Use this look</button>
-          <a class="tp-open" href="templates/t3.html" target="_blank" rel="noopener">Open live preview<span aria-hidden="true"> &#8599;</span><span class="sr"> (opens in a new tab)</span></a>
-        </div>
-      </li>
-
-      <li class="tp-card">
-        <div class="tp-live" data-tp-live>
-          <iframe src="about:blank" data-src="templates/t4.html" title="Live preview: Morning Bakery sample template" tabindex="-1" aria-hidden="true" loading="lazy" scrolling="no"></iframe>
-        </div>
-        <div class="tp-info">
-          <p class="tp-meta"><span>04</span><span>Light and friendly</span></p>
-          <h3>Bakery and caf&eacute;</h3>
-          <p>Soft shapes, warm colour and a simple pickup order. For caf&eacute;s, bakeries and family restaurants.</p>
-          <p class="tp-tags"><span class="tp-sample">Sample business</span><span>Inspired by Lusion</span></p>
-          <button class="tp-use" type="button" data-tp-use data-type="Restaurant" data-name="Light and friendly">Use this look</button>
-          <a class="tp-open" href="templates/t4.html" target="_blank" rel="noopener">Open live preview<span aria-hidden="true"> &#8599;</span><span class="sr"> (opens in a new tab)</span></a>
-        </div>
-      </li>
-
-      <li class="tp-card">
-        <div class="tp-live" data-tp-live>
-          <iframe src="about:blank" data-src="templates/t5.html" title="Live preview: Lappa and Co. boutique sample template" tabindex="-1" aria-hidden="true" loading="lazy" scrolling="no"></iframe>
-        </div>
-        <div class="tp-info">
-          <p class="tp-meta"><span>05</span><span>Editorial</span></p>
-          <h3>Fashion boutique</h3>
-          <p>Magazine type and clean lines for boutiques and tailors showing new stock every week.</p>
-          <p class="tp-tags"><span class="tp-sample">Sample business</span><span>Inspired by Locomotive</span></p>
-          <button class="tp-use" type="button" data-tp-use data-type="Online shop" data-name="Editorial">Use this look</button>
-          <a class="tp-open" href="templates/t5.html" target="_blank" rel="noopener">Open live preview<span aria-hidden="true"> &#8599;</span><span class="sr"> (opens in a new tab)</span></a>
-        </div>
-      </li>
-
-      <li class="tp-card">
-        <div class="tp-live" data-tp-live>
-          <iframe src="about:blank" data-src="templates/t6.html" title="Live preview: Night Kitchen restaurant sample template" tabindex="-1" aria-hidden="true" loading="lazy" scrolling="no"></iframe>
-        </div>
-        <div class="tp-info">
-          <p class="tp-meta"><span>06</span><span>Spatial and quiet</span></p>
-          <h3>Restaurant, night menu</h3>
-          <p>One dish, one short menu and a glass menu bar. For restaurants and lounges that open at night.</p>
-          <p class="tp-tags"><span class="tp-sample">Sample business</span><span>Inspired by Active Theory</span></p>
-          <button class="tp-use" type="button" data-tp-use data-type="Restaurant" data-name="Spatial and quiet">Use this look</button>
-          <a class="tp-open" href="templates/t6.html" target="_blank" rel="noopener">Open live preview<span aria-hidden="true"> &#8599;</span><span class="sr"> (opens in a new tab)</span></a>
-        </div>
-      </li>
-    </ol>
   </section>
 
   <section id="how" class="light how" aria-labelledby="how-h">
@@ -474,26 +202,27 @@
         <ul class="roles">
           <li>
             <h3>New projects and quotes</h3>
-            <a class="mail" href="mailto:support@lavaall.com?subject=LAVAALL%20Web%20project">support@lavaall.com</a>
+            <a class="mail" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=support%40lavaall.com&amp;su=LAVAALL%20Web%20project" target="_blank" rel="noopener">support@lavaall.com<span class="sr"> (opens Gmail in a new tab)</span></a>
             <a class="app" href="mailto:support@lavaall.com?subject=LAVAALL%20Web%20project">Open in mail app</a>
           </li>
           <li>
             <h3>Help with an existing site</h3>
-            <a class="mail" href="mailto:support@lavaall.com?subject=LAVAALL%20Web%20support">support@lavaall.com</a>
+            <a class="mail" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=support%40lavaall.com&amp;su=LAVAALL%20Web%20support" target="_blank" rel="noopener">support@lavaall.com<span class="sr"> (opens Gmail in a new tab)</span></a>
             <a class="app" href="mailto:support@lavaall.com?subject=LAVAALL%20Web%20support">Open in mail app</a>
           </li>
           <li>
             <h3>General questions</h3>
-            <a class="mail" href="mailto:support@lavaall.com?subject=LAVAALL%20Web%20inquiry">support@lavaall.com</a>
+            <a class="mail" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=support%40lavaall.com&amp;su=LAVAALL%20Web%20inquiry" target="_blank" rel="noopener">support@lavaall.com<span class="sr"> (opens Gmail in a new tab)</span></a>
             <a class="app" href="mailto:support@lavaall.com?subject=LAVAALL%20Web%20inquiry">Open in mail app</a>
           </li>
         </ul>
-        <!-- TODO: WhatsApp number pending from Osman. Keep hidden until filled in (see TODO.md). -->
-        <a class="btn btn-line wa" id="wa" href="#" hidden>Message us on WhatsApp</a>
+        <!-- WhatsApp: shown only when content/en.json whatsapp.number is filled in (the server passes it to the page). -->
+        <a class="btn btn-line wa" id="wa" data-wa href="#" hidden>Message us on WhatsApp</a>
       </div>
 
-      <!-- BACKEND HAND-OFF: id "web-inquiry" posts to a future endpoint. Fields: name, business, type, country, need, contact, message. Add honeypot + rate limit server-side. -->
+      <!-- Posts to /web/api/inquiry (api/web/index.js), which hands it to the main site's email router for support@lavaall.com. Fields: name, business, type, country, need, contact, message; "website" is a honeypot. -->
       <form id="web-inquiry" class="rv" novalidate>
+        <div class="hp" aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
         <div class="row two">
           <label>Your name<input name="name" autocomplete="name" required></label>
           <label>Business name<input name="business" autocomplete="organization"></label>
@@ -510,39 +239,19 @@
           <select name="need"><option>Website</option><option>Animated website</option><option>Automation</option><option>AI agent</option><option>Full business system</option><option>Not sure yet</option></select>
         </label>
         <label>Phone, WhatsApp or email<input name="contact" autocomplete="email" required></label>
-        <label>Tell us more<textarea name="message"></textarea></label>
+        <label>Tell us more<textarea name="message" maxlength="2000"></textarea></label>
         <button class="btn btn-solid" type="submit">Send inquiry</button>
-        <p class="status" id="form-status" role="status"></p>
+        <p class="status" id="form-status" role="status" aria-live="polite"></p>
         <p class="fine">We will only contact you about this inquiry. No spam.</p>
       </form>
     </div>
   </section>
 </main>
-<dialog class="ad" id="ad" aria-labelledby="ad-name">
-  <div class="ad-box">
-    <header class="ad-head">
-      <span class="ad-big" data-ad-av aria-hidden="true">A</span>
-      <div><p class="ad-trig"><span data-ad-role>Role</span> &middot; <span data-ad-trig>Trigger</span></p><h2 id="ad-name" data-ad-name>How it works</h2></div>
-      <span class="ad-badge">Illustrative demo &middot; sample business</span>
-      <button type="button" class="ad-x" data-ad-close aria-label="Close">&times;</button>
-    </header>
-    <div class="ad-railwrap"><ol class="ad-rail" data-ad-rail aria-label="Steps"></ol><span class="ad-line" aria-hidden="true"><i data-ad-fill></i></span></div>
-    <div class="ad-main">
-      <div class="ad-cap" aria-live="polite"><p class="ad-step" data-ad-step>Step 1</p><h3 data-ad-t>Title</h3></div>
-      <div class="ad-stage"></div>
-    </div>
-    <footer class="ad-ctl">
-      <button type="button" data-ad-prev>Back</button>
-      <button type="button" data-ad-play aria-pressed="false">Pause</button>
-      <button type="button" class="pri" data-ad-next>Next step</button>
-    </footer>
-  </div>
-</dialog>
 
 
 <footer>
   <span>LAVAALL Web, a division of LAVAALL.</span>
-  <span><a href="#">Privacy</a> &nbsp;&middot;&nbsp; <a href="#">Terms</a></span>
+  <span><a href="work/">Our work</a> &nbsp;&middot;&nbsp; <a href="/privacy.html">Privacy</a> &nbsp;&middot;&nbsp; <a href="/terms.html">Terms</a></span>
 </footer>
 
 <script src="app.js"></script>
