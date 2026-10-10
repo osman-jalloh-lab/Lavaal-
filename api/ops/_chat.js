@@ -141,7 +141,7 @@ async function completeAnthropic({ question, context, route }) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: process.env.OPS_CHAT_ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022',
+      model: process.env.OPS_CHAT_ANTHROPIC_MODEL || 'claude-haiku-5-5',
       max_tokens: 600,
       system: systemPrompt(route, context),
       messages: [{ role: 'user', content: question }],
