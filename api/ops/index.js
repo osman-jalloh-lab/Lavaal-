@@ -32,6 +32,7 @@ const {
   renderRoutineHealthStrip,
   routineHealthEnabled,
 } = require('./_routine_health');
+const { handleInboxTriage, inboxTriageEnabled, readInboxTriageView, renderInboxTriage } = require('./_inbox_triage');
 const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
 const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
 const {
@@ -261,6 +262,10 @@ async function renderArea(req, res, session, extra) {
       }
       return sendHtml(res, 200, chatPage(pageOpts));
     case 'inbox': {
+      if (inboxTriageEnabled()) {
+        const triage = await readInboxTriageView();
+        pageOpts.triageHtml = renderInboxTriage(triage);
+      }
       if (supportInboxConfigured()) {
         const live = await refreshLiveInbox();
         if (live && live.error === 'gmail_reconnect') {
@@ -733,6 +738,7 @@ async function opsDispatch(req, res) {
   if (await handleFoundersDm(req, res)) return;
   if (await handleCeoAssign(req, res)) return;
   if (await handleCeoBridge(req, res)) return;
+  if (await handleInboxTriage(req, res)) return;
   if (await handleDeskTalk(req, res)) return;
   if (await handleKitsApi(req, res)) return;
   if (await handleMapApi(req, res)) return;
