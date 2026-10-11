@@ -37,6 +37,7 @@ const { classify } = require('../slack/_router/classify');
 const { agentPendingItem } = require('./_untrusted');
 const ceo = require('./_ceo_bridge');
 const desks = require('./_agent_thread');
+const { wakeBox } = require('./_wake');
 
 const RESEARCHY_ID = 'researchy';
 const ACK_PREFIX = 'Assigned to Researchy.';
@@ -337,6 +338,13 @@ function matchAssignTask(storeData, { pending, replayId, correlationId }) {
 }
 
 async function wakeResearchy({ task, packedBrief, founderEmail, childThreadId, childCorrelationId }) {
+  let existed = false;
+  try {
+    existed = listResearchyPending(await readStore())
+      .some((row) => childCorrelationId && row.correlationId === childCorrelationId);
+  } catch {
+    existed = false;
+  }
   const queued = await enqueueResearchyPending({
     threadId: childThreadId,
     founderEmail,
@@ -349,6 +357,10 @@ async function wakeResearchy({ task, packedBrief, founderEmail, childThreadId, c
     sender: founderEmail,
     founderAuthenticated: isAllowlisted(founderEmail),
   });
+  // Instant box wake for a new row only (replays never wake twice).
+  if (queued && queued.ok && queued.pending && !existed) {
+    queued.wake = await wakeBox({ queue: 'researchy', pendingId: queued.pending.messageId });
+  }
   return queued;
 }
 

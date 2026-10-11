@@ -175,6 +175,7 @@ function tasksPage({ email, store, snapshot, notice, error }) {
           <input id="task-due" name="due" type="date"/>
           <label for="task-project">Folder (optional)</label>
           <select id="task-project" name="projectId">${projectOptions}</select>
+          <label class="check" for="task-send-to-desk-page"><input id="task-send-to-desk-page" type="checkbox" name="sendToCeoDesk" value="1"/> Send to CEO desk (the CEO agent picks it up; its reply shows in CEO Talk)</label>
           <button class="btn" type="submit">Save task</button>
         </form>
       </section>
@@ -354,6 +355,10 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
   const assignControl = isCeo
     ? `<button class="btn btn-assign" type="button" name="assign" value="researchy" data-assign="researchy" id="ceo-assign-researchy">Assign to Researchy</button>`
     : '';
+  // "Send to CEO desk": queue this message for the box CEO desk (no xAI reply).
+  const deskToggle = isCeo
+    ? `<label class="check" for="ceo-send-to-desk"><input id="ceo-send-to-desk" type="checkbox" name="sendToCeoDesk" value="1"/> Send to CEO desk (the CEO agent picks it up and replies here; no instant AI reply)</label>`
+    : '';
   const talkGuard = `<meta name="lavaall-talk-agent" content="${escapeHtml(talkAgent.id)}"/>
 <script>
 (function () {
@@ -379,7 +384,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
     head: talkGuard,
     scripts: `<script type="application/json" id="ceo-bridge-data">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
 <script src="/assets/js/ops-mic.js" defer></script>
-<script src="/assets/js/ops-ceo-chat.js?v=send-not-assign" defer></script>`,
+<script src="/assets/js/ops-ceo-chat.js?v=send-to-ceo-desk" defer></script>`,
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>${escapeHtml(agentName)}</h1>
@@ -394,6 +399,7 @@ function deskChatPage({ email, snapshot, notice, error, csrf, deskThread, talkAg
           <label for="ceo-message">Message</label>
           <textarea id="ceo-message" name="text" required maxlength="2000" placeholder="Message"></textarea>
           <p id="talk-mic-status" class="empty" hidden></p>
+          ${deskToggle}
           <div class="talk-actions">
             <button type="button" class="btn btn-mic" id="talk-mic" aria-pressed="false">Mic</button>
             <button class="btn" type="submit" name="intent" value="send" id="ceo-send" data-intent="send">Send</button>

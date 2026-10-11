@@ -32,6 +32,7 @@ const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
 const { agentPendingItem } = require('./_untrusted');
 const { handleRoutineHealth } = require('./_routine_health');
+const { wakeBox } = require('./_wake');
 
 const CEO_DESK_ID = 'lavaall-ceo';
 const PENDING_KEY = 'ops:ceo:pending';
@@ -44,7 +45,9 @@ const MAX_MESSAGES = 40;
 const MAX_PENDING = 40;
 const MAX_ANSWERED = 40;
 const MAX_TEXT = 2000;
-const SLACK_FALLBACK = 'If this bridge is down, Slack #laval is the backup — not the usual path.';
+const BRIDGE_FALLBACK = 'If the instant wake is down, the scheduled CEO desk poll still picks up queued items.';
+const SEND_TO_CEO_DESK_REASON = 'send_to_ceo_desk';
+const TASK_TO_CEO_SOURCE = 'ops-tasks';
 const WAITING_COPY = 'Waiting on CEO…';
 const RUNTIME_UNAVAILABLE_COPY = "Couldn't reach the CEO runtime just now — try again in a moment.";
 // Casual openers must not pull Goal + unfinished Tasks into the model turn.
@@ -241,6 +244,18 @@ function isExplicitWake(input) {
   if (input.wake === true || input.wake === '1' || input.wake === 'true') return true;
   const text = String(input.text || input.message || '');
   return /^@grok\b/i.test(text) || /^\/wake\b/i.test(text);
+}
+
+// "Send to CEO desk" toggle (CEO Talk + Tasks). Checkbox or JSON flag.
+function isSendToCeoDesk(value) {
+  if (value === true || value === 1) return true;
+  const raw = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return raw === '1' || raw === 'true' || raw === 'on' || raw === 'yes';
+}
+
+async function wakeCeoDesk(pending) {
+  if (!pending || !pending.messageId) return null;
+  return wakeBox({ queue: 'ceo', pendingId: pending.messageId });
 }
 
 function normalizeAskText(text) {
@@ -632,7 +647,7 @@ async function enqueueFounderMessage({
   enqueuePending,
   wakeReason,
 }) {
-  return mutate(async () => {
+  const result = await mutate(async () => {
     const who = normalizeEmail(founderEmail);
     if (!who || !isAllowlisted(who)) return { error: 'forbidden' };
     const body = clean(text, MAX_TEXT);
@@ -704,8 +719,15 @@ async function enqueueFounderMessage({
       pending: pending.find((item) => item.threadId === thread.id) || null,
       correlationId: message.correlationId,
       messageId: message.id,
+      queued: shouldQueue,
     };
   });
+  // Instant box wake after the row exists (outside the store lock). Replays
+  // never wake twice. Failures are ignored; the scheduled poll is the backup.
+  if (result && result.ok && !result.replay && result.queued && result.pending) {
+    result.wake = await wakeCeoDesk(result.pending);
+  }
+  return result;
 }
 
 async function listPending() {
@@ -947,7 +969,7 @@ async function appendCeoNotice({ threadId, text, provenance, correlationId, mark
 }
 
 async function enqueuePendingWake({ thread, founder, wakeReason }) {
-  return mutate(async () => {
+  const row = await mutate(async () => {
     const pending = upsertPending(await readPending(), {
       threadId: thread.id,
       founderEmail: thread.founderEmail,
@@ -963,6 +985,8 @@ async function enqueuePendingWake({ thread, founder, wakeReason }) {
     await writePending(pending);
     return pending.find((item) => item.threadId === thread.id) || null;
   });
+  if (row && !row.error) await wakeCeoDesk(row);
+  return row;
 }
 
 function formatCeoStoreContext(data, options) {
@@ -1203,12 +1227,17 @@ async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
 }
 
 async function talkToCeo(input) {
-  const explicitWake = isExplicitWake(input);
+  // "Send to CEO desk" = queue for the box CEO desk instead of an xAI reply.
+  // Untoggled Talk keeps its normal xAI reply.
+  const toDesk = isSendToCeoDesk(input && input.sendToCeoDesk);
+  const explicitWake = toDesk || isExplicitWake(input);
   const tryXai = xaiConfigured() && !explicitWake;
   const queued = await enqueueFounderMessage(Object.assign({}, input, {
     explicitWake,
     enqueuePending: !tryXai,
-    wakeReason: explicitWake ? 'explicit' : (xaiConfigured() ? '' : 'xai_unavailable'),
+    wakeReason: toDesk
+      ? SEND_TO_CEO_DESK_REASON
+      : (explicitWake ? 'explicit' : (xaiConfigured() ? '' : 'xai_unavailable')),
   }));
   if (queued.error) return queued;
   if (queued.replay && (!tryXai || !threadIsWaiting(queued.thread))) {
@@ -1229,6 +1258,24 @@ async function talkToCeo(input) {
     threadId: queued.thread.id,
     correlationId: queued.correlationId,
     explicitWake,
+  });
+}
+
+// Tasks page "Send to CEO desk": post the task into the founder's CEO thread
+// and the CEO bridge queue, so the box CEO desk picks it up and its reply
+// shows in CEO Talk. Title/next step only; never the founder email in text.
+async function sendTaskToCeoDesk({ task, founderEmail }) {
+  if (!task || !task.id || !task.title) return { error: 'invalid_message' };
+  const lines = [`Task from /ops Tasks (${task.id}): ${task.title}`];
+  if (task.nextAction) lines.push(`Next step: ${task.nextAction}`);
+  if (task.due) lines.push(`Due: ${task.due}`);
+  return enqueueFounderMessage({
+    text: lines.join('\n'),
+    founderEmail,
+    source: TASK_TO_CEO_SOURCE,
+    explicitWake: true,
+    enqueuePending: true,
+    wakeReason: SEND_TO_CEO_DESK_REASON,
   });
 }
 
@@ -1320,6 +1367,7 @@ async function handleMessage(req, res) {
     correlationId: body.correlationId,
     explicitWake: body.explicitWake || body.wake,
     wake: body.wake,
+    sendToCeoDesk: body.sendToCeoDesk,
   });
   if (result.error) return sendBridgeError(req, res, result.error);
   if (wantsJson(req)) {
@@ -1472,7 +1520,11 @@ Object.assign(module.exports, {
   PHATIC_GREETING_COPY,
   PROVENANCE,
   RESPONSE_OWNERS,
-  SLACK_FALLBACK,
+  BRIDGE_FALLBACK,
+  SEND_TO_CEO_DESK_REASON,
+  TASK_TO_CEO_SOURCE,
+  isSendToCeoDesk,
+  sendTaskToCeoDesk,
   THREAD_KEY_PREFIX,
   WAITING_COPY,
   RUNTIME_UNAVAILABLE_COPY,

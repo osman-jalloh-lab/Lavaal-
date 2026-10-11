@@ -1,4 +1,4 @@
-// Queued text for box agents (CEO pending, Assign/desk wake, Slack handoff).
+// Queued text for box agents (CEO pending, Assign/desk wake, Tasks to CEO desk).
 // The bytes are data. Only an allowlisted founder session can originate an
 // instruction, and a tool or side-effect still needs a second founder confirm
 // in /ops. Slack and other inbound sources stay data only. No npm. No secrets.
@@ -17,6 +17,7 @@ const FOUNDER_SOURCES = new Set([
   'ops_ceo_send',
   'ceo-assign',
   'desk-talk',
+  'ops-tasks',
 ]);
 
 // L3/L4 from the Slack risk ladder, plus tool words the ladder files under L2.
