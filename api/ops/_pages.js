@@ -435,7 +435,7 @@ function chatPage({ email, store, snapshot, notice, error, chatSetup, agentId, c
   });
 }
 
-function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThread }) {
+function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThread, triageHtml }) {
   const setup = inboxSetup || { gmailConfigured: false, supportConnected: false, supportMailbox: 'support@lavaall.com' };
   const items = listInboxItems(store);
   const audit = listMailAudit(store).slice(0, 8);
@@ -447,7 +447,9 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
          <input type="hidden" name="returnTo" value="/ops/inbox"/>
          <button class="btn btn-sm" type="submit">Refresh live mail</button>
        </form>`
-    : `<p class="empty">Live support@ not connected.</p>
+    : triageHtml
+      ? `<p>The ranked list above is the CEO desk feed: the box reads support@ and posts it here. Direct Gmail listing on this site is not connected (and isn't needed for the ranked list).</p>`
+      : `<p class="empty">Live support@ not connected.</p>
        <p>To list mail from support@lavaall.com on this Preview:</p>
        <ol class="list">
          <li>Create a Google OAuth refresh token for <code>support@lavaall.com</code>.</li>
@@ -528,12 +530,19 @@ function inboxPage({ email, store, snapshot, notice, error, inboxSetup, openThre
     body: `
       ${persistenceBanner(snapshot.durable)}
       <h1>Inbox</h1>
-      <p class="lead">Mail people sent us. Write a reply, then Confirm send. Nothing goes out before that.</p>
+      ${triageHtml
+        ? `<p class="lead">support@ mail, most important first. Every email is checked for phishing and ranked Urgent, Soon or Low.</p>
+      ${triageHtml}
+      <details class="soft">
+        <summary>Snapshots and live threads</summary>
+        ${rows}
+      </details>`
+        : `<p class="lead">Mail people sent us. Write a reply, then Confirm send. Nothing goes out before that.</p>
       <section class="card">
         <div class="kicker">Mail</div>
         <h2>What came in</h2>
         ${rows}
-      </section>
+      </section>`}
       ${openCard}
       <div class="grid forms" style="margin-top:14px">
         <section class="card">
