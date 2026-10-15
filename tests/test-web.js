@@ -216,8 +216,9 @@ async function run() {
   check('Our work page loads ../styles.css and ../app.js and sets data-root="../" for script-built paths', work.includes('<link rel="stylesheet" href="../styles.css">') && work.includes('<script src="../app.js"></script>') && work.includes('<html lang="en" class="no-js" data-root="../">'));
   const MAIN_KEEP = ['lava', 'for', 'work-teaser', 'how', 'contact'];
   const MOVED = ['work', 'auto', 'os', 'flow', 'artists', 'templates'];
+  const OFF_MAIN = MOVED.filter((id) => id !== 'artists'); // artists restored on the main page too (Osman, Oct 15)
   check('main page keeps hero, Meet Lava, Who it is for, the work teaser, How it works / FAQ and Contact', idx.includes('<header class="hero">') && MAIN_KEEP.every((id) => idx.includes(`id="${id}"`)) && idx.includes('class="faq"'));
-  check('showcase sections moved off the main page', MOVED.every((id) => !new RegExp(`<section[^>]+id="${id}"`).test(idx)) && !idx.includes('<dialog'));
+  check('showcase sections moved off the main page (artists kept on both)', /<section[^>]+id="artists"/.test(idx) && OFF_MAIN.every((id) => !new RegExp(`<section[^>]+id="${id}"`).test(idx)) && !idx.includes('<dialog'));
   check('Our work page has the builds, automations, Business OS, follow-one-request, artists and templates', MOVED.every((id) => new RegExp(`<section[^>]+id="${id}"`).test(work)) && work.includes('<dialog class="ad"'));
   check('main nav and the teaser strip link to work/', /<nav class="nav"[\s\S]*?<a class="link" href="work\/">Our work<\/a>[\s\S]*?<\/nav>/.test(idx) && /id="work-teaser"[\s\S]*?href="work\/"/.test(idx));
   check('Our work page links back to the main page and its contact form', work.includes('<a class="brand" href="../">') && work.includes('href="../#contact"'));
@@ -238,7 +239,7 @@ async function run() {
   const imgs = [...served.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]).filter((t) => !t.includes('hero-poster'));
   check(`every image below the fold is loading="lazy" (${imgs.length})`, imgs.length >= 3 && imgs.every((t) => /loading="lazy"/.test(t)));
   const ifr = [...served.matchAll(/<iframe\b[^>]*>/g)].map((m) => m[0]);
-  check('live previews stay about:blank until near the screen', ifr.length === 7 && ifr.every((t) => t.includes('src="about:blank"') && t.includes('data-src=')));
+  check('live previews stay about:blank until near the screen', ifr.length === 8 && ifr.every((t) => t.includes('src="about:blank"') && t.includes('data-src=')));
   const pairs = [['assets/video/hero.mp4', 'assets/video/hero-lite.mp4'], ['assets/video/hero.mp4', 'assets/video/hero-sm.mp4'], ['assets/work/rec-terra.mp4', 'assets/work/rec-terra-lite.mp4']];
   check('lite clips are at least 40% smaller and the originals are still in the repo', pairs.every(([a, b]) => fs.existsSync(path.join(SITE, a)) && fs.statSync(path.join(SITE, b)).size < fs.statSync(path.join(SITE, a)).size * 0.6));
   const allVid = walk(SITE).map(rel).filter((r) => /-(lite|sm)\.mp4$/.test(r));
