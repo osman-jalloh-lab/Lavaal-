@@ -164,7 +164,7 @@ async function run() {
   const en = JSON.parse(fs.readFileSync(path.join(SITE, 'content/en.json'), 'utf8'));
   const work = fs.readFileSync(path.join(SITE, 'work/index.html'), 'utf8');
   const waTags = (h) => [...h.matchAll(/<a [^>]*\bdata-wa\b[^>]*>/g)].map((m) => m[0]);
-  check('main page has a WhatsApp CTA near the top (hero) and at the bottom (contact), both hidden', waTags(idx).length === 2 && waTags(idx).every((t) => /\bhidden\b/.test(t))
+  check('main page has WhatsApp CTAs in the hero, the artists section and the contact, all hidden', waTags(idx).length === 3 && waTags(idx).every((t) => /\bhidden\b/.test(t))
     && idx.indexOf('data-wa') < idx.indexOf('id="lava"') && idx.lastIndexOf('data-wa') > idx.indexOf('id="contact"'));
   check('Our work page WhatsApp CTA is hidden too', waTags(work).length === 1 && /\bhidden\b/.test(waTags(work)[0]));
   check('WhatsApp number is empty in en.json and the page gets it from the server (LV_WEB), not a hard-coded value',
