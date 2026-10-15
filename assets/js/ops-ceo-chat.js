@@ -280,6 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
       body.assign = 'researchy';
       body.assignee = 'researchy';
     }
+    const deskToggle = document.getElementById('ceo-send-to-desk');
+    const toDesk = Boolean(isCeoTalk() && !shouldAssign && deskToggle && deskToggle.checked);
+    if (toDesk) body.sendToCeoDesk = true;
     try {
       const response = await fetch(postUrl, {
         method: 'POST',
@@ -300,6 +303,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (csrfInput) csrfInput.value = payload.csrf;
       }
       if (box) box.value = '';
+      // One-shot: untick so the next message gets the normal reply again.
+      if (toDesk && deskToggle) deskToggle.checked = false;
       rememberDesk(payload);
       if (payload && payload.thread) applyThread(payload.thread, payload.waiting);
       else setWaiting(true);

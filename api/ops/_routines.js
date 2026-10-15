@@ -88,7 +88,7 @@ async function runRoutine(id, { selection, createdBy } = {}) {
   try {
     model = await completeWithModel({ question: routine.prompt, context, route });
   } catch {
-    model = { error: 'helper_failed', message: 'The connected helper failed (HTTP network). Slack remains available as secondary. No invented reply.' };
+    model = { error: 'helper_failed', message: 'The connected helper failed (HTTP network). No invented reply.' };
   }
   if (model.error) {
     const message = model.message || setupMessage(route);

@@ -129,7 +129,7 @@ function setupMessage(route) {
 }
 
 function helperFailedMessage(status) {
-  return `The connected helper failed (HTTP ${status || 'unknown'}). Slack remains available as secondary. No invented reply.`;
+  return `The connected helper failed (HTTP ${status || 'unknown'}). No invented reply.`;
 }
 
 async function completeAnthropic({ question, context, route }) {

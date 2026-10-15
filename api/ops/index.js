@@ -35,6 +35,8 @@ const {
 const { handleInboxTriage, inboxTriageEnabled, readInboxTriageView, renderInboxTriage } = require('./_inbox_triage');
 const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
 const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
+const { isSendToCeoDesk, sendTaskToCeoDesk } = require('./_ceo_bridge');
+const { handleWakeSweep } = require('./_wake_sweep');
 const {
   confirmInboxSend,
   pasteSnapshot,
@@ -441,15 +443,32 @@ async function handleWrite(req, res, session) {
         finishLine: body.finishLine,
         createdBy: session.email,
       }), { error: 'Enter a project name.' });
-    case 'add-task':
-      return finishWrite(req, res, session, body, await addTask({
+    case 'add-task': {
+      let added = await addTask({
         title: body.title,
         nextAction: body.nextAction,
         status: body.status,
         due: body.due,
         projectId: body.projectId,
         createdBy: session.email,
-      }), { error: 'Enter a task title.' });
+      });
+      // "Send to CEO desk": also queue the task for the box CEO desk.
+      if (added && !added.error && added.task && isSendToCeoDesk(body.sendToCeoDesk)) {
+        const sent = await sendTaskToCeoDesk({ task: added.task, founderEmail: session.email });
+        if (sent && !sent.error && sent.thread) {
+          await updateTask(added.task.id, {
+            parentThreadId: sent.thread.id,
+            parentCorrelationId: sent.correlationId,
+          });
+        }
+        added = Object.assign({}, added, {
+          ceoDesk: sent && !sent.error
+            ? { queued: true, pendingId: sent.pending ? sent.pending.messageId : '' }
+            : { queued: false, error: (sent && sent.error) || 'not_queued' },
+        });
+      }
+      return finishWrite(req, res, session, body, added, { error: 'Enter a task title.' });
+    }
     case 'update-task':
       return finishWrite(req, res, session, body, await updateTask(body.id, {
         status: body.status,
@@ -735,6 +754,7 @@ async function handleMapApi(req, res) {
 }
 
 async function opsDispatch(req, res) {
+  if (await handleWakeSweep(req, res)) return;
   if (await handleFoundersDm(req, res)) return;
   if (await handleCeoAssign(req, res)) return;
   if (await handleCeoBridge(req, res)) return;
