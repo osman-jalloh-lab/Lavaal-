@@ -1372,74 +1372,176 @@
   });
 })();
 
-// How we build your system (#journey): one guest request, WhatsApp -> Lava -> email -> dashboard -> sheet -> brief.
-// Desktop: pinned stage, one step per scroll stop, packet on the channel rail. Phone: cards animate in view. Reduced motion: final state.
+// How we build your system (#journey): live system map. SVG edges + HTML nodes; packets travel along edges via rAF.
+// Runs only while on screen and tab visible. Desktop and phone have their own layouts. Reduced motion: static labelled map.
 (function () {
   var root = document.querySelector('[data-jr]');
   if (!root) return;
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var steps = [].slice.call(root.querySelectorAll('.jr-st'));
-  var nodes = [].slice.call(root.querySelectorAll('.jr-node'));
-  var pk = root.querySelector('[data-jr-pk]'), fill = root.querySelector('[data-jr-fill]'), bar = root.querySelector('[data-jr-bar]');
-  var clean = root.querySelector('.mk-cl'), cleanT;
-  root.style.setProperty('--jr-n', steps.length);
-  function fixLater(on) {
-    clearTimeout(cleanT);
-    if (!clean) return;
-    if (!on) { clean.classList.remove('fixed'); return; }
-    cleanT = setTimeout(function () { clean.classList.add('fixed'); }, reduce ? 0 : 2100);
-  }
-  function setOn(st, on) {
-    if (st.classList.contains('on') === on) return;
-    st.classList.toggle('on', on);
-    if (clean && st.contains(clean)) fixLater(on);
-  }
-  if (reduce || !('IntersectionObserver' in window)) { steps.forEach(function (s) { setOn(s, true); }); return; }
-
   var desk = window.matchMedia('(min-width: 900px)');
-  var cur = -1, ticking = false, io = null;
-  function railAt(n) {
-    var hasN = n >= 0;
-    nodes.forEach(function (el, k) { el.classList.toggle('hit', hasN && k <= n); el.classList.toggle('cur', hasN && k === n); });
-    if (!pk) return;
-    pk.classList.toggle('go', hasN);
-    if (hasN) {
-      var el = nodes[n], rail = el.parentNode;
-      var x = el.offsetLeft + el.offsetWidth / 2;
-      pk.style.left = x + 'px';
-      if (fill) fill.style.width = Math.max(0, x - 40) + 'px';
-    } else if (fill) fill.style.width = '0';
+  var stage = root.querySelector('[data-jr-stage]'), svg = root.querySelector('[data-jr-svg]');
+  var chipsEl = root.querySelector('[data-jr-chips]'), logEl = root.querySelector('[data-jr-log]');
+  var NS = 'http://www.w3.org/2000/svg';
+  var nodes = {};
+  [].forEach.call(root.querySelectorAll('.jr-nd'), function (el) { nodes[el.getAttribute('data-id')] = el; });
+  var L = {
+    d: { W: 1000, H: 600, p: { wa: [90, 95], em: [90, 235], ig: [90, 375], ph: [90, 515], lava: [400, 305], gate: [650, 110], dash: [650, 305], sheet: [650, 500], clean: [890, 500], brief: [890, 305] } },
+    m: { W: 360, H: 860, p: { wa: [48, 60], em: [136, 60], ig: [224, 60], ph: [312, 60], lava: [180, 250], gate: [72, 430], dash: [288, 430], sheet: [180, 590], clean: [72, 770], brief: [288, 770] } }
+  };
+  var E = [['wa', 'lava'], ['em', 'lava'], ['ig', 'lava'], ['ph', 'lava'], ['lava', 'gate'], ['lava', 'dash'], ['lava', 'sheet'], ['sheet', 'clean'], ['clean', 'brief'], ['dash', 'brief'], ['gate', 'dash'], ['clean', 'gate']];
+  var edges = {}, lay;
+  function draw() {
+    lay = desk.matches ? L.d : L.m;
+    svg.setAttribute('viewBox', '0 0 ' + lay.W + ' ' + lay.H);
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    Object.keys(nodes).forEach(function (k) { var p = lay.p[k]; nodes[k].style.left = (p[0] / lay.W * 100) + '%'; nodes[k].style.top = (p[1] / lay.H * 100) + '%'; });
+    E.forEach(function (e) {
+      var a = lay.p[e[0]], b = lay.p[e[1]], d;
+      if (desk.matches) { var mx = (a[0] + b[0]) / 2; d = 'M' + a[0] + ' ' + a[1] + ' C' + mx + ' ' + a[1] + ' ' + mx + ' ' + b[1] + ' ' + b[0] + ' ' + b[1]; }
+      else { var my = (a[1] + b[1]) / 2; d = 'M' + a[0] + ' ' + a[1] + ' C' + a[0] + ' ' + my + ' ' + b[0] + ' ' + my + ' ' + b[0] + ' ' + b[1]; }
+      if (e[0] === 'gate' && e[1] === 'dash') d = 'M' + a[0] + ' ' + a[1] + ' L' + b[0] + ' ' + b[1];
+      var path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d); path.setAttribute('class', 'jr-e' + (reduce ? '' : ' flow')); path.setAttribute('vector-effect', 'non-scaling-stroke');
+      path.setAttribute('data-a', e[0]); path.setAttribute('data-b', e[1]);
+      svg.appendChild(path);
+      edges[e[0] + '-' + e[1]] = { el: path, len: path.getTotalLength() };
+    });
+    applyFocus();
   }
-  function frame() {
-    ticking = false;
-    var r = root.getBoundingClientRect(), span = root.offsetHeight - window.innerHeight;
-    var p = Math.min(1, Math.max(0, -r.top / (span || 1)));
-    var i = Math.min(steps.length - 1, Math.floor(p * steps.length));
-    if (bar) bar.style.width = (p * 100).toFixed(1) + '%';
-    if (i === cur) return;
-    cur = i;
-    steps.forEach(function (s, k) { setOn(s, k === i); });
-    railAt(parseInt(steps[i].getAttribute('data-node'), 10));
+
+  // Focus (captions)
+  var steps = [].slice.call(root.querySelectorAll('.jr-st')), focusSet = null;
+  function applyFocus() {
+    stage.classList.toggle('focus', !!focusSet);
+    Object.keys(nodes).forEach(function (k) { nodes[k].classList.toggle('inf', !!focusSet && focusSet.indexOf(k) >= 0); });
+    [].forEach.call(svg.querySelectorAll('.jr-e'), function (p) {
+      p.classList.toggle('inf', !!focusSet && focusSet.indexOf(p.getAttribute('data-a')) >= 0 && focusSet.indexOf(p.getAttribute('data-b')) >= 0);
+    });
   }
-  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
-  function mode() {
-    window.removeEventListener('scroll', onScroll);
-    if (io) { io.disconnect(); io = null; }
-    cur = -1;
-    if (desk.matches) {
-      root.classList.add('jr-pinned');
-      window.addEventListener('scroll', onScroll, { passive: true });
-      frame();
-    } else {
-      root.classList.remove('jr-pinned');
-      steps.forEach(function (s) { setOn(s, false); });
-      io = new IntersectionObserver(function (es) {
-        es.forEach(function (e) { setOn(e.target, e.isIntersecting); });
-      }, { threshold: 0.45 });
-      steps.forEach(function (s) { io.observe(s); });
+  function setStep(i) {
+    steps.forEach(function (s, k) { s.classList.toggle('on', k === i); });
+    var f = i >= 0 ? steps[i].getAttribute('data-f') : 'all';
+    focusSet = f === 'all' ? null : f.split(' ');
+    applyFocus();
+  }
+  steps.forEach(function (s, i) { s.addEventListener('click', function () { setStep(i); }); });
+
+  // Counters + log
+  var C = {};
+  [].forEach.call(root.querySelectorAll('[data-c]'), function (el) { C[el.getAttribute('data-c')] = { el: el, v: 0 }; });
+  function bump(k, n) { var c = C[k]; if (!c) return; c.v = Math.max(0, c.v + (n || 1)); c.el.textContent = c.v; }
+  var clock = 23 * 60 + 40;
+  function log(t) {
+    if (!logEl) return;
+    clock = (clock + 3) % 1440;
+    var li = document.createElement('li'), tm = document.createElement('time');
+    tm.textContent = ('0' + Math.floor(clock / 60)).slice(-2) + ':' + ('0' + clock % 60).slice(-2);
+    li.appendChild(tm); li.appendChild(document.createTextNode(t));
+    logEl.insertBefore(li, logEl.firstChild);
+    while (logEl.children.length > 5) logEl.removeChild(logEl.lastChild);
+  }
+  function status(id, t) { var s = nodes[id] && nodes[id].querySelector('span'); if (s) s.textContent = t; }
+  function hot(id) { var n = nodes[id]; if (!n) return; n.classList.remove('hot'); void n.offsetWidth; n.classList.add('hot'); clearTimeout(n._h); n._h = setTimeout(function () { n.classList.remove('hot'); }, 1100); }
+
+  if (reduce) {
+    draw();
+    var st = { wa: 'Room for 2, Dec 20', em: 'Open Sunday?', ig: 'Table for 6, Sat', ph: 'Takeaway order', lava: 'Answers, drafts', gate: 'Approve bookings + money', dash: 'Today at a glance', sheet: 'Row added', clean: 'Duplicate merged', brief: 'Brief 7:00' };
+    Object.keys(st).forEach(function (k) { status(k, st[k]); });
+    desk.addEventListener && desk.addEventListener('change', draw);
+    return;
+  }
+
+  // Scenarios: hop = [from, to, chipLabel, onArrive(status text), opts]
+  var S = {
+    wa: [['wa', 'lava', 'New WhatsApp: room for 2, Dec 20', 'Lava checks availability', 'in'], ['lava', 'gate', 'Draft: room hold + deposit', 'Draft waiting on owner', 'wait'], ['gate', 'lava', 'Owner approved \u2713', 'Sending reply', 'ok'], ['lava', 'wa', 'Reply sent: room held', 'Guest replied \u2713', 'ans'], ['lava', 'sheet', 'Booking row', 'Row added to sheet', 'rows']],
+    ig: [['ig', 'lava', 'New DM: table for 6, Sat 8pm', 'Lava checks tables', 'in'], ['lava', 'dash', 'Table hold', 'Booking on dashboard'], ['lava', 'gate', 'Draft: confirm table', 'Draft waiting on owner', 'wait'], ['gate', 'lava', 'Owner approved \u2713', 'Sending reply', 'ok'], ['lava', 'ig', 'Reply sent: table booked', 'Answered \u2713', 'ans']],
+    ph: [['ph', 'lava', 'Takeaway: 2 jollof, pickup 7pm', 'Lava reads the order', 'in'], ['lava', 'gate', 'Mobile money total to check', 'Waiting on owner', 'wait'], ['gate', 'dash', 'Owner approved \u2713', 'Order sent to kitchen', 'ok'], ['lava', 'ph', 'Order confirmed by SMS', 'Answered \u2713', 'ans'], ['lava', 'sheet', 'Order row', 'Row added to sheet', 'rows']],
+    em: [['em', 'lava', '11:48pm: open on Sunday?', 'Answered from your FAQ', 'in'], ['lava', 'em', 'Reply: yes, 10am to 10pm', 'Answered \u2713', 'ans'], ['lava', 'sheet', 'Question logged', 'Row added to sheet', 'rows']],
+    clean: [['sheet', 'clean', 'Same guest, two numbers', 'Duplicate found'], ['clean', 'gate', 'Merge 2 rows?', 'Waiting on owner', 'wait'], ['gate', 'clean', 'Owner approved \u2713', 'Duplicate merged', 'okdup']],
+    brief: [['dash', 'brief', 'Today\u2019s bookings', 'Collecting'], ['clean', 'brief', 'Records clean', 'Brief 7:00 ready']]
+  };
+  // gate-clean / clean-gate are not drawn: route via straight ad hoc path
+  var packets = [], running = false, raf = 0, last = 0, timers = [];
+  function edgeFor(a, b) {
+    if (edges[a + '-' + b]) return { e: edges[a + '-' + b], rev: false };
+    if (edges[b + '-' + a]) return { e: edges[b + '-' + a], rev: true };
+    return null;
+  }
+  function scale() { return stage.clientWidth / lay.W; }
+  function run(key, i) {
+    var seq = S[key], h = seq[i];
+    if (!h) return;
+    var a = h[0], b = h[1], ef = edgeFor(a, b);
+    hot(a);
+    var c = document.createElementNS(NS, 'circle');
+    c.setAttribute('r', desk.matches ? 7 : 6);
+    var ok = /\u2713/.test(h[2]);
+    c.setAttribute('class', 'jr-pk' + (ok ? ' ok' : ''));
+    svg.appendChild(c);
+    var chip = document.createElement('div'); chip.className = 'jr-chip' + (ok ? ' ok' : ''); chip.textContent = h[2]; chipsEl.appendChild(chip);
+    var pa = lay.p[a], pb = lay.p[b];
+    packets.push({ c: c, chip: chip, ef: ef, pa: pa, pb: pb, t: 0, dur: 1700, done: function () {
+      c.remove(); chip.remove(); hot(b); status(b, h[3]); log(h[3]);
+      var k = h[4];
+      if (k === 'in') bump('in');
+      if (k === 'ans') bump('ans');
+      if (k === 'wait') bump('wait');
+      if (k === 'ok' || k === 'okdup') { bump('wait', -1); bump('ok'); }
+      if (k === 'okdup') bump('dup');
+      if (k === 'rows') bump('rows');
+      later(function () { run(key, i + 1); }, h[4] === 'wait' ? 1500 : 350);
+    } });
+  }
+  function later(fn, ms) { var o = { fn: fn, ms: ms }; timers.push(o); }
+  function tick(now) {
+    raf = 0;
+    if (!running) return;
+    var dt = Math.min(64, now - (last || now)); last = now;
+    for (var j = timers.length - 1; j >= 0; j--) { timers[j].ms -= dt; if (timers[j].ms <= 0) { var f = timers[j].fn; timers.splice(j, 1); f(); } }
+    var s = scale();
+    for (var i = packets.length - 1; i >= 0; i--) {
+      var p = packets[i]; p.t += dt / p.dur;
+      var t = Math.min(1, p.t), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2, x, y;
+      if (p.ef) { var pt = p.ef.e.el.getPointAtLength((p.ef.rev ? 1 - e : e) * p.ef.e.len); x = pt.x; y = pt.y; }
+      else { x = p.pa[0] + (p.pb[0] - p.pa[0]) * e; y = p.pa[1] + (p.pb[1] - p.pa[1]) * e; }
+      p.c.setAttribute('cx', x); p.c.setAttribute('cy', y);
+      var sx = x * s, cw = p.chip.offsetWidth, max = stage.clientWidth - cw - 4;
+      p.chip.style.transform = 'translate(' + Math.max(4, Math.min(max, sx - cw / 2)).toFixed(1) + 'px,' + (y * stage.clientHeight / lay.H - 30).toFixed(1) + 'px)';
+      if (p.t >= 1) { packets.splice(i, 1); p.done(); }
     }
+    raf = requestAnimationFrame(tick);
   }
-  if (desk.addEventListener) desk.addEventListener('change', mode); else if (desk.addListener) desk.addListener(mode);
-  window.addEventListener('resize', function () { if (cur >= 0 && desk.matches) railAt(parseInt(steps[cur].getAttribute('data-node'), 10)); });
-  mode();
+  function start() { if (running) return; running = true; last = 0; raf = requestAnimationFrame(tick); }
+  function stop() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+
+  // Loop: keep several message types in flight
+  var order = ['wa', 'em', 'ig', 'clean', 'ph', 'wa', 'em', 'brief', 'ig', 'ph'], oi = 0;
+  function feed() { run(order[oi % order.length], 0); oi++; later(feed, 2600); }
+  later(feed, 300);
+  [].forEach.call(root.querySelectorAll('button.jr-nd'), function (b) {
+    b.addEventListener('click', function () { run(b.getAttribute('data-id'), 0); start(); });
+  });
+
+  // Visibility
+  var vis = false;
+  function sync() { if (vis && !document.hidden) start(); else stop(); }
+  if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { vis = es[0].isIntersecting; sync(); }).observe(stage);
+  else { vis = true; }
+  document.addEventListener('visibilitychange', sync);
+
+  // Scroll focus on desktop: caption nearest the viewport middle
+  var cio = null;
+  function modes() {
+    packets.forEach(function (p) { p.c.remove(); p.chip.remove(); }); packets = [];
+    timers = timers.filter(function (t) { return t.fn === feed; });
+    if (!timers.length) later(feed, 300);
+    draw();
+    if (cio) { cio.disconnect(); cio = null; }
+    if (desk.matches && 'IntersectionObserver' in window) {
+      cio = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) setStep(steps.indexOf(e.target)); }); }, { rootMargin: '-45% 0px -45% 0px' });
+      steps.forEach(function (s) { cio.observe(s); });
+    } else setStep(-1);
+  }
+  if (desk.addEventListener) desk.addEventListener('change', modes); else if (desk.addListener) desk.addListener(modes);
+  modes(); sync();
 })();
