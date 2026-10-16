@@ -14,7 +14,13 @@
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       });
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-    items.forEach(function (el) { io.observe(el); });
+    items.forEach(function (el) {
+      // Stagger siblings that reveal together (cap so long lists don't lag).
+      var sib = 0, n = el.previousElementSibling;
+      while (n && sib < 4) { if (n.classList.contains('rv')) sib++; n = n.previousElementSibling; }
+      if (sib) el.style.setProperty('--rv-d', (sib * 0.08).toFixed(2) + 's');
+      io.observe(el);
+    });
   }
 
   // Lazy posters: below-the-fold videos carry data-poster and get it only near the screen.
@@ -686,7 +692,7 @@
   function ownerCard(step) {
     var c = add('lp-owner', '<span class="lp-o-k">Owner check · only you see this</span><p>' + esc(step.owner) + '</p><div class="lp-owner-btns"><button type="button" class="ok">Approve</button><button type="button" class="no">Not now</button></div>');
     var ok = c.querySelector('.ok'), no = c.querySelector('.no');
-    ok.focus({ preventScroll: true });
+    if (!auto.on) ok.focus({ preventScroll: true });
     ok.addEventListener('click', function () {
       c.querySelector('.lp-owner-btns').remove();
       c.insertAdjacentHTML('beforeend', '<p>You approved this.</p>');
@@ -718,6 +724,30 @@
       select(j); tabs[j].focus();
     });
   });
+  // Autoplay: when the chat is on screen it plays the conversation itself, step by step,
+  // then moves to the next business and loops. Any real tap or key in the demo hands
+  // control to the visitor. Reduced motion: no autoplay, the visitor taps through.
+  var auto = { on: !reduce && 'IntersectionObserver' in window, seen: false, tick: null };
+  function autoStep() {
+    if (!auto.on || !auto.seen || document.hidden) return;
+    var okBtn = log.querySelector('.lp-owner-btns .ok');
+    var r = replies.querySelector('button');
+    if (okBtn) okBtn.click();
+    else if (r && r.className === 'restart') select((Array.prototype.indexOf.call(tabs, document.querySelector('[data-lava="' + cur + '"]')) + 1) % tabs.length, true);
+    else if (r) r.click();
+  }
+  if (auto.on) {
+    var sec = document.getElementById('lava') || stage;
+    sec.addEventListener('click', function (e) { if (e.isTrusted) { auto.on = false; clearInterval(auto.tick); } }, true);
+    sec.addEventListener('keydown', function () { auto.on = false; clearInterval(auto.tick); }, true);
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        auto.seen = e.isIntersecting;
+        clearInterval(auto.tick);
+        if (auto.seen && auto.on) auto.tick = setInterval(autoStep, 1900);
+      });
+    }, { threshold: 0.35 }).observe(phone);
+  }
   function select(i) {
     tabs.forEach(function (t, k) {
       t.setAttribute('aria-selected', String(k === i));

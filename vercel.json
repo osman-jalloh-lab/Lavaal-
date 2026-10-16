@@ -60,6 +60,7 @@
     { "source": "/ops/:path*", "destination": "/api/ops?area=:path*" },
     { "source": "/web", "destination": "/api/web?area=" },
     { "source": "/web/", "destination": "/api/web?area=" },
+    { "source": "/web/:path*/", "destination": "/api/web?area=:path*/" },
     { "source": "/web/:path*", "destination": "/api/web?area=:path*" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/schedule", "destination": "/index.html" }
