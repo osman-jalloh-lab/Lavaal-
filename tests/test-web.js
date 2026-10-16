@@ -168,7 +168,7 @@ async function run() {
     && idx.indexOf('data-wa') < idx.indexOf('id="lava"') && idx.lastIndexOf('data-wa') > idx.indexOf('id="contact"'));
   check('Our work page WhatsApp CTA is hidden too', waTags(work).length === 1 && /\bhidden\b/.test(waTags(work)[0]));
   check('WhatsApp number is empty in en.json and the page gets it from the server (LV_WEB), not a hard-coded value',
-    en.whatsapp && en.whatsapp.number === '' && page.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":""}')
+    en.whatsapp && en.whatsapp.number === "17377044182" && page.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":"17377044182"}')
     && /var WHATSAPP_NUMBER = String\(CFG\.whatsapp \|\| ''\)\.replace\(\/\\D\/g, ''\);/.test(appJs) && /if \(WHATSAPP_NUMBER\) \{/.test(appJs));
   const emails = [...new Set([...(idx + appJs + JSON.stringify(en)).matchAll(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}/g)].map((m) => m[0].toLowerCase()))];
   check(`the only email on the page is support@lavaall.com (${emails.join(', ')})`, emails.length === 1 && emails[0] === 'support@lavaall.com');
@@ -212,7 +212,7 @@ async function run() {
   const wkNoSlash = await call('GET', 'work');
   check('/web/work/ serves the Our work page with base /web/work/', wk.status === 200 && wk.text.includes('<base href="/web/work/">') && wk.text.includes('<title>Our work | LAVAALL Web</title>'));
   check('/web/work (no slash) serves the same page and moves the address bar to /web/work/', wkNoSlash.status === 200 && wkNoSlash.text === wk.text && wk.text.includes('var p="/web/work/";'));
-  check('/web/work/ gets the same LV_WEB config, noindex and SAMEORIGIN', wk.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":""}') && wk.headers['x-robots-tag'] === 'noindex, nofollow' && wk.headers['x-frame-options'] === 'SAMEORIGIN');
+  check('/web/work/ gets the same LV_WEB config, noindex and SAMEORIGIN', wk.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":"17377044182"}') && wk.headers['x-robots-tag'] === 'noindex, nofollow' && wk.headers['x-frame-options'] === 'SAMEORIGIN');
   check('Our work page loads ../styles.css and ../app.js and sets data-root="../" for script-built paths', work.includes('<link rel="stylesheet" href="../styles.css">') && work.includes('<script src="../app.js"></script>') && work.includes('<html lang="en" class="no-js" data-root="../">'));
   const MAIN_KEEP = ['lava', 'for', 'work-teaser', 'how', 'contact'];
   const MOVED = ['work', 'auto', 'os', 'flow', 'artists', 'templates'];
