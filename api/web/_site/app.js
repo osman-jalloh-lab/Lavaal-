@@ -1371,3 +1371,75 @@
     if (d && !e.target.closest('button')) { var hb = d.querySelector('[data-agent]'); if (hb) open(hb.getAttribute('data-agent'), hb); }
   });
 })();
+
+// How we build your system (#journey): one guest request, WhatsApp -> Lava -> email -> dashboard -> sheet -> brief.
+// Desktop: pinned stage, one step per scroll stop, packet on the channel rail. Phone: cards animate in view. Reduced motion: final state.
+(function () {
+  var root = document.querySelector('[data-jr]');
+  if (!root) return;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var steps = [].slice.call(root.querySelectorAll('.jr-st'));
+  var nodes = [].slice.call(root.querySelectorAll('.jr-node'));
+  var pk = root.querySelector('[data-jr-pk]'), fill = root.querySelector('[data-jr-fill]'), bar = root.querySelector('[data-jr-bar]');
+  var clean = root.querySelector('.mk-cl'), cleanT;
+  root.style.setProperty('--jr-n', steps.length);
+  function fixLater(on) {
+    clearTimeout(cleanT);
+    if (!clean) return;
+    if (!on) { clean.classList.remove('fixed'); return; }
+    cleanT = setTimeout(function () { clean.classList.add('fixed'); }, reduce ? 0 : 2100);
+  }
+  function setOn(st, on) {
+    if (st.classList.contains('on') === on) return;
+    st.classList.toggle('on', on);
+    if (clean && st.contains(clean)) fixLater(on);
+  }
+  if (reduce || !('IntersectionObserver' in window)) { steps.forEach(function (s) { setOn(s, true); }); return; }
+
+  var desk = window.matchMedia('(min-width: 900px)');
+  var cur = -1, ticking = false, io = null;
+  function railAt(n) {
+    var hasN = n >= 0;
+    nodes.forEach(function (el, k) { el.classList.toggle('hit', hasN && k <= n); el.classList.toggle('cur', hasN && k === n); });
+    if (!pk) return;
+    pk.classList.toggle('go', hasN);
+    if (hasN) {
+      var el = nodes[n], rail = el.parentNode;
+      var x = el.offsetLeft + el.offsetWidth / 2;
+      pk.style.left = x + 'px';
+      if (fill) fill.style.width = Math.max(0, x - 40) + 'px';
+    } else if (fill) fill.style.width = '0';
+  }
+  function frame() {
+    ticking = false;
+    var r = root.getBoundingClientRect(), span = root.offsetHeight - window.innerHeight;
+    var p = Math.min(1, Math.max(0, -r.top / (span || 1)));
+    var i = Math.min(steps.length - 1, Math.floor(p * steps.length));
+    if (bar) bar.style.width = (p * 100).toFixed(1) + '%';
+    if (i === cur) return;
+    cur = i;
+    steps.forEach(function (s, k) { setOn(s, k === i); });
+    railAt(parseInt(steps[i].getAttribute('data-node'), 10));
+  }
+  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
+  function mode() {
+    window.removeEventListener('scroll', onScroll);
+    if (io) { io.disconnect(); io = null; }
+    cur = -1;
+    if (desk.matches) {
+      root.classList.add('jr-pinned');
+      window.addEventListener('scroll', onScroll, { passive: true });
+      frame();
+    } else {
+      root.classList.remove('jr-pinned');
+      steps.forEach(function (s) { setOn(s, false); });
+      io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { setOn(e.target, e.isIntersecting); });
+      }, { threshold: 0.45 });
+      steps.forEach(function (s) { io.observe(s); });
+    }
+  }
+  if (desk.addEventListener) desk.addEventListener('change', mode); else if (desk.addListener) desk.addListener(mode);
+  window.addEventListener('resize', function () { if (cur >= 0 && desk.matches) railAt(parseInt(steps[cur].getAttribute('data-node'), 10)); });
+  mode();
+})();

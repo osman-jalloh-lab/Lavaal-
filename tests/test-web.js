@@ -218,6 +218,10 @@ async function run() {
   const MOVED = ['work', 'auto', 'os', 'flow', 'artists', 'templates'];
   const OFF_MAIN = MOVED.filter((id) => id !== 'artists'); // artists restored on the main page too (Osman, Oct 15)
   check('main page keeps hero, Meet Lava, Who it is for, the work teaser, How it works / FAQ and Contact', idx.includes('<header class="hero">') && MAIN_KEEP.every((id) => idx.includes(`id="${id}"`)) && idx.includes('class="faq"'));
+  check('How we build your system (#journey) sits after Who it is for, before the work teaser, with 8 steps and the channel rail', idx.indexOf('id="for"') < idx.indexOf('id="journey"') && idx.indexOf('id="journey"') < idx.indexOf('id="work-teaser"') && (idx.match(/class="jr-st"/g) || []).length === 8 && ['WhatsApp', 'Lava', 'Email', 'Dashboard', 'Sheet', 'Brief'].every((n) => idx.includes('<i class="ic') && idx.includes(n + '</span>')));
+  check('journey shows owner approval for bookings and money and never auto-confirms', idx.includes('Approve and send') && idx.includes('Approve fixes') && /The booking itself still waits for you/.test(idx));
+  check('nav How it works points at #journey; old four generic steps are gone', idx.includes('href="#journey">How it works</a>') && !idx.includes('class="how-steps"'));
+  check('journey script honours reduced motion and pins only on desktop', appJs.includes("querySelector('[data-jr]')") && appJs.includes("matchMedia('(min-width: 900px)')"));
   check('showcase sections moved off the main page (artists kept on both)', /<section[^>]+id="artists"/.test(idx) && OFF_MAIN.every((id) => !new RegExp(`<section[^>]+id="${id}"`).test(idx)) && !idx.includes('<dialog'));
   check('Our work page has the builds, automations, Business OS, follow-one-request, artists and templates', MOVED.every((id) => new RegExp(`<section[^>]+id="${id}"`).test(work)) && work.includes('<dialog class="ad"'));
   check('main nav and the teaser strip link to work/', /<nav class="nav"[\s\S]*?<a class="link" href="work\/">Our work<\/a>[\s\S]*?<\/nav>/.test(idx) && /id="work-teaser"[\s\S]*?href="work\/"/.test(idx));
