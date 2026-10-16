@@ -12,7 +12,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root { --bg: #0A0706; --bg2: #16100D; --rust: #E2552B; --lime: #D4FF3A; --bone: #F4ECE4; --mute: #B5A89E; --line: rgba(244,236,228,.14); }
-  * { box-sizing: border-box; } html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  * { box-sizing: border-box; } html { -webkit-text-size-adjust: 100%; }
+  section[id] { scroll-margin-top: 40px; }
+  /* While a jump-link scroll runs, park the expensive hero layers (video, drift, blur) so iOS can keep 60fps. */
+  html.jumping .hero img { animation-play-state: paused; }
+  html.jumping .hero-film { visibility: hidden; }
+  html.jumping .now { backdrop-filter: none; -webkit-backdrop-filter: none; }
   body { margin: 0; background: var(--bg); color: var(--bone); font: 400 17px/1.6 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
   h1, h2, h3, p { margin: 0; } a { color: inherit; } img { display: block; max-width: 100%; }
   :focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; }
@@ -44,7 +49,7 @@
   .hero .sub { display: flex; flex-wrap: wrap; gap: 10px 26px; margin-top: 18px; align-items: center; }
   .hero .sub p { font: 500 15px Inter; color: var(--mute); }
   .credit { position: absolute; right: 14px; bottom: 10px; font: 500 11px Inter; color: rgba(244,236,228,.6); }
-  .now { display: grid; gap: 12px; margin-top: 28px; padding: 18px; max-width: 560px; background: rgba(10,7,6,.7); backdrop-filter: blur(10px); border-left: 4px solid var(--rust); }
+  .now { display: grid; gap: 12px; margin-top: 28px; padding: 18px; max-width: 560px; background: rgba(10,7,6,.7); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-left: 4px solid var(--rust); }
   .now b { font: 400 34px/1 Anton, Impact, sans-serif; text-transform: uppercase; }
   .btns { display: flex; flex-wrap: wrap; gap: 10px; }
   .btn { display: inline-flex; align-items: center; min-height: 46px; padding: 0 20px; font: 700 14px Inter; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; border: 2px solid var(--bone); }
@@ -113,7 +118,7 @@
   footer { padding: 30px 0 40px; border-top: 1px solid var(--line); color: var(--mute); font-size: 13px; }
   @media (min-width: 900px) { .album { grid-template-columns: .8fr 1.2fr; gap: 56px; } .vids { grid-template-columns: 1.4fr 1fr; } .vids { grid-template-columns: 1fr 1fr; } .vids > .big { grid-column: 1 / -1; } .about { grid-template-columns: .8fr 1.2fr; gap: 64px; } .book form { grid-template-columns: 1fr 1fr; } .book .full { grid-column: 1 / -1; } }
   @media (max-width: 560px) { .hero img { object-position: 72% center; } .vids { grid-template-columns: 1fr; } .show { grid-template-columns: 1fr; gap: 6px; } .tracks li { grid-template-columns: 26px 1fr; } .tracks a { grid-column: 2; justify-self: start; } }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .hero img { animation: none; transform: scale(1.08); } .yt img { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .hero img { animation: none; transform: scale(1.08); } .yt img { transition: none; } }
 </style>
 </head>
 <body>
@@ -155,9 +160,9 @@
       <h2 id="affairs-h">Affairs</h2>
       <p class="lede">Three sessions, one story. Triple T&rsquo;s newest run, released on their own channel.</p>
       <div class="row3">
-        <div><button class="yt" type="button" data-yt="Mt9FoWaDl_I" aria-label="Play Session 1"><img src="https://i.ytimg.com/vi/Mt9FoWaDl_I/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Session 1</b><span>Official visualizer</span></div></div>
-        <div><button class="yt" type="button" data-yt="imCNZrB5pAY" aria-label="Play Session 2"><img src="https://i.ytimg.com/vi/imCNZrB5pAY/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Session 2</b><span>Official video</span></div></div>
-        <div><button class="yt" type="button" data-yt="y70K4m8sp0g" aria-label="Play Session 3"><img src="https://i.ytimg.com/vi/y70K4m8sp0g/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Session 3</b><span>ft. Kracktwist &middot; official video</span></div></div>
+        <div><button class="yt" type="button" data-yt="Mt9FoWaDl_I" aria-label="Play Session 1"><img src="https://i.ytimg.com/vi/Mt9FoWaDl_I/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Session 1</b><span>Official visualizer</span></div></div>
+        <div><button class="yt" type="button" data-yt="imCNZrB5pAY" aria-label="Play Session 2"><img src="https://i.ytimg.com/vi/imCNZrB5pAY/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Session 2</b><span>Official video</span></div></div>
+        <div><button class="yt" type="button" data-yt="y70K4m8sp0g" aria-label="Play Session 3"><img src="https://i.ytimg.com/vi/y70K4m8sp0g/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Session 3</b><span>ft. Kracktwist &middot; official video</span></div></div>
       </div>
     </section>
 
@@ -166,9 +171,9 @@
       <h2 id="kamdae-h">Kam Dae</h2>
       <p class="lede">Made in one studio night, then shot by Lens Studios. Watch it from the session to the video.</p>
       <div class="vids">
-        <div class="big"><button class="yt" type="button" data-yt="DprVtS6yAvQ" aria-label="Play Kam Dae"><img src="https://i.ytimg.com/vi/DprVtS6yAvQ/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Kam Dae</b><span>ft. King Boss LA &middot; official video, dir. Lens Studios</span></div></div>
-        <div><button class="yt" type="button" data-yt="XgD9fmydrJ4" aria-label="Play How it was made"><img src="https://i.ytimg.com/vi/XgD9fmydrJ4/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>How it was made</b><span>Studio session</span></div></div>
-        <div><button class="yt" type="button" data-yt="AR5uPSxoneU" aria-label="Play Kam Dae"><img src="https://i.ytimg.com/vi/AR5uPSxoneU/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Kam Dae</b><span>Official audio</span></div></div>
+        <div class="big"><button class="yt" type="button" data-yt="DprVtS6yAvQ" aria-label="Play Kam Dae"><img src="https://i.ytimg.com/vi/DprVtS6yAvQ/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Kam Dae</b><span>ft. King Boss LA &middot; official video, dir. Lens Studios</span></div></div>
+        <div><button class="yt" type="button" data-yt="XgD9fmydrJ4" aria-label="Play How it was made"><img src="https://i.ytimg.com/vi/XgD9fmydrJ4/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>How it was made</b><span>Studio session</span></div></div>
+        <div><button class="yt" type="button" data-yt="AR5uPSxoneU" aria-label="Play Kam Dae"><img src="https://i.ytimg.com/vi/AR5uPSxoneU/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Kam Dae</b><span>Official audio</span></div></div>
       </div>
       <div class="btns" style="margin-top:22px"><a class="btn solid" href="https://song.link/KamDae" target="_blank" rel="noopener">Stream Kam Dae everywhere</a></div>
     </section>
@@ -202,12 +207,12 @@
       <p class="k">From the vault</p>
       <h2 id="videos-h">Videos</h2>
       <div class="grid4">
-        <div><button class="yt" type="button" data-yt="WiJ4ro2FEJM" aria-label="Play Ole Am Dae"><img src="https://i.ytimg.com/vi/WiJ4ro2FEJM/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Ole Am Dae</b><span>Official video</span></div></div>
-        <div><button class="yt" type="button" data-yt="U84m20BLcmk" aria-label="Play Lover"><img src="https://i.ytimg.com/vi/U84m20BLcmk/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Lover</b><span>Official video</span></div></div>
-        <div><button class="yt" type="button" data-yt="_pQoE7ehE9g" aria-label="Play Gbet Pa D Boi"><img src="https://i.ytimg.com/vi/_pQoE7ehE9g/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Gbet Pa D Boi</b><span>Official video &middot; 2020</span></div></div>
-        <div><button class="yt" type="button" data-yt="sEibFZ0LfMs" aria-label="Play Mohamed Kallon"><img src="https://i.ytimg.com/vi/sEibFZ0LfMs/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Mohamed Kallon</b><span>Lyric video &middot; for the football legend</span></div></div>
-        <div><button class="yt" type="button" data-yt="aQDYmwwcRkg" aria-label="Play Run Pass"><img src="https://i.ytimg.com/vi/aQDYmwwcRkg/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Run Pass</b><span>ft. Adfega &middot; studio visualizer</span></div></div>
-        <div><button class="yt" type="button" data-yt="cQoh12XErg4" aria-label="Play Whistle"><img src="https://i.ytimg.com/vi/cQoh12XErg4/hqdefault.jpg" alt="" loading="lazy"><span class="play">Play</span></button><div class="vcap"><b>Whistle</b><span>Studio session</span></div></div>
+        <div><button class="yt" type="button" data-yt="WiJ4ro2FEJM" aria-label="Play Ole Am Dae"><img src="https://i.ytimg.com/vi/WiJ4ro2FEJM/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Ole Am Dae</b><span>Official video</span></div></div>
+        <div><button class="yt" type="button" data-yt="U84m20BLcmk" aria-label="Play Lover"><img src="https://i.ytimg.com/vi/U84m20BLcmk/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Lover</b><span>Official video</span></div></div>
+        <div><button class="yt" type="button" data-yt="_pQoE7ehE9g" aria-label="Play Gbet Pa D Boi"><img src="https://i.ytimg.com/vi/_pQoE7ehE9g/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Gbet Pa D Boi</b><span>Official video &middot; 2020</span></div></div>
+        <div><button class="yt" type="button" data-yt="sEibFZ0LfMs" aria-label="Play Mohamed Kallon"><img src="https://i.ytimg.com/vi/sEibFZ0LfMs/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Mohamed Kallon</b><span>Lyric video &middot; for the football legend</span></div></div>
+        <div><button class="yt" type="button" data-yt="aQDYmwwcRkg" aria-label="Play Run Pass"><img src="https://i.ytimg.com/vi/aQDYmwwcRkg/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Run Pass</b><span>ft. Adfega &middot; studio visualizer</span></div></div>
+        <div><button class="yt" type="button" data-yt="cQoh12XErg4" aria-label="Play Whistle"><img src="https://i.ytimg.com/vi/cQoh12XErg4/hqdefault.jpg" alt="" loading="lazy" decoding="async" width="480" height="360"><span class="play">Play</span></button><div class="vcap"><b>Whistle</b><span>Studio session</span></div></div>
         </div>
     </section>
 
@@ -287,6 +292,33 @@
       vm.querySelector('[data-vm-close]').addEventListener('click', closeVm);
       vm.addEventListener('click', function (e) { if (e.target === vm) closeVm(); });
       vm.addEventListener('close', function () { frame.innerHTML = ''; btn.focus(); });
+    })();
+    // Jump links (e.g. "Full catalog"): one controlled scroll. Thumbnails along the way are
+    // decoded first and the hero video/drift/blur are parked, so the glide doesn't stutter on phones.
+    (function () {
+      var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, root = document.documentElement;
+      document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+        var t = document.querySelector(a.getAttribute('href'));
+        if (!t) return;
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          var imgs = [].filter.call(document.querySelectorAll('.yt img'), function (i) {
+            return i.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING;
+          });
+          imgs.forEach(function (i) { i.loading = 'eager'; });
+          var ready = Promise.all(imgs.map(function (i) { return i.decode ? i.decode().catch(function () {}) : 0; }));
+          var go = function () {
+            root.classList.add('jumping');
+            t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+            var last = -1, still = 0, iv = setInterval(function () {
+              if (scrollY === last && ++still > 3) { clearInterval(iv); root.classList.remove('jumping'); }
+              else if (scrollY !== last) { still = 0; last = scrollY; }
+            }, 60);
+            history.replaceState(null, '', a.getAttribute('href'));
+          };
+          Promise.race([ready, new Promise(function (r) { setTimeout(r, 350); })]).then(go);
+        });
+      });
     })();
     // Lite YouTube embeds: load the official player only when tapped. Starting one video
     // (or "Watch with sound") puts any other playing video back to its thumbnail, so songs never overlap.
