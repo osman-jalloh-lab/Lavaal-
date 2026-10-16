@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+const errs = []; p.on('pageerror', e => errs.push(String(e))); p.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0,150)); });
+await p.goto('http://localhost:8080/index.html', { waitUntil: 'load' });
+await p.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; document.getElementById('templates').scrollIntoView(); document.querySelectorAll('#templates .rv').forEach(e => e.classList.add('in')); });
+await p.waitForTimeout(7000);
+const info = await p.evaluate(() => [...document.querySelectorAll('[data-tp-live]')].map(box => { const f = box.querySelector('iframe'); let inner = 'n/a'; try { const d = f.contentDocument; inner = d && d.body ? { rv: d.querySelectorAll('.rv').length, rvIn: d.querySelectorAll('.rv.in').length, scrollY: Math.round(f.contentWindow.scrollY), h: d.documentElement.scrollHeight, vidPaused: [...d.querySelectorAll('video')].map(v => v.paused + '/' + v.readyState).join(',') } : 'nobody'; } catch (e) { inner = 'err ' + e.message; } return { src: f.getAttribute('src'), box: Math.round(box.clientWidth) + 'x' + Math.round(box.clientHeight), ifr: Math.round(f.getBoundingClientRect().width) + 'x' + Math.round(f.getBoundingClientRect().height), inner }; }));
+console.log(JSON.stringify({ errs, info }, null, 1));
+await p.locator('#templates').screenshot({ path: '../qa/tpcheck.png' });
+await b.close();

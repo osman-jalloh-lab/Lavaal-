@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>DM replies demo</title><link rel="stylesheet" href="base.css"><style>
+
+.chat{left:56px;top:100px;width:560px;height:520px}
+.menu{left:660px;top:100px;width:564px;height:300px}
+.owner{left:660px;top:430px;width:564px;height:190px;border-color:var(--accent)}
+.mr{height:50px;font-size:18px}
+.mr.hit{background:#2a2823;color:var(--text)} .mr.hit .chip{border-color:var(--accent);color:var(--accent)}
+
+</style></head><body><div id="stage">
+<div class="title"><b>01</b><span class="lab">Instagram and WhatsApp replies</span></div>
+<div class="panel chat"><div class="ph"><span>Customer chat</span><span>Sample Guesthouse</span></div></div>
+<div class="bub" id="m1" style="left:76px;top:170px">Hi, do you have a room tonight?</div>
+<div class="bub me" id="r1" style="left:196px;top:250px">Yes, we have rooms. Standard or Deluxe? Send your dates and we confirm.</div>
+<div class="bub" id="m2" style="left:76px;top:390px">Can you do a group rate for 10 people?</div>
+<div class="bub me" id="r2" style="left:216px;top:470px;max-width:360px">Good question. I have passed this to the owner, who will reply soon.</div>
+<div class="panel menu"><div class="ph"><span>Answers you approved</span><span>6 saved</span></div>
+ <div class="row mr" id="a1" style="top:46px"><span>Rooms and availability</span><span class="sp"></span><span class="chip" id="c1">Match</span></div>
+ <div class="row mr" id="a2" style="top:96px"><span>Check-in and check-out times</span></div>
+ <div class="row mr" id="a3" style="top:146px"><span>Breakfast and menu</span></div>
+ <div class="row mr" id="a4" style="top:196px"><span>Directions and parking</span></div>
+ <div class="row mr" id="a5" style="top:246px"><span>Group rate</span><span class="sp"></span><span class="chip" id="c5">No answer saved</span></div>
+</div>
+<div class="panel owner" id="own"><div class="ph"><span>Owner ping</span><span>Needs you</span></div>
+ <div style="padding:16px 20px;font-size:19px;color:var(--text);line-height:1.4">Customer asks about a group rate. No saved answer.</div>
+ <div class="btn go" id="ob" style="left:20px;top:116px;height:44px">Reply myself</div></div>
+<div class="cap" id="cap"></div><div class="wm">Illustrative demo</div>
+</div><script src="engine.js"></script><script>
+
+vis('m1',700);vis('r1',2900);vis('m2',4700);vis('r2',6600);
+cls('a1','hit',1700,4500);vis('c1',1700,4500);cls('a5','hit',5500);vis('c5',5500);
+vis('own',6000,8200);pulse('ob',7200);
+seq('cap',[[0,'Message arrives'],[1700,'Matches an <i>answer you approved</i>'],[2900,'Reply drafted from your list'],[5500,'Not in your list'],[6000,'<i>Owner pinged</i> to answer']]);
+
+</script></body></html>

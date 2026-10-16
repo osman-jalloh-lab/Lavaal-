@@ -1,0 +1,130 @@
+<section class="os" id="os" aria-labelledby="os-h">
+  <div class="sec-head">
+    <p class="label">Business OS</p>
+    <h2 id="os-h">A business system, not just a website</h2>
+    <p>Modelled on how Hermes OS runs: separate agents, one dashboard, you approve the important moves.</p>
+  </div>
+
+  <div class="os-app" data-os>
+    <div class="os-bar">
+      <span class="os-badge">Illustrative demo</span>
+      <span class="os-bar-t">Sample business dashboard</span>
+    </div>
+
+    <div class="os-body">
+      <div class="os-rail-wrap">
+        <p class="os-rail-h" id="os-rail-h">Agents</p>
+        <div class="os-rail" role="tablist" aria-orientation="vertical" aria-labelledby="os-rail-h">
+          <button type="button" role="tab" class="os-tab" id="os-tab-inbox" aria-selected="true" aria-controls="os-p-inbox" tabindex="0"><span class="os-dot" aria-hidden="true"></span><span class="os-tab-t">Inbox</span><span class="os-tab-s">Needs you</span></button>
+          <button type="button" role="tab" class="os-tab" id="os-tab-schedule" aria-selected="false" aria-controls="os-p-schedule" tabindex="-1"><span class="os-dot os-dot-warn" aria-hidden="true"></span><span class="os-tab-t">Schedule</span><span class="os-tab-s">1 clash</span></button>
+          <button type="button" role="tab" class="os-tab" id="os-tab-brief" aria-selected="false" aria-controls="os-p-brief" tabindex="-1"><span class="os-dot" aria-hidden="true"></span><span class="os-tab-t">Daily brief</span><span class="os-tab-s">Ready</span></button>
+          <button type="button" role="tab" class="os-tab" id="os-tab-money" aria-selected="false" aria-controls="os-p-money" tabindex="-1"><span class="os-dot" aria-hidden="true"></span><span class="os-tab-t">Money</span><span class="os-tab-s">Watching</span></button>
+          <button type="button" role="tab" class="os-tab" id="os-tab-memory" aria-selected="false" aria-controls="os-p-memory" tabindex="-1"><span class="os-dot" aria-hidden="true"></span><span class="os-tab-t">Memory</span><span class="os-tab-s">Learning</span></button>
+          <button type="button" role="tab" class="os-tab" id="os-tab-market" aria-selected="false" aria-controls="os-p-market" tabindex="-1"><span class="os-dot" aria-hidden="true"></span><span class="os-tab-t">Market watch</span><span class="os-tab-s">Watching</span></button>
+          <button type="button" role="tab" class="os-tab" id="os-tab-builder" aria-selected="false" aria-controls="os-p-builder" tabindex="-1"><span class="os-dot os-dot-warn" aria-hidden="true"></span><span class="os-tab-t">Builder</span><span class="os-tab-s">Needs you</span></button>
+        </div>
+      </div>
+
+      <div class="os-main">
+        <div class="os-panel" role="tabpanel" id="os-p-inbox" aria-labelledby="os-tab-inbox" tabindex="0">
+          <h3>Inbox</h3>
+          <p class="os-sub">Customer messages sorted and answered.</p>
+          <ul class="os-list">
+            <li><span class="os-tag os-tag-hot">Question</span><span class="os-row-t">Customer A: Is Sample item in stock?</span></li>
+            <li><span class="os-tag">Order</span><span class="os-row-t">Customer B: Please confirm my order</span></li>
+            <li><span class="os-tag">Booking</span><span class="os-row-t">Customer C: Table for four on Friday?</span></li>
+          </ul>
+          <div class="os-draft" data-approval="inbox">
+            <p class="os-mini">Drafted reply to Customer A, waiting for you</p>
+            <p class="os-quote">Hello Customer A, yes, Sample item is in stock. Would you like us to hold one for you today?</p>
+            <div class="os-actions">
+              <button type="button" class="os-btn os-btn-ok" data-act="approve">Approve</button>
+              <button type="button" class="os-btn" data-act="decline">Decline</button>
+            </div>
+            <p class="os-result" role="status" hidden></p>
+          </div>
+        </div>
+
+        <div class="os-panel" role="tabpanel" id="os-p-schedule" aria-labelledby="os-tab-schedule" tabindex="0" hidden>
+          <h3>Schedule</h3>
+          <p class="os-sub">Bookings, staff time and clashes.</p>
+          <ol class="os-week" aria-label="Sample week">
+            <li><span class="os-day">Mon</span><span class="os-slot">Booking A</span></li>
+            <li><span class="os-day">Tue</span><span class="os-slot">Staff shift</span></li>
+            <li><span class="os-day">Wed</span><span class="os-slot os-empty">Free</span></li>
+            <li class="os-clash"><span class="os-day">Thu</span><span class="os-slot">Booking B</span><span class="os-slot">Booking C</span><span class="os-flag">Clash: same time</span></li>
+            <li><span class="os-day">Fri</span><span class="os-slot">Booking D</span></li>
+            <li><span class="os-day">Sat</span><span class="os-slot">Staff shift</span></li>
+            <li><span class="os-day">Sun</span><span class="os-slot os-empty">Closed</span></li>
+          </ol>
+          <p class="os-note">Flagged for you: Booking B and Booking C overlap on Thursday. The agent suggests a move, you decide.</p>
+        </div>
+
+        <div class="os-panel" role="tabpanel" id="os-p-brief" aria-labelledby="os-tab-brief" tabindex="0" hidden>
+          <h3>Daily brief</h3>
+          <p class="os-sub">A short morning summary of sales and risks.</p>
+          <div class="os-card">
+            <p class="os-mini">Good morning, Owner</p>
+            <ul class="os-bul">
+              <li>Sales: a short note on yesterday goes here.</li>
+              <li>Risks: Sample item is running low.</li>
+              <li>Today: one booking clash to review.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="os-panel" role="tabpanel" id="os-p-money" aria-labelledby="os-tab-money" tabindex="0" hidden>
+          <h3>Money</h3>
+          <p class="os-sub">Costs and cash in one view. It never moves money.</p>
+          <ul class="os-list">
+            <li><span class="os-tag">Cash in</span><span class="os-row-t">Sample sale</span><span class="os-amt">Sample amount</span></li>
+            <li><span class="os-tag">Cash in</span><span class="os-row-t">Sample deposit</span><span class="os-amt">Sample amount</span></li>
+            <li><span class="os-tag os-tag-out">Cash out</span><span class="os-row-t">Sample supplier bill</span><span class="os-amt">Sample amount</span></li>
+            <li><span class="os-tag os-tag-out">Cash out</span><span class="os-row-t">Sample running cost</span><span class="os-amt">Sample amount</span></li>
+          </ul>
+          <p class="os-note os-lock">Never moves money. It shows and flags. You pay.</p>
+        </div>
+
+        <div class="os-panel" role="tabpanel" id="os-p-memory" aria-labelledby="os-tab-memory" tabindex="0" hidden>
+          <h3>Memory</h3>
+          <p class="os-sub">Remembers products, regulars and prices.</p>
+          <ul class="os-list">
+            <li><span class="os-tag">Product</span><span class="os-row-t">Sample item, shelf 2</span></li>
+            <li><span class="os-tag">Regular</span><span class="os-row-t">Customer A, prefers phone calls</span></li>
+            <li><span class="os-tag">Price</span><span class="os-row-t">Sample item, price set by you</span></li>
+          </ul>
+        </div>
+
+        <div class="os-panel" role="tabpanel" id="os-p-market" aria-labelledby="os-tab-market" tabindex="0" hidden>
+          <h3>Market watch</h3>
+          <p class="os-sub">Rival prices and what people are searching for.</p>
+          <ul class="os-list">
+            <li><span class="os-tag">Rival</span><span class="os-row-t">Rival 1, Sample item</span><span class="os-amt">Sample price</span></li>
+            <li><span class="os-tag">Rival</span><span class="os-row-t">Rival 2, Sample item</span><span class="os-amt">Sample price</span></li>
+            <li><span class="os-tag">Search</span><span class="os-row-t">Popular search: sample term</span></li>
+          </ul>
+        </div>
+
+        <div class="os-panel" role="tabpanel" id="os-p-builder" aria-labelledby="os-tab-builder" tabindex="0" hidden>
+          <h3>Builder</h3>
+          <p class="os-sub">Drafts promotions, pages and campaigns.</p>
+          <div class="os-draft" data-approval="builder">
+            <p class="os-mini">Drafted promotion, waiting for you</p>
+            <p class="os-quote">Sample promotion: a limited offer on Sample item this weekend. Posted to your Facebook Page and Instagram once you approve.</p>
+            <div class="os-actions">
+              <button type="button" class="os-btn os-btn-ok" data-act="approve">Approve</button>
+              <button type="button" class="os-btn" data-act="decline">Decline</button>
+            </div>
+            <p class="os-result" role="status" hidden></p>
+          </div>
+        </div>
+
+        <div class="os-queue" aria-live="polite">
+          <span class="os-queue-h">Approval queue</span>
+          <span class="os-queue-n" data-os-count>2 waiting</span>
+          <span class="os-queue-t">Nothing is sent without your say-so</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

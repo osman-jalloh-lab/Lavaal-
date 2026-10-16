@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POUR / PLAY | Specialty coffee, played slow</title>
+<meta name="description" content="POUR / PLAY: a scroll-driven 3D coffee journey from grind to pour to sip. A sample site by LAVAALL Web.">
+<meta name="theme-color" content="#F5EFE6">
+<meta property="og:title" content="POUR / PLAY">
+<meta property="og:description" content="Grind. Pour. Sip. Find your cup.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Quicksand:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Quicksand:wght@400;500;600&display=swap"></noscript>
+<link rel="stylesheet" href="css/styles.css">
+
+</head>
+<body>
+  <div class="loader" data-loader role="status" aria-live="polite">
+    <p class="loader-logo">POUR <span>/</span> PLAY</p>
+    <div class="loader-bar"><i data-loader-bar></i></div>
+    <p class="loader-pct" data-loader-pct>0%</p>
+  </div>
+
+  <header class="top">
+    <a class="logo" href="#top">POUR <span>/</span> PLAY</a>
+    <a class="top-cta" href="#cups">Find your cup</a>
+  </header>
+
+  <div class="stage film" data-film aria-hidden="true">
+    <video muted playsinline loop preload="auto" src="assets/video/grind.mp4" poster="assets/posters/grind.jpg"></video>
+    <video muted playsinline loop preload="none" data-src="assets/video/pour.mp4" poster="assets/posters/pour.jpg"></video>
+    <video muted playsinline loop preload="none" data-src="assets/video/sip.mp4" poster="assets/posters/sip.jpg"></video>
+  </div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main id="top">
+    <section class="runway" data-runway aria-label="The coffee journey">
+      <div class="labels">
+        <div class="label" data-st="0"><p class="num">01</p><h1>GRIND</h1><p>Fresh beans, ground the moment you brew.</p></div>
+        <div class="label" data-st="1"><p class="num">02</p><h2>POUR</h2><p>Slow spirals at 94&deg;C. Let it bloom.</p></div>
+        <div class="label" data-st="2"><p class="num">03</p><h2>SIP</h2><p>Three minutes later, your cup.</p></div>
+      </div>
+      <p class="hint" data-hint>Scroll to brew <span aria-hidden="true">&darr;</span></p>
+    </section>
+
+    <section class="cups" id="cups" aria-labelledby="cups-h">
+      <p class="eyebrow">Find your cup</p>
+      <h2 id="cups-h">Three beans. Pick your mood.</h2>
+      <div class="cards">
+        <article class="card" style="--tone:#C89B6D">
+          <p class="origin">Ethiopia &middot; Yirgacheffe</p>
+          <h3>Bloom</h3>
+          <ul class="facts"><li><span>Roast</span>Light</li><li><span>Notes</span>Jasmine, peach, honey</li></ul>
+          <div class="buy"><p class="price">$18 <small>/ 250g</small></p><button type="button" data-add="Bloom">Add to cart</button></div>
+        </article>
+        <article class="card" style="--tone:#C96F4A">
+          <p class="origin">Colombia &middot; Huila</p>
+          <h3>Ember</h3>
+          <ul class="facts"><li><span>Roast</span>Medium</li><li><span>Notes</span>Caramel, red apple, cocoa</li></ul>
+          <div class="buy"><p class="price">$16 <small>/ 250g</small></p><button type="button" data-add="Ember">Add to cart</button></div>
+        </article>
+        <article class="card" style="--tone:#3E2F25">
+          <p class="origin">Sumatra &middot; Gayo</p>
+          <h3>Night Shift</h3>
+          <ul class="facts"><li><span>Roast</span>Dark</li><li><span>Notes</span>Dark chocolate, cedar, spice</li></ul>
+          <div class="buy"><p class="price">$17 <small>/ 250g</small></p><button type="button" data-add="Night Shift">Add to cart</button></div>
+        </article>
+      </div>
+      <p class="cart" data-cart aria-live="polite">Your cart is empty.</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>POUR / PLAY is a fictional brand. Sample site by LAVAALL Web. Sample prices.</p>
+    <p class="credits">Film: AI-generated product footage (illustrative). Coffee and brand are fictional.</p>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

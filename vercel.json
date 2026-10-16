@@ -3,6 +3,10 @@
     "api/ops/index.js": {
       "maxDuration": 30,
       "includeFiles": "docs/ops/souls/**"
+    },
+    "api/web/index.js": {
+      "maxDuration": 10,
+      "includeFiles": "api/web/_site/**"
     }
   },
   "headers": [
@@ -21,6 +25,12 @@
       "source": "/ops(.*)",
       "headers": [
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(self), geolocation=()" }
+      ]
+    },
+    {
+      "source": "/web/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
       ]
     },
     {
@@ -48,6 +58,10 @@
     { "source": "/ops/api/ceo-bridge/:kind", "destination": "/api/ops?area=api/ceo-bridge/:kind" },
     { "source": "/ops/api/ceo-assign/:kind", "destination": "/api/ops?area=api/ceo-assign/:kind" },
     { "source": "/ops/:path*", "destination": "/api/ops?area=:path*" },
+    { "source": "/web", "destination": "/api/web?area=" },
+    { "source": "/web/", "destination": "/api/web?area=" },
+    { "source": "/web/:path*/", "destination": "/api/web?area=:path*/" },
+    { "source": "/web/:path*", "destination": "/api/web?area=:path*" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/schedule", "destination": "/index.html" }
   ]

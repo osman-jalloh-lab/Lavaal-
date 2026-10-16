@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ channel: 'chrome', headless: true });
+const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+await p.goto('http://localhost:8080/showcase/triple-t/', { waitUntil: 'load' });
+await p.waitForTimeout(2000);
+await p.click('[data-sound]'); await p.waitForTimeout(4000);
+const fr = p.frames().find(f => f.url().includes('youtube.com/embed/XgD9fmydrJ4'));
+console.log('default-policy player:', JSON.stringify(await fr.evaluate(() => { const v = document.querySelector('video'); return v && { paused: v.paused, muted: v.muted }; })));
+await p.screenshot({ path: '../qa/tt-vm-mobile.png' });
+await p.click('[data-vm-close]'); await p.waitForTimeout(400);
+console.log('closed via X:', !(await p.evaluate(() => document.getElementById('vm').open)), 'iframe cleared:', await p.evaluate(() => !document.querySelector('[data-vm-frame] iframe')));
+await b.close();

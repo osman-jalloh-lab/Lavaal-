@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Inbox and replies demo</title><link rel="stylesheet" href="base.css"><style>
+.col{width:370px;height:420px;top:100px}
+.msg{position:absolute;left:0;right:0;height:50px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);font-size:17px;color:var(--text);background:var(--bg3)}
+.dr{left:56px;top:540px;width:1168px;height:84px;padding:14px 20px;font-size:18px;color:var(--text);border-color:var(--accent)}
+</style></head><body><div id="stage">
+<div class="title"><b>05</b><span class="lab">Inbox and replies</span></div>
+<div class="panel col" id="g1" style="left:56px"><div class="ph"><span>Orders</span></div></div>
+<div class="panel col" id="g2" style="left:455px"><div class="ph"><span>Questions</span></div></div>
+<div class="panel col" id="g3" style="left:854px"><div class="ph"><span>Needs you</span></div></div>
+<div class="msg" id="m1" style="top:150px;left:56px;width:370px"><span class="m lab">A</span>Is my order ready?</div>
+<div class="msg" id="m2" style="top:200px;left:56px;width:370px"><span class="m lab">B</span>I want to order 3 cakes</div>
+<div class="msg" id="m3" style="top:150px;left:455px;width:370px"><span class="m lab">C</span>What time do you open?</div>
+<div class="msg" id="m4" style="top:200px;left:455px;width:370px"><span class="m lab">D</span>Do you deliver to the coast?</div>
+<div class="msg" id="m5" style="top:150px;left:854px;width:370px"><span class="m lab">E</span>Complaint about last week</div>
+<div class="panel dr" id="dr"><div class="lab" style="margin-bottom:6px">Draft reply to C</div><span id="drt"></span></div>
+<div class="btn go" id="ap" style="left:1020px;top:560px;height:44px">Approve and send</div>
+
+<div class="cap" id="cap"></div><div class="wm">Illustrative demo</div>
+</div><script src="engine.js"></script><script>
+const dst=[[56,150],[56,200],[455,150],[455,200],[854,150]];
+for(let i=1;i<=5;i++){vis('m'+i,400+i*300,null,{dy:10});}
+dst.forEach((d,i)=>{move('m'+(i+1),3200,4400,[455-d[0],150+i*50-d[1]],[0,0]);});
+['g1','g2','g3'].forEach(g=>vis(g,3000));
+vis('dr',5000);typeText('drt','We open at 8am every day. See you soon.',5200,6400);
+vis('ap',6200);cls('ap','on',7400);pulse('ap',7400);
+seq('cap',[[0,'Messages arrive'],[3200,'Sorted into <i>labelled groups</i>'],[5000,'Reply drafted'],[6200,'<i>Owner approves</i> before it sends']]);</script></body></html>

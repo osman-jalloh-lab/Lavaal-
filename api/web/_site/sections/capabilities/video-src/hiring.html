@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Hiring helper demo</title><link rel="stylesheet" href="base.css"><style>
+.jp{left:56px;top:100px;width:480px;height:520px}
+.jp .b{padding:18px 20px;font-size:18px;line-height:1.5;color:var(--text)}
+.apl{left:580px;top:100px;width:644px;height:420px;overflow:hidden}
+.row.pk{background:#2a2823}
+</style></head><body><div id="stage">
+<div class="title"><b>08</b><span class="lab">Hiring helper</span></div>
+<div class="panel jp" id="jp"><div class="ph"><span>Job post draft</span><span>Sample role</span></div><div class="b"><div style="font:600 24px var(--sans);margin-bottom:10px" id="jt"></div><div id="jb" style="color:var(--t2)"></div></div></div>
+<div class="panel apl" id="apl"><div class="ph"><span>Applicants scored against the role</span><span>Sample data</span></div><div class="row" id="a1" style="top:46px;"><span style="width:200px">Applicant A</span><span class="sp"></span><span class="m" id="n1">0</span><span class="chip" style="width:90px;text-align:center" id="c1">Review</span></div><div class="row" id="a2" style="top:102px;"><span style="width:200px">Applicant B</span><span class="sp"></span><span class="m" id="n2">0</span><span class="chip" style="width:90px;text-align:center" id="c2">Review</span></div><div class="row" id="a3" style="top:158px;"><span style="width:200px">Applicant C</span><span class="sp"></span><span class="m" id="n3">0</span><span class="chip" style="width:90px;text-align:center" id="c3">Review</span></div><div class="row" id="a4" style="top:214px;"><span style="width:200px">Applicant D</span><span class="sp"></span><span class="m" id="n4">0</span><span class="chip" style="width:90px;text-align:center" id="c4">Review</span></div><div class="row" id="a5" style="top:270px;"><span style="width:200px">Applicant E</span><span class="sp"></span><span class="m" id="n5">0</span><span class="chip" style="width:90px;text-align:center" id="c5">Review</span></div></div>
+<div class="btn go" id="pk" style="left:580px;top:550px">Owner picks: shortlist</div>
+<div class="cap" id="cap"></div><div class="wm">Illustrative demo</div>
+</div><script src="engine.js"></script><script>
+vis('jp',300);typeText('jt','Shop assistant',500,1200);
+typeText('jb','We are looking for a friendly shop assistant. Must speak English and Krio. Basic phone skills. Weekdays and Saturday morning.',1200,3000);
+vis('apl',3000);['a1','a2','a3','a4','a5'].forEach((id,i)=>vis(id,3300+i*200,null,{dy:8}));
+[72,88,54,81,63].forEach((v,i)=>countTo('n'+(i+1),4300+i*150,5100+i*150,0,v));
+cls('a2','pk',6200);cls('a4','pk',6200);
+seq('c2',[[0,'Review'],[6200,'Strong']]);seq('c4',[[0,'Review'],[6200,'Strong']]);
+vis('pk',6600);cls('pk','on',7800);pulse('pk',7800);
+seq('cap',[[0,'Job post drafted'],[3000,'Applicants scored against the role'],[6200,'<i>Owner picks</i> who to meet. The agent only advises']]);
+</script></body></html>

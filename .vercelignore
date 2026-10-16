@@ -1,0 +1,7 @@
+# Keep LAVAALL Web planning docs, the local dev runner and its test off the
+# public site. Everything else deploys as before (no other entries).
+# The page itself lives in api/web/_site and is only reachable through
+# api/web/index.js, which answers 404 unless the section is switched on.
+docs/web/
+scripts/web/
+tests/test-web.js

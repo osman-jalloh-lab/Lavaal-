@@ -1,0 +1,24 @@
+[no-preference 1440] overflow=0 videos=8 consoleErrors=[]
+  focus on first button after 5 tabs; after-focus paused=false loop=true
+  Enter -> paused=true t=0.00 -> 0.00 readyState=4 src=dm.mp4 button="Play" aria="Play demo: Instagram and WhatsApp replies"
+  Enter again -> paused=false
+  hover second: playing=true t=1.19; after leave paused=true
+  scrolled off-screen -> third paused=true
+[no-preference 1024] overflow=0 videos=8 consoleErrors=[]
+[no-preference 390] overflow=0 videos=8 consoleErrors=[]
+  focus on first button after 4 tabs; after-focus paused=false loop=true
+  Enter -> paused=true t=0.00 -> 0.00 readyState=4 src=dm.mp4 button="Play" aria="Play demo: Instagram and WhatsApp replies"
+  Enter again -> paused=false
+  tap fourth: playing=true t=1.18
+[reduce 1440] overflow=0 videos=8 consoleErrors=[]
+  focus on first button after 5 tabs; after-focus paused=true loop=false
+  Enter -> paused=false t=1.48 -> 2.70 readyState=4 src=dm.mp4 button="Pause" aria="Pause demo: Instagram and WhatsApp replies"
+  Enter again -> paused=true
+  hover second: playing=false t=0.00; after leave paused=true
+  scrolled off-screen -> third paused=true
+[reduce 1024] overflow=0 videos=8 consoleErrors=[]
+[reduce 390] overflow=0 videos=8 consoleErrors=[]
+  focus on first button after 4 tabs; after-focus paused=true loop=false
+  Enter -> paused=false t=1.48 -> 2.69 readyState=4 src=dm.mp4 button="Pause" aria="Pause demo: Instagram and WhatsApp replies"
+  Enter again -> paused=true
+  tap fourth: playing=true t=1.20

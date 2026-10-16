@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volt Supply | Sample electronics shop template</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --or: #FF4D00; --ink: #E6E6E6; --mute: #8A8A8A; --line: #262626; }
+  body { background: #000; color: var(--ink); font: 400 15px/1.6 Inter, system-ui, sans-serif; }
+  .mono { font: 500 11px "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+  .ticker { background: var(--or); color: #000; padding: 9px 0; }
+  .ticker span { padding-right: 2.5rem; }
+  .nav { display: flex; justify-content: space-between; align-items: center; padding: 18px clamp(16px, 3vw, 40px); border-bottom: 1px solid var(--line); }
+  .nav b { font: 600 15px "Inter Tight", sans-serif; letter-spacing: .02em; }
+  .cart { display: inline-flex; gap: 8px; align-items: center; }
+  .cart i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; background: var(--or); color: #000; display: grid; place-items: center; font-size: 11px; }
+  .hero { padding: clamp(32px, 6vh, 64px) clamp(16px, 3vw, 40px) 0; }
+  h1 { font: 600 clamp(4.5rem, 21vw, 19rem)/.8 "Inter Tight", sans-serif; letter-spacing: -.07em; text-transform: uppercase; }
+  h1 sup { font-size: .18em; color: var(--or); vertical-align: top; letter-spacing: 0; }
+  .hero-row { display: grid; gap: 20px; margin-top: 28px; padding: 22px 0; border-top: 1px solid var(--line); }
+  .hero-row p { color: var(--mute); max-width: 40ch; }
+  .btn { display: inline-flex; align-items: center; justify-content: space-between; gap: 30px; padding: 16px 20px; background: var(--or); color: #000; font: 600 15px "Inter Tight", sans-serif; transition: gap .3s; }
+  .btn:hover { gap: 44px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-block: 1px solid var(--line); }
+  .p { position: relative; background: #0A0A0A; aspect-ratio: 1; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+  .p .shape { position: absolute; right: 18%; top: 22%; width: 34%; aspect-ratio: 1; border: 1px solid var(--or); transition: transform .8s cubic-bezier(.22,1,.36,1); }
+  .p:hover .shape { transform: rotate(45deg) scale(1.1); }
+  .p.r .shape { border-radius: 50%; }
+  .p.l .shape { aspect-ratio: 5 / 1; top: 42%; }
+  .p.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.1) brightness(.75); transition: filter .6s; }
+  .p.photo:hover img { filter: none; }
+  .p > * { position: relative; }
+  .p .row { display: flex; justify-content: space-between; }
+  .stock { color: #3DDC84; }
+  .track { padding: clamp(56px, 10vh, 110px) clamp(16px, 3vw, 40px); }
+  .track h2 { font: 600 clamp(2rem, 6vw, 4.5rem)/.95 "Inter Tight", sans-serif; letter-spacing: -.05em; text-transform: uppercase; margin-bottom: 28px; }
+  .bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .bar div { border-top: 3px solid #333; padding-top: 10px; color: var(--mute); }
+  .bar div.on { border-color: var(--or); color: var(--ink); }
+  .bar div.go { animation: fill 3s ease-in-out infinite alternate; }
+  @keyframes fill { from { border-color: #333; } to { border-color: var(--or); } }
+  .areas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px; }
+  .areas span { border: 1px solid var(--line); padding: 8px 12px; }
+  footer { padding: 22px clamp(16px, 3vw, 40px); border-top: 1px solid var(--line); color: var(--mute); display: flex; justify-content: space-between; }
+  @media (min-width: 860px) { .grid { grid-template-columns: repeat(4, 1fr); } .hero-row { grid-template-columns: 1fr auto; align-items: center; } }
+</style>
+</head>
+<body>
+  <div class="ticker mono marquee" aria-hidden="true"><div><span>In stock today</span><span>Delivery in town</span><span>Order on WhatsApp</span><span>Pay on delivery</span><span>In stock today</span><span>Delivery in town</span><span>Order on WhatsApp</span><span>Pay on delivery</span></div></div>
+  <header class="nav"><b>VOLT SUPPLY</b><span class="cart mono">Cart <i>2</i></span></header>
+  <section class="hero">
+    <h1 class="rv">Volt<br>Supply<sup>&reg;</sup></h1>
+    <div class="hero-row rv d1"><p>Phones, chargers, solar lamps and cables. Order before 2pm, get it today.</p><a class="btn" href="#shop">Shop now <span>&rarr;</span></a></div>
+  </section>
+  <section class="grid" id="shop">
+    <article class="p photo rv"><img src="../assets/photo/ecommerce.webp" alt="Packed orders on a counter" loading="lazy"><span class="mono">Phones</span><div class="row mono"><span class="stock">&bull; 14 in stock</span><span>&rarr;</span></div></article>
+    <article class="p rv d1"><span class="shape"></span><span class="mono">Chargers</span><div class="row mono"><span class="stock">&bull; In stock</span><span>&rarr;</span></div></article>
+    <article class="p r rv d2"><span class="shape"></span><span class="mono">Solar lamps</span><div class="row mono"><span class="stock">&bull; In stock</span><span>&rarr;</span></div></article>
+    <article class="p l rv d3"><span class="shape"></span><span class="mono">Cables</span><div class="row mono"><span class="stock">&bull; In stock</span><span>&rarr;</span></div></article>
+  </section>
+  <section class="track">
+    <h2 class="rv">Track your<br>order</h2>
+    <div class="bar mono rv d1"><div class="on">Ordered</div><div class="on">Packed</div><div class="go">On the way</div><div>Delivered</div></div>
+    <div class="areas mono rv d2"><span>Lumley</span><span>Aberdeen</span><span>Wilberforce</span><span>Hill Station</span><span>Congo Cross</span></div>
+  </section>
+  <footer class="mono"><span>Volt Supply</span><span>Sample template</span></footer>
+  <span class="sample-badge">Sample template &middot; LAVAALL Web</span>
+  <script src="base.js"></script>
+</body>
+</html>

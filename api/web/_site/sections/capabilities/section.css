@@ -1,0 +1,54 @@
+/* Capabilities section. Prefix cp-. Tokens from ../styles.css. */
+.cp { padding-left: var(--gutter); padding-right: var(--gutter); }
+.cp-head { max-width: 1200px; }
+.cp-note { color: var(--accent); }
+.cp-groups { max-width: 1200px; border-bottom: 1px solid var(--line); }
+
+.cp-group {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px 40px;
+  padding: clamp(28px, 5vw, 48px) 0; border-top: 1px solid var(--line);
+}
+.cp-gl {
+  font: 500 clamp(1.125rem, 2.4vw, 1.75rem)/1.2 var(--mono); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text); margin: 0 0 12px;
+}
+.cp-list { list-style: none; margin: 0; padding: 0; }
+.cp-item {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px 32px;
+  padding: 24px 0; border-top: 1px solid var(--line);
+}
+.cp-item:first-child { border-top: 0; padding-top: 0; }
+.cp-item:last-child { padding-bottom: 0; }
+.cp-t { font: 600 clamp(1.25rem, 2.2vw, 1.625rem)/1.2 var(--display); letter-spacing: -.02em; color: var(--text); margin: 0 0 8px; }
+.cp-d { max-width: 52ch; }
+
+.cp-vid { position: relative; margin: 0; width: 100%; max-width: 360px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 0; }
+.cp-vid video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: var(--bg); object-fit: cover; }
+.cp-vid:hover, .cp-vid:focus-within { outline: 1px solid var(--focus); outline-offset: 2px; }
+.cp-play {
+  position: absolute; left: 0; bottom: 0; min-height: 44px; min-width: 44px; padding: 0 14px 0 12px;
+  display: none; align-items: center; gap: 10px; cursor: pointer;
+  font: 500 .75rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text); background: rgba(13, 14, 19, .88); border: 0; border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 0;
+  transition: background .2s var(--ease);
+}
+/* No JS: native controls on the video stay; with JS the custom button replaces them */
+.cp-js .cp-play { display: inline-flex; }
+.cp-play:hover { background: var(--bg-2); }
+.cp-play:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.cp-pi { position: relative; width: 12px; height: 14px; flex: none; }
+.cp-pi::before { content: ""; position: absolute; left: 1px; top: 0; border-style: solid; border-width: 7px 0 7px 11px; border-color: transparent transparent transparent var(--text); }
+.cp-vid.is-playing .cp-pi::before { left: 0; width: 4px; height: 14px; border: 0; background: var(--text); box-shadow: 7px 0 0 var(--text); }
+
+@media (min-width: 720px) {
+  .cp-item.cp-has-video { grid-template-columns: minmax(0, 1fr) 300px; align-items: center; }
+  .cp-vid { max-width: none; }
+}
+@media (min-width: 1024px) {
+  .cp-group { grid-template-columns: minmax(200px, 1fr) 3fr; gap: 0 48px; }
+  .cp-gl { position: sticky; top: 96px; align-self: start; }
+  .cp-item.cp-has-video { grid-template-columns: minmax(0, 1fr) 340px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cp-play { transition: none; }
+}

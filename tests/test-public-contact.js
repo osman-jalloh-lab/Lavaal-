@@ -25,7 +25,7 @@ function localPathExists(href) {
   if (href.startsWith('#')) return true;
   if (href.startsWith('/#')) return true;
   const file = href.replace(/^\//, '').split('#')[0].split('?')[0];
-  if (!file || file === 'ops' || file.startsWith('ops/') || file === 'schedule' || file.startsWith('api/')) return true;
+  if (!file || file === 'ops' || file.startsWith('ops/') || file === 'schedule' || file === 'web' || file.startsWith('web/') || file.startsWith('api/')) return true;
   return fs.existsSync(path.join(root, file));
 }
 

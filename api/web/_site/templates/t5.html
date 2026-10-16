@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lappa &amp; Co. | Sample boutique template</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  :root { --indigo: #312DFB; --red: #DC143C; --ink: #111; --mute: #5B5B66; }
+  body { background: #fff; color: var(--ink); font: 400 16px/1.6 Inter, system-ui, sans-serif; }
+  .nav { display: flex; justify-content: space-between; align-items: baseline; margin: 0 clamp(18px, 4vw, 48px); padding: 20px 0 14px; border-bottom: 1px solid var(--ink); }
+  .nav b { font: 600 18px "Inter Tight", sans-serif; letter-spacing: -.02em; }
+  .nav nav { display: flex; gap: 20px; font-size: 14px; }
+  .nav nav a:last-child { color: var(--indigo); font-weight: 600; }
+  .hero { padding: clamp(28px, 6vh, 64px) clamp(18px, 4vw, 48px) 0; }
+  .issue { display: flex; justify-content: space-between; font: 500 11px "Geist Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); margin-bottom: 18px; }
+  h1 { font: 400 clamp(4rem, 15vw, 13rem)/.86 "Instrument Serif", serif; letter-spacing: -.035em; }
+  h1 .dot { color: var(--red); }
+  .media { position: relative; margin-top: clamp(28px, 5vh, 56px); height: clamp(280px, 55vw, 640px); overflow: hidden; }
+  .media video { width: 100%; height: 100%; object-fit: cover; }
+  .media .cap { position: absolute; left: 16px; bottom: 16px; background: #fff; padding: 8px 12px; font: 500 11px "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+  .ribbon { background: var(--indigo); color: #fff; padding: 16px 0; font: 400 clamp(1.6rem, 4vw, 3rem) "Instrument Serif", serif; }
+  section { padding: clamp(60px, 11vh, 130px) clamp(18px, 4vw, 48px); }
+  .cols { display: grid; gap: 28px; }
+  .col { border-top: 3px solid var(--indigo); padding-top: 16px; }
+  .col b { display: block; font: 500 12px "Geist Mono", monospace; color: var(--indigo); margin-bottom: 8px; }
+  .col h3 { font: 400 clamp(2rem, 4vw, 3.25rem)/1 "Instrument Serif", serif; letter-spacing: -.02em; }
+  .col p { color: var(--mute); margin-top: 8px; }
+  .quote { font: 400 clamp(2rem, 6vw, 5rem)/1 "Instrument Serif", serif; letter-spacing: -.025em; max-width: 18ch; }
+  .quote span { color: var(--indigo); font-style: italic; }
+  .btn { display: inline-block; margin-top: 32px; padding: 16px 26px; background: var(--indigo); color: #fff; font-weight: 600; transition: background .3s; }
+  .btn:hover { background: var(--ink); }
+  footer { margin: 0 clamp(18px, 4vw, 48px); padding: 22px 0; border-top: 1px solid var(--ink); font-size: 13px; display: flex; justify-content: space-between; }
+  @media (min-width: 860px) { .cols { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+  <header class="nav"><b>Lappa &amp; Co.</b><nav><a href="#c">Collections</a><a href="#v">Visit</a></nav></header>
+  <section class="hero" style="padding-bottom:0">
+    <p class="issue rv"><span>New this week</span><span>No. 24</span></p>
+    <h1 class="rv d1">New prints,<br>this week<span class="dot">.</span></h1>
+    <div class="media rv d2"><video data-auto muted playsinline loop poster="../assets/photo/shopfront.webp" src="../assets/video/clip-shop.mp4"></video><span class="cap">The shop, at dusk</span></div>
+  </section>
+  <div class="ribbon marquee" aria-hidden="true"><div><span>Hand-picked lappa</span><span>&middot;</span><span>Tailoring in a week</span><span>&middot;</span><span>Ready to wear</span><span>&middot;</span><span>Hand-picked lappa</span><span>&middot;</span><span>Tailoring in a week</span><span>&middot;</span><span>Ready to wear</span><span>&middot;</span></div></div>
+  <section id="c">
+    <div class="cols">
+      <article class="col rv"><b>01</b><h3>Lappa</h3><p>Bold prints by the yard, new every Monday.</p></article>
+      <article class="col rv d1"><b>02</b><h3>Ready to wear</h3><p>Dresses and shirts, in sizes from small to 3XL.</p></article>
+      <article class="col rv d2"><b>03</b><h3>Tailoring</h3><p>Bring your fabric. We measure, cut and sew in a week.</p></article>
+    </div>
+  </section>
+  <section id="v">
+    <p class="quote rv">Come in, pick a print, and leave with <span>something made for you.</span></p>
+    <a class="btn rv d1" href="#v">Visit the shop</a>
+  </section>
+  <footer><span>Lappa &amp; Co.</span><span>Sample template</span></footer>
+  <span class="sample-badge">Sample template &middot; LAVAALL Web</span>
+  <script src="base.js"></script>
+</body>
+</html>

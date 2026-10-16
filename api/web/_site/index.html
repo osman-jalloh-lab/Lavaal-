@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>LAVAALL Web | Websites and automation for West African businesses</title>
+<meta name="description" content="Websites, animated storefronts and AI automation for restaurants, hotels, shops and marketers in Sierra Leone and Liberia.">
+<meta name="theme-color" content="#0B252A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230B252A'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23F7E04A'/%3E%3C/svg%3E">
+<script>document.documentElement.classList.remove('no-js')</script>
+<meta property="og:type" content="website">
+<meta property="og:title" content="LAVAALL Web | Websites and automation for West African businesses">
+<meta property="og:description" content="Websites, animated storefronts and AI automation for restaurants, hotels, shops and marketers in Sierra Leone and Liberia.">
+<meta name="twitter:card" content="summary">
+<link rel="preload" href="assets/fonts/inter-tight-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#lava">Skip to content</a>
+
+<nav class="nav" aria-label="Main">
+  <a class="brand" href="#top">LAVAALL Web</a>
+  <a class="link hide-sm" href="#lava">Try Lava</a>
+  <a class="link hide-sm" href="#for">Who it is for</a>
+  <a class="link hide-sm" href="#artists">Artists</a>
+  <a class="link hide-sm" href="#journey">How it works</a>
+  <a class="link" href="work/">Our work</a>
+  <a class="btn btn-solid" href="#contact">Contact</a>
+</nav>
+
+<main id="top">
+  <header class="hero">
+    <div class="hero-media" aria-hidden="true">
+      <img class="hero-poster" src="assets/photo/hero-poster.webp" srcset="assets/photo/hero-poster-sm.webp 640w, assets/photo/hero-poster.webp 1280w" sizes="100vw" alt="" width="1280" height="716" fetchpriority="high">
+      <video class="hero-video" muted playsinline loop preload="none" data-src="assets/video/hero-lite.mp4" data-src-sm="assets/video/hero-sm.mp4"></video>
+    </div>
+    <div class="hero-in">
+      <p class="label rv">LAVAALL Web &middot; Sierra Leone &middot; Liberia</p>
+      <h1 class="rv">More customers. Fewer missed messages.</h1>
+      <div class="hero-foot rv">
+        <p>We build fast websites and a WhatsApp assistant for restaurants, hotels, shops and marketers. It answers customers while you work, and asks you before anything important is confirmed.</p>
+        <div class="hero-cta">
+          <div class="hero-actions">
+            <a class="btn btn-sun" href="#lava">Try Lava, our assistant</a>
+            <a class="btn btn-glass" href="work/">See our work</a>
+            <a class="btn btn-glass" data-wa href="#" hidden>Message us on WhatsApp</a>
+          </div>
+          <p class="hero-small">Free demo in your browser. No sign-up.</p>
+        </div>
+      </div>
+    </div>
+    <button class="hero-pause" type="button" aria-pressed="false" hidden><span class="hp-i" aria-hidden="true"></span><span class="hp-t">Pause film</span></button>
+    <p class="hero-credit">Illustrative scenes, not client locations.</p>
+  </header>
+
+  <section id="lava" class="lava" aria-labelledby="lava-h">
+    <div class="lava-grid">
+      <div class="lava-copy">
+        <p class="label rv">Meet Lava</p>
+        <h2 id="lava-h" class="rv">Your assistant on WhatsApp.</h2>
+        <p class="rv">Lava answers questions from your own menu, rooms or stock, takes bookings and orders, and checks with you before anything is confirmed. Try it as a customer.</p>
+        <div class="lava-tabs rv" role="tablist" aria-label="Choose a sample business">
+          <button type="button" role="tab" id="lt-restaurant" aria-selected="true" aria-controls="lava-phone" data-lava="restaurant">Restaurant</button>
+          <button type="button" role="tab" id="lt-hotel" aria-selected="false" aria-controls="lava-phone" data-lava="hotel" tabindex="-1">Hotel</button>
+          <button type="button" role="tab" id="lt-shop" aria-selected="false" aria-controls="lava-phone" data-lava="shop" tabindex="-1">Shop</button>
+        </div>
+        <ul class="lava-points rv">
+          <li>Replies day and night, in seconds</li>
+          <li>Uses your real menu, rooms or stock</li>
+          <li>Bookings and orders wait for your OK</li>
+        </ul>
+      </div>
+
+      <div class="lava-stage rv">
+        <div class="lava-phone" id="lava-phone" role="tabpanel" aria-labelledby="lt-restaurant">
+          <div class="lp-top">
+            <span class="lp-av" aria-hidden="true">L</span>
+            <span class="lp-who"><b>Lava</b><span data-lava-biz>Sample restaurant</span></span>
+            <span class="lp-badge">Illustrative demo</span>
+          </div>
+          <ol class="lp-log" data-lava-log aria-live="polite" aria-label="Chat with Lava" tabindex="0"></ol>
+          <div class="lp-replies" data-lava-replies role="group" aria-label="Your reply"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wf" aria-labelledby="wf-h">
+    <div class="wf-grid">
+      <div class="wf-copy">
+        <p class="label rv">A real day, start to finish</p>
+        <div class="wf-tabs rv" role="tablist" aria-label="Choose a business">
+          <button type="button" role="tab" id="wft-rest" aria-selected="true" aria-controls="wf-film" data-wf="rest">Restaurant</button>
+          <button type="button" role="tab" id="wft-hotel" aria-selected="false" aria-controls="wf-film" data-wf="hotel" tabindex="-1">Guesthouse</button>
+          <button type="button" role="tab" id="wft-shop" aria-selected="false" aria-controls="wf-film" data-wf="shop" tabindex="-1">Shop</button>
+        </div>
+        <h2 id="wf-h" class="rv" data-wf-h>Friday, 7:42pm. The kitchen is full.</h2>
+        <p class="rv" data-wf-p>Watch two customers get answered while the owner keeps cooking. Lava handles the easy question, and the booking waits for one tap.</p>
+        <a class="wf-dl rv" data-wf-dl href="assets/video/workflows/restaurant-9x16.mp4" download>Download the vertical version for WhatsApp Status</a>
+      </div>
+      <figure class="wf-film frame-live rv" id="wf-film" role="tabpanel" aria-labelledby="wft-rest">
+        <video muted playsinline loop preload="none" data-inview data-src="assets/video/workflows/restaurant-16x9-lite.mp4" data-poster="assets/video/workflows/restaurant-16x9.webp" data-wf-video aria-label="Illustrative demo: on a busy Friday night two customers message a restaurant on WhatsApp. Lava answers that jollof is available, drafts a booking for 4 at 8:30, the owner taps Approve, and the booking is added to the table sheet."></video>
+        <button class="live-toggle" type="button" aria-pressed="false" hidden><span class="lt-t">Pause</span></button>
+      </figure>
+    </div>
+  </section>
+
+  <section id="for" class="biz" aria-labelledby="biz-h">
+    <div class="sec-head">
+      <p class="label rv">Who it is for</p>
+      <h2 id="biz-h" class="rv">Built around how you already sell.</h2>
+    </div>
+    <div class="biz-grid">
+      <article class="biz-card bz-rest rv">
+        <video muted playsinline loop preload="none" data-src="assets/video/clip-restaurant-lite.mp4" data-poster="assets/photo/restaurant.webp" aria-hidden="true"></video>
+        <div class="bz-ui bz-notes" aria-hidden="true">
+          <div class="bz-note"><span class="bz-ic">WA</span><span><b>New booking</b>Table for 4 tonight, 7pm</span><i>now</i></div>
+          <div class="bz-note"><span class="bz-ic">WA</span><span><b>Answered by Lava</b>Yes, the kitchen is open until 11pm</span><i>2m</i></div>
+          <div class="bz-note"><span class="bz-ic">IG</span><span><b>Pickup order</b>2 jollof rice, ready at 8pm</span><i>5m</i></div>
+        </div>
+        <div class="biz-cap"><p class="bz-k">Restaurants</p><h3>Every booking answered, even in the dinner rush.</h3></div>
+      </article>
+      <article class="biz-card bz-hotel rv">
+        <video muted playsinline loop preload="none" data-src="assets/video/clip-hotel-lite.mp4" data-poster="assets/photo/hotel.webp" aria-hidden="true"></video>
+        <div class="bz-ui bz-cal" aria-hidden="true">
+          <p class="bz-cal-h">Sea view double</p>
+          <div class="bz-week"><span>M</span><span>T</span><span>W</span><span>T</span><span class="bz-hold">F</span><span>S</span><span>S</span></div>
+          <p class="bz-cal-f"><span class="bz-dot"></span>Held for Fatmata, waiting for you</p>
+        </div>
+        <div class="biz-cap"><p class="bz-k">Hotels and guesthouses</p><h3>Rooms held day and night. You confirm.</h3></div>
+      </article>
+      <article class="biz-card bz-shop rv">
+        <video muted playsinline loop preload="none" data-src="assets/video/clip-shop-lite.mp4" data-poster="assets/photo/shopfront.webp" aria-hidden="true"></video>
+        <div class="bz-ui bz-order" aria-hidden="true">
+          <p class="bz-order-h"><b>Order 0042</b><span>1 USB-C charger</span></p>
+          <ol class="bz-steps"><li>Ordered</li><li>Packed</li><li>On the way</li></ol>
+        </div>
+        <div class="biz-cap"><p class="bz-k">Shops</p><h3>Orders sorted before you pick up the phone.</h3></div>
+      </article>
+      <article class="biz-card bz-mkt rv">
+        <video muted playsinline loop preload="none" data-src="assets/video/clip-marketer-lite.mp4" data-poster="assets/photo/marketer.webp" aria-hidden="true"></video>
+        <div class="bz-ui bz-post" aria-hidden="true">
+          <img src="assets/photo/restaurant.webp" alt="" width="800" height="450" loading="lazy" decoding="async">
+          <div class="bz-post-b">
+            <p class="bz-post-k">Draft for client &middot; Friday 6pm</p>
+            <p class="bz-post-t">Friday nights at the grill. Book your table on WhatsApp.</p>
+            <div class="bz-post-a"><span class="bz-ok">Approve</span><span>Edit</span><span class="bz-done">Approved</span></div>
+          </div>
+        </div>
+        <div class="biz-cap"><p class="bz-k">Marketers</p><h3>A week of posts for every client. Nothing goes live without you.</h3></div>
+      </article>
+    </div>
+    <p class="biz-note">Scenes are illustrative, not client locations.</p>
+  </section>
+
+  <section id="journey" class="jr" aria-labelledby="jr-h" data-jr>
+    <div class="jr-head">
+      <p class="label rv">How we build your system</p>
+      <h2 id="jr-h" class="rv">We run LAVAALL on it first.</h2>
+      <p class="jr-sub rv">This is the system running. Messages come in from every channel, Lava answers, and anything about bookings or money stops at you before it goes out. Tap a channel to send a sample message. Sample data, illustrative demo.</p>
+    </div>
+    <div class="jr-wrap">
+      <div class="jr-sys">
+        <div class="jr-stage" data-jr-stage role="img" aria-label="Live diagram: WhatsApp, Email, Instagram and Phone or walk-in messages flow into Lava, the AI agent. Lava drafts replies for owner approval before anything about bookings or money goes out, and updates the dashboard, the data sheet, the records cleaner and the 7:00 morning brief.">
+          <svg class="jr-svg" data-jr-svg aria-hidden="true" preserveAspectRatio="none"></svg>
+          <button type="button" class="jr-nd ch" data-id="wa"><i>WA</i><b>WhatsApp</b><span>Waiting</span></button>
+          <button type="button" class="jr-nd ch" data-id="em"><i>@</i><b>Email</b><span>Waiting</span></button>
+          <button type="button" class="jr-nd ch" data-id="ig"><i>IG</i><b>Instagram</b><span>Waiting</span></button>
+          <button type="button" class="jr-nd ch" data-id="ph"><i>&#9742;</i><b>Phone / walk-in</b><span>Waiting</span></button>
+          <div class="jr-nd ai" data-id="lava"><i>AI</i><b>Lava</b><span>Listening</span></div>
+          <div class="jr-nd gt" data-id="gate"><i>&#10003;</i><b>Owner approval</b><span>Draft + Approve</span></div>
+          <div class="jr-nd" data-id="dash"><i>&#9638;</i><b>Dashboard</b><span>Today</span></div>
+          <div class="jr-nd" data-id="sheet"><i>&#9776;</i><b>Data sheet</b><span>Your rows</span></div>
+          <div class="jr-nd" data-id="clean"><i>&#10227;</i><b>Records cleaner</b><span>Watching</span></div>
+          <div class="jr-nd" data-id="brief"><i>&#9728;</i><b>Morning brief</b><span>Brief 7:00</span></div>
+          <div class="jr-chips" data-jr-chips aria-hidden="true"></div>
+        </div>
+        <div class="jr-meta">
+          <dl class="jr-cnt" data-jr-cnt>
+            <div><dt>Messages in</dt><dd data-c="in">0</dd></div>
+            <div><dt>Answered</dt><dd data-c="ans">0</dd></div>
+            <div><dt>Waiting on owner</dt><dd data-c="wait">0</dd></div>
+            <div><dt>Owner approved</dt><dd data-c="ok">0</dd></div>
+            <div><dt>Rows added</dt><dd data-c="rows">0</dd></div>
+            <div><dt>Duplicates merged</dt><dd data-c="dup">0</dd></div>
+          </dl>
+          <p class="jr-demo">Demo counters, sample data. Not real customer numbers.</p>
+          <ol class="jr-log" data-jr-log aria-live="off"></ol>
+        </div>
+      </div>
+      <ol class="jr-steps" data-jr-steps>
+        <li class="jr-st" data-f="all"><span class="jr-n">01</span><div><h3>Our own OS</h3><p>We run LAVAALL on this every day. We build yours the same way.</p></div></li>
+        <li class="jr-st" data-f="wa em ig ph lava"><span class="jr-n">02</span><div><h3>Map your channels</h3><p>WhatsApp, email, Instagram, calls and walk-ins all flow to one place.</p></div></li>
+        <li class="jr-st" data-f="lava wa em"><span class="jr-n">03</span><div><h3>Replies that don&rsquo;t sleep</h3><p>Lava answers at midnight, checks your rooms or tables and quotes your own rate in leones.</p></div></li>
+        <li class="jr-st" data-f="lava gate"><span class="jr-n">04</span><div><h3>Owner approval</h3><p>Bookings and money stop here. The draft waits, you tap Approve, then it goes out.</p></div></li>
+        <li class="jr-st" data-f="lava dash"><span class="jr-n">05</span><div><h3>Your dashboard</h3><p>Bookings, orders, tasks and what is waiting on you, on one screen.</p></div></li>
+        <li class="jr-st" data-f="lava sheet"><span class="jr-n">06</span><div><h3>Your data sheet</h3><p>Every request becomes a row in a sheet you own.</p></div></li>
+        <li class="jr-st" data-f="sheet clean"><span class="jr-n">07</span><div><h3>Cleaning your records</h3><p>Duplicates and gaps get flagged, then merged once you approve.</p></div></li>
+        <li class="jr-st" data-f="dash clean brief"><span class="jr-n">08</span><div><h3>Morning brief</h3><p>At 7:00 you get the night in one message. We check and update it weekly.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="work-teaser" class="light wt" aria-labelledby="wt-h">
+    <div class="wt-in">
+      <div class="wt-copy">
+        <p class="label rv">Our work</p>
+        <h2 id="wt-h" class="rv">See what we have built.</h2>
+        <p class="rv">A few of the sites we have built, below. The work page has them recorded running, plus six live templates, the automations player and the agent office.</p>
+        <a class="btn btn-solid rv" href="work/">See our work</a>
+      </div>
+      <ul class="wt-shots rv" aria-label="From our work">
+        <li><a href="work/#work"><img src="assets/work/rec-terra.webp" alt="" width="1280" height="800" loading="lazy" decoding="async"><span>TERRA, sample restaurant site</span></a></li>
+        <li><a href="work/#work"><img src="assets/work/rec-pourplay.webp" alt="" width="1280" height="800" loading="lazy" decoding="async"><span>POUR / PLAY, sample coffee site</span></a></li>
+        <li><a href="work/#work"><img src="assets/work/rec-hermes.webp" alt="" width="1280" height="800" loading="lazy" decoding="async"><span>Hermes OS, our agent dashboard</span></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="artists" class="ar" aria-labelledby="ar-h">
+    <div class="ar-grid">
+      <div class="ar-copy">
+        <p class="label rv">For artists</p>
+        <h2 id="ar-h" class="rv">Your music. Your fans. Your money.</h2>
+        <p class="rv">Most artists rent their audience from Instagram, YouTube and flyers. We build you your own home: one place for your songs, videos, shows and drops, and a fan list you own. You decide what goes out, when, and how you get paid.</p>
+        <ul class="ar-points rv">
+          <li><b>Your own fan list</b><span>Fans join on WhatsApp. On drop day they hear from you directly, not from an algorithm.</span></li>
+          <li><b>Control what you release</b><span>Pre-listens for your list, release dates you set, and your whole catalog in one place.</span></li>
+          <li><b>Ways to earn</b><span>Ticket links for every show, merch drops, paid early access and booking requests from promoters and brands.</span></li>
+          <li><b>Lava works for you too</b><span>Answers fans about shows and tickets day and night. Anything about money or bookings goes to your manager first.</span></li>
+        </ul>
+        <div class="ar-cta rv">
+          <a class="btn btn-sun" href="showcase/triple-t/" target="_blank" rel="noopener">See Triple T&rsquo;s hub<span class="sr"> (opens in a new tab)</span></a>
+          <a class="btn btn-line" href="showcase/salone-artists/" target="_blank" rel="noopener">Salone Sound catalog<span class="sr"> (opens in a new tab)</span></a>
+        </div>
+        <p class="ar-note rv">Live example: Triple T (Triple Threat Team), shown with the artists&rsquo; approval.</p>
+        <!-- Triple T: approval reported by Osman 2026-10-03; WRITTEN copy still open in TODO.md. Hub, button and preview stay behind the hidden /web vertical (off on Production) until it is on file. -->
+        <h3 class="rv ar-sub">How you join</h3>
+        <ol class="ar-points ar-steps rv">
+          <li><b>1. Tell us about your music</b><span>Email or WhatsApp us your artist name, your links (YouTube, Audiomack, Boomplay, Instagram) and who manages you.</span></li>
+          <li><b>2. Send your official files</b><span>Press photos, logo, artwork, a short bio in your own words, show dates and your ticket provider. We only use what you send or approve.</span></li>
+          <li><b>3. We build your hub</b><span>Your music, videos, shows and booking form on one page, with a &ldquo;Tell me on WhatsApp&rdquo; button for your fan list. You check it before it goes live.</span></li>
+          <li><b>4. Join the Salone Sound catalog</b><span>Your hub sits next to other Salone artists, listed only with your written approval.</span></li>
+        </ol>
+        <h3 class="rv ar-sub">Your fans and your money</h3>
+        <ul class="ar-points rv">
+          <li><b>The fan list is yours</b><span>Fans join with their WhatsApp number. On drop day your manager approves the message, then it goes to everyone on the list.</span></li>
+          <li><b>Getting paid</b><span>Tickets link to the provider you already use. Merch, paid early access and payments are what we build with you; nothing is connected yet. Payouts are set up with you directly. Questions: <a href="mailto:support@lavaall.com">support@lavaall.com</a> &middot; <a href="tel:+17377044182">+1 (737) 704-4182</a></span></li>
+          <li><b>Pricing</b><span>Free while we launch. Talk to us: <a href="mailto:support@lavaall.com">support@lavaall.com</a> &middot; <a href="tel:+17377044182">+1 (737) 704-4182</a>. We explain any costs, including Meta&rsquo;s WhatsApp message fees, before you start.</span></li>
+          <li><b>Talk to Osman</b><span>Email <a href="mailto:support@lavaall.com">support@lavaall.com</a>, call <a href="tel:+17377044182">+1 (737) 704-4182</a> or message us on <a href="https://wa.me/17377044182" target="_blank" rel="noopener">WhatsApp</a>.</span></li>
+        </ul>
+        <div class="ar-cta rv">
+          <a class="btn btn-sun" href="mailto:support@lavaall.com?subject=Artist%20hub%20for%20LAVAALL%20Web">Start your hub: support@lavaall.com</a>
+          <a class="btn btn-line" data-wa href="#" hidden>Message us on WhatsApp</a>
+        </div>
+      </div>
+      <div class="ar-device rv">
+        <div class="tp-live ar-phone" data-tp-live>
+          <div class="ar-poster" aria-hidden="true"><span class="ar-ph-k">Artist hub</span><b>Triple T</b><span class="ar-ph-s">Loading preview&hellip;</span></div>
+          <iframe src="about:blank" data-src="showcase/triple-t/" title="Live preview of the Triple T artist hub" tabindex="-1" aria-hidden="true" scrolling="no" onload="if(this.getAttribute('src')!=='about:blank')this.classList.add('ready')"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="light how" aria-labelledby="how-h">
+    <div class="faq">
+      <h2 id="how-h" class="faq-h rv">Questions owners ask</h2>
+      <details class="rv"><summary>Will it work on cheap phones and mobile data?</summary><p>Yes. We design for phones first, keep pages light, and test on a slow connection before launch.</p></details>
+      <details class="rv"><summary>Does Lava send messages without me?</summary><p>Only routine answers you have agreed to, like opening hours or what is on the menu. Bookings, orders and anything about money wait for your OK.</p></details>
+      <details class="rv"><summary>Which apps does it work with?</summary><p>WhatsApp Business, Instagram and Facebook Page messages. WhatsApp runs on Meta's official WhatsApp Business Platform, which can carry small message fees from Meta. We explain these before you start.</p></details>
+      <details class="rv"><summary>Do I need a website first?</summary><p>No. We can build both together, or start with just the assistant.</p></details>
+      <details class="rv"><summary>How much does it cost?</summary><p>It depends on what you need. Tell us about your business and we will send a clear quote.</p></details>
+    </div>
+  </section>
+
+  <section id="contact" aria-labelledby="contact-h">
+    <div class="sec-head">
+      <p class="label rv">Contact</p>
+      <h2 id="contact-h" class="rv">Contact the right team</h2>
+      <p class="rv">Tell us about your business and what you want to automate.</p>
+    </div>
+    <div class="contact-grid">
+      <div class="rv">
+        <ul class="roles">
+          <li>
+            <h3>New projects and quotes</h3>
+            <a class="mail" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=support%40lavaall.com&amp;su=LAVAALL%20Web%20project" target="_blank" rel="noopener">support@lavaall.com<span class="sr"> (opens Gmail in a new tab)</span></a>
+            <a class="app" href="mailto:support@lavaall.com?subject=LAVAALL%20Web%20project">Open in mail app</a>
+          </li>
+          <li>
+            <h3>Help with an existing site</h3>
+            <a class="mail" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=support%40lavaall.com&amp;su=LAVAALL%20Web%20support" target="_blank" rel="noopener">support@lavaall.com<span class="sr"> (opens Gmail in a new tab)</span></a>
+            <a class="app" href="mailto:support@lavaall.com?subject=LAVAALL%20Web%20support">Open in mail app</a>
+          </li>
+          <li>
+            <h3>General questions</h3>
+            <a class="mail" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=support%40lavaall.com&amp;su=LAVAALL%20Web%20inquiry" target="_blank" rel="noopener">support@lavaall.com<span class="sr"> (opens Gmail in a new tab)</span></a>
+            <a class="app" href="mailto:support@lavaall.com?subject=LAVAALL%20Web%20inquiry">Open in mail app</a>
+          </li>
+        </ul>
+        <!-- WhatsApp: shown only when content/en.json whatsapp.number is filled in (the server passes it to the page). -->
+        <a class="btn btn-line wa" id="wa" data-wa href="#" hidden>Message us on WhatsApp</a>
+      </div>
+
+      <!-- Posts to /web/api/inquiry (api/web/index.js), which hands it to the main site's email router for support@lavaall.com. Fields: name, business, type, country, need, contact, message; "website" is a honeypot. -->
+      <form id="web-inquiry" class="rv" novalidate>
+        <div class="hp" aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <div class="row two">
+          <label>Your name<input name="name" autocomplete="name" required></label>
+          <label>Business name<input name="business" autocomplete="organization"></label>
+        </div>
+        <div class="row two">
+          <label>Type of business
+            <select name="type"><option>Restaurant</option><option>Hotel or guesthouse</option><option>Online shop</option><option>Marketing or agency</option><option>Other</option></select>
+          </label>
+          <label>Country
+            <select name="country"><option>Sierra Leone</option><option>Liberia</option><option>Other</option></select>
+          </label>
+        </div>
+        <label>What do you need?
+          <select name="need"><option>Website</option><option>Animated website</option><option>Automation</option><option>AI agent</option><option>Full business system</option><option>Not sure yet</option></select>
+        </label>
+        <label>Phone, WhatsApp or email<input name="contact" autocomplete="email" required></label>
+        <label>Tell us more<textarea name="message" maxlength="2000"></textarea></label>
+        <button class="btn btn-solid" type="submit">Send inquiry</button>
+        <p class="status" id="form-status" role="status" aria-live="polite"></p>
+        <p class="fine">We will only contact you about this inquiry. No spam.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+
+<footer>
+  <span>LAVAALL Web, a division of LAVAALL.</span>
+  <span><a href="work/">Our work</a> &nbsp;&middot;&nbsp; <a href="/privacy.html">Privacy</a> &nbsp;&middot;&nbsp; <a href="/terms.html">Terms</a></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salone Sound | Artist catalog concept by LAVAALL Web</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Concept: a home for Sierra Leonean artists. Music, videos, shows and drops in one place. By LAVAALL Web.">
+<meta name="theme-color" content="#0A0706">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #0A0706; --bg2: #16100D; --rust: #E2552B; --lime: #D4FF3A; --bone: #F4ECE4; --mute: #B5A89E; --line: rgba(244,236,228,.14); }
+  * { box-sizing: border-box; } html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--bone); font: 400 17px/1.6 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, p { margin: 0; } a { color: inherit; } img { display: block; max-width: 100%; }
+  :focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; }
+  .concept { background: var(--lime); color: #0A0706; font: 700 12px Inter; letter-spacing: .06em; text-transform: uppercase; text-align: center; padding: 8px 14px; }
+  .wrap { padding: 0 clamp(18px, 5vw, 64px); }
+  .k { font: 700 12px Inter; letter-spacing: .22em; text-transform: uppercase; color: var(--rust); }
+  header.top { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+  .mark { font: 400 26px/1 Anton, Impact, sans-serif; text-transform: uppercase; letter-spacing: .02em; text-decoration: none; }
+  .mark span { color: var(--rust); }
+  .top nav { display: flex; gap: 20px; font: 500 14px Inter; }
+  .top nav a { text-decoration: none; color: var(--mute); } .top nav a:hover { color: var(--bone); }
+  .intro { padding: clamp(48px, 10vh, 110px) 0 clamp(36px, 6vh, 64px); }
+  h1 { font: 400 clamp(4rem, 15vw, 13rem)/.82 Anton, Impact, sans-serif; text-transform: uppercase; letter-spacing: -.005em; }
+  h1 em { font-style: normal; color: var(--rust); }
+  .lede { margin-top: 22px; max-width: 54ch; color: var(--mute); font-size: 1.1rem; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 26px; }
+  .filters button { min-height: 44px; padding: 0 16px; border: 1px solid var(--line); background: transparent; color: var(--bone); font: 700 13px Inter; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+  .filters button[aria-pressed="true"] { background: var(--bone); color: #0A0706; border-color: var(--bone); }
+
+  .grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .card { position: relative; overflow: hidden; background: var(--bg2); border: 1px solid var(--line); min-height: 380px; display: flex; isolation: isolate; }
+  .card > a { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; text-decoration: none; }
+  .card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; transition: transform 1s cubic-bezier(.22,1,.36,1); }
+  .card::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10,7,6,.1), rgba(10,7,6,.2) 40%, rgba(10,7,6,.92)); }
+  .card:hover img { transform: scale(1.05); }
+  .badges { position: absolute; top: 16px; left: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .b { font: 700 11px Inter; letter-spacing: .08em; text-transform: uppercase; padding: 6px 9px; }
+  .b.new { background: var(--lime); color: #0A0706; }
+  .b.drop { background: var(--rust); color: #0A0706; }
+  .b.concept-b { background: rgba(10,7,6,.75); border: 1px solid var(--line); }
+  .card h2 { font: 400 clamp(2.8rem, 6vw, 4.6rem)/.85 Anton, Impact, sans-serif; text-transform: uppercase; }
+  .card .g { font: 700 12px Inter; letter-spacing: .14em; text-transform: uppercase; color: var(--rust); margin-bottom: 8px; }
+  .card .m { color: var(--mute); font-size: 14px; margin-top: 8px; }
+  .card .go { margin-top: 16px; font: 700 13px Inter; letter-spacing: .06em; text-transform: uppercase; display: inline-flex; gap: 8px; align-items: center; }
+  .card .go::after { content: "\2192"; transition: transform .3s; }
+  .card:hover .go::after { transform: translateX(4px); }
+  .slot { border: 2px dashed var(--line); background: repeating-linear-gradient(45deg, var(--bg2), var(--bg2) 12px, var(--bg) 12px, var(--bg) 24px); }
+  .slot > div { flex: 1; display: grid; place-content: center; text-align: center; gap: 10px; padding: 24px; color: var(--mute); }
+  .slot b { font: 400 34px/1 Anton, Impact, sans-serif; text-transform: uppercase; color: var(--bone); }
+  .feature { grid-column: 1 / -1; min-height: 520px; }
+
+  .why { padding: clamp(80px, 14vh, 140px) 0; display: grid; gap: 36px; }
+  .why h3 { font: 400 clamp(2.4rem, 6vw, 4.5rem)/.9 Anton, Impact, sans-serif; text-transform: uppercase; }
+  .points { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--line); border-block: 1px solid var(--line); }
+  .points li { background: var(--bg); padding: 22px 0; display: grid; gap: 6px; }
+  .points b { font: 700 18px Inter; } .points span { color: var(--mute); }
+  .cta { display: inline-flex; align-items: center; min-height: 50px; padding: 0 24px; background: var(--rust); color: #0A0706; font: 700 14px Inter; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; justify-self: start; }
+  .cta:hover { background: var(--lime); }
+  footer { padding: 30px 0 40px; border-top: 1px solid var(--line); color: var(--mute); font-size: 13px; }
+  @media (min-width: 760px) { .grid { grid-template-columns: repeat(2, 1fr); } .points { grid-template-columns: repeat(2, 1fr); } .points li { padding: 24px 24px 24px 0; } }
+  @media (min-width: 1150px) { .grid { grid-template-columns: repeat(3, 1fr); } .feature { grid-column: span 2; grid-row: span 2; min-height: 0; } .why { grid-template-columns: .9fr 1.1fr; align-items: start; } }
+  @media (max-width: 560px) { .top nav { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .card img, .card .go::after { transition: none; } }
+</style>
+</head>
+<body>
+  <p class="concept">Concept by LAVAALL Web &middot; artists shown only with their approval &middot; Triple T approved</p>
+  <div class="wrap">
+    <header class="top"><a class="mark" href="#top">Salone <span>Sound</span></a><nav aria-label="Main"><a href="#artists">Artists</a><a href="#why">For artists</a></nav></header>
+    <main id="top">
+      <section class="intro" aria-labelledby="intro-h">
+        <p class="k" style="margin-bottom:18px">Sierra Leone &middot; one home for the music</p>
+        <h1 id="intro-h">Where Salone<br>music <em>lives</em>.</h1>
+        <p class="lede">Every artist gets a premium home: new music, videos, shows and tickets, and a WhatsApp list fans join to hear about drops first. All together, so fans who come for one artist find the next.</p>
+      </section>
+
+      <section id="artists" aria-labelledby="artists-h">
+        <h2 id="artists-h" class="k" style="margin-bottom:16px">The catalog</h2>
+        <div class="filters" role="group" aria-label="Filter by genre">
+          <button type="button" aria-pressed="true" data-f="all">All</button>
+          <button type="button" aria-pressed="false" data-f="afrotrap">Afro-trap</button>
+          <button type="button" aria-pressed="false" data-f="afropop">Afropop</button>
+          <button type="button" aria-pressed="false" data-f="gospel">Gospel</button>
+          <button type="button" aria-pressed="false" data-f="bubu">Bubu</button>
+        </div>
+        <p class="sr" aria-live="polite" data-count style="position:absolute;left:-9999px"></p>
+        <ul class="grid" data-grid>
+          <li class="card feature" data-g="afrotrap afropop">
+            <a href="../triple-t/">
+              <img src="https://i.ytimg.com/vi/imCNZrB5pAY/maxresdefault.jpg" alt="" loading="lazy">
+              <span class="badges"><span class="b new">New: Affairs Session 3</span><span class="b concept-b">Approved by the artists</span></span>
+              <p class="g">Afro-trap &middot; Salone pop</p>
+              <h2>Triple T</h2>
+              <p class="m">Triple Threat Team. Kam Dae ft. King Boss LA, the Next Up album, and the Affairs series.</p>
+              <span class="go">Open artist hub</span>
+            </a>
+          </li>
+          <li class="card slot" data-g="afropop"><div><b>Your artist here</b><span>Afropop &middot; hub ready to build</span></div></li>
+          <li class="card slot" data-g="gospel"><div><b>Your artist here</b><span>Gospel &middot; hub ready to build</span></div></li>
+          <li class="card slot" data-g="bubu"><div><b>Your artist here</b><span>Bubu &middot; hub ready to build</span></div></li>
+          <li class="card slot" data-g="afrotrap afropop"><div><b>Your artist here</b><span>Hip-hop &middot; Afro-trap</span></div></li>
+        </ul>
+      </section>
+
+      <section class="why" id="why" aria-labelledby="why-h">
+        <div>
+          <p class="k">For artists and managers</p>
+          <h3 id="why-h">Own your fans.<br>Not just your followers.</h3>
+        </div>
+        <div style="display:grid;gap:26px">
+          <ul class="points">
+            <li><b>Your own fan list</b><span>Fans join on WhatsApp. When you drop, they hear first, not the algorithm.</span></li>
+            <li><b>Tickets in one place</b><span>Every show, venue and ticket link on your page, instead of flyers and phone numbers.</span></li>
+            <li><b>Music and videos, beautifully</b><span>Your catalog and videos presented the way your art deserves.</span></li>
+            <li><b>Bookings that reach you</b><span>A press kit and booking form for promoters and brands, sent to your management.</span></li>
+          </ul>
+          <a class="cta" href="../../index.html#contact">Talk to LAVAALL Web</a>
+        </div>
+      </section>
+    </main>
+    <footer>Salone Sound is a concept by LAVAALL Web. Artists are listed only with their written approval. Triple T appears with the artists' approval; images are official stills from their YouTube channel.</footer>
+  </div>
+  <script>
+    const btns = document.querySelectorAll('[data-f]'), cards = document.querySelectorAll('[data-grid] > li'), count = document.querySelector('[data-count]');
+    btns.forEach(b => b.addEventListener('click', () => {
+      btns.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      const f = b.dataset.f; let n = 0;
+      cards.forEach(c => { const on = f === 'all' || c.dataset.g.split(' ').includes(f); c.hidden = !on; if (on) n++; });
+      count.textContent = n + (n === 1 ? ' artist shown' : ' artists shown');
+    }));
+  </script>
+</body>
+</html>
