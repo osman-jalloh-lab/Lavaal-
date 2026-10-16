@@ -1554,6 +1554,7 @@ function pickCountry(el,code){
 // SCROLL REVEAL
 // ============================================================================
 const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('up');}),{threshold:.1});
+document.querySelector('footer .ft')?.classList.add('reveal');
 document.querySelectorAll('.reveal,.reveal-l,.reveal-r').forEach(el=>obs.observe(el));
 
 // ============================================================================

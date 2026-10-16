@@ -188,5 +188,20 @@
   });
 })();
 </script>
+<script>
+/* Scroll reveal: same .reveal/.up pattern as the home page. Added by JS so
+   content stays visible if scripts fail; skipped for reduced motion. */
+(function(){
+  if(!('IntersectionObserver' in window))return;
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var els=document.querySelectorAll('.legal-wrap > section, footer .ft');
+  var obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('up');obs.unobserve(e.target);}});},{threshold:.1});
+  els.forEach(function(el){
+    var r=el.getBoundingClientRect();
+    if(r.top<window.innerHeight)return; /* already on screen: leave it visible */
+    el.classList.add('reveal');obs.observe(el);
+  });
+})();
+</script>
 </body>
 </html>
