@@ -18,7 +18,7 @@ const PHONE = /^[+]?[0-9\s\-().]{7,22}$/;
 // Keep in sync with the <select> options in _site/index.html #web-inquiry.
 const OPTIONS = {
   type: ['Restaurant', 'Hotel or guesthouse', 'Online shop', 'Marketing or agency', 'Other'],
-  country: ['Sierra Leone', 'Guinea', 'Liberia', 'Other'],
+  country: ['Sierra Leone', 'Liberia', 'Other'],
   need: ['Website', 'Animated website', 'Automation', 'AI agent', 'Full business system', 'Not sure yet'],
 };
 

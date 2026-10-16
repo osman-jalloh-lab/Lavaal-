@@ -228,7 +228,7 @@ async function run() {
   const served = idx + work;
   check('served pages reference no PNG images', !/\.png\b/i.test(served) && !/\.png['"]/i.test(appJs));
   const vids = [...served.matchAll(/<video\b[^>]*>/g)].map((m) => m[0]);
-  check(`every video on both pages uses a -lite / -sm clip (${vids.length})`, vids.length >= 11 && vids.every((t) => /data-src="[^"]*-(lite|sm)\.mp4"/.test(t) && !/\bsrc="/.test(t.replace(/data-src/g, ''))));
+  check(`every video on both pages uses a -lite / -sm clip (${vids.length})`, vids.length >= 10 && vids.every((t) => /data-src="[^"]*-(lite|sm)\.mp4"/.test(t) && !/\bsrc="/.test(t.replace(/data-src/g, ''))));
   check('every video is preload="none"', vids.every((t) => /preload="none"/.test(t)));
   const hero = vids.find((t) => t.includes('hero-video'));
   check('hero film: lite + phone-size sources, no eager src, poster image shown underneath', hero && hero.includes('data-src="assets/video/hero-lite.mp4"') && hero.includes('data-src-sm="assets/video/hero-sm.mp4"')
@@ -331,7 +331,8 @@ async function run() {
   check('vercel.json allows same-origin framing under /web/ after the site-wide DENY', hdr && hdr.headers.some((h) => h.key === 'X-Frame-Options' && h.value === 'SAMEORIGIN') && vercel.headers.indexOf(hdr) > globalIdx);
   const fnCount = walk(path.join(root, 'api')).filter((f) => f.endsWith('.js') && !rel(f).split('/').some((s) => s.startsWith('_')) && !path.relative(path.join(root, 'api'), f).split(path.sep).some((s) => s.startsWith('_'))).length;
   check(`serverless function count stays within Hobby's 12 (${fnCount})`, fnCount <= 12);
-  for (const f of ['index.html', 'privacy.html', 'terms.html', 'assets/js/catalog.js']) {
+  check('index.html nav links to /web/ (LAVAALL Web entry point)', /<a href="\/web\/">LAVAALL Web<\/a>/.test(fs.readFileSync(path.join(root, 'index.html'), 'utf8')));
+  for (const f of ['privacy.html', 'terms.html', 'assets/js/catalog.js']) {
     check(`${f} has no link to /web`, !/href=["'](\/web\b|https?:\/\/(www\.)?lavaall\.com\/web\b)/i.test(fs.readFileSync(path.join(root, f), 'utf8')));
   }
   const ignore = fs.readFileSync(path.join(root, '.vercelignore'), 'utf8').split(/\r?\n/).map((l) => l.trim());

@@ -1041,3 +1041,9 @@ footer a:hover { color: var(--text); }
 
 .ar-sub { margin: 28px 0 10px; font-size: 1.15rem; color: #F4ECE4; }
 .ar-steps { list-style: none; padding: 0; }
+
+/* Artist hub preview: dark poster under the live iframe so a slow or blocked load on phones never shows a blank white box. */
+.ar-phone { background: #0a0706; }
+.ar-phone .ar-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; }
+.ar-phone iframe { background: #0a0706; opacity: 0; transition: opacity .4s ease; }
+.ar-phone iframe.ready { opacity: 1; }

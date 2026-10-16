@@ -2,7 +2,7 @@
   "_note": "Phase 1 copy, English. Keys are stable so fr.json can mirror them. No pricing, no client names, no unmeasured metrics. Open items are listed in TODO.md.",
   "meta": {
     "title": "LAVAALL Web | Websites and automation for West African businesses",
-    "description": "Websites, animated storefronts and AI automation for restaurants, hotels, shops and marketers in Sierra Leone, Guinea and Liberia."
+    "description": "Websites, animated storefronts and AI automation for restaurants, hotels, shops and marketers in Sierra Leone and Liberia."
   },
   "nav": {
     "work": "Work",
@@ -13,7 +13,7 @@
   "hero": {
     "eyebrow": "LAVAALL Web",
     "h1": "Your business, online and answering for you.",
-    "sub": "We build fast websites and automations for restaurants, hotels, shops and marketers in Sierra Leone, Guinea and Liberia.",
+    "sub": "We build fast websites and automations for restaurants, hotels, shops and marketers in Sierra Leone and Liberia.",
     "cta": "Talk to us",
     "cta2": "See the work"
   },
@@ -30,17 +30,6 @@
           "Catalogue",
           "Quote requests",
           "FAQ"
-        ]
-      },
-      {
-        "id": "starlink",
-        "name": "LAVAALL Starlink",
-        "kind": "Product concept",
-        "text": "An image-first concept for selling satellite internet kits. Few words, big pictures, one clear path to a quote. A design concept, not a live store.",
-        "tags": [
-          "Concept",
-          "Image-first",
-          "Mobile"
         ]
       },
       {
@@ -387,7 +376,6 @@
       "country": "Country",
       "countries": [
         "Sierra Leone",
-        "Guinea",
         "Liberia",
         "Other"
       ],
