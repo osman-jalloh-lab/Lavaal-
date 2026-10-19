@@ -27,7 +27,7 @@ const {
   wantsJson,
 } = require('./_lib');
 const { readLiveSession } = require('./_signin_hardening');
-const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
+const { ceoTaskQueue, notesSelectableForChat, readStore, reportTaskRun, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
 const { agentPendingItem } = require('./_untrusted');
@@ -602,6 +602,8 @@ function ceoBridgeKind(req) {
   if (hay.includes('api/ceo-bridge/confirm')) return 'confirm';
   if (hay.includes('api/ceo-bridge/reply')) return 'reply';
   if (hay.includes('api/ceo-bridge/thread')) return 'thread';
+  if (hay.includes('api/ceo-bridge/task-status')) return 'task-status';
+  if (hay.includes('api/ceo-bridge/tasks')) return 'tasks';
   return '';
 }
 
@@ -1423,6 +1425,56 @@ async function handleReply(req, res) {
   });
 }
 
+// Tasks → CEO desk. Bearer secret only. Task text is founder data, not
+// instructions that widen rules: the desk still drafts only, never sends,
+// posts, or spends without Osman.
+const TASK_RULES = 'Drafts only. No sends, posts, purchases, deletes, or spend without Osman. L3/L4 need Osman. If a step needs approval, set state needs_you with the draft in notes.';
+
+function bridgeTaskView(task) {
+  return {
+    id: task.id,
+    title: task.title,
+    nextAction: task.nextAction,
+    due: task.due,
+    status: task.status,
+    assignee: task.assignee,
+    runState: task.runState || 'assigned',
+    requestedAt: task.requestedAt || 0,
+    runUpdatedAt: task.runUpdatedAt || 0,
+    runNotes: task.runNotes,
+    brief: task.brief,
+  };
+}
+
+async function handleTasks(req, res) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'method_not_allowed' });
+  const auth = verifyBridgeSecret(req);
+  if (auth.error) return sendJson(res, 401, { error: 'unauthorized' });
+  const storeData = await readStore();
+  const queue = ceoTaskQueue(storeData).map(bridgeTaskView)
+    .sort((a, b) => (b.requestedAt || 0) - (a.requestedAt || 0));
+  return sendJson(res, 200, { ok: true, rules: TASK_RULES, tasks: queue });
+}
+
+async function handleTaskStatus(req, res) {
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
+  const auth = verifyBridgeSecret(req);
+  if (auth.error) return sendJson(res, 401, { error: 'unauthorized' });
+  let body;
+  try {
+    body = req.body && typeof req.body === 'object' ? req.body : await readBody(req);
+  } catch (err) {
+    return sendJson(res, 400, { error: 'invalid_body' });
+  }
+  const id = clean(body && body.id, 40);
+  if (!id) return sendJson(res, 400, { error: 'task_not_found' });
+  const notes = typeof (body && body.notes) === 'string' ? body.notes : undefined;
+  const result = await reportTaskRun(id, { state: body && body.state, notes });
+  if (result.error === 'task_not_found') return sendJson(res, 404, { error: 'task_not_found' });
+  if (result.error) return sendJson(res, 400, { error: result.error });
+  return sendJson(res, 200, { ok: true, task: bridgeTaskView(result.task) });
+}
+
 async function handleCeoBridge(req, res) {
   const kind = ceoBridgeKind(req);
   if (!kind) return false;
@@ -1444,6 +1496,12 @@ async function handleCeoBridge(req, res) {
       return true;
     case 'routine-health':
       await handleRoutineHealth(req, res);
+      return true;
+    case 'tasks':
+      await handleTasks(req, res);
+      return true;
+    case 'task-status':
+      await handleTaskStatus(req, res);
       return true;
     default: {
       const _never = kind;

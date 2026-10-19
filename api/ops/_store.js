@@ -10,6 +10,18 @@ const path = require('path');
 
 const STORE_KEY = 'lavaall-ops-v2';
 const MAX_TASKS = 100;
+// Tasks → CEO desk: who runs it and the Do-task run state.
+const TASK_ASSIGNEES = Object.freeze(['me', 'ceo']);
+const TASK_RUN_STATES = Object.freeze(['', 'queued', 'working', 'done', 'needs_you']);
+const TASK_RUN_LABELS = Object.freeze({ queued: 'Queued', working: 'Working', done: 'Done', needs_you: 'Needs you' });
+function normalizeAssignee(value) {
+  const raw = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return TASK_ASSIGNEES.includes(raw) ? raw : 'me';
+}
+function normalizeRunState(value) {
+  const raw = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return TASK_RUN_STATES.includes(raw) ? raw : '';
+}
 const MAX_NOTES = 100;
 const MAX_PROJECTS = 50;
 const MAX_MESSAGES = 40;
@@ -232,6 +244,11 @@ function normalizeTask(row, projectIds) {
     brief: clean(row && row.brief, 4000),
     result: clean(row && row.result, 4000),
     synthesis: clean(row && row.synthesis, 4000),
+    assignee: normalizeAssignee(row && row.assignee),
+    runState: normalizeRunState(row && row.runState),
+    requestedAt: Number.isFinite(row && row.requestedAt) ? row.requestedAt : 0,
+    runUpdatedAt: Number.isFinite(row && row.runUpdatedAt) ? row.runUpdatedAt : 0,
+    runNotes: clean(row && row.runNotes, 4000),
   };
 }
 
@@ -1087,10 +1104,12 @@ async function addTask({
   brief,
   result,
   synthesis,
+  assignee,
 }) {
   return mutate(async () => {
     const storeData = await readStore();
     const task = normalizeTask({
+      assignee,
       title,
       nextAction,
       status,
@@ -1143,6 +1162,11 @@ async function updateTask(id, patch) {
       brief: patch.brief == null ? current.brief : patch.brief,
       result: patch.result == null ? current.result : patch.result,
       synthesis: patch.synthesis == null ? current.synthesis : patch.synthesis,
+      assignee: patch.assignee == null || patch.assignee === '' ? current.assignee : patch.assignee,
+      runState: patch.runState == null ? current.runState : patch.runState,
+      requestedAt: patch.requestedAt == null ? current.requestedAt : patch.requestedAt,
+      runUpdatedAt: patch.runUpdatedAt == null ? current.runUpdatedAt : patch.runUpdatedAt,
+      runNotes: patch.runNotes == null ? current.runNotes : patch.runNotes,
       updatedAt: Date.now(),
     }, new Set(storeData.projects.map((row) => row.id)));
     if (!next.title) return { error: 'invalid_task' };
@@ -1150,6 +1174,29 @@ async function updateTask(id, patch) {
     await writeStore(storeData);
     return { ok: true, task: next };
   });
+}
+
+// Founder clicked "Do task": hand it to the CEO desk now.
+async function requestTask(id) {
+  const now = Date.now();
+  return updateTask(id, { assignee: 'ceo', runState: 'queued', requestedAt: now, runUpdatedAt: now });
+}
+
+function ceoTaskQueue(storeData) {
+  return (storeData.tasks || []).filter((task) => task.assignee === 'ceo'
+    && task.status !== 'done'
+    && task.runState !== 'done' && task.runState !== 'needs_you');
+}
+
+// CEO desk posts progress back. Only working/done/needs_you are accepted.
+async function reportTaskRun(id, { state, notes }) {
+  const next = normalizeRunState(state);
+  if (!['working', 'done', 'needs_you'].includes(next)) return { error: 'invalid_state' };
+  const patch = { runState: next, runUpdatedAt: Date.now() };
+  if (typeof notes === 'string') patch.runNotes = notes;
+  if (next === 'working') patch.status = 'doing';
+  if (next === 'done') patch.status = 'done';
+  return updateTask(id, patch);
 }
 
 async function addNote({ title, body, source, createdBy, proposed, approved }) {
@@ -1646,6 +1693,11 @@ function resetStore(seed) {
 }
 
 module.exports = {
+  TASK_ASSIGNEES,
+  TASK_RUN_LABELS,
+  ceoTaskQueue,
+  reportTaskRun,
+  requestTask,
   STATUSES,
   STATUS_LABELS,
   ASSIGN_STATUSES,
