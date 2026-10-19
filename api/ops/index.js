@@ -64,6 +64,7 @@ const {
   searchNotes,
   updateNote,
   updateTask,
+  requestTask,
 } = require('./_store');
 const {
   createCsrfToken,
@@ -449,7 +450,10 @@ async function handleWrite(req, res, session) {
         due: body.due,
         projectId: body.projectId,
         createdBy: session.email,
+        assignee: body.assignee,
       }), { error: 'Enter a task title.' });
+    case 'request-task':
+      return finishWrite(req, res, session, body, await requestTask(body.id), { error: 'Could not queue that task.' });
     case 'update-task':
       return finishWrite(req, res, session, body, await updateTask(body.id, {
         status: body.status,
@@ -457,6 +461,7 @@ async function handleWrite(req, res, session) {
         due: body.due,
         projectId: body.projectId,
         title: body.title,
+        assignee: body.assignee,
       }), { error: 'Could not update that task.' });
     case 'add-note':
       return finishWrite(req, res, session, body, await addNote({
