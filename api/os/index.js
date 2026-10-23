@@ -22,6 +22,7 @@ function readAsset(name) {
     case 'app.js':
       return [
         fs.readFileSync(path.join(__dirname, '_client/core.js'), 'utf8'),
+        fs.readFileSync(path.join(__dirname, '_client/home.js'), 'utf8'),
       ].join('\n');
     default:
       return null;

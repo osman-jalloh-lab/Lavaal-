@@ -29,7 +29,10 @@
     search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
     theme: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     x: '<path d="M18 6 6 18M6 6l12 12"/>',
-    check: '<path d="M20 6 9 17l-5-5"/>'
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    sunrise: '<path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
+    chev: '<path d="m9 18 6-6-6-6"/>'
   };
   function icon(name) {
     return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
@@ -68,6 +71,25 @@
     for (var i = 0; i < NAV.length; i++) if (NAV[i].id === id) return NAV[i];
     return null;
   }
+
+  // ---- Chicago dates -----------------------------------------------------
+  var dayFmt = null;
+  var hourFmt = null;
+  OS.fmtDate = function (ms) {
+    if (!(ms > 0)) return '';
+    try {
+      dayFmt = dayFmt || new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', day: 'numeric', month: 'short' });
+      var p = {};
+      dayFmt.formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
+      return p.day + ' ' + p.month;
+    } catch (e) { return ''; }
+  };
+  OS.chicagoHour = function () {
+    try {
+      hourFmt = hourFmt || new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour: 'numeric', hour12: false });
+      return parseInt(hourFmt.format(new Date()), 10) % 24;
+    } catch (e) { return 12; }
+  };
 
   // ---- toast -------------------------------------------------------------
   OS.toast = function (message) {
@@ -239,6 +261,16 @@
     $('#hdr-pal').addEventListener('click', openPalette);
     $('#side-theme').addEventListener('click', toggleTheme);
     $('#hdr-theme').addEventListener('click', toggleTheme);
+    $('#drawer').addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('[data-close]')) closeDrawer();
+    });
+    // Any element with data-go="view" or data-go="view/sub" navigates.
+    doc.addEventListener('click', function (e) {
+      var el = e.target.closest ? e.target.closest('[data-go]') : null;
+      if (!el) return;
+      var parts = String(el.getAttribute('data-go')).split('/');
+      OS.go(parts[0], parts.slice(1).join('/'));
+    });
     $('#scrim').addEventListener('click', closeDrawer);
     $('#pal').addEventListener('click', function (e) { if (e.target === this) closePalette(); });
     $('#plist').addEventListener('click', function (e) {
