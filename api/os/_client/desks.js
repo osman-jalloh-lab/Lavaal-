@@ -43,7 +43,7 @@
     var decisions = decisionsFor(data, desk);
     var routines = routinesFor(data, desk);
     var now = desk.now
-      ? '<p>' + esc(desk.now) + '</p>'
+      ? '<p>' + esc(desk.now) + '</p>' + (desk.nowUpdatedAt ? '<p class="note">Updated ' + esc(OS.fmtDate(desk.nowUpdatedAt)) + '</p>' : '')
       : '<div class="empty tight"><b>No "now" line is recorded for this desk.</b></div>';
     var rules = desk.rules && desk.rules.length
       ? '<ul class="plain">' + desk.rules.map(function (r) { return '<li>' + icon('shield') + esc(r) + '</li>'; }).join('') + '</ul>'

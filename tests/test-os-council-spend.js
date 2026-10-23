@@ -121,7 +121,7 @@ const emptySpend = html('spend', build({}));
 check('spend: no records -> every tile is a dash', tileValues(emptySpend).length === 4 && tileValues(emptySpend).every((v) => v === DASH));
 check('spend: empty chart says "No spend records yet"', /No spend records yet/.test(emptySpend) && /aria-label="No spend records yet"/.test(emptySpend));
 check('spend: empty chart prints no axis numbers', !/text-anchor="end"/.test(emptySpend) && !/\$\d/.test(emptySpend));
-check('spend: empty state names the source', /Source: AI spend records; none exist yet/.test(emptySpend));
+check('spend: empty state names the source', /Source: the spend feed; none has been received yet/.test(emptySpend));
 const fullSpend = html('spend', sd);
 check('spend: tiles show real values', tileValues(fullSpend)[0] === '$1.80' && tileValues(fullSpend)[1] === '3' && tileValues(fullSpend)[2] === '$1.50' && /20 Oct/.test(tileValues(fullSpend)[3]));
 check('spend: chart has a gradient fill, a line and an end dot', /<linearGradient id="spend-grad"/.test(fullSpend) && /fill="url\(#spend-grad\)"/.test(fullSpend) && (fullSpend.match(/<circle /g) || []).length === 2);

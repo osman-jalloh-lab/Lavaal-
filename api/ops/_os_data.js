@@ -7,6 +7,9 @@
 //  - Never invent data. A source that does not exist returns null, and the
 //    caller shows an empty state using SOURCES[key].reason.
 //  - No model calls, no env writes, no secrets: Settings reports names only.
+//  - Live feeds (morning brief, routine health, spend, outreach counts, desk now lines) are written only by the
+//    ingest endpoint (api/ops/_os_ingest.js) into their own KV keys. This module only reads them, through
+//    readFeeds() in _os_feeds.js, which issues GETs and nothing else.
 //  - The static LAVAALL OS data pack (api/os/_data, built 22 Oct 2026) supplies decisions, routines, desk
 //    now/rules/skills, skills and rules. It is bundled with the function by literal require() and is never
 //    written to the KV store (DECISIONS.md #20).
@@ -16,6 +19,7 @@ const fs = require('fs');
 const { STORE_KEY } = require('./_store');
 const { OFFICE_AGENTS } = require('./_office');
 const { readRoutineHealthView } = require('./_routine_health');
+const { briefView, deskStatusView, healthView, outreachView, readFeeds, spendRows } = require('./_os_feeds');
 const DATA_PACK = require('../os/_data/index.js');
 
 // Where each widget's data comes from today. `live` is set per load.
@@ -23,14 +27,14 @@ const SOURCES = Object.freeze({
   approvals: { label: 'Pending chat proposals', from: 'store lavaall-ops-v2, chats[].proposals (status pending)' },
   decisions: { label: 'Decision log', from: 'decisions.json in the LAVAALL OS data pack (built 22 Oct 2026); a decisions copy in the store wins if one exists' },
   jev: { label: 'Jev scores', from: 'Jev scores recorded with the decision log; a decision without one shows "Jev: not run"' },
-  hotelBounceRate: { label: 'Hotel bounce rate', from: 'outreach results from the daily Sierra Leone leads routine; none are read yet' },
-  outreach: { label: 'Outreach leads', from: 'the daily Sierra Leone leads routine; no read path is wired in this PR' },
-  spend: { label: 'AI spend', from: 'AI spend records; none exist yet' },
+  hotelBounceRate: { label: 'Hotel bounce rate', from: 'the outreach-stats feed from the daily Sierra Leone leads routine (bounced of sent); none has been received yet' },
+  outreach: { label: 'Outreach', from: 'the outreach-stats feed from the daily Sierra Leone leads routine (counts only, no names); none has been received yet' },
+  spend: { label: 'AI spend', from: 'the spend feed; none has been received yet' },
   council: { label: 'AI Council records', from: 'stored council records (drafter, reviewer, rounds); none exist yet' },
-  brief: { label: 'Morning brief', from: 'the latest CEO brief in the store; none is stored yet' },
-  routines: { label: 'Routines', from: 'routines.json in the LAVAALL OS data pack (schedule, owner, status); live routine health merged by id' },
+  brief: { label: 'Morning brief', from: 'the morning-brief feed; none has been received yet' },
+  routines: { label: 'Routines', from: 'routines.json in the LAVAALL OS data pack (schedule, owner, status); live routine health (the routine-health feed) merged by id' },
   notes: { label: 'Notes', from: 'store lavaall-ops-v2, notes[] (not deleted)' },
-  desks: { label: 'Desks', from: 'desk registry (api/ops/_office.js) plus desks.json in the data pack (now line, rules, skills; Scout from extraDesks)' },
+  desks: { label: 'Desks', from: 'desk registry (api/ops/_office.js) plus desks.json in the data pack (rules, skills; Scout from extraDesks); the now line comes from the desk-status feed when one exists' },
   skills: { label: 'Skills', from: 'skills.json in the LAVAALL OS data pack' },
   rules: { label: 'Founder rules', from: 'rules.json in the LAVAALL OS data pack (matched by FR id)' },
   settings: { label: 'Connections', from: 'presence of existing env var names only' },
@@ -301,16 +305,18 @@ function spendSummary(records, now) {
 // Desk now line, rules and skills come from the data pack's desks.json, merged into the desk registry by id.
 // A desk the pack has no row for keeps null (unknown). Scout is not in the registry; desks.json lists it under
 // extraDesks, and it is added as a seventh desk with no Talk link (there is no /ops chat for it).
-function packDesk(row) {
+function packDesk(row, live) {
   const list = (value, max) => (Array.isArray(value) ? value.map((x) => text(x, max)).filter(Boolean) : null);
   return {
-    now: row ? text(row.now, 200) || null : null,
+    now: live ? live.now : row ? text(row.now, 200) || null : null,
+    nowUpdatedAt: live && Number.isFinite(live.updatedAt) ? live.updatedAt : 0,
     skills: row ? list(row.skills, 80) : null,
     rules: row ? list(row.rules, 400) : null,
   };
 }
 
-function desksFrom(pack) {
+function desksFrom(pack, liveNow) {
+  const live = liveNow || {};
   const rows = pack && pack.desks && Array.isArray(pack.desks.desks) ? pack.desks.desks : [];
   const extra = pack && pack.desks && Array.isArray(pack.desks.extraDesks) ? pack.desks.extraDesks : [];
   const byId = new Map(rows.map((row) => [text(row.id, 40), row]));
@@ -320,7 +326,7 @@ function desksFrom(pack) {
     short: agent.short,
     talk: agent.talk,
     inRegistry: true,
-  }, packDesk(byId.get(agent.id)), { routines: null, decisions: null }));
+  }, packDesk(byId.get(agent.id), live[agent.id]), { routines: null, decisions: null }));
   const added = extra
     .filter((row) => row && text(row.id, 40) && text(row.name, 120))
     .map((row) => Object.assign({
@@ -329,7 +335,7 @@ function desksFrom(pack) {
       short: text(row.short, 40) || text(row.name, 40),
       talk: '',
       inRegistry: false,
-    }, packDesk(row), { routines: null, decisions: null }));
+    }, packDesk(row, live[text(row.id, 40)]), { routines: null, decisions: null }));
   return registry.concat(added);
 }
 
@@ -378,10 +384,36 @@ function settingsFrom(env) {
   ];
 }
 
+// The routine-health feed wins over the older routine-health record, routine by routine.
+function mergeHealth(legacy, fed) {
+  if (!fed) return legacy || null;
+  if (!legacy || !Array.isArray(legacy.routines)) return fed;
+  const seen = new Set(fed.routines.map((r) => r.slug));
+  return { checkedLabel: fed.checkedLabel, routines: fed.routines.concat(legacy.routines.filter((r) => !seen.has(r.slug))) };
+}
+
+// Counts for the Home health card: routines that report a status, by status. null when none report.
+function healthSummary(routines) {
+  if (!Array.isArray(routines)) return null;
+  const reporting = routines.filter((r) => r.health && r.health.status);
+  if (!reporting.length) return null;
+  const counts = { ok: 0, late: 0, failed: 0, skipped: 0, other: 0 };
+  reporting.forEach((r) => {
+    const k = String(r.health.status).toLowerCase();
+    if (k === 'ok') counts.ok += 1;
+    else if (k === 'late') counts.late += 1;
+    else if (k === 'failed' || k === 'missing') counts.failed += 1;
+    else if (k === 'skipped') counts.skipped += 1;
+    else counts.other += 1;
+  });
+  return { reporting: reporting.length, total: routines.length, checkedLabel: reporting[0].health.checkedLabel || '', counts };
+}
+
 // Build the whole /os data object from already-read sources. Pure.
 function buildOsData(sources, opts) {
   const store = sources && sources.store ? sources.store : null;
-  const health = sources && sources.health ? sources.health : null;
+  const feeds = (sources && sources.feeds) || {};
+  const health = mergeHealth(sources && sources.health ? sources.health : null, healthView(feeds.health));
   const env = (opts && opts.env) || process.env;
 
   const pack = opts && opts.pack !== undefined ? opts.pack : DATA_PACK;
@@ -389,7 +421,10 @@ function buildOsData(sources, opts) {
   const approvals = approvalsFrom(store);
   const decisions = decisionsFrom(store, pack);
   const council = councilFrom(store);
-  const spend = spendFrom(store);
+  const spend = spendRows(feeds.spend) || spendFrom(store);
+  const outreachStats = outreachView(feeds.outreach);
+  const brief = briefView(feeds.brief);
+  const routines = routinesFrom(pack, health);
   const spendMonth = spendSummary(spend, opts && opts.now);
   const data = {
     storeAvailable: Boolean(store),
@@ -397,18 +432,21 @@ function buildOsData(sources, opts) {
     kpis: {
       awaitingApproval: approvals ? approvals.length : null,
       openDecisions: decisions ? decisions.filter((row) => row.status.toLowerCase() === 'open').length : null,
-      hotelBounceRate: null,
+      hotelBounceRate: outreachStats ? outreachStats.bounceRate : null,
+      hotelBounceDate: outreachStats ? outreachStats.date : null,
       aiSpendMonth: spendMonth ? spendMonth.total : null,
     },
-    brief: null,
+    brief,
     decisions,
     outreach: null,
+    outreachStats,
     council,
     spend,
     spendMonth,
-    routines: routinesFrom(pack, health),
+    routines,
+    routineHealth: healthSummary(routines),
     notes: notesFrom(store),
-    desks: desksFrom(pack),
+    desks: desksFrom(pack, deskStatusView(feeds.desks)),
     skills: skillsFrom(pack),
     rules: rulesFrom(pack),
     packBuiltAt: pack && pack.builtAt ? pack.builtAt : null,
@@ -420,6 +458,9 @@ function buildOsData(sources, opts) {
       : key === 'approvals' ? approvals !== null
         : key === 'routines' ? data.routines !== null
           : key === 'notes' ? data.notes !== null
+            : key === 'brief' ? brief !== null
+              : key === 'outreach' ? outreachStats !== null
+                : key === 'hotelBounceRate' ? Boolean(outreachStats && outreachStats.bounceRate !== null)
             : key === 'decisions' ? decisions !== null
               : key === 'jev' ? Boolean((decisions && decisions.some((row) => row.jev !== null)) || (council && council.some((row) => row.jev !== null)))
                 : key === 'council' ? council !== null
@@ -436,7 +477,8 @@ function buildOsData(sources, opts) {
 async function loadOsData(opts) {
   const store = (opts && opts.store !== undefined) ? opts.store : await readRawStore(opts);
   const health = await readHealth(opts);
-  return buildOsData({ store, health }, opts);
+  const feeds = await readFeeds(opts);
+  return buildOsData({ store, health, feeds }, opts);
 }
 
 module.exports = {
@@ -448,7 +490,9 @@ module.exports = {
   spendFrom,
   spendSummary,
   desksFrom,
+  healthSummary,
   loadOsData,
+  mergeHealth,
   notesFrom,
   readRawStore,
   routinesFrom,

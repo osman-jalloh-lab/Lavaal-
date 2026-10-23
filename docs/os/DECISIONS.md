@@ -132,3 +132,27 @@ Settled by Osman Jalloh. Do not re-ask.
     - **Brain:** 157 nodes and 100 links (was 61): 14 runs, 47 uses skill, 25 decided, 14 follows rule. Lifecycle cites
       FR-015 twice, so 15 rule lines make 14 distinct links, to 9 rules; the other 21 rules and 27 decisions stay unlinked.
     - **Decisions view:** the Desk column shows the raw desk id. Showing the short name is a possible polish, not done here.
+
+## 2026-10-23 — Live data feeds (next entry after 21)
+
+22. **/os gets five authenticated POST feeds. This is the first write path tied to /os, and it is approved (Osman, 23 Oct
+    2026, "Phase 7").** `/os` itself stays read-only; only the ingest endpoint writes.
+    - **Endpoints:** `POST /api/os/ingest/{morning-brief, routine-health, spend, outreach-stats, desk-status}`, served by
+      one dynamic function `api/os/ingest/[feed].js`. One function, not five: the project already has 10 and the Vercel
+      plan limit is near. No `vercel.json` change was needed. `api/os` now exposes two functions (the app and this).
+    - **Auth:** the existing `OPS_CEO_BRIDGE_SECRET` bearer (at least 16 characters, constant-time compare), the same
+      one the inbox push and routine health use. No new env var. The check is mirrored in `api/ops/_os_ingest.js`
+      because neither existing module exports it and `/ops` code is off limits. No secret, no store write: 401.
+    - **Storage:** one new KV key per feed, `lavaall-os-feed-<feed>-v1`. The existing `lavaall-ops-v2` key is never
+      written (this keeps the original "no KV writes to existing keys" fence). Preview deploys write to a `preview:`
+      prefixed key. Strict shapes, 20 KB cap, nothing stored unless the whole payload is valid, and a 422 names only the
+      field path, never a value. Nothing is logged.
+    - **Rules decided here:** spend is stored in whole cents and posting a date replaces that date (so re-sending is
+      safe); outreach is counts only, one record per day, and `bounced` cannot exceed `sent`; the bounce rate is
+      `bounced / sent` for the latest day (a dash when nothing was sent); routine health statuses are
+      `ok | late | failed | skipped` and the feed wins over the older routine-health record per routine; a desk-status
+      line wins over the data pack line for that desk only.
+    - **Added to the UI:** a Routine health card on Home (counts by status), the day on the Morning brief card, the
+      counts in the Outreach column headers (no lead cards: names are never stored), and "Updated <day>" under a desk's
+      now line. The Sierra Leone mentions from entry 18 are kept in the empty-state source lines.
+    - **Docs:** `api/os/_data/INGEST.md`, one curl per endpoint with the secret shown as `$TOKEN`.
