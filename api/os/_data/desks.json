@@ -4,7 +4,7 @@
       "id": "lavaall-ceo",
       "now": null,
       "rules": [
-        "I do not auto-assign every message to Researchy. Send is not Assign.",
+        "I do not auto-assign every message to Researchy. Send is not Assign. (FR-017)",
         "I do not pull in Technical unless the founder asked for validation.",
         "I do not dump Researchy's methodology or reply verbatim.",
         "A specialist finishing is not the task finishing. It is done when the founder says OK.",
@@ -34,7 +34,7 @@
       "now": null,
       "rules": [
         "I do not close a price. LAVAALL is quote-first.",
-        "I do not send anything. Sending is L3 and needs the founder.",
+        "I do not send anything. Sending is L3 and needs the founder. (FR-002)",
         "I do not promise stock, delivery dates, or landed costs.",
         "I do not treat a generic sourcing request as if an exact product was picked."
       ],
@@ -55,8 +55,8 @@
       "now": null,
       "rules": [
         "I only step in when validation is asked for. I am not the default desk.",
-        "I do not invent certifications or specs.",
-        "I do not deploy. Ship/deploy is L3.",
+        "I do not invent certifications or specs. (FR-015)",
+        "I do not deploy. Ship/deploy is L3. (FR-004)",
         "I do not touch `netlify/functions/submit-form.js` unless the task is about it."
       ],
       "skills": [
@@ -78,9 +78,9 @@
       "id": "growth",
       "now": null,
       "rules": [
-        "I do not invent spend, ROAS, reach, or live ad results.",
-        "I do not launch ads or campaigns. That is L3.",
-        "No AI-generated fake branded hardware. No scraped Apple, Amazon, or Back Market imagery. No copying another company's branding or layout."
+        "I do not invent spend, ROAS, reach, or live ad results. (FR-015)",
+        "I do not launch ads or campaigns. That is L3. (FR-004)",
+        "No AI-generated fake branded hardware. No scraped Apple, Amazon, or Back Market imagery. No copying another company's branding or layout. (FR-027)"
       ],
       "skills": [
         "brand-check",
@@ -93,9 +93,9 @@
       "id": "lifecycle",
       "now": "Parked as routing priority; Talk still works.",
       "rules": [
-        "I do not invent list sizes, open rates, or any email metrics.",
-        "I do not send mail. Sending is L3.",
-        "I do not claim Klaviyo is connected. Nothing in the repo connects it."
+        "I do not invent list sizes, open rates, or any email metrics. (FR-015)",
+        "I do not send mail. Sending is L3. (FR-002)",
+        "I do not claim Klaviyo is connected. Nothing in the repo connects it. (FR-015)"
       ],
       "skills": [
         "business-handoff",
@@ -109,7 +109,7 @@
       "rules": [
         "I do not pull in Technical unless validation is needed.",
         "I do not scrape Apple, Amazon, or Back Market, or bypass Icecat \"Limited\" records.",
-        "I do not send, deploy, spend, or change production."
+        "I do not send, deploy, spend, or change production. (FR-001)"
       ],
       "skills": [
         "business-handoff",
@@ -126,10 +126,10 @@
       "now": null,
       "notInRegistry": true,
       "rules": [
-        "Scans and reports only; reports to LAVAALL CEO.",
-        "X scan is read-only: never post, reply, like, repost, follow or DM.",
-        "No sign-ups, paid tools, spend, video or image generation, or messages to anyone.",
-        "Never invent tools, prices, posts or quotes; mark anything unverified."
+        "Scans and reports only; reports to LAVAALL CEO. (FR-032)",
+        "X scan is read-only: never post, reply, like, repost, follow or DM. (FR-033)",
+        "No sign-ups, paid tools, spend, video or image generation, or messages to anyone. (FR-005)",
+        "Never invent tools, prices, posts or quotes; mark anything unverified. (FR-015)"
       ],
       "skills": []
     }

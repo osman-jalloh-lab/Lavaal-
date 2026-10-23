@@ -119,3 +119,16 @@ Settled by Osman Jalloh. Do not re-ask.
       "No free trial anywhere" is kept as is: it is the rule itself, internal data and not copy.
     - **Pack provenance:** the pack was re-exported after two fixes (a duplicate decision id and Researchy's rules that had
       lost their "I do not"). Its own README had stale counts (53 and 23), so `api/os/_data/README.md` was rewritten.
+
+## 2026-10-23 — Data pack v2 (next entry after 20)
+
+21. **Data pack v2: decisions carry a desk, and desk rules carry FR ids.** Only `decisions.json` and `desks.json` changed
+    (`routines.json`, `rules.json` and `skills.json` are identical); both were copied byte for byte. No code changed, only
+    the pins in `tests/test-os-pack.js`.
+    - **Decisions:** `desk` is set on 25 of 52 (technical 16, lavaall-ceo 5, growth 2, sales 2) and blank on 27. Counts are
+      unchanged: 22 Open, 30 Closed, 6 scored, 10 with no `level`. This supersedes the "desk is empty" line of entry 20.
+    - **Desk rules:** 15 end with an FR id like " (FR-002)", and every cited id exists in `rules.json`, so no rule nodes were
+      added (30 stay). Researchy's rules still start with "I do not ".
+    - **Brain:** 157 nodes and 100 links (was 61): 14 runs, 47 uses skill, 25 decided, 14 follows rule. Lifecycle cites
+      FR-015 twice, so 15 rule lines make 14 distinct links, to 9 rules; the other 21 rules and 27 decisions stay unlinked.
+    - **Decisions view:** the Desk column shows the raw desk id. Showing the short name is a possible polish, not done here.
