@@ -45,6 +45,7 @@
   var NAV = [
     { id: 'home', label: 'Home', icon: 'home', hint: 'G H', key: 'h', about: 'What needs you today.', src: null },
     { id: 'desks', label: 'Desks', icon: 'users', hint: 'G D', key: 'd', about: 'The desks, their rules and routines.', src: 'desks' },
+    { id: 'talk', label: 'Talk', icon: 'council', hint: 'G T', key: 't', about: 'One-on-one chats with the desks.', src: null },
     { id: 'decisions', label: 'Decisions + Jev', icon: 'scale', hint: 'G J', key: 'j', about: 'Decision log with Jev scores.', src: 'decisions' },
     { id: 'outreach', label: 'Outreach', icon: 'send', hint: 'G O', key: 'o', about: 'Leads by stage. View only; nothing is sent from here.', src: 'outreach' },
     { id: 'routines', label: 'Routines', icon: 'timer', hint: 'G R', key: 'r', about: 'Schedules, last runs and health.', src: 'routines' },
@@ -56,7 +57,7 @@
   ];
   // Phone tab bar: four views, then "More" for the rest. Routines moves into More so no view is unreachable.
   var TABS = ['home', 'desks', 'decisions', 'outreach'];
-  var MORE = ['notes', 'brain', 'council', 'spend', 'settings', 'routines'];
+  var MORE = ['talk', 'notes', 'brain', 'council', 'spend', 'settings', 'routines'];
 
   function readData() {
     var node = $('#os-data');
@@ -87,6 +88,17 @@
       var p = {};
       dayFmt.formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
       return p.day + ' ' + p.month;
+    } catch (e) { return ''; }
+  };
+  // "23 Oct, 6:02 PM CT": day, month and clock time in America/Chicago (message times in Talk).
+  var timeFmt = null;
+  OS.fmtTime = function (ms) {
+    if (!(ms > 0)) return '';
+    try {
+      timeFmt = timeFmt || new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+      var p = {};
+      timeFmt.formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
+      return p.day + ' ' + p.month + ', ' + p.hour + ':' + p.minute + ' ' + String(p.dayPeriod || '').toUpperCase() + ' CT';
     } catch (e) { return ''; }
   };
   OS.chicagoHour = function () {

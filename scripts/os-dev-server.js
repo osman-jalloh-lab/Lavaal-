@@ -46,6 +46,15 @@ process.env.OS_LOCAL_NOTES = '1';
 const os = require(path.join(root, 'api/os/index.js'));
 const ingest = require(path.join(root, 'api/os/ingest/[feed].js'));
 
+// Talk (/os#talk) calls the existing /ops Talk endpoints. Locally those need a founder session, so for those
+// four paths only, and only when the dev bypass is open (flag, loopback, no Vercel; see api/ops/_os_guard.js),
+// the request goes to the real /ops handler with a session cookie minted here for the first allow-listed founder.
+// Nothing else of /ops is mounted, and none of /ops is changed. Threads live in this process (no KV configured).
+const { localDevBypass } = require(path.join(root, 'api/ops/_os_guard.js'));
+const { ALLOWLIST, createSessionToken } = require(path.join(root, 'api/ops/_lib.js'));
+const ops = require(path.join(root, 'api/ops/index.js'));
+const TALK_PATH = /^\/ops\/(?:desk-talk\/([a-z0-9-]+)\/(?:thread|message)|ceo-bridge\/(?:thread|message))$/;
+
 function wrap(req, res, query) {
   req.query = query;
   res.status = (code) => { res.statusCode = code; return res; };
@@ -72,6 +81,17 @@ const server = http.createServer(async (req, res) => {
     if (p.startsWith('/os/')) {
       wrap(req, res, { area: p.slice(4) });
       return await os(req, res);
+    }
+    const talk = TALK_PATH.exec(p);
+    if (talk) {
+      if (!localDevBypass(req)) { res.statusCode = 403; return res.end('{"error":"forbidden"}'); }
+      const raw = req.method === 'POST' ? await readBody(req) : '';
+      let body;
+      try { body = raw ? JSON.parse(raw) : undefined; } catch { body = undefined; }
+      req.body = body;
+      req.headers.cookie = `lavaall_ops=${encodeURIComponent(createSessionToken(ALLOWLIST[0]))}`;
+      wrap(req, res, { area: 'api/' + p.slice('/ops/'.length), agent: talk[1] || undefined });
+      return await ops(req, res);
     }
     const feed = /^\/api\/os\/ingest\/([a-z-]+)$/.exec(p);
     if (feed) {

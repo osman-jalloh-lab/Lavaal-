@@ -79,6 +79,21 @@
 .os-root .rflow.play .rnode rect{animation:rglow 600ms ease-out;animation-delay:calc(var(--i)*600ms)}
 @keyframes rpulse{0%{opacity:0;transform:translate(0,0)}12%{opacity:1}88%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
 @keyframes rglow{0%{stroke:var(--accent);stroke-width:3.5}100%{stroke-width:1}}
+.os-root .talk{display:grid;grid-template-columns:300px 1fr;min-height:520px;overflow:hidden}
+.os-root .talklist{border-right:1px solid var(--line);overflow:auto;max-height:calc(100vh - 190px)}
+.os-root .talkrow{text-decoration:none;color:inherit}.os-root .talkrow .av{flex:none}.os-root .talktime{font-size:11px;white-space:nowrap;align-self:flex-start;margin-top:2px}
+.os-root .talkpane{display:flex;flex-direction:column;min-width:0;max-height:calc(100vh - 190px)}
+.os-root .talkhead{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}.os-root .talkhead .t{flex:1;min-width:0}.os-root .talkhead small{display:block;color:var(--tx3);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.os-root .talkback{display:none}
+.os-root .thread{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:260px}
+.os-root .bub-row{display:flex}.os-root .bub-row.mine{justify-content:flex-end}
+.os-root .bub{max-width:78%;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);line-height:20px}
+.os-root .bub.mine{background:color-mix(in srgb,var(--accent) 16%,var(--panel));border-color:color-mix(in srgb,var(--accent) 35%,var(--line));border-bottom-right-radius:4px}.os-root .bub.desk{border-bottom-left-radius:4px}
+.os-root .bub .bt{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}.os-root .bub .bm{margin-top:4px;font-size:11px;color:var(--tx3)}
+.os-root .bub.waiting{color:var(--tx2);display:flex;align-items:center;gap:8px}
+.os-root .composer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);align-items:flex-end}
+.os-root .composer textarea{flex:1;resize:none;min-height:44px;max-height:140px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--panel);color:var(--text);padding:9px 10px;font:inherit}.os-root .composer textarea:focus{outline:none;border-color:var(--accent)}
+.os-root #talk-note{margin:0;padding:0 16px 10px;min-height:16px}
 .os-root .g2.today{align-items:start}.os-root .g32{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .os-root .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card)}
 .os-root .ch{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}.os-root .ch h3{font-size:13px;font-weight:500}.os-root .ch .r{margin-left:auto;color:var(--tx3);font-size:12px;display:flex;gap:8px;align-items:center}
@@ -229,7 +244,7 @@
  .os-root .notes{grid-template-columns:1fr}.os-root .notes .lst{border-right:0;border-bottom:1px solid var(--line);max-height:240px}.os-root .md{padding:16px}
  .os-root .side{display:none}
  .os-root #view{padding:16px 16px 88px}
- .os-root .g4{grid-template-columns:repeat(2,minmax(0,1fr))}.os-root .g32,.os-root .g2{grid-template-columns:minmax(0,1fr)}.os-root .dgrid{grid-template-columns:minmax(0,1fr)}.os-root .dfrow>b{width:100%}
+ .os-root .g4{grid-template-columns:repeat(2,minmax(0,1fr))}.os-root .g32,.os-root .g2{grid-template-columns:minmax(0,1fr)}.os-root .talk{grid-template-columns:1fr}.os-root .talklist{border-right:0;max-height:none}.os-root .talk.open .talklist{display:none}.os-root .talk:not(.open) .talkpane{display:none}.os-root .talk.open .talkback{display:inline-flex;transform:rotate(180deg)}.os-root .talkpane{max-height:calc(100vh - 150px)}.os-root .bub{max-width:88%}.os-root .composer textarea{font-size:16px}.os-root .dgrid{grid-template-columns:minmax(0,1fr)}.os-root .dfrow>b{width:100%}
  .os-root .btn{height:36px}.os-root .chip{height:36px}.os-root .tchip{height:34px}.os-root .ib{width:36px;height:36px}
  .os-root input.q,.os-root .btool input,.os-root .pbox input{font-size:16px}.os-root .btool input{height:34px}
  .os-root .kpi b{font-size:22px}

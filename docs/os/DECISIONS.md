@@ -167,3 +167,27 @@ Settled by Osman Jalloh. Do not re-ask.
       (13 have steps; the Slack task bridge is `null` because no procedure is written, and shows "Steps not written yet").
       Tools are named only where the handoff names them (Gmail, Google Sheets, YouTube, X, /ops, the vault). No outputs are invented.
     - **Still read only:** no Run button, no toggles. Last run and health still come only from the live routine-health record.
+
+## 2026-10-23 — Desk chats (phase 5)
+
+24. **/os gets one-on-one desk chats, and this is the first place /os sends something.** `#talk/<deskId>` (nav item "Talk", key
+    `G T`, in More on a phone) lists the six desks that can Talk (CEO, Sales, Technical, Growth, Lifecycle, Researchy) with their
+    last message and its time (America/Chicago), and shows the thread: founder bubbles on the right, desk bubbles on the left,
+    typing dots while a desk has not answered, and a composer. Each desk's drawer gets a "Talk to <short>" button.
+    - **No new server code and no model client.** The page calls the existing /ops Talk endpoints, same origin, with the founder's
+      existing /ops session cookie and CSRF token (`credentials: same-origin`; the token comes from the thread GET):
+      `GET /ops/desk-talk/<id>/thread` and `POST /ops/desk-talk/<id>/message` (`_agent_thread.js`), and for the CEO
+      `GET /ops/ceo-bridge/thread` and `POST /ops/ceo-bridge/message` (`_ceo_bridge.js`). Whatever those do today (store the message,
+      wait for the desk, run xAI if it is configured) is unchanged. The /os CSP already allows `connect-src 'self'`. No `/ops` file,
+      `vercel.json` or env var changed.
+    - **Auth is the /ops rule, not a new one:** no session, a non-founder session, agent credentials or a bad CSRF token are refused
+      with **403** (that is what those handlers answer today; they do not use 401). The /os page itself still answers 302/401.
+    - **Server text handling stays as /ops has it:** the server strips `<` and `>` from a message; the client escapes everything
+      it shows and never shows the founder email that the thread payload carries.
+    - **Polling:** while a desk is waiting, the open thread is re-read every 6 seconds; it stops when the desk answers or the
+      view is left.
+    - **Local only:** the dev server routes just those four /ops paths to the real handlers, with a session cookie minted for the
+      first allow-listed founder, and only when the loopback dev bypass is open (flag, loopback, no Vercel). Threads live in that
+      process (no KV), so nothing local reaches a real desk or a real store. The shell test's "no remote calls" rule now reads
+      "the only fetch is talk.js, same origin, to those /ops paths".
+
