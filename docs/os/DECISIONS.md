@@ -191,3 +191,23 @@ Settled by Osman Jalloh. Do not re-ask.
       process (no KV), so nothing local reaches a real desk or a real store. The shell test's "no remote calls" rule now reads
       "the only fetch is talk.js, same origin, to those /ops paths".
 
+## 2026-10-23 — AI Council as one conversation, common schema (phase 6)
+
+25. **Each council run is one chat thread, one lane and colour per role.** Claude builds (blue), Codex reviews (violet), Jev scores
+    (amber), Osman approves (green), with a legend at the top. Round by round: Claude's draft, Codex's review, Claude's revision
+    (shown as a diff against the last draft, with the full draft behind a toggle), Jev's score (number, bar, PASS or FLAG), then Osman's
+    gate ("Waiting for L3 OK" with typing dots, or the stored decision). A run with no score says "Jev: not run"; a run with nothing
+    stored says so. Still read only: no model call, no buttons, no cost.
+    - **Record shape:** `{id, title, desk, level, date, status, maxRounds, messages:[{round, role, agent, at, text, draft?, score?}]}`,
+      documented in `api/os/_data/README.md`. The agent always follows the role, so a message cannot claim another lane. The old shape
+      (`drafter`, `reviewer`, `rounds[]`) is still read and mapped to builder and reviewer messages; the record-level `jev` still works.
+    - **`api/os/_data/council.json` holds 0 records** and an empty pack keeps `council` null, so the empty state stays honest. A
+      `council` array in the store wins. One sample run lives in `tests/fixtures/council-sample.json`, used only by tests (and by a local
+      screenshot), never shipped.
+    - **`docs/os/SCHEMA.md`** is the common item schema (id, type, title, date, updated, desk, status, level, jev, tags, links, source,
+      plus per-type extras). The vault notes pack and the council shape follow it. The five committed exports (decisions, routines,
+      desks, skills, rules) are kept byte for byte, so the adapter maps them rather than the files being rewritten; SCHEMA.md says which
+      type is where.
+    - **Brain edges from `links[]` and `desk`:** a note's `links` give "links to" edges (both ends must exist) and its `desk` gives an
+      "owned by" edge. The older exact-match relations are unchanged.
+

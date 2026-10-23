@@ -10,6 +10,8 @@
      lead -> decision   named in        (the decision text contains the lead's full name)
      note -> rule/desk/decision/lead  mentions  (the note text contains the FR id, the desk's full name,
                                                   the decision title or the lead's full name)
+     note -> note       links to        (note.links, ids of other notes in the vault pack)
+     note -> desk       owned by        (note.desk, a desk id from the vault pack)
    Nothing is guessed from first words or synonyms. */
 (function () {
   'use strict';
@@ -111,6 +113,15 @@
         if (t.length >= 8 && hay.indexOf(t) !== -1) link(n, dn.node, 'mentions');
       });
       leadNodes.forEach(function (ln) { if (ln.name.length >= 4 && hay.indexOf(ln.name) !== -1) link(n, ln.node, 'mentions'); });
+    });
+
+    // Notes from the vault pack carry links[] (ids of other notes) and a desk id (docs/os/SCHEMA.md): those are real
+    // relations, so they become edges. A link only exists when both ends are nodes.
+    (data.notes || []).forEach(function (nt) {
+      var from = ix['n:' + nt.id];
+      if (!from) return;
+      (nt.links || []).forEach(function (id) { if (ix['n:' + id]) link(from, ix['n:' + id], 'links to'); });
+      if (nt.desk && ix['d:' + nt.desk]) link(from, ix['d:' + nt.desk], 'owned by');
     });
 
     var counts = {};

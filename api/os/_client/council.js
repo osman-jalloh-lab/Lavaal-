@@ -1,6 +1,9 @@
-/* LAVAALL OS AI Council: shows stored council records only. It runs no model and has no actions.
-   For each run: the drafter and reviewer, "Round n of 3", a diff of the draft between rounds, the Jev score
-   and a "waiting for L3 OK" state. Reads data.council, which is null until council records exist. */
+/* LAVAALL OS AI Council: each stored council record is one chat thread, one lane and colour per role:
+   Claude (builds) blue, Codex (reviews) violet, Jev (scores) amber, Osman (approves) green.
+   Round by round: Claude's draft, Codex's review, Claude's revision (a diff against the last draft), Jev's score,
+   then Osman's gate ("Waiting for L3 OK" with typing dots). A role legend sits at the top.
+   It shows stored records only: it runs no model and has no actions. Reads data.council (messages[] in the
+   council shape, docs/os/SCHEMA.md), which is null until council records exist. */
 (function () {
   'use strict';
   var OS = window.OS;
@@ -8,6 +11,12 @@
   var icon = OS.icon;
 
   var STATUS = { waiting_l3: 'Waiting', approved: 'Approved', changes_requested: 'Changes requested', flagged: 'Flagged', held: 'Held' };
+  var LANES = {
+    builder: { agent: 'Claude', verb: 'builds', ln: 0 },
+    reviewer: { agent: 'Codex', verb: 'reviews', ln: 1 },
+    scorer: { agent: 'Jev', verb: 'scores', ln: 2 },
+    approver: { agent: 'Osman', verb: 'approves', ln: 3 }
+  };
 
   // Line diff by longest common subsequence: [{t: 'same'|'del'|'add', s}]
   function lineDiff(before, after) {
@@ -40,54 +49,76 @@
     }).join('') + '</div>';
   }
 
-  function who(p) { return p && p.name ? p.name : 'Not recorded'; }
-  function initial(p) { return esc(((p && p.name) || '?').charAt(0).toUpperCase()); }
-
-  function message(person, role, when, bodyHtml) {
-    return '<div class="cm"><div class="av" aria-hidden="true">' + initial(person) + '</div><div><div class="hd"><b>' + esc(who(person)) + '</b>' +
-      (person && person.role ? esc(person.role) : esc(role)) + (when ? '<span class="num stamp">' + esc(when) + '</span>' : '') + '</div><div class="bd">' + bodyHtml + '</div></div></div>';
+  function legend() {
+    return '<div class="clegend" role="group" aria-label="Who is who">' + ['builder', 'reviewer', 'scorer', 'approver'].map(function (role) {
+      var l = LANES[role];
+      return '<span class="lg lane-' + role + '"><i class="ld" aria-hidden="true"></i><b>' + esc(l.agent) + '</b> ' + esc(l.verb) + '</span>';
+    }).join('') + '</div>';
   }
 
-  function roundBlock(rec, r, prev) {
-    var draft = '';
-    if (r.draft) {
-      draft = message(rec.drafter, 'drafter', OS.fmtDate(r.at),
-        (prev && prev.draft ? '<p class="note">Changes since round ' + prev.n + '</p>' + diffHtml(prev.draft, r.draft) +
-          '<details class="full"><summary>Full draft</summary><div class="diff plain">' + esc(r.draft) + '</div></details>'
-          : '<div class="diff plain">' + esc(r.draft) + '</div>'));
+  // One chat message in its lane. `head` is the small label next to the name, `body` is already-built HTML.
+  function bubble(role, head, when, body) {
+    var l = LANES[role];
+    return '<div class="cmsg lane-' + role + '"><div class="av" aria-hidden="true">' + esc(l.agent.charAt(0)) + '</div><div class="cbub"><div class="hd"><b>' + esc(l.agent) + '</b>' +
+      '<span>' + esc(head) + '</span>' + (when ? '<span class="num stamp">' + esc(when) + '</span>' : '') + '</div><div class="bd">' + body + '</div></div></div>';
+  }
+
+  function scoreBody(score, text) {
+    var pass = score >= 0.75;
+    return '<div class="score"><b class="num big">' + score.toFixed(2) + '</b><div class="bar"><i style="width:' + Math.round(score * 100) + '%;background:var(--' + (pass ? 'ok' : 'warn') + ')"></i><u></u></div>' + OS.jev(score) + '</div>' +
+      (text ? '<p class="pre">' + esc(text) + '</p>' : '');
+  }
+
+  function messageHtml(m, prevDraft) {
+    var when = OS.fmtDate(m.at);
+    if (m.role === 'builder') {
+      var draft = m.draft || m.text;
+      if (prevDraft === null) return bubble('builder', 'draft', when, '<div class="diff plain">' + esc(draft) + '</div>');
+      return bubble('builder', 'revision', when, '<p class="note">Changes since the last draft</p>' + diffHtml(prevDraft, draft) +
+        '<details class="full"><summary>Full draft</summary><div class="diff plain">' + esc(draft) + '</div></details>');
     }
-    var review = r.review ? message(rec.reviewer, 'reviewer', '', '<p class="pre">' + esc(r.review) + '</p>') : '';
-    return '<div class="rnd">Round ' + r.n + '</div>' + draft + review;
-  }
-
-  function scoreBlock(rec) {
-    if (rec.jev === null) return '<div class="score"><span>' + OS.jev(null) + '</span><small class="note">No Jev score is stored for this run.</small></div>';
-    var pass = rec.jev >= 0.75;
-    return '<div class="score"><b class="num big">' + rec.jev.toFixed(2) + '</b><div class="bar"><i style="width:' + Math.round(rec.jev * 100) + '%;background:var(--' + (pass ? 'ok' : 'warn') + ')"></i><u></u></div>' + OS.jev(rec.jev) + '</div>';
+    if (m.role === 'reviewer') return bubble('reviewer', 'review', when, '<p class="pre">' + esc(m.text) + '</p>');
+    if (m.role === 'scorer') return bubble('scorer', 'score', when, m.score !== undefined ? scoreBody(m.score, m.text) : '<p class="pre">' + esc(m.text) + '</p>');
+    return bubble('approver', 'decision', when, '<p class="pre">' + esc(m.text) + '</p>');
   }
 
   function gate(rec) {
     var lvl = rec.level || 'L3';
     if (rec.status === 'waiting_l3') {
-      return '<div class="cm"><div class="av" aria-hidden="true">?</div><div><div class="hd"><b>Founder gate</b>' + esc(lvl) + '</div><div class="bd gate">Waiting for ' + esc(lvl) +
-        ' OK <span class="typing" aria-hidden="true"><i></i><i></i><i></i></span></div></div></div>';
+      return bubble('approver', lvl + ' gate', '', '<div class="gate">Waiting for ' + esc(lvl) + ' OK <span class="typing" aria-hidden="true"><i></i><i></i><i></i></span></div>');
     }
     var label = STATUS[rec.status];
-    return '<div class="cm"><div class="av" aria-hidden="true">?</div><div><div class="hd"><b>Founder gate</b>' + esc(lvl) + '</div><div class="bd">' +
-      (label ? esc(label) : '<span class="note">No gate status is stored for this run.</span>') + '</div></div></div>';
+    return bubble('approver', lvl + ' gate', '', label ? '<div>' + esc(label) + '</div>' : '<span class="note">No gate status is stored for this run.</span>');
+  }
+
+  function thread(rec) {
+    var html = rec.messages.length ? '' : '<div class="empty tight"><b>No rounds are stored for this run.</b></div>';
+    var round = 0;
+    var lastDraft = null;
+    var hasScore = false;
+    var hasDecision = false;
+    rec.messages.forEach(function (m) {
+      if (m.round !== round) { round = m.round; html += '<div class="rnd">Round ' + round + '</div>'; }
+      html += messageHtml(m, m.role === 'builder' ? lastDraft : null);
+      if (m.role === 'builder') lastDraft = m.draft || m.text;
+      if (m.role === 'scorer') hasScore = true;
+      if (m.role === 'approver') hasDecision = true;
+    });
+    html += '<div class="rnd">Score + gate</div>';
+    if (!hasScore) {
+      html += bubble('scorer', 'score', '', rec.jev === null
+        ? '<div class="score"><span>' + OS.jev(null) + '</span><small class="note">No Jev score is stored for this run.</small></div>'
+        : scoreBody(rec.jev, ''));
+    }
+    return html + (hasDecision && rec.status !== 'waiting_l3' ? '' : gate(rec));
   }
 
   function runCard(rec) {
     var meta = [OS.deskShort(rec.desk), rec.level].filter(Boolean).join(' · ');
-    var rounds = rec.rounds.length
-      ? rec.rounds.map(function (r, i) { return roundBlock(rec, r, rec.rounds[i - 1]); }).join('')
-      : '<div class="empty tight"><b>No rounds are stored for this run.</b></div>';
     return '<section class="card"><div class="ch">' + icon('council') + '<h3>Run · ' + esc(rec.title) + '</h3><div class="r">' +
       (meta ? '<span class="pill">' + esc(meta) + '</span>' : '') + (rec.date ? '<span class="num">' + esc(OS.fmtDate(rec.date)) + '</span>' : '') + '</div></div>' +
-      '<div class="cv"><dl class="kv tightkv"><dt>Drafter</dt><dd>' + esc(who(rec.drafter)) + (rec.drafter.role ? ' <span class="dim">· ' + esc(rec.drafter.role) + '</span>' : '') + '</dd>' +
-      '<dt>Reviewer</dt><dd>' + esc(who(rec.reviewer)) + (rec.reviewer.role ? ' <span class="dim">· ' + esc(rec.reviewer.role) + '</span>' : '') + '</dd>' +
-      '<dt>Round</dt><dd class="num">' + (rec.round ? rec.round + ' of ' + rec.maxRounds : '—') + '</dd></dl>' +
-      rounds + '<div class="rnd">Score + gate</div>' + scoreBlock(rec) + gate(rec) + '</div></section>';
+      '<div class="cv">' + legend() + '<dl class="kv tightkv"><dt>Round</dt><dd class="num">' + (rec.round ? rec.round + ' of ' + rec.maxRounds : '—') + '</dd>' +
+      '<dt>Status</dt><dd>' + (STATUS[rec.status] ? esc(STATUS[rec.status]) : '—') + '</dd></dl>' + thread(rec) + '</div></section>';
   }
 
   function historyTable(list, current) {
@@ -102,7 +133,7 @@
   OS.registerView('council', {
     render: function (ctx) {
       var list = ctx.data.council;
-      var head = '<div class="ph"><div><h1>AI Council</h1><p>Drafter and reviewer rounds, the Jev score and the founder gate, read from stored records. This view runs no model.</p></div></div>';
+      var head = '<div class="ph"><div><h1>AI Council</h1><p>Each run as one conversation: Claude builds, Codex reviews, Jev scores, Osman approves. Read from stored records. This view runs no model.</p></div></div>';
       if (list === null) return head + '<div class="card">' + OS.empty('No council records yet.', 'council') + '</div>';
       if (!list.length) return head + '<div class="card">' + OS.empty('The council record list is empty.', 'council') + '</div>';
       var current = list.filter(function (r) { return r.id === ctx.sub; })[0] || list[0];

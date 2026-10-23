@@ -12,4 +12,5 @@ module.exports = Object.freeze({
   desks: require('./desks.json'),
   skills: require('./skills.json'),
   rules: require('./rules.json'),
+  council: require('./council.json'),
 });

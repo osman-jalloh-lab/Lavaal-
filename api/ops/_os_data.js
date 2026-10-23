@@ -260,17 +260,49 @@ function decisionsFrom(store, pack) {
 }
 
 const COUNCIL_STATUSES = ['waiting_l3', 'approved', 'changes_requested', 'flagged', 'held'];
+// One lane per role, one fixed agent per lane (docs/os/SCHEMA.md): Claude builds, Codex reviews, Jev scores, Osman approves.
+const COUNCIL_LANES = Object.freeze({ builder: 'Claude', reviewer: 'Codex', scorer: 'Jev', approver: 'Osman' });
+const COUNCIL_ORDER = Object.freeze(['builder', 'reviewer', 'scorer', 'approver']);
 
 function wholeNumber(value, min, max) {
   return Number.isInteger(value) && value >= min && value <= max;
 }
 
-// Reads store.council only if council records exist there (they do not today).
+// Messages in the council shape: {round, role, agent, at, text, draft?, score?}. The agent is always the lane's agent.
+function councilMessagesFrom(row, rounds) {
+  const out = [];
+  if (Array.isArray(row.messages)) {
+    row.messages.forEach((m, i) => {
+      if (!m || !COUNCIL_ORDER.includes(m.role) || !wholeNumber(m.round, 1, 20)) return;
+      const message = { round: m.round, role: m.role, agent: COUNCIL_LANES[m.role], at: stamp(m.at), text: text(m.text, 8000), _i: i };
+      if (m.role === 'builder') message.draft = text(m.draft, 8000) || message.text;
+      if (m.role === 'scorer' && Number.isFinite(m.score) && m.score >= 0 && m.score <= 1) message.score = m.score;
+      if (!message.text && !message.draft && message.score === undefined) return;
+      out.push(message);
+    });
+  } else {
+    // Old record shape: rounds[] of {n, draft, review, at} becomes builder and reviewer messages.
+    rounds.forEach((r, i) => {
+      if (r.draft) out.push({ round: r.n, role: 'builder', agent: COUNCIL_LANES.builder, at: r.at, text: r.draft, draft: r.draft, _i: i * 2 });
+      if (r.review) out.push({ round: r.n, role: 'reviewer', agent: COUNCIL_LANES.reviewer, at: 0, text: r.review, _i: i * 2 + 1 });
+    });
+  }
+  return out
+    .sort((a, b) => a.round - b.round || COUNCIL_ORDER.indexOf(a.role) - COUNCIL_ORDER.indexOf(b.role) || a._i - b._i)
+    .map((m) => { const c = Object.assign({}, m); delete c._i; return c; });
+}
+
+// Council records, from the store's council array if one exists, otherwise from the data pack's council.json when it
+// holds records (it holds none today, so the empty state stays honest). Both the old shape (drafter, reviewer, rounds[])
+// and the council shape (messages[]) are read; every record comes out with messages[] (and the old fields, derived).
 // A record is data the council already produced; nothing here runs or calls a model.
-function councilFrom(store) {
-  if (!store || !Array.isArray(store.council)) return null;
+function councilFrom(store, pack) {
+  const source = store && Array.isArray(store.council) ? store.council
+    : pack && Array.isArray(pack.council) && pack.council.length ? pack.council
+      : null;
+  if (!source) return null;
   const person = (row) => ({ name: text(row && row.name, 60), role: text(row && row.role, 60) });
-  return store.council
+  return source
     .filter((row) => row && text(row.title, 200))
     .map((row) => {
       const seen = new Set();
@@ -279,6 +311,9 @@ function councilFrom(store) {
         .sort((a, b) => a.n - b.n)
         .filter((r) => (seen.has(r.n) ? false : seen.add(r.n)))
         .map((r) => ({ n: r.n, draft: text(r.draft, 8000), review: text(r.review, 8000), at: stamp(r.at) }));
+      const messages = councilMessagesFrom(row, rounds);
+      const scored = messages.filter((m) => m.score !== undefined);
+      const jev = Number.isFinite(row.jev) && row.jev >= 0 && row.jev <= 1 ? row.jev : scored.length ? scored[scored.length - 1].score : null;
       return {
         id: text(row.id, 40),
         title: text(row.title, 200),
@@ -289,8 +324,9 @@ function councilFrom(store) {
         reviewer: person(row.reviewer),
         maxRounds: wholeNumber(row.maxRounds, 1, 10) ? row.maxRounds : 3,
         rounds,
-        round: rounds.length ? rounds[rounds.length - 1].n : 0,
-        jev: Number.isFinite(row.jev) && row.jev >= 0 && row.jev <= 1 ? row.jev : null,
+        messages,
+        round: messages.length ? messages[messages.length - 1].round : 0,
+        jev,
         status: COUNCIL_STATUSES.includes(row.status) ? row.status : '',
         source: text(row.source, 240),
       };
@@ -474,7 +510,7 @@ function buildOsData(sources, opts) {
   const packNotes = notesView(feeds.notes) || (opts && opts.localNotes !== undefined ? opts.localNotes : localNotesPack(env));
   const approvals = approvalsFrom(store);
   const decisions = decisionsFrom(store, pack);
-  const council = councilFrom(store);
+  const council = councilFrom(store, pack);
   const spend = spendRows(feeds.spend) || spendFrom(store);
   const outreachStats = outreachView(feeds.outreach);
   const brief = briefView(feeds.brief);

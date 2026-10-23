@@ -96,7 +96,7 @@ check('desk -> rule only for real FR ids', hasLink(gs, 'd:sales', 'r:FR-002', 'f
 check('routine -> desk only with a matching owner', hasLink(gs, 'rt:rt1', 'd:sales', 'runs') && gs.links.filter((l) => l.s.id === 'rt:rt2' || l.t.id === 'rt:rt2' || l.s.id === 'rt:rt3' || l.t.id === 'rt:rt3').length === 0);
 
 // ---- structural invariants ------------------------------------------------------
-const RELATIONS = ['uses skill', 'follows rule', 'runs', 'decided', 'works lead', 'named in', 'mentions'];
+const RELATIONS = ['uses skill', 'follows rule', 'runs', 'decided', 'works lead', 'named in', 'mentions', 'links to', 'owned by'];
 [gd, gl, gn, gs].forEach((g, i) => {
   check(`graph ${i}: every link joins two real nodes`, g.links.every((l) => g.ix[l.s.id] === l.s && g.ix[l.t.id] === l.t));
   check(`graph ${i}: every link has a known relation label`, g.links.every((l) => RELATIONS.includes(l.why)));
