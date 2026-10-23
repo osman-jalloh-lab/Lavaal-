@@ -5,6 +5,7 @@
 // GET ?token=… still consumes a one-time magic link when one was delivered.
 
 const { loginPage } = require('./_html');
+const { postSignInPath, clearOsReturnCookie } = require('./_os_return');
 const {
   authConfigured,
   clearSessionCookie,
@@ -205,7 +206,7 @@ async function handleGoogleCallback(req, res) {
     res.setHeader('Set-Cookie', [session, clear]);
     return json(res, 200, { ok: true, email: verified.email, via: 'google' });
   }
-  return redirect(res, '/ops', [session, clear]);
+  return redirect(res, postSignInPath(req), [session, clear, clearOsReturnCookie(req)]);
 }
 
 async function handleRequest(req, res) {
@@ -291,7 +292,7 @@ async function handleVerify(req, res) {
     res.setHeader('Set-Cookie', cookie);
     return json(res, 200, { ok: true, email: result.email });
   }
-  return redirect(res, '/ops', cookie);
+  return redirect(res, postSignInPath(req), [cookie, clearOsReturnCookie(req)]);
 }
 
 function handleLogout(req, res) {
