@@ -97,7 +97,7 @@ const cd = build({ council: [
   { id: 'run-3', title: 'Third run', date: 5, rounds: [] },
 ] });
 const ch = html('council', cd);
-check('council: shows the drafter and the reviewer', /Dee/.test(ch) && /Rae/.test(ch) && /<dt>Drafter<\/dt>/.test(ch) && /<dt>Reviewer<\/dt>/.test(ch));
+check('council: one lane per role, Claude builds, Codex reviews (old drafter/reviewer rows map to them)', /<b>Claude<\/b>/.test(ch) && /<b>Codex<\/b>/.test(ch) && /cmsg lane-builder/.test(ch) && /cmsg lane-reviewer/.test(ch) && !/<dt>Drafter<\/dt>/.test(ch));
 check('council: round number is "n of 3"', /<dt>Round<\/dt><dd class="num">2 of 3<\/dd>/.test(ch));
 check('council: round 2 shows only the changed lines against round 1', /<div class="d">- Old line<\/div>/.test(ch) && /<div class="a">\+ New line<\/div>/.test(ch) && /<div class="a">\+ Extra<\/div>/.test(ch) && !/>- Hello</.test(ch));
 check('council: the diff holds exactly the changed lines (one removed, two added)', (ch.match(/<div class="d">/g) || []).length === 1 && (ch.match(/<div class="a">/g) || []).length === 2 && !/<div class="[da]">[-+] (Hello|End)<\/div>/.test(ch));
@@ -106,7 +106,7 @@ check('council: the full draft stays available behind a toggle', /<details class
 check('council: Jev score is shown with its PASS pill and bar', /0\.82/.test(ch) && /PASS 0\.82/.test(ch) && /class="bar"/.test(ch));
 check('council: waiting state names the level', /Waiting for L3 OK/.test(ch) && /class="typing"/.test(ch));
 check('council: a waiting L4 run says L4', /Waiting for L4 OK/.test(html('council', build({ council: [{ id: 'q', title: 'q', level: 'L4', status: 'waiting_l3', rounds: [] }] }))));
-check('council: an approved run says Approved, not waiting', (() => { const h = html('council', cd, 'run-2'); return /<div class="bd">Approved<\/div>/.test(h) && !/Waiting for/.test(h); })());
+check('council: an approved run says Approved, not waiting', (() => { const h = html('council', cd, 'run-2'); return /<div class="bd"><div>Approved<\/div><\/div>/.test(h) && !/Waiting for/.test(h); })());
 check('council: a run with no score says "Jev: not run"', /Jev: not run/.test(html('council', cd, 'run-3')));
 check('council: a run with no rounds says so', /No rounds are stored for this run\./.test(html('council', cd, 'run-3')));
 check('council: a run with no gate status says so', /No gate status is stored for this run\./.test(html('council', cd, 'run-3')));
@@ -144,7 +144,7 @@ check('settings: read only', !/<button|<form|<input/.test(sv));
 // ================= Home picks up real council and spend =================
 const home = html('home', Object.assign(build({ council: [{ id: 'r1', title: 'Latest run', level: 'L3', status: 'waiting_l3', jev: 0.8, date: 9, drafter: { name: 'Dee' }, reviewer: { name: 'Rae' }, rounds: [{ n: 2, draft: 'x' }] }], spend: spendStore.spend })));
 check('home: spend KPI shows the real month total', /AI spend this month<\/span><b class="num">\$1\.80<\/b>/.test(home) && /from spend records/.test(home));
-check('home: council card shows the latest run', /Latest run/.test(home) && /Dee drafted/.test(home) && /Rae reviewed/.test(home) && /waiting for L3 OK/.test(home) && /round 2 of 3/.test(home) && /PASS 0\.80/.test(home));
+check('home: council card shows the latest run', /Latest run/.test(home) && /Claude drafted/.test(home) && !/Codex reviewed/.test(home) && /waiting for L3 OK/.test(home) && /round 2 of 3/.test(home) && /PASS 0\.80/.test(home));
 check('home: without records the spend KPI is a dash', (() => { const h = html('home', build({})); return /AI spend this month<\/span><b class="num">—<\/b>/.test(h) && /No council records yet\./.test(h); })());
 
 // ================= source hygiene =================

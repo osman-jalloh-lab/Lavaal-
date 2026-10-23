@@ -87,7 +87,9 @@
     if (!list.length) return card('', 'council', 'AI Council', '', empty('The council record list is empty.', 'council'));
     var r = list[0];
     var right = r.round ? 'round ' + r.round + ' of ' + r.maxRounds : '';
-    var people = [r.drafter.name ? r.drafter.name + ' drafted' : '', r.reviewer.name ? r.reviewer.name + ' reviewed' : '', COUNCIL_STATUS[r.status] ? (r.status === 'waiting_l3' ? 'waiting for ' + (r.level || 'L3') + ' OK' : COUNCIL_STATUS[r.status].toLowerCase()) : ''].filter(Boolean).join(' · ');
+    var roles = {};
+    (r.messages || []).forEach(function (m) { roles[m.role] = true; });
+    var people = [roles.builder ? 'Claude drafted' : '', roles.reviewer ? 'Codex reviewed' : '', roles.scorer ? 'Jev scored' : '', COUNCIL_STATUS[r.status] ? (r.status === 'waiting_l3' ? 'waiting for ' + (r.level || 'L3') + ' OK' : COUNCIL_STATUS[r.status].toLowerCase()) : ''].filter(Boolean).join(' · ');
     var row = '<div class="li" data-go="council/' + esc(r.id) + '"><div class="t"><div>' + esc(r.title) + '</div><small>' + esc(people || 'No participants recorded') + '</small></div>' +
       OS.jev(r.jev) + '<button class="btn" type="button" data-go="council/' + esc(r.id) + '">Open</button></div>';
     return card('', 'council', 'AI Council', esc(right), row);

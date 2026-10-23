@@ -1,0 +1,18 @@
+[
+  {
+    "id": "sample-run-1",
+    "title": "Sample run (test fixture, not real data)",
+    "desk": "growth",
+    "level": "L3",
+    "date": "2026-10-20",
+    "status": "waiting_l3",
+    "maxRounds": 3,
+    "messages": [
+      { "round": 1, "role": "builder", "agent": "Claude", "at": "2026-10-20T15:00:00Z", "text": "First draft of the sample plan.", "draft": "Plan\nStep one\nStep two\nEnd" },
+      { "round": 1, "role": "reviewer", "agent": "Codex", "at": "2026-10-20T15:10:00Z", "text": "Step two is vague. Name the owner." },
+      { "round": 2, "role": "builder", "agent": "Claude", "at": "2026-10-20T15:30:00Z", "text": "Revised: step two now names its owner.", "draft": "Plan\nStep one\nStep two (owner: sample desk)\nEnd\nNotes" },
+      { "round": 2, "role": "reviewer", "agent": "Codex", "at": "2026-10-20T15:40:00Z", "text": "Looks right." },
+      { "round": 2, "role": "scorer", "agent": "Jev", "at": "2026-10-20T15:45:00Z", "text": "Evidence is thin on step one.", "score": 0.82 }
+    ]
+  }
+]
