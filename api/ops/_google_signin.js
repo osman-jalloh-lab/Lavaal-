@@ -28,6 +28,9 @@ const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const REDIRECT_PATH = '/api/ops/auth';
+// Hint Google to pre-select this founder account. A fixed value, never taken from the request. With
+// prompt=select_account the chooser still opens, so the other founder can pick their own account.
+const GOOGLE_LOGIN_HINT = 'osmanjalloh104@gmail.com';
 
 const usedStates = new Map();
 let jwksCache = { keys: null, exp: 0 };
@@ -181,6 +184,7 @@ function buildAuthorizeUrl({ origin, state, nonce, codeVerifier }) {
     code_challenge: codeChallenge(codeVerifier),
     code_challenge_method: 'S256',
     prompt: 'select_account',
+    login_hint: GOOGLE_LOGIN_HINT,
     access_type: 'online',
     include_granted_scopes: 'false',
   });
