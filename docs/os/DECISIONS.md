@@ -156,3 +156,14 @@ Settled by Osman Jalloh. Do not re-ask.
       counts in the Outreach column headers (no lead cards: names are never stored), and "Updated <day>" under a desk's
       now line. The Sierra Leone mentions from entry 18 are kept in the empty-state source lines.
     - **Docs:** `api/os/_data/INGEST.md`, one curl per endpoint with the secret shown as `$TOKEN`.
+
+## 2026-10-23 — Routines as workflows (phase 4)
+
+23. **Routines open into an animated workflow.** Clicking a row opens `#routines/<id>`: trigger, steps and outputs drawn in SVG
+    (rows of four on desktop that snake so every link is a straight line; one column on a phone), a pulse that moves along the links
+    one node at a time (CSS animation, 600 ms per node), a Replay button, and the schedule (CT), owner desk, last run and health
+    underneath. `prefers-reduced-motion` turns the pulse off.
+    - **Data:** `routines.json` gains a `steps` field on all 14 routines, written by hand from the handoff's routine descriptions
+      (13 have steps; the Slack task bridge is `null` because no procedure is written, and shows "Steps not written yet").
+      Tools are named only where the handoff names them (Gmail, Google Sheets, YouTube, X, /ops, the vault). No outputs are invented.
+    - **Still read only:** no Run button, no toggles. Last run and health still come only from the live routine-health record.

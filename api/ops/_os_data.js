@@ -133,6 +133,20 @@ function approvalsFrom(store) {
 // Routines come from the data pack: name, schedule, owner (a desk id) and status. The pack's lastRunAt and
 // lastRunStatus are stale and are ignored. The only "last run" shown is the live routine-health record,
 // merged by id.
+const STEP_KINDS = ['trigger', 'step', 'output'];
+
+// Workflow steps written by hand in routines.json: [{kind, label, tool?}], shown trigger, then steps, then outputs.
+// null means "not written yet" (also for anything unreadable); nothing is guessed.
+function stepsFrom(value) {
+  if (!Array.isArray(value)) return null;
+  const rows = value
+    .filter((s) => s && STEP_KINDS.includes(s.kind) && text(s.label, 120))
+    .slice(0, 12)
+    .map((s) => ({ kind: s.kind, label: text(s.label, 120), tool: text(s.tool, 40) }));
+  if (!rows.length) return null;
+  return STEP_KINDS.reduce((out, kind) => out.concat(rows.filter((r) => r.kind === kind)), []);
+}
+
 function routinesFrom(pack, health) {
   if (!pack || !Array.isArray(pack.routines)) return null;
   const byId = new Map();
@@ -150,6 +164,7 @@ function routinesFrom(pack, health) {
         schedule: text(row.schedule, 160) || null,
         owner: text(row.owner, 40) || null,
         status: text(row.status, 20),
+        steps: stepsFrom(row.steps),
         lastRunAt: Number.isFinite(ranAt) ? ranAt : 0,
         lastRunLabel: h ? text(h.lastRunLabel, 40) : '',
         lastRunStatus: '',

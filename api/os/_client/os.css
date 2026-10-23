@@ -67,6 +67,18 @@
 .os-root .dcard.wait{border-color:color-mix(in srgb,var(--c-orange) 40%,var(--line))}.os-root .dcard.done{opacity:.88}
 .os-root .dcard h3{margin:0;font:600 15px/21px Inter,system-ui,sans-serif;color:var(--text);overflow-wrap:anywhere}
 .os-root .dcard .dmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.os-root .dcard .dfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--tx3);font-size:12px}
+.os-root .rflowwrap{padding:16px;overflow-x:auto}.os-root .rflowsvg{display:block;max-width:100%;height:auto;margin:0 auto}
+.os-root .rnode rect{fill:var(--panel);stroke:var(--line2);stroke-width:1}
+.os-root .rnode.k-trigger rect{stroke:var(--accent);fill:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+.os-root .rnode.k-output rect{stroke:var(--ok);fill:color-mix(in srgb,var(--ok) 8%,var(--panel))}
+.os-root .rkind{font:600 10px Inter,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;fill:var(--tx3)}
+.os-root .rlabel{font:500 13px Inter,system-ui,sans-serif;fill:var(--text)}.os-root .rtool{font:11px var(--mono);fill:var(--tx3)}
+.os-root .rlink line{stroke:var(--line2);stroke-width:1.5}.os-root .rlink polygon{fill:var(--line2)}
+.os-root .rpulse{fill:var(--accent);opacity:0}
+.os-root .rflow.play .rpulse{animation:rpulse 600ms linear both;animation-delay:calc(var(--i)*600ms)}
+.os-root .rflow.play .rnode rect{animation:rglow 600ms ease-out;animation-delay:calc(var(--i)*600ms)}
+@keyframes rpulse{0%{opacity:0;transform:translate(0,0)}12%{opacity:1}88%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+@keyframes rglow{0%{stroke:var(--accent);stroke-width:3.5}100%{stroke-width:1}}
 .os-root .g2.today{align-items:start}.os-root .g32{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .os-root .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card)}
 .os-root .ch{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}.os-root .ch h3{font-size:13px;font-weight:500}.os-root .ch .r{margin-left:auto;color:var(--tx3);font-size:12px;display:flex;gap:8px;align-items:center}

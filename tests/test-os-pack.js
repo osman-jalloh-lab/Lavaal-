@@ -33,7 +33,7 @@ check('the files are pure ASCII JSON (no BOM, no replacement characters)', FILES
 check('decision rows have exactly the loader fields', D.every((r) => Object.keys(r).sort().join() === 'date,desk,id,jev,level,source,status,text,title'));
 check('decision values are valid: level L0-L4 or empty, status Open/Closed, date in ms, Jev null or 0-1', D.every((r) => /^(L[0-4])?$/.test(r.level) && ['Open', 'Closed'].includes(r.status) && Number.isInteger(r.date) && r.date > 1.7e12 && (r.jev === null || (r.jev >= 0 && r.jev <= 1))));
 check('decision desk is set on 25 (technical 16, lavaall-ceo 5, growth 2, sales 2), blank on 27; 10 levels stay empty', count(D, (r) => r.desk !== '') === 25 && ['technical', 'lavaall-ceo', 'growth', 'sales'].map((d) => count(D, (r) => r.desk === d)).join() === '16,5,2,2' && count(D, (r) => r.desk === '') === 27 && D.every((r) => r.desk === '' || deskIds.includes(r.desk)) && count(D, (r) => r.level === '') === 10);
-check('routine rows have the pack fields and a known desk owner', RT.every((r) => Object.keys(r).sort().join() === 'id,lastRunAt,lastRunStatus,name,owner,schedule,status' && deskIds.includes(r.owner)));
+check('routine rows have the pack fields (steps added in phase 4) and a known desk owner', RT.every((r) => Object.keys(r).sort().join() === 'id,lastRunAt,lastRunStatus,name,owner,schedule,status,steps' && deskIds.includes(r.owner)));
 check('routine owners: 10 CEO, 3 Scout, 1 Researchy', count(RT, (r) => r.owner === 'lavaall-ceo') === 10 && count(RT, (r) => r.owner === 'scout') === 3 && count(RT, (r) => r.owner === 'researchy') === 1);
 check('desks.json ids match the registry order, then Scout', K.desks.map((d) => d.id).join() === 'lavaall-ceo,sales,technical,growth,lifecycle,researchy' && K.extraDesks[0].id === 'scout');
 check('every skill a desk names exists in skills.json', K.desks.concat(K.extraDesks).every((d) => d.skills.every((id) => S.some((s) => s.id === id))));
@@ -107,7 +107,7 @@ check('Decisions view: 6 scored (PASS or FLAG), 46 "Jev: not run"', (dec.match(/
 check('Decisions view: 10 cards have no level; 25 show their desk short name and 27 a dash', (dec.match(/class="lv num">—</g) || []).length === 10 && (dec.match(/<span class="dim">—<\/span><\/span>|<span class="dim">—<\/span><span class="pill/g) || []).length === 27 && ['Technical', 'CEO', 'Growth', 'Sales'].map((d) => (dec.match(new RegExp(`</i>${d}</span>`, 'g')) || []).length).join() === '16,5,2,2');
 check('Decisions view: a decision opens from its id', /data-go="decisions\/D-2026-09-25-38"/.test(dec));
 const rtv = html('routines');
-check('Routines view: 14 rows, 13 active and 1 paused', (rtv.match(/<tbody>[\s\S]*<\/tbody>/)[0].match(/<tr>/g) || []).length === 14 && (rtv.match(/pill pass">active/g) || []).length === 13 && (rtv.match(/pill flag">paused/g) || []).length === 1);
+check('Routines view: 14 rows, 13 active and 1 paused', (rtv.match(/<tbody>[\s\S]*<\/tbody>/)[0].match(/<tr class="row"/g) || []).length === 14 && (rtv.match(/pill pass">active/g) || []).length === 13 && (rtv.match(/pill flag">paused/g) || []).length === 1);
 check('Routines view: schedules and desks are shown', /Weekdays 8:07 AM CT/.test(rtv) && /Tue-Sat 12:00 AM CT/.test(rtv) && (rtv.match(/data-go="desks\/lavaall-ceo">CEO</g) || []).length === 10 && (rtv.match(/data-go="desks\/scout">Scout</g) || []).length === 3);
 check('Routines view: last run and health are dashes without a health record', /there is none yet\./.test(rtv) && !/helper failed|skipped/.test(rtv));
 const dkv = html('desks');

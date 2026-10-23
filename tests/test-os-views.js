@@ -183,7 +183,7 @@ check('routines: a routine with no owner or status shows dashes', /Routine &lt;N
 check('routines: health tones map to pill states', /pill pass" title="ran fine">OK/.test(rt) && /pill bad" title="boom">FAILED/.test(rt) && /pill flag" title="half">PARTIAL/.test(rt));
 check('routines: last run is from live health only', /Oct 9, 3:53 AM CT/.test(rt) && (rt.match(/class="dim num rt-last">—<\/td>/g) || []).length === 3);
 check("routines: the pack's stale last-run status is never shown", !/helper failed|helper_failed/.test(rt));
-check('routines: footnote with a health record', /Schedule, desk and status are from the data pack\./.test(rt) && /Last run and health are from the routine-health record\./.test(rt));
+check('routines: footnote with a health record', /Schedule, desk, status and steps are from the data pack\./.test(rt) && /Last run and health are from the routine-health record\./.test(rt));
 check('routines: footnote without a health record', /there is none yet\./.test(html('routines', buildWith({ routines: [{ id: 'a', name: 'A' }] }))));
 check('routines: view only, no toggles or run buttons', !/<button|class="sw|Run now|Pause/.test(rt));
 check('routines: names are escaped', !/<None>/.test(rt));
