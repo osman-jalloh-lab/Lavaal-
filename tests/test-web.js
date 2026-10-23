@@ -200,7 +200,16 @@ async function run() {
   check(`added files (${added.length}) match their manifest hash`, added.length >= 10 && added.every((r) => sha(path.join(SITE, r[1])) === r[2]));
   check('added files are only the Our work page, -lite/-sm clips and the small hero poster', added.every((r) => r[1] === 'work/index.html' || /-(lite|sm)\.mp4$/.test(r[1]) || r[1] === 'assets/photo/hero-poster-sm.webp'));
   check('no .env and no node_modules in the snapshot', !files.some((f) => /(^|\/)\.env$/.test(f) || f.includes('node_modules/')));
-  const crlf = files.filter((f) => TEXT.test('/' + f) && fs.readFileSync(path.join(SITE, f)).includes(13));
+  // "Like the repo" means what git stores: a Windows checkout (core.autocrlf) adds CR to the working copy only.
+  // Read the index line endings; outside a git checkout fall back to the working copy.
+  let crlf;
+  try {
+    const eol = require('child_process').execFileSync('git', ['ls-files', '--eol', '--', 'api/web/_site'], { cwd: root, encoding: 'utf8' });
+    const stored = new Map(eol.split('\n').filter(Boolean).map((l) => [l.split('\t')[1], l.split(/\s+/)[0]]));
+    crlf = files.filter((f) => TEXT.test('/' + f) && /crlf|mixed/.test(stored.get('api/web/_site/' + f) || ''));
+  } catch {
+    crlf = files.filter((f) => TEXT.test('/' + f) && fs.readFileSync(path.join(SITE, f)).includes(13));
+  }
   check(`text files use LF like the repo (${crlf.slice(0, 3).join(', ') || 'none CRLF'})`, crlf.length === 0);
   const secretRe = /(sk-[A-Za-z0-9_-]{20,}|re_[A-Za-z0-9]{16,}|AIza[0-9A-Za-z_-]{30,}|ghp_[A-Za-z0-9]{30,}|xox[abp]-[A-Za-z0-9-]{10,}|EAA[A-Za-z0-9]{20,}|REFERO_API_KEY=\S+)/;
   check('no API keys or tokens in any snapshot text file', !files.filter((f) => TEXT.test('/' + f)).some((f) => secretRe.test(fs.readFileSync(path.join(SITE, f), 'utf8'))));
