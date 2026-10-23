@@ -33,6 +33,7 @@
     inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
     sunrise: '<path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
     chev: '<path d="m9 18 6-6-6-6"/>',
+    more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
     fit: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>',
     shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>'
   };
@@ -53,7 +54,9 @@
     { id: 'spend', label: 'Spend', icon: 'spend', hint: 'G S', key: 's', about: 'AI spend from real records.', src: 'spend' },
     { id: 'settings', label: 'Settings', icon: 'settings', hint: 'G ,', key: ',', about: 'Connection status. Names only, never values.', src: 'settings' }
   ];
-  var TABS = ['home', 'desks', 'decisions', 'outreach', 'routines'];
+  // Phone tab bar: four views, then "More" for the rest. Routines moves into More so no view is unreachable.
+  var TABS = ['home', 'desks', 'decisions', 'outreach'];
+  var MORE = ['notes', 'brain', 'council', 'spend', 'settings', 'routines'];
 
   function readData() {
     var node = $('#os-data');
@@ -174,7 +177,7 @@
     $('#tabbar').innerHTML = TABS.map(function (id) {
       var n = navItem(id);
       return '<a href="#' + id + '"' + (id === cur ? ' class="on" aria-current="page"' : '') + '>' + icon(n.icon) + esc(n.label.split(' ')[0]) + '</a>';
-    }).join('');
+    }).join('') + '<button type="button" id="tab-more" class="tab' + (MORE.indexOf(cur) !== -1 ? ' on' : '') + '" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet">' + icon('more') + 'More</button>';
   }
 
   // ---- router ------------------------------------------------------------
@@ -211,6 +214,7 @@
     $('#crumb').textContent = n.label;
     doc.title = n.label + ' · LAVAALL OS';
     renderNav();
+    closeMore();
     closeDrawer();
     var view = OS.views[route.id];
     var ctx = { id: route.id, sub: route.sub, data: OS.data, esc: esc, icon: icon, go: OS.go };
@@ -221,6 +225,29 @@
       if (view.mount) view.mount(host, ctx);
     }
   }
+
+  // ---- More sheet (phone) ------------------------------------------------
+  function openMore() {
+    var panel = $('#sheet-panel');
+    panel.innerHTML = '<div class="sheet-h">More</div>' + MORE.map(function (id) {
+      var n = navItem(id);
+      return '<a class="sheet-i' + (id === cur ? ' on' : '') + '" href="#' + id + '"' + (id === cur ? ' aria-current="page"' : '') + '>' + icon(n.icon) + '<span>' + esc(n.label) + '</span></a>';
+    }).join('');
+    $('#sheet').classList.add('on');
+    $('#tab-more').setAttribute('aria-expanded', 'true');
+    var first = panel.querySelector('a');
+    if (first) first.focus();
+  }
+  function closeMore() {
+    var sheet = $('#sheet');
+    if (!sheet.classList.contains('on')) return;
+    sheet.classList.remove('on');
+    var tab = $('#tab-more');
+    if (tab) tab.setAttribute('aria-expanded', 'false');
+  }
+  OS.openMore = openMore;
+  OS.closeMore = closeMore;
+  OS.mobile = { TABS: TABS, MORE: MORE };
 
   // ---- drawer ------------------------------------------------------------
   function openDrawer(html) {
@@ -310,6 +337,17 @@
       OS.go(parts[0], parts.slice(1).join('/'));
     });
     $('#scrim').addEventListener('click', dismissDrawer);
+    // The More tab is re-rendered with the nav, so listen on the bar itself.
+    $('#tabbar').addEventListener('click', function (e) {
+      var more = e.target.closest ? e.target.closest('#tab-more') : null;
+      if (!more) return;
+      if ($('#sheet').classList.contains('on')) closeMore(); else openMore();
+    });
+    $('#sheet').addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.sheet-i')) closeMore(); // the link itself navigates
+      else if (e.target.id === 'sheet' || (e.target.closest && e.target.closest('.sheet-back'))) closeMore();
+    });
+    window.addEventListener('resize', function () { if (window.innerWidth >= 760) closeMore(); });
     $('#pal').addEventListener('click', function (e) { if (e.target === this) closePalette(); });
     $('#plist').addEventListener('click', function (e) {
       var row = e.target.closest ? e.target.closest('.pi') : null;
@@ -329,7 +367,7 @@
 
     doc.addEventListener('keydown', function (e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); return; }
-      if (e.key === 'Escape') { if ($('#pal').classList.contains('on')) closePalette(); else dismissDrawer(); return; }
+      if (e.key === 'Escape') { if ($('#sheet').classList.contains('on')) { closeMore(); var t = $('#tab-more'); if (t) t.focus(); } else if ($('#pal').classList.contains('on')) closePalette(); else dismissDrawer(); return; }
       if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 't') { toggleTheme(); return; }
       if (e.key === 'g') { gAt = Date.now(); return; }

@@ -62,3 +62,15 @@ Settled by Osman Jalloh. Do not re-ask.
     nothing.
 14. **Settings reports presence of env var names, not service health.** GitHub has no env variable in the
     ops app, so it is "unknown", never "connected". Values are never read into the page.
+
+## 2026-10-22 — Phone layout (brief step 9, plus Osman's two additions)
+
+15. **Fifth phone tab is "More".** The tab bar is Home, Desks, Decisions, Outreach, More. More opens a sheet with
+    Notes, Brain, AI Council, Spend and Settings (Osman's list) and also Routines, which lost its tab and would
+    otherwise be unreachable on a phone. More shows as active while a view inside it is open.
+16. **Brain on touch: tap to highlight, tap again to open.** The first tap selects the node and highlights it and
+    its links, exactly like a desktop click. A second tap on the same node opens it in its own view (desk ->
+    Desks, decision -> Decisions, routine -> Routines, note -> Notes, lead -> Outreach, rule or skill -> its
+    desk). A mouse click still only selects; the side panel's Open button opens. A hint reads "Tap again to
+    open <name>". A few pixels of finger wobble still counts as a tap, touch gets a larger hit area, and two
+    fingers pinch-zoom (same 0.25 to 4 limits).

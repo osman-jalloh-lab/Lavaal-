@@ -29,6 +29,15 @@
     return c;
   }
 
+  // What a tap or click on the canvas does. A mouse click selects (the Open button opens);
+  // on touch the first tap selects and highlights, and a second tap on the same node opens it.
+  function tapAction(selected, node, pointerType) {
+    if (!node) return 'clear';
+    if (node !== selected) return 'select';
+    return pointerType === 'touch' || pointerType === 'pen' ? 'open' : 'select';
+  }
+  OS.brainTap = tapAction;
+
   // ---- engine -----------------------------------------------------------------
   function createEngine(canvas, g, opts) {
     opts = opts || {};
@@ -183,51 +192,92 @@
     if (mini) { resize(); fit(); draw(); start(); return api; }
 
     // ---- full-size interaction ------------------------------------------------
+    var TAP_SLOP = 6;      // px a finger or mouse may wander and still count as a tap
+    var TOUCH_REACH = 14;  // extra px of hit area for touch, nodes are only 3-8 px wide
+    var pointers = {};     // active pointers, for pinch
+    var pinch = null;
+
     function world(e) {
       var r = canvas.getBoundingClientRect();
       return [(e.clientX - r.left - st.tx) / st.k, (e.clientY - r.top - st.ty) / st.k];
     }
     function hit(e) {
       var p = world(e), best = null, bd = 1e9;
+      var reach = (e.pointerType === 'touch' || e.pointerType === 'pen' ? TOUCH_REACH : 4) / st.k;
       g.nodes.forEach(function (n) {
         if (!visible(n)) return;
-        var d = (n.x - p[0]) * (n.x - p[0]) + (n.y - p[1]) * (n.y - p[1]), r = B.radius(n) + 4 / st.k;
+        var d = (n.x - p[0]) * (n.x - p[0]) + (n.y - p[1]) * (n.y - p[1]), r = B.radius(n) + reach;
         if (d < r * r && d < bd) { bd = d; best = n; }
       });
       return best;
     }
+    function zoomAt(mx, my, k2) {
+      k2 = Math.min(4, Math.max(0.25, k2));
+      st.tx = mx - (mx - st.tx) * k2 / st.k; st.ty = my - (my - st.ty) * k2 / st.k; st.k = k2; st.touched = true;
+    }
+    function pinchState() {
+      var ids = Object.keys(pointers), a = pointers[ids[0]], b = pointers[ids[1]], r = canvas.getBoundingClientRect();
+      return { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2 - r.left, my: (a.y + b.y) / 2 - r.top };
+    }
+
     canvas.addEventListener('pointerdown', function (e) {
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      try { canvas.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
+      if (Object.keys(pointers).length === 2) { // second finger: pinch, and never a tap
+        st.drag = null; st.pan = null; st.moved = true;
+        pinch = { start: pinchState(), k: st.k };
+        return;
+      }
       st.moved = false;
+      st.down = [e.clientX, e.clientY];
       var h = hit(e);
       if (h) st.drag = h; else st.pan = [e.clientX, e.clientY, st.tx, st.ty];
-      try { canvas.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
       canvas.style.cursor = 'grabbing';
     });
     canvas.addEventListener('pointermove', function (e) {
-      if (st.drag) {
-        var p = world(e); st.drag.x = p[0]; st.drag.y = p[1]; st.drag.vx = st.drag.vy = 0; st.moved = true; st.touched = true; refresh(); return;
+      if (pointers[e.pointerId]) { pointers[e.pointerId].x = e.clientX; pointers[e.pointerId].y = e.clientY; }
+      if (pinch && Object.keys(pointers).length >= 2) {
+        var now = pinchState();
+        zoomAt(now.mx, now.my, pinch.k * now.d / pinch.start.d);
+        st.tx += now.mx - pinch.start.mx; st.ty += now.my - pinch.start.my; // two fingers also pan
+        pinch.start.mx = now.mx; pinch.start.my = now.my;
+        refresh();
+        return;
       }
-      if (st.pan) {
-        st.tx = st.pan[2] + e.clientX - st.pan[0]; st.ty = st.pan[3] + e.clientY - st.pan[1]; st.moved = true; st.touched = true; refresh(); return;
+      if (st.drag || st.pan) {
+        if (!st.moved && Math.hypot(e.clientX - st.down[0], e.clientY - st.down[1]) <= TAP_SLOP) return; // still a tap
+        st.moved = true; st.touched = true;
+        if (st.drag) { var p = world(e); st.drag.x = p[0]; st.drag.y = p[1]; st.drag.vx = st.drag.vy = 0; }
+        else { st.tx = st.pan[2] + e.clientX - st.pan[0]; st.ty = st.pan[3] + e.clientY - st.pan[1]; }
+        refresh();
+        return;
       }
+      if (e.pointerType === 'touch') return; // no hover on touch
       var h = hit(e);
       if (h !== st.hov) { st.hov = h; refresh(); }
       canvas.style.cursor = h ? 'pointer' : 'grab';
     });
-    canvas.addEventListener('pointerup', function () {
-      var dragged = st.drag;
-      if (!st.moved) {
-        if (dragged) { st.sel = dragged; if (opts.onSelect) opts.onSelect(dragged); }
-        else { st.sel = null; if (opts.onSelect) opts.onSelect(null); }
+    function release(e) {
+      var wasPinch = !!pinch;
+      delete pointers[e.pointerId];
+      if (pinch) { if (Object.keys(pointers).length < 2) pinch = null; st.drag = null; st.pan = null; refresh(); return; }
+      var node = st.drag;
+      if (!st.moved && !wasPinch) {
+        var action = tapAction(st.sel, node, e.pointerType);
+        if (action === 'open') { if (opts.onOpen) opts.onOpen(node); }
+        else if (action === 'select') { st.sel = node; if (opts.onSelect) opts.onSelect(node, e.pointerType); }
+        else { st.sel = null; if (opts.onSelect) opts.onSelect(null, e.pointerType); }
       }
       st.drag = null; st.pan = null; canvas.style.cursor = 'grab'; refresh();
-    });
-    canvas.addEventListener('pointerleave', function () { if (st.hov) { st.hov = null; refresh(); } });
+    }
+    canvas.addEventListener('pointerup', release);
+    canvas.addEventListener('pointercancel', function (e) { delete pointers[e.pointerId]; pinch = null; st.drag = null; st.pan = null; refresh(); });
+    canvas.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'touch' && st.hov) { st.hov = null; refresh(); } });
     canvas.addEventListener('wheel', function (e) {
       e.preventDefault();
-      var r = canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-      var k2 = Math.min(4, Math.max(0.25, st.k * Math.exp(-e.deltaY * 0.0015)));
-      st.tx = mx - (mx - st.tx) * k2 / st.k; st.ty = my - (my - st.ty) * k2 / st.k; st.k = k2; st.touched = true; refresh();
+      var r = canvas.getBoundingClientRect();
+      zoomAt(e.clientX - r.left, e.clientY - r.top, st.k * Math.exp(-e.deltaY * 0.0015));
+      refresh();
     }, { passive: false });
 
     resize(); fit(); draw(); start();
@@ -297,7 +347,7 @@
         return '<button class="tchip" type="button" data-t="' + t + '" aria-pressed="true"><i style="background:var(' + B.TYPES[t].css + ')"></i>' + esc(B.TYPES[t].label) + ' <b>' + g.counts[t] + '</b></button>';
       }).join('');
       return head + '<div class="card brain"><div class="bstage"><div class="btool"><input id="bq" type="search" placeholder="Search nodes..." autocomplete="off" aria-label="Search nodes"/>' + chips + '</div>' +
-        '<canvas id="bc" role="img" aria-label="Graph of desks, rules, skills, routines, decisions, leads and notes"></canvas><div class="bleg" id="bleg"></div></div>' +
+        '<canvas id="bc" role="img" aria-label="Graph of desks, rules, skills, routines, decisions, leads and notes"></canvas><div class="bhint" id="bhint" aria-live="polite"></div><div class="bleg" id="bleg"></div></div>' +
         '<aside class="bside" id="bside"></aside></div>';
     },
     mount: function (root, ctx) {
@@ -319,9 +369,21 @@
       function setHash(id) {
         try { history.replaceState(null, '', '#brain' + (id ? '/' + encodeURIComponent(id).replace(/%3A/gi, ':') : '')); } catch (e) { /* ignore */ }
       }
-      function choose(n) { engine.select(n); showSide(); setHash(n ? n.id : ''); }
+      var hint = root.querySelector('#bhint');
+      function showHint(n, pointerType) {
+        if (!hint) return;
+        var touch = pointerType === 'touch' || pointerType === 'pen';
+        if (!n || !touch) { hint.textContent = ''; hint.classList.remove('on'); return; }
+        hint.textContent = target(n, g) ? 'Tap again to open ' + n.label : 'Nothing to open for this node';
+        hint.classList.add('on');
+      }
+      function choose(n, pointerType) { engine.select(n); showSide(); setHash(n ? n.id : ''); showHint(n, pointerType); }
+      function open(n) {
+        var tg = target(n, g);
+        if (tg) OS.go(tg[0], tg[1]);
+      }
 
-      engine = createEngine(canvas, g, { off: off, onSelect: choose });
+      engine = createEngine(canvas, g, { off: off, onSelect: choose, onOpen: open });
       OS.brainEngine = engine;
 
       // Deep link first, so the side panel is laid out before the next measure.

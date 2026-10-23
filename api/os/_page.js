@@ -33,7 +33,7 @@ function osPage({ email, data }) {
 <html lang="en" class="os-root" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <meta name="color-scheme" content="dark light"/>
 <title>LAVAALL OS</title>
@@ -73,6 +73,7 @@ function osPage({ email, data }) {
   <div id="view" tabindex="-1"></div>
 </main>
 <nav class="tabbar" id="tabbar" aria-label="Primary"></nav>
+<div class="sheet" id="sheet"><div class="sheet-back"></div><div class="sheet-panel" id="sheet-panel" role="dialog" aria-modal="true" aria-label="More views"></div></div>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 <div class="pal" id="pal" role="dialog" aria-modal="true" aria-label="Command palette">
