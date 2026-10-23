@@ -23,6 +23,11 @@ function readAsset(name) {
       return [
         fs.readFileSync(path.join(__dirname, '_client/core.js'), 'utf8'),
         fs.readFileSync(path.join(__dirname, '_client/home.js'), 'utf8'),
+        fs.readFileSync(path.join(__dirname, '_client/desks.js'), 'utf8'),
+        fs.readFileSync(path.join(__dirname, '_client/decisions.js'), 'utf8'),
+        fs.readFileSync(path.join(__dirname, '_client/outreach.js'), 'utf8'),
+        fs.readFileSync(path.join(__dirname, '_client/routines.js'), 'utf8'),
+        fs.readFileSync(path.join(__dirname, '_client/notes.js'), 'utf8'),
       ].join('\n');
     default:
       return null;

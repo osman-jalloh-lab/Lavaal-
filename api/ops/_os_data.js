@@ -159,11 +159,43 @@ function notesFrom(store) {
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+const DECISION_LEVELS = /^L[0-4]$/;
+
+function stamp(value) {
+  if (Number.isFinite(value) && value > 0) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+// Reads store.decisions only if a decision log exists there (it does not today).
+// A Jev score outside 0..1 is dropped, never clamped: no score means "Jev: not run".
+function decisionsFrom(store) {
+  if (!store || !Array.isArray(store.decisions)) return null;
+  return store.decisions
+    .filter((row) => row && text(row.title, 200))
+    .map((row) => ({
+      id: text(row.id, 40),
+      title: text(row.title, 200),
+      level: DECISION_LEVELS.test(text(row.level, 4)) ? text(row.level, 4) : '',
+      status: text(row.status, 40),
+      desk: text(row.desk, 60),
+      text: text(row.text, 4000),
+      source: text(row.source, 240),
+      date: stamp(row.date),
+      jev: Number.isFinite(row.jev) && row.jev >= 0 && row.jev <= 1 ? row.jev : null,
+    }))
+    .sort((a, b) => b.date - a.date);
+}
+
 function desksFrom() {
   return OFFICE_AGENTS.map((agent) => ({
     id: agent.id,
     name: agent.name,
     short: agent.short,
+    talk: agent.talk,
     now: null, // SOUL data deferred
     skills: null,
     rules: null,
@@ -198,17 +230,18 @@ function buildOsData(sources, opts) {
   const env = (opts && opts.env) || process.env;
 
   const approvals = approvalsFrom(store);
+  const decisions = decisionsFrom(store);
   const data = {
     storeAvailable: Boolean(store),
     approvals,
     kpis: {
       awaitingApproval: approvals ? approvals.length : null,
-      openDecisions: null,
+      openDecisions: decisions ? decisions.filter((row) => row.status.toLowerCase() === 'open').length : null,
       hotelBounceRate: null,
       aiSpendMonth: null,
     },
     brief: null,
-    decisions: null,
+    decisions,
     outreach: null,
     council: null,
     spend: null,
@@ -223,7 +256,9 @@ function buildOsData(sources, opts) {
       : key === 'approvals' ? approvals !== null
         : key === 'routines' ? data.routines !== null
           : key === 'notes' ? data.notes !== null
-            : false;
+            : key === 'decisions' ? decisions !== null
+              : key === 'jev' ? Boolean(decisions && decisions.some((row) => row.jev !== null))
+                : false;
     out[key] = Object.assign({ live }, SOURCES[key]);
     return out;
   }, {});
@@ -240,6 +275,7 @@ module.exports = {
   SOURCES,
   approvalsFrom,
   buildOsData,
+  decisionsFrom,
   desksFrom,
   loadOsData,
   notesFrom,

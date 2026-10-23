@@ -103,6 +103,42 @@
 .os-root .pre{white-space:pre-wrap;color:var(--tx2);line-height:20px}
 .os-root .note{color:var(--tx3);font-size:12px}
 .os-root .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.os-root .mb{margin-bottom:16px}
+.os-root .dim{color:var(--tx2)}
+.os-root .empty.tight{padding:8px 0}
+.os-root .lv{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid var(--line2);border-radius:4px;font:500 11px/18px var(--mono);color:var(--tx2);background:var(--bg2)}
+.os-root .tag{display:inline-flex;align-items:center;height:24px;padding:0 8px;border:1px solid var(--line2);border-radius:var(--r-ctl);font-size:11px;color:var(--tx2);background:var(--bg2)}
+.os-root .av.sq{border-radius:6px;background:var(--bg2);border:1px solid var(--line2);width:28px;height:28px}
+.os-root .deskgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.os-root .deskcard{display:flex;align-items:center;gap:12px;padding:16px;text-align:left;cursor:pointer;transition:background .12s,border-color .12s;width:100%}
+.os-root .deskcard:hover{background:var(--hover);border-color:var(--line2)}
+.os-root .dc-t{display:flex;flex-direction:column;min-width:0;flex:1}.os-root .dc-t b{font-weight:500}.os-root .dc-t small{color:var(--tx3);font-size:12px}
+.os-root .dc-m{font-size:11px;color:var(--tx3);white-space:nowrap}
+.os-root .listbox{border:1px solid var(--line);border-radius:var(--r-ctl);overflow:hidden}
+.os-root .listbox .empty{padding:12px}
+.os-root ul.plain{list-style:none;display:flex;flex-direction:column;gap:8px}.os-root ul.plain li{display:flex;gap:8px;align-items:flex-start}.os-root ul.plain svg{margin-top:2px;color:var(--tx3)}
+.os-root .tablewrap{overflow:auto}
+.os-root th.n{text-align:right}
+.os-root td.wrap{white-space:normal;min-width:220px}.os-root td.none{color:var(--tx3);text-align:center;padding:24px}
+.os-root td .sub{font-size:11px;color:var(--tx3)}
+.os-root .chips{margin-bottom:12px}
+.os-root .foot{margin-top:12px}
+.os-root .score{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:var(--r-card)}
+.os-root .score .big{font-size:20px;font-weight:500}
+.os-root .bar{flex:1;height:6px;background:var(--line);border-radius:3px;position:relative;overflow:hidden}.os-root .bar i{position:absolute;inset:0 auto 0 0;border-radius:3px}.os-root .bar u{position:absolute;left:75%;top:-3px;bottom:-3px;width:1px;background:var(--tx3)}
+.os-root .kb{display:grid;grid-template-columns:repeat(5,minmax(200px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px}
+.os-root .col{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-card);min-height:300px;display:flex;flex-direction:column}
+.os-root .col h4{display:flex;align-items:center;gap:8px;padding:10px 12px;font-weight:500;font-size:12px}.os-root .col h4 span:last-child{color:var(--tx3);margin-left:auto}
+.os-root .col.over{border-color:var(--accent)}
+.os-root .kc{margin:0 8px 8px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-ctl);padding:10px;cursor:grab;transition:border-color .12s}
+.os-root .kc:hover{border-color:var(--line2)}.os-root .kc.drag{opacity:.4}
+.os-root .kc b{font-weight:500;display:block}.os-root .kc small{color:var(--tx3);font-size:12px;display:block;margin-top:2px}.os-root .kc .m{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.os-root .kc .pill{white-space:normal;height:auto;line-height:16px;padding:2px 6px}
+.os-root .dot.ok{background:var(--ok)}.os-root .dot.bad{background:var(--bad)}
+.os-root .notes{display:grid;grid-template-columns:280px 1fr;min-height:420px}
+.os-root .notes .lst{border-right:1px solid var(--line);overflow:auto;max-height:calc(100vh - 190px)}
+.os-root .md{padding:24px 32px;overflow:auto;max-width:760px;line-height:22px;color:var(--tx2)}
+.os-root .md h2{color:var(--text);font-size:20px;line-height:28px;margin-bottom:8px}
 .os-root .fade{animation:fi .2s ease}
 @keyframes fi{from{opacity:0;transform:translateY(4px)}}
 @keyframes ti{from{opacity:0;transform:translateY(8px)}}
@@ -110,6 +146,8 @@
 .os-root .tabbar{display:none}
 
 @media(max-width:759px){
+ .os-root .deskgrid{grid-template-columns:1fr}
+ .os-root .notes{grid-template-columns:1fr}.os-root .notes .lst{border-right:0;border-bottom:1px solid var(--line);max-height:240px}.os-root .md{padding:16px}
  .os-root .side{display:none}
  .os-root #view{padding:16px 16px 88px}
  .os-root .g4{grid-template-columns:1fr 1fr}.os-root .g32{grid-template-columns:1fr}

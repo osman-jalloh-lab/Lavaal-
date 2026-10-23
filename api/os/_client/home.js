@@ -69,8 +69,16 @@
     return card('', 'council', 'AI Council', '', empty('No council records yet.', 'council'));
   }
 
-  function decisionsCard() {
-    return card('', 'scale', 'Recent decisions', '<span class="link" data-go="decisions">View all</span>', empty('No decision log yet.', 'decisions'));
+  function decisionsCard(d) {
+    var list = d.decisions;
+    var right = '<span class="link" data-go="decisions">View all</span>';
+    if (list === null) return card('', 'scale', 'Recent decisions', right, empty('No decision log yet.', 'decisions'));
+    if (!list.length) return card('', 'scale', 'Recent decisions', right, empty('The decision log is empty.', 'decisions'));
+    var rows = list.slice(0, 5).map(function (x) {
+      var sub = [OS.fmtDate(x.date), x.desk].filter(Boolean).join(' · ');
+      return '<div class="li" data-go="decisions/' + esc(x.id) + '">' + OS.level(x.level) + '<div class="t"><div>' + esc(x.title) + '</div><small>' + esc(sub) + '</small></div>' + OS.jev(x.jev) + '</div>';
+    }).join('');
+    return card('', 'scale', 'Recent decisions', right, rows);
   }
 
   function desksCard(d) {
@@ -109,7 +117,7 @@
         '<div class="stack">' +
           '<div class="grid g32">' + briefCard(d) + approvalsCard(d) + '</div>' +
           brainCard() + councilCard() +
-          '<div class="grid g32">' + decisionsCard() + desksCard(d) + '</div>' +
+          '<div class="grid g32">' + decisionsCard(d) + desksCard(d) + '</div>' +
         '</div>';
     },
     mount: function (root, ctx) {

@@ -98,6 +98,24 @@ const STORE = {
   check('sources: no store -> store-backed not live', !none.sources.approvals.live && !none.sources.notes.live);
   check('every source says where data would come from', Object.values(joined.sources).every((s) => s.from && s.label));
 
+  // 7b. Decision log: null until a log exists; scores and levels are validated, never invented.
+  check('no decision log -> decisions null and open KPI null', none.decisions === null && withStore.decisions === null && withStore.kpis.openDecisions === null);
+  const logData = osData.buildOsData({ store: { decisions: [
+    { id: 'a', title: 'Old', level: 'L2', status: 'open', jev: 0.9, date: '2026-10-01T00:00:00Z' },
+    { id: 'b', title: 'New', level: 'L9', status: 'Closed', jev: 1.4, date: '2026-10-05T00:00:00Z' },
+    { id: 'c', title: 'No score', level: 'L0', status: 'Open', date: 'not a date' },
+    { id: 'x', title: '   ' },
+  ] } }, { env: {} });
+  check('decisions: rows without a title are dropped', logData.decisions.length === 3);
+  check('decisions: newest first', logData.decisions[0].id === 'b');
+  check('decisions: invalid level becomes empty', logData.decisions[0].level === '');
+  check('decisions: out-of-range Jev is dropped, not clamped', logData.decisions[0].jev === null);
+  check('decisions: valid Jev kept, missing Jev is null', logData.decisions.find((d) => d.id === 'a').jev === 0.9 && logData.decisions.find((d) => d.id === 'c').jev === null);
+  check('decisions: bad date becomes 0', logData.decisions.find((d) => d.id === 'c').date === 0);
+  check('decisions: open KPI is case-insensitive', logData.kpis.openDecisions === 2);
+  check('decisions: sources flip live only with real data', logData.sources.decisions.live === true && logData.sources.jev.live === true && joined.sources.decisions.live === false);
+  check('desks expose their /ops Talk link', withStore.desks.every((d) => /^\/ops\/chat\//.test(d.talk)));
+
   // 8. No network without KV or file store.
   globalThis.fetch = stubFetch(STORE);
   calls.length = 0;

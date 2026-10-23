@@ -32,7 +32,8 @@
     check: '<path d="M20 6 9 17l-5-5"/>',
     inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
     sunrise: '<path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
-    chev: '<path d="m9 18 6-6-6-6"/>'
+    chev: '<path d="m9 18 6-6-6-6"/>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>'
   };
   function icon(name) {
     return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
@@ -89,6 +90,30 @@
       hourFmt = hourFmt || new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour: 'numeric', hour12: false });
       return parseInt(hourFmt.format(new Date()), 10) % 24;
     } catch (e) { return 12; }
+  };
+
+  // ---- shared view builders ------------------------------------------------
+  OS.source = function (key) {
+    var s = OS.data.sources && OS.data.sources[key];
+    return s && s.from ? s.from : '';
+  };
+  // One-line reason plus where the data would come from. Never filler numbers.
+  OS.empty = function (title, key) {
+    var src = key ? OS.source(key) : '';
+    return '<div class="empty"><b>' + esc(title) + '</b>' + (src ? '<small>Source: ' + esc(src) + '</small>' : '') + '</div>';
+  };
+  // PASS at 0.75 and above, FLAG below, "Jev: not run" when there is no score.
+  OS.jev = function (score) {
+    if (typeof score !== 'number' || !isFinite(score)) return '<span class="pill">Jev: not run</span>';
+    var pass = score >= 0.75;
+    return '<span class="pill ' + (pass ? 'pass' : 'flag') + ' num">' + (pass ? 'PASS' : 'FLAG') + ' ' + score.toFixed(2) + '</span>';
+  };
+  OS.level = function (level) { return '<span class="lv num">' + esc(level || '—') + '</span>'; };
+  OS.fmtLongDate = function (ms) {
+    if (!(ms > 0)) return '';
+    try {
+      return new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Chicago', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(ms));
+    } catch (e) { return ''; }
   };
 
   // ---- toast -------------------------------------------------------------
@@ -205,6 +230,13 @@
   }
   OS.openDrawer = openDrawer;
   OS.closeDrawer = closeDrawer;
+  // User-initiated close (scrim, Esc, close button): drop the #view/sub deep link too.
+  function dismissDrawer() {
+    var route = parseHash();
+    if (route.sub && $('#drawer').classList.contains('on')) OS.go(route.id);
+    else closeDrawer();
+  }
+  OS.dismissDrawer = dismissDrawer;
 
   // ---- command palette ---------------------------------------------------
   var CMDS = NAV.map(function (n) {
@@ -262,7 +294,7 @@
     $('#side-theme').addEventListener('click', toggleTheme);
     $('#hdr-theme').addEventListener('click', toggleTheme);
     $('#drawer').addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('[data-close]')) closeDrawer();
+      if (e.target.closest && e.target.closest('[data-close]')) dismissDrawer();
     });
     // Any element with data-go="view" or data-go="view/sub" navigates.
     doc.addEventListener('click', function (e) {
@@ -271,7 +303,7 @@
       var parts = String(el.getAttribute('data-go')).split('/');
       OS.go(parts[0], parts.slice(1).join('/'));
     });
-    $('#scrim').addEventListener('click', closeDrawer);
+    $('#scrim').addEventListener('click', dismissDrawer);
     $('#pal').addEventListener('click', function (e) { if (e.target === this) closePalette(); });
     $('#plist').addEventListener('click', function (e) {
       var row = e.target.closest ? e.target.closest('.pi') : null;
@@ -291,7 +323,7 @@
 
     doc.addEventListener('keydown', function (e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); return; }
-      if (e.key === 'Escape') { closeDrawer(); closePalette(); return; }
+      if (e.key === 'Escape') { if ($('#pal').classList.contains('on')) closePalette(); else dismissDrawer(); return; }
       if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 't') { toggleTheme(); return; }
       if (e.key === 'g') { gAt = Date.now(); return; }
