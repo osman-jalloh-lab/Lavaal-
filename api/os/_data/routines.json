@@ -6,7 +6,27 @@
     "owner": "lavaall-ceo",
     "status": "active",
     "lastRunAt": 1792723660000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Scheduled run"
+      },
+      {
+        "kind": "step",
+        "label": "Read the support mailbox",
+        "tool": "Gmail"
+      },
+      {
+        "kind": "step",
+        "label": "Rank mail: urgent and phishing checks"
+      },
+      {
+        "kind": "output",
+        "label": "Push the ranked list to the /ops inbox triage",
+        "tool": "/ops"
+      }
+    ]
   },
   {
     "id": "sl-daily-leads",
@@ -15,7 +35,48 @@
     "owner": "lavaall-ceo",
     "status": "active",
     "lastRunAt": 0,
-    "lastRunStatus": ""
+    "lastRunStatus": "",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Weekday morning run"
+      },
+      {
+        "kind": "step",
+        "label": "Read the leads sheet",
+        "tool": "Google Sheets"
+      },
+      {
+        "kind": "step",
+        "label": "Check the support mailbox Sent folder",
+        "tool": "Gmail"
+      },
+      {
+        "kind": "step",
+        "label": "Find new leads by rotation"
+      },
+      {
+        "kind": "step",
+        "label": "Verify contacts on each business's own site"
+      },
+      {
+        "kind": "step",
+        "label": "Note one real pain point per lead"
+      },
+      {
+        "kind": "step",
+        "label": "Write 5 to 10 drafts in Osman's voice"
+      },
+      {
+        "kind": "output",
+        "label": "Append to the sheet and a CSV",
+        "tool": "Google Sheets"
+      },
+      {
+        "kind": "output",
+        "label": "Report to Osman for approval"
+      }
+    ]
   },
   {
     "id": "overnight-ops-fix-morning-brief",
@@ -24,7 +85,34 @@
     "owner": "lavaall-ceo",
     "status": "active",
     "lastRunAt": 1792153685000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Weekday morning run"
+      },
+      {
+        "kind": "step",
+        "label": "Check overnight routine health"
+      },
+      {
+        "kind": "step",
+        "label": "Fix small breakage"
+      },
+      {
+        "kind": "step",
+        "label": "Write the morning brief"
+      },
+      {
+        "kind": "output",
+        "label": "Save the brief to the vault",
+        "tool": "Obsidian vault"
+      },
+      {
+        "kind": "output",
+        "label": "Send the brief in chat"
+      }
+    ]
   },
   {
     "id": "scout-youtube-deep-scan",
@@ -33,7 +121,27 @@
     "owner": "scout",
     "status": "active",
     "lastRunAt": 1792167423000,
-    "lastRunStatus": "skipped"
+    "lastRunStatus": "skipped",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Weekday 8:07 AM run"
+      },
+      {
+        "kind": "step",
+        "label": "Deep scan of the creator list",
+        "tool": "YouTube"
+      },
+      {
+        "kind": "step",
+        "label": "Pick the top 3"
+      },
+      {
+        "kind": "output",
+        "label": "Save the dated scan note",
+        "tool": "Obsidian vault"
+      }
+    ]
   },
   {
     "id": "scout-youtube-catchup",
@@ -42,7 +150,27 @@
     "owner": "scout",
     "status": "active",
     "lastRunAt": 1792165685000,
-    "lastRunStatus": "skipped"
+    "lastRunStatus": "skipped",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Weekday 10:44 AM run"
+      },
+      {
+        "kind": "step",
+        "label": "Find a deferred, missing or failed scan"
+      },
+      {
+        "kind": "step",
+        "label": "Re-run that scan",
+        "tool": "YouTube"
+      },
+      {
+        "kind": "output",
+        "label": "Save the dated scan note",
+        "tool": "Obsidian vault"
+      }
+    ]
   },
   {
     "id": "scout-weekly-minimal-x-scan",
@@ -51,7 +179,23 @@
     "owner": "scout",
     "status": "active",
     "lastRunAt": 1791813926000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Monday 8:22 AM run"
+      },
+      {
+        "kind": "step",
+        "label": "Read-only scan, kept minimal",
+        "tool": "X"
+      },
+      {
+        "kind": "output",
+        "label": "Save the scan note (saved, not sent)",
+        "tool": "Obsidian vault"
+      }
+    ]
   },
   {
     "id": "ceo-talk-bridge-poll",
@@ -60,7 +204,27 @@
     "owner": "lavaall-ceo",
     "status": "active",
     "lastRunAt": 1792709937000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Hourly poll, 12:55 to 5:55 PM"
+      },
+      {
+        "kind": "step",
+        "label": "Pick up Talk messages queued for the CEO desk",
+        "tool": "/ops"
+      },
+      {
+        "kind": "step",
+        "label": "Answer as the CEO desk"
+      },
+      {
+        "kind": "output",
+        "label": "Reply back into /ops Talk",
+        "tool": "/ops"
+      }
+    ]
   },
   {
     "id": "researchy-assign-wake-poll",
@@ -69,7 +233,23 @@
     "owner": "researchy",
     "status": "active",
     "lastRunAt": 1792710268000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Hourly poll, 12:55 to 5:55 PM"
+      },
+      {
+        "kind": "step",
+        "label": "Pick up Assign tasks for Researchy",
+        "tool": "/ops"
+      },
+      {
+        "kind": "output",
+        "label": "Return Found plus a recommendation",
+        "tool": "/ops"
+      }
+    ]
   },
   {
     "id": "kit-registry-eod-sync",
@@ -78,7 +258,23 @@
     "owner": "lavaall-ceo",
     "status": "active",
     "lastRunAt": 1792710772000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Weekday end-of-day run"
+      },
+      {
+        "kind": "step",
+        "label": "Read the Kit Registry sheet",
+        "tool": "Google Sheets"
+      },
+      {
+        "kind": "output",
+        "label": "Sync it into /ops Kits",
+        "tool": "/ops"
+      }
+    ]
   },
   {
     "id": "midnight-closeout",
@@ -87,7 +283,42 @@
     "owner": "lavaall-ceo",
     "status": "active",
     "lastRunAt": 1792127142000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Tue to Sat, midnight"
+      },
+      {
+        "kind": "step",
+        "label": "Jev end-of-day review of the day"
+      },
+      {
+        "kind": "step",
+        "label": "File keepers to the vault",
+        "tool": "Obsidian vault"
+      },
+      {
+        "kind": "step",
+        "label": "Flush the day's decisions"
+      },
+      {
+        "kind": "step",
+        "label": "Check the decision log for gaps"
+      },
+      {
+        "kind": "step",
+        "label": "Rewrite hot.md"
+      },
+      {
+        "kind": "output",
+        "label": "Copy files to the laptop"
+      },
+      {
+        "kind": "output",
+        "label": "Finish with verify-closeout.py"
+      }
+    ]
   },
   {
     "id": "nightly-decision-flush-to-obsidian",
@@ -96,7 +327,22 @@
     "owner": "lavaall-ceo",
     "status": "active",
     "lastRunAt": 1791553573000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Tue to Sat, 12:05 AM"
+      },
+      {
+        "kind": "step",
+        "label": "Flush the day's decisions"
+      },
+      {
+        "kind": "output",
+        "label": "Write them to the vault",
+        "tool": "Obsidian vault"
+      }
+    ]
   },
   {
     "id": "weekly-self-review-read-only",
@@ -105,7 +351,21 @@
     "owner": "lavaall-ceo",
     "status": "active",
     "lastRunAt": 1792158714000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Friday morning run"
+      },
+      {
+        "kind": "step",
+        "label": "Read-only review of the week"
+      },
+      {
+        "kind": "output",
+        "label": "Top 3 improvements for Osman"
+      }
+    ]
   },
   {
     "id": "friday-decide-or-kill",
@@ -114,7 +374,29 @@
     "owner": "lavaall-ceo",
     "status": "active",
     "lastRunAt": 1792161288000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": [
+      {
+        "kind": "trigger",
+        "label": "Friday morning run"
+      },
+      {
+        "kind": "step",
+        "label": "Find the 5 oldest open decisions"
+      },
+      {
+        "kind": "step",
+        "label": "Write a recommendation for each"
+      },
+      {
+        "kind": "output",
+        "label": "Show them to Osman"
+      },
+      {
+        "kind": "output",
+        "label": "Unanswered after 7 days: parked, never approved"
+      }
+    ]
   },
   {
     "id": "lavaall-slack-task-bridge",
@@ -123,6 +405,7 @@
     "owner": "lavaall-ceo",
     "status": "paused",
     "lastRunAt": 1790544701000,
-    "lastRunStatus": "ok"
+    "lastRunStatus": "ok",
+    "steps": null
   }
 ]
