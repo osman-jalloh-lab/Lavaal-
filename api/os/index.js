@@ -28,6 +28,8 @@ function readAsset(name) {
         fs.readFileSync(path.join(__dirname, '_client/outreach.js'), 'utf8'),
         fs.readFileSync(path.join(__dirname, '_client/routines.js'), 'utf8'),
         fs.readFileSync(path.join(__dirname, '_client/notes.js'), 'utf8'),
+        fs.readFileSync(path.join(__dirname, '_client/brain-graph.js'), 'utf8'),
+        fs.readFileSync(path.join(__dirname, '_client/brain.js'), 'utf8'),
       ].join('\n');
     default:
       return null;

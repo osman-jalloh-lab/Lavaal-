@@ -24,3 +24,21 @@ Settled by Osman Jalloh. Do not re-ask.
 6. **Outreach stays empty for now.** Leads come from the daily Sierra Leone leads routine, not the Kits
    sync, and no read path for them is in scope yet.
 7. **Local clone.** Work happens in a fresh clone of `main` (3fc3735); the other local clones are untouched.
+
+## 2026-10-22 — Brain graph (brief section 5.7)
+
+8. **Links come only from real relations, matched exactly.** The prototype guessed links from first words
+   (a lead "Hillside Hotel" linked to any decision containing "Hillside") and from a hand-made mapping of
+   routines to desks. The build does not. A link exists only when:
+   desk->skill and desk->rule come from desk data (SOUL data, deferred); routine->desk needs a routine owner
+   (the store has none); decision->desk matches the desk id, short name or full name; lead->sales desk for any
+   lead; lead->decision when the decision text contains the lead's full name (four or more characters);
+   note->rule/desk/decision/lead when the note text contains the FR id that exists as a rule node, the desk's
+   full registry name, the decision title (eight or more characters) or the lead's full name.
+   Paraphrases and common words ("sales", "growth") never link.
+9. **Today's graph is small and mostly unlinked.** With the registry, routines and notes only, Brain shows the
+   six desks plus routines and notes and no links. Rules, skills, leads and desk-linked routines appear when
+   SOUL data, a leads read path and a routine owner exist. The Skills chip ("Skills (FR-030 override)") is
+   visible with a count of 0 until then.
+10. **The graph refits on resize until the user pans or zooms,** because layout can still be settling when the
+    canvas is first measured. A manual pan or zoom stops auto-fit; the Fit button turns it back on.

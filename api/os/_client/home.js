@@ -6,6 +6,7 @@
   var esc = OS.esc;
   var icon = OS.icon;
 
+  var miniEngine = null;
   var KIND = { 'save-goal': 'Goal', 'add-task': 'Task', 'add-note': 'Note', 'update-task': 'Task update' };
 
   function from(key) {
@@ -60,9 +61,9 @@
   }
 
   function brainCard() {
-    // Brain mini mode lands with the Brain view; until then this card is an honest placeholder.
-    var body = '<div class="empty"><b>The Brain graph is not built yet.</b><small>It will draw desks, rules, skills, routines, decisions, leads and notes from real relations.</small></div>';
-    return card('', 'brain', 'Brain', '<span class="link" data-go="brain">Open graph</span><kbd>G B</kbd>', body);
+    // Mini mode of the Brain graph (api/os/_client/brain.js). It draws the same layout as the full view.
+    var body = '<div class="bmini" role="link" tabindex="0" aria-label="Open the Brain graph"><canvas id="bmini-c"></canvas></div>';
+    return card('', 'brain', 'Brain', '<span id="bmini-stat" class="num"></span><span class="link" data-go="brain">Open graph</span><kbd>G B</kbd>', body);
   }
 
   function councilCard() {
@@ -120,9 +121,13 @@
           '<div class="grid g32">' + decisionsCard(d) + desksCard(d) + '</div>' +
         '</div>';
     },
+    unmount: function () {
+      if (miniEngine) { miniEngine.destroy(); miniEngine = null; }
+    },
     mount: function (root, ctx) {
       var byId = {};
       (ctx.data.approvals || []).forEach(function (a) { byId[a.id] = a; });
+      if (OS.brainMini) miniEngine = OS.brainMini(root, ctx.data);
       var cmd = root.querySelector('#home-cmd');
       if (cmd) cmd.addEventListener('click', OS.openPalette);
       var review = root.querySelector('#home-review');

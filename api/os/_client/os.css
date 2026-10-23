@@ -139,6 +139,28 @@
 .os-root .notes .lst{border-right:1px solid var(--line);overflow:auto;max-height:calc(100vh - 190px)}
 .os-root .md{padding:24px 32px;overflow:auto;max-width:760px;line-height:22px;color:var(--tx2)}
 .os-root .md h2{color:var(--text);font-size:20px;line-height:28px;margin-bottom:8px}
+.os-root .brain{display:grid;grid-template-columns:1fr 300px;height:calc(100vh - 230px);min-height:520px;overflow:hidden}
+.os-root .bstage{position:relative;min-height:400px;overflow:hidden;background:radial-gradient(ellipse at 50% 42%,color-mix(in srgb,var(--accent) 6%,#050B14),#03070D 72%);border-right:1px solid var(--line)}
+.os-root[data-theme=light] .bstage{background:radial-gradient(ellipse at 50% 40%,#FFFFFF,#EEF2F7 75%)}
+.os-root .bstage canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;display:block;touch-action:none}
+.os-root .btool{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
+.os-root .btool input{width:200px;height:26px;border:1px solid var(--line2);border-radius:var(--r-ctl);background:color-mix(in srgb,var(--panel) 85%,transparent);color:var(--text);padding:0 8px;font:inherit;font-size:12px}
+.os-root .btool input:focus{outline:none;border-color:var(--accent)}
+.os-root .tchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 8px;border-radius:var(--r-ctl);border:1px solid var(--line2);background:color-mix(in srgb,var(--panel) 85%,transparent);font-size:12px;color:var(--tx2)}
+.os-root .tchip i{width:7px;height:7px;border-radius:50%}.os-root .tchip b{font-weight:500;color:var(--tx3);font-variant-numeric:tabular-nums}
+.os-root .tchip.off{opacity:.45}.os-root .tchip.off i{background:transparent!important;border:1px solid var(--tx3)}
+.os-root .bleg{position:absolute;left:12px;bottom:10px;font-size:11px;color:var(--tx3);z-index:2;right:12px}
+.os-root .bside{overflow:auto;padding:16px}
+.os-root .bside h3{font-size:15px;line-height:22px;margin:8px 0 4px}.os-root .bside p{color:var(--tx2);font-size:12px;line-height:19px}
+.os-root .brow{display:flex;align-items:center;gap:8px}.os-root .brow .ib{margin-left:auto}
+.os-root .dotc{display:inline-block;width:7px;height:7px;border-radius:50%;flex:none}
+.os-root .bl{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;cursor:pointer;border-bottom:1px solid var(--line)}.os-root .bl:hover{color:var(--accent)}
+.os-root .bl span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.os-root .bl small{color:var(--tx3);font-size:10px}
+.os-root .bside .lbl{font-size:11px;color:var(--tx3);margin-top:14px;text-transform:uppercase;letter-spacing:.04em}
+.os-root .bopen{margin-top:14px}
+.os-root .bmini{position:relative;height:150px;cursor:pointer;background:radial-gradient(ellipse at 50% 50%,color-mix(in srgb,var(--accent) 6%,#050B14),#03070D 75%);border-radius:0 0 var(--r-card) var(--r-card);overflow:hidden}
+.os-root[data-theme=light] .bmini{background:#F1F5FA}
+.os-root .bmini canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .os-root .fade{animation:fi .2s ease}
 @keyframes fi{from{opacity:0;transform:translateY(4px)}}
 @keyframes ti{from{opacity:0;transform:translateY(8px)}}
@@ -146,6 +168,7 @@
 .os-root .tabbar{display:none}
 
 @media(max-width:759px){
+ .os-root .brain{grid-template-columns:1fr;height:auto}.os-root .bstage{height:460px;border-right:0}.os-root .bside{border-top:1px solid var(--line)}
  .os-root .deskgrid{grid-template-columns:1fr}
  .os-root .notes{grid-template-columns:1fr}.os-root .notes .lst{border-right:0;border-bottom:1px solid var(--line);max-height:240px}.os-root .md{padding:16px}
  .os-root .side{display:none}

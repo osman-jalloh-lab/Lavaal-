@@ -84,7 +84,7 @@ check('proposal ids are escaped in attributes', !/data-approval="[^"]*[<>]/.test
 // 5. Widgets without a source are empty states that name the source.
 ['No morning brief is stored yet.', 'No council records yet.', 'No decision log yet.'].forEach((t) => check(`empty state: ${t}`, full.includes(t)));
 check('each empty state names where data would come from', (full.match(/Source: /g) || []).length === 3 && (empty.match(/Source: /g) || []).length === 4);
-check('brain card is an honest placeholder', /The Brain graph is not built yet\./.test(full));
+check('brain card hosts the mini graph canvas and a link to the full view', /id="bmini-c"/.test(full) && /data-go="brain"/.test(full) && !/not built yet/.test(full));
 check('no sample content from the prototype', !/Kabala|Makama|Mania|Shalom|Metricool|\$18\.40|PASS 0\.8|Jev: not run|Hillside|Scout/.test(full));
 check('no invented dollar amounts or percentages', !/\$\d|\d\s?%/.test(full));
 
