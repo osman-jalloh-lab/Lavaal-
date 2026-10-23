@@ -1,8 +1,10 @@
 /* LAVAALL OS Brain: graph model and physics. No DOM here, so it can be tested directly.
    Links exist only where the data really relates two things (docs/os/DECISIONS.md, brief 5.7):
-     desk -> skill      uses skill      (desk.skills, from SOUL data; deferred, so none today)
-     desk -> rule       follows rule    (FR ids found in desk.rules; deferred, so none today)
-     routine -> desk    runs            (routine.owner; the store keeps no owner, so none today)
+     desk -> skill      uses skill      (desk.skills, from the data pack's desks.json)
+     desk -> rule       follows rule    (FR ids found in desk.rules; desks.json rules carry no FR ids, so none today)
+     routine -> desk    runs            (routine.owner, a desk id from the data pack's routines.json)
+   Every pack skill and rule is a node, linked or not (skills.json, rules.json); an unlinked one is not guessed
+   a link.
      decision -> desk   decided         (decision.desk matches the desk id, short name or name)
      lead -> sales desk works lead      (data.outreach; no read path yet, so none today)
      lead -> decision   named in        (the decision text contains the lead's full name)
@@ -60,6 +62,13 @@
       add('d:' + d.id, 'desk', d.name, { deskId: d.id, short: d.short, now: d.now || '' });
     });
 
+    (data.skills || []).forEach(function (s) {
+      add('s:' + s.id, 'skill', s.name, { whenToUse: s.whenToUse, routedTo: s.desks });
+    });
+    (data.rules || []).forEach(function (r) {
+      add('r:' + r.id, 'rule', r.id, { title: r.title, text: r.rule, section: r.section });
+    });
+
     desks.forEach(function (d) {
       var node = ix['d:' + d.id];
       (d.skills || []).forEach(function (s) { link(node, add('s:' + s, 'skill', s), 'uses skill'); });
@@ -109,11 +118,12 @@
     nodes.forEach(function (n) { counts[n.t]++; });
 
     var parts = ['desk registry'];
-    if (data.routines) parts.push('routine store');
+    if (data.routines) parts.push('routines');
     if (data.notes) parts.push('notes store');
     if (data.decisions) parts.push('decision log');
     if (data.outreach) parts.push('outreach board');
-    if (counts.skill || counts.rule) parts.push('desk SOUL packs');
+    if (data.packBuiltAt) parts.push('data pack ' + data.packBuiltAt);
+    else if (counts.skill || counts.rule) parts.push('desk skills and rules');
 
     return { nodes: nodes, links: links, ix: ix, counts: counts, source: parts.join(', '), laid: false };
   }

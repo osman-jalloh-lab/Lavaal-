@@ -24,7 +24,7 @@ function loadOS() {
 const OS = loadOS();
 
 const NOW = Date.UTC(2026, 9, 22, 23, 0, 0); // 22 Oct 2026, 6 PM in Chicago
-function build(store, env) { OS.data = osData.buildOsData({ store, health: null }, { env: env || {}, now: NOW }); return OS.data; }
+function build(store, env) { OS.data = osData.buildOsData({ store, health: null }, { env: env || {}, now: NOW, pack: null }); return OS.data; }
 const html = (id, data, sub) => OS.views[id].render({ id, sub: sub || '', data });
 const DASH = '—';
 const tileValues = (h) => (h.match(/<b class="num">([^<]*)<\/b>/g) || []).map((m) => m.replace(/<[^>]+>/g, ''));
@@ -68,7 +68,7 @@ check('spend: amounts that misround in floating point still land on exact cents'
   return r.map((x) => x.cents).sort((x, y) => x - y).join() === '29,115,435' && Number.isInteger(r[0].cents);
 })());
 check('spend: a total of misrounding amounts is an exact integer', (() => {
-  const d = osData.buildOsData({ store: { spend: [{ id: 'a', date: '2026-10-03T12:00:00Z', amount: 0.29 }, { id: 'b', date: '2026-10-03T13:00:00Z', amount: 1.15 }] } }, { env: {}, now: NOW });
+  const d = osData.buildOsData({ store: { spend: [{ id: 'a', date: '2026-10-03T12:00:00Z', amount: 0.29 }, { id: 'b', date: '2026-10-03T13:00:00Z', amount: 1.15 }] } }, { env: {}, now: NOW, pack: null });
   return d.spendMonth.totalCents === 144 && Number.isInteger(d.spendMonth.series[2].cumulativeCents) && d.kpis.aiSpendMonth === 1.44;
 })());
 check('spend: KPI is the month total', sd.kpis.aiSpendMonth === 1.8);

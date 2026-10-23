@@ -52,6 +52,8 @@ check('tab bar and page respect the home-indicator safe area', media.includes('e
 check('phone tap targets are at least 34px', /\.btn\{height:36px\}/.test(media) && /\.chip\{height:36px\}/.test(media) && /\.tchip\{height:34px\}/.test(media) && /\.ib\{width:36px;height:36px\}/.test(media) && /min-height:48px/.test(media));
 check('inputs are 16px on phones, so iOS does not zoom on focus', /input\.q,\.os-root \.btool input,\.os-root \.pbox input\{font-size:16px\}/.test(media));
 check('grid columns can shrink below their content (no sideways scroll)', /\.g32\{grid-template-columns:minmax\(0,2fr\) minmax\(0,1fr\)\}/.test(css) && /\.g32\{grid-template-columns:minmax\(0,1fr\)\}/.test(media) && /\.g4\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/.test(css));
+check('Routines and Decisions: the wide columns hide on phones (schedule, last run, desk), and the schedule moves under the name', /\.rt-sched,\.os-root \.rt-last,\.os-root \.dc-desk\{display:none\}/.test(media) && /\.m-only\{display:block\}/.test(media) && /\.os-root \.m-only\{display:none\}/.test(css.slice(0, mediaStart)));
+check('Brain: desks use their short names on a narrow canvas, so labels do not collide', /else if \(n\.t === 'desk' && st\.W < 520 && n\.info && n\.info\.short\) lb = n\.info\.short/.test(brain));
 check('Brain toolbar is one scrollable row on phones', /\.btool\{flex-wrap:nowrap;overflow-x:auto/.test(media));
 check('the Brain canvas takes touch itself (no page scroll or browser zoom under the finger)', /\.bstage canvas\{[^}]*touch-action:none/.test(css));
 check('Brain stacks above its side panel on phones', /\.brain\{grid-template-columns:1fr;height:auto\}/.test(media));

@@ -33,7 +33,12 @@ const drawers = [];
 OS.openDrawer = (html) => { drawers.push(html); };
 
 function build(store, health) {
-  const data = osData.buildOsData({ store, health: health || null }, { env: {} });
+  const data = osData.buildOsData({ store, health: health || null }, { env: {}, pack: null });
+  OS.data = data;
+  return data;
+}
+function buildWith(pack, store, health) {
+  const data = osData.buildOsData({ store: store === undefined ? {} : store, health: health || null }, { env: {}, pack });
   OS.data = data;
   return data;
 }
@@ -58,7 +63,7 @@ check('level badge falls back to a dash', OS.level('').includes(DASH) && OS.leve
 const noLog = build({});
 const dNull = html('decisions', noLog);
 check('decisions: no log -> empty state with source', /No decision log yet\./.test(dNull) && /Source: /.test(dNull) && !/<table/.test(dNull));
-check('decisions: the source line says where the log would come from', /Source: a decisions record in the store or docs/.test(dNull));
+check('decisions: the source line says where the log comes from', /Source: decisions\.json in the LAVAALL OS data pack/.test(dNull));
 const dEmpty = html('decisions', build({ decisions: [] }));
 check('decisions: empty log -> says so', /The decision log is empty\./.test(dEmpty) && !/<table/.test(dEmpty));
 
@@ -89,13 +94,14 @@ check('decisions: unknown deep link opens nothing', mount('decisions', log, 'nop
 // ---- Desks -------------------------------------------------------------------
 const desksNoLog = build({});
 const dk = html('desks', desksNoLog);
-check('desks: six cards from the registry', (dk.match(/class="card deskcard"/g) || []).length === 6);
+check('desks: six cards from the registry when there is no pack', (dk.match(/class="card deskcard"/g) || []).length === 6);
 check('desks: no invented desk status', (dk.match(/Status not recorded yet/g) || []).length === 6);
-check('desks: no decision counts without a log', !/decision<|decisions</.test(dk));
+check('desks: no skill or routine counts without a pack', !/class="dc-m/.test(dk));
 const dkDrawer = mount('desks', desksNoLog, 'sales');
 check('desks: deep link opens the sales drawer', /LAVAALL Sales/.test(dkDrawer));
 check('desks: drawer has now, rules, skills, routines, decisions', ['Now', 'Rules', 'Skills', 'Routines', 'Recent decisions'].every((s) => dkDrawer.includes(`<div class="sect">${s}</div>`)));
-check('desks: SOUL-backed sections are empty states, not samples', /No rules loaded\./.test(dkDrawer) && /No skills loaded\./.test(dkDrawer) && /No "now" line recorded\./.test(dkDrawer));
+check('desks: nothing recorded -> empty states, not samples', /No rules are recorded for this desk\./.test(dkDrawer) && /No skills are recorded for this desk\./.test(dkDrawer) && /No "now" line is recorded for this desk\./.test(dkDrawer));
+check('desks: the old SOUL-deferral wording is gone', !/SOUL/.test(dk + dkDrawer));
 check('desks: no FR ids invented', !/FR-\d{3}/.test(dkDrawer));
 check('desks: Talk is a plain link into /ops', /href="\/ops\/chat\/sales"/.test(dkDrawer));
 check('desks: unknown desk opens nothing', mount('desks', desksNoLog, 'zzz') === '');
@@ -104,7 +110,29 @@ const desksWithLog = build({ decisions: [
   { id: 'b', title: 'Other', level: 'L2', status: 'Open', desk: 'technical', date: 6 },
 ] });
 check('desks: decisions match by desk id or short name, any case', /Sales thing/.test(mount('desks', desksWithLog, 'sales')) && !/Other/.test(mount('desks', desksWithLog, 'sales')));
-check('desks: card shows the real decision count', /1 decision</.test(html('desks', desksWithLog)));
+
+const DPACK = {
+  desks: {
+    desks: [{ id: 'sales', now: 'Quoting this week', rules: ['I do not close a price.', 'I do not send anything.'], skills: ['quote-pack', 'plain-rephrase'] }],
+    extraDesks: [{ id: 'scout', name: 'Scout', short: 'Scout', now: null, rules: ['Scans and reports only.'], skills: [] }],
+  },
+  skills: [{ id: 'quote-pack', name: 'quote-pack', whenToUse: 'When a quote is needed', desks: ['sales'] }],
+  routines: [
+    { id: 'r1', name: 'Sales sync', schedule: 'Mon 9 AM CT', owner: 'sales', status: 'active' },
+    { id: 'r2', name: 'Scout scan', schedule: 'Daily 8 AM CT', owner: 'scout', status: 'active' },
+  ],
+};
+const dp = buildWith(DPACK);
+const dpk = html('desks', dp);
+check('desks: Scout is a seventh card from the pack', (dpk.match(/class="card deskcard"/g) || []).length === 7 && /data-go="desks\/scout"/.test(dpk));
+check('desks: cards show real skill and routine counts', /2 skills \u00b7 1 routine</.test(dpk) && /0 skills \u00b7 1 routine</.test(dpk));
+const growthCard = dpk.split('class="card deskcard"').find((c) => /desks\/growth/.test(c)) || '';
+check('desks: a desk the pack has no row for shows its routine count but no skill count', /0 routines</.test(growthCard) && !/skill/.test(growthCard));
+const sd = mount('desks', dp, 'sales');
+check('desks: drawer shows the now line, rules, skills with their purpose, and routines with their schedule', /Quoting this week/.test(sd) && /I do not close a price\./.test(sd) && /title="When a quote is needed">quote-pack/.test(sd) && /Sales sync/.test(sd) && /Mon 9 AM CT/.test(sd));
+const sc = mount('desks', dp, 'scout');
+check('desks: Scout has rules, no skills, one routine and no Talk link', /Scans and reports only\./.test(sc) && /No skills are recorded for this desk\./.test(sc) && /Scout scan/.test(sc) && !/Talk in \/ops/.test(sc));
+check('desks: a desk with no pack row still gets its empty states', /No rules are recorded for this desk\./.test(mount('desks', dp, 'growth')) && /No routines are linked to this desk\./.test(mount('desks', dp, 'growth')));
 
 // ---- Outreach ----------------------------------------------------------------
 const oNull = html('outreach', build({}));
@@ -126,26 +154,31 @@ check('outreach: bounced note is styled as an error', /pill bad">bad address/.te
 check('outreach: nothing can be sent from here', !/<form|<a href|Send|New draft run|Leads sheet/.test(oFull));
 
 // ---- Routines ----------------------------------------------------------------
-check('routines: store down -> empty state', /Routines could not be loaded\./.test(html('routines', build(null))));
-check('routines: none stored -> says so', /No routines are stored\./.test(html('routines', build({ routines: [] }))));
+check('routines: no pack -> empty state', /Routines could not be loaded\./.test(html('routines', build({}))));
+check('routines: an empty list says so', /No routines are listed\./.test(html('routines', buildWith({ routines: [] }))));
 const health = { ok: true, empty: false, checkedLabel: 'x', routines: [
-  { slug: 'r-ok', status: 'OK', tone: 'ok', reason: 'ran fine' },
+  { slug: 'r-ok', status: 'OK', tone: 'ok', reason: 'ran fine', lastRunAt: '2026-10-09T08:53:00Z', lastRunLabel: 'Oct 9, 3:53 AM CT' },
   { slug: 'r-bad', status: 'FAILED', tone: 'bad', reason: 'boom' },
   { slug: 'r-warn', status: 'PARTIAL', tone: 'warn', reason: 'half' },
 ] };
-const rt = html('routines', build({ routines: [
-  { id: 'r-ok', name: 'Routine OK', lastRunAt: 1792790000000, lastRunStatus: 'helper_failed' },
-  { id: 'r-bad', name: 'Routine Bad' },
-  { id: 'r-warn', name: 'Routine Warn' },
-  { id: 'r-none', name: 'Routine <None>' },
-] }, health));
-check('routines: five columns', ['Routine', 'Schedule (CT)', 'Last run', 'Health', 'Status'].every((h) => rt.includes(`<th>${h}</th>`)));
-check('routines: schedule is a dash, never invented', (rt.match(/dim num">—<\/td>/g) || []).length >= 4);
+const RPACK = { routines: [
+  { id: 'r-ok', name: 'Routine OK', schedule: 'Weekdays 7:30 AM CT', owner: 'lavaall-ceo', status: 'active', lastRunAt: 1792790000000, lastRunStatus: 'helper_failed' },
+  { id: 'r-bad', name: 'Routine Bad', schedule: 'Fri 9:23 AM CT', owner: 'sales', status: 'active' },
+  { id: 'r-warn', name: 'Routine Warn', schedule: 'Mon 8:22 AM CT', owner: 'researchy', status: 'paused' },
+  { id: 'r-none', name: 'Routine <None>', schedule: '—', owner: '', status: '' },
+] };
+const rt = html('routines', buildWith(RPACK, {}, health));
+check('routines: six columns', ['Routine', 'Desk', 'Schedule (CT)', 'Last run', 'Health', 'Status'].every((h) => rt.includes(`>${h}</th>`)));
+check('routines: the schedule also sits under the name, for phones', (rt.match(/class="sub m-only">/g) || []).length === 4 && /class="sub m-only">Weekdays 7:30 AM CT</.test(rt));
+check('routines: schedule comes from the pack', /Weekdays 7:30 AM CT/.test(rt) && /Fri 9:23 AM CT/.test(rt) && /Mon 8:22 AM CT/.test(rt));
+check('routines: the desk is the owner, linked to its drawer', /data-go="desks\/lavaall-ceo">CEO</.test(rt) && /data-go="desks\/sales">Sales</.test(rt) && /data-go="desks\/researchy">Researchy</.test(rt));
+check('routines: status shows active and paused as pills', /pill pass">active/.test(rt) && /pill flag">paused/.test(rt));
+check('routines: a routine with no owner or status shows dashes', /Routine &lt;None&gt;[\s\S]*?<span class="dim">—<\/span>/.test(rt));
 check('routines: health tones map to pill states', /pill pass" title="ran fine">OK/.test(rt) && /pill bad" title="boom">FAILED/.test(rt) && /pill flag" title="half">PARTIAL/.test(rt));
-check('routines: no health record -> dash', /Routine &lt;None&gt;[\s\S]*?<span class="dim">—<\/span>/.test(rt));
-check('routines: run status is humanised', /helper failed/.test(rt) && !/helper_failed/.test(rt));
-check('routines: footnote says schedules are not stored', /Schedules are not stored yet\./.test(rt) && /Health is from the routine-health record\./.test(rt));
-check('routines: footnote when no health record', /No routine-health record yet\./.test(html('routines', build({ routines: [{ id: 'a', name: 'A' }] }))));
+check('routines: last run is from live health only', /Oct 9, 3:53 AM CT/.test(rt) && (rt.match(/class="dim num rt-last">—<\/td>/g) || []).length === 3);
+check("routines: the pack's stale last-run status is never shown", !/helper failed|helper_failed/.test(rt));
+check('routines: footnote with a health record', /Schedule, desk and status are from the data pack\./.test(rt) && /Last run and health are from the routine-health record\./.test(rt));
+check('routines: footnote without a health record', /there is none yet\./.test(html('routines', buildWith({ routines: [{ id: 'a', name: 'A' }] }))));
 check('routines: view only, no toggles or run buttons', !/<button|class="sw|Run now|Pause/.test(rt));
 check('routines: names are escaped', !/<None>/.test(rt));
 

@@ -34,8 +34,8 @@ const STORE = {
     ],
   }],
   routines: [
-    { id: 'morning-brief', name: 'Morning brief', lastRunAt: 0, lastRunStatus: '' },
-    { id: 'weekly-review', name: 'Weekly review', lastRunAt: 1760000000000, lastRunStatus: 'ok' },
+    { id: 'morning-brief', name: 'STORE PROMPT one', lastRunAt: 0, lastRunStatus: '' },
+    { id: 'weekly-review', name: 'STORE PROMPT two', lastRunAt: 1760000000000, lastRunStatus: 'ok' },
     { id: '', name: 'no id' },
   ],
   notes: [
@@ -47,9 +47,9 @@ const STORE = {
 
 (async () => {
   // 1. Missing store: every store-backed loader is null, nothing is invented.
-  const none = osData.buildOsData({ store: null, health: null }, { env: {} });
+  const none = osData.buildOsData({ store: null, health: null }, { env: {}, pack: null });
   check('no store -> approvals null', none.approvals === null);
-  check('no store -> routines null', none.routines === null);
+  check('no pack -> routines null (they never come from the store)', none.routines === null);
   check('no store -> notes null', none.notes === null);
   check('no store -> awaitingApproval null', none.kpis.awaitingApproval === null);
   check('storeAvailable false', none.storeAvailable === false);
@@ -57,7 +57,7 @@ const STORE = {
   // 2. Sources with no backing data are always null.
   ['openDecisions', 'hotelBounceRate', 'aiSpendMonth'].forEach((k) => check(`kpi ${k} null`, none.kpis[k] === null));
   ['brief', 'decisions', 'outreach', 'council', 'spend'].forEach((k) => check(`${k} null`, none[k] === null));
-  const withStore = osData.buildOsData({ store: STORE, health: null }, { env: {} });
+  const withStore = osData.buildOsData({ store: STORE, health: null }, { env: {}, pack: null });
   ['brief', 'decisions', 'outreach', 'council', 'spend'].forEach((k) => check(`${k} still null with a store`, withStore[k] === null));
   check('openDecisions still null with a store', withStore.kpis.openDecisions === null);
 
@@ -65,18 +65,27 @@ const STORE = {
   check('approvals only pending', withStore.approvals.length === 2 && withStore.approvals.every((a) => ['p1', 'p3'].includes(a.id)));
   check('approvals newest first', withStore.approvals[0].id === 'p3');
   check('awaitingApproval is the count', withStore.kpis.awaitingApproval === 2);
-  check('empty proposals -> 0 not null', osData.buildOsData({ store: { chats: [] } }, { env: {} }).kpis.awaitingApproval === 0);
-  check('routines drop rows without id', withStore.routines.length === 2);
-  check('routine never run has no label', withStore.routines[0].lastRunLabel === '' && withStore.routines[0].lastRunAt === 0);
-  check('routine run has a Chicago label', /\S/.test(withStore.routines[1].lastRunLabel));
-  check('routine schedule and owner not invented', withStore.routines.every((r) => r.schedule === null && r.owner === null));
+  check('empty proposals -> 0 not null', osData.buildOsData({ store: { chats: [] } }, { env: {}, pack: null }).kpis.awaitingApproval === 0);
+  const RPACK = { routines: [
+    { id: 'morning-brief', name: 'Morning brief', schedule: 'Weekdays 7:30 AM CT', owner: 'lavaall-ceo', status: 'active', lastRunAt: 1760000000000, lastRunStatus: 'ok' },
+    { id: 'weekly-review', name: 'Weekly review', schedule: 'Fri 8:47 AM CT', owner: 'researchy', status: 'paused', lastRunAt: 0, lastRunStatus: '' },
+    { id: '', name: 'no id' },
+    { id: 'bare', name: 'Bare routine' },
+  ] };
+  const rp = osData.buildOsData({ store: STORE, health: null }, { env: {}, pack: RPACK });
+  check('routines come from the pack; rows without an id are dropped', rp.routines.length === 3);
+  check('routines carry the pack schedule, owner and status', rp.routines[0].schedule === 'Weekdays 7:30 AM CT' && rp.routines[0].owner === 'lavaall-ceo' && rp.routines[0].status === 'active' && rp.routines[1].owner === 'researchy' && rp.routines[1].status === 'paused');
+  check('a routine with no schedule or owner stays null, never invented', rp.routines[2].schedule === null && rp.routines[2].owner === null && rp.routines[2].status === '');
+  check("the pack's stale last-run fields are ignored", rp.routines.every((r) => r.lastRunAt === 0 && r.lastRunLabel === '' && r.lastRunStatus === ''));
+  check('store routines are ignored (they are /ops prompts)', !JSON.stringify(rp.routines).includes('STORE PROMPT'));
+  check('routines are available even when the store is down', osData.buildOsData({ store: null, health: null }, { env: {}, pack: RPACK }).routines.length === 3);
   check('notes hide deleted, newest first', withStore.notes.map((n) => n.id).join() === 'n2,n1');
 
   // 4. Routine health joins by slug.
-  const health = { ok: true, empty: false, checkedLabel: 'now', routines: [{ slug: 'weekly-review', status: 'ok', tone: 'good', reason: 'ran' }] };
-  const joined = osData.buildOsData({ store: STORE, health }, { env: {} });
-  check('health joined by slug', joined.routines[1].health && joined.routines[1].health.status === 'ok');
-  check('no health for other routines', joined.routines[0].health === null);
+  const health = { ok: true, empty: false, checkedLabel: 'now', routines: [{ slug: 'weekly-review', status: 'OK', tone: 'ok', reason: 'ran', lastRunAt: '2026-10-09T08:53:00Z', lastRunLabel: 'Oct 9, 3:53 AM CT' }] };
+  const joined = osData.buildOsData({ store: STORE, health }, { env: {}, pack: RPACK });
+  check('live health is merged by routine id', joined.routines[1].health && joined.routines[1].health.status === 'OK' && joined.routines[0].health === null);
+  check('"last run" comes only from live health', joined.routines[1].lastRunLabel === 'Oct 9, 3:53 AM CT' && joined.routines[1].lastRunAt === Date.parse('2026-10-09T08:53:00Z') && joined.routines[0].lastRunLabel === '' && joined.routines[0].lastRunAt === 0);
 
   // 5. Desks come from the registry; SOUL-derived fields stay null.
   check('desks match registry', withStore.desks.length === OFFICE_AGENTS.length && withStore.desks.every((d, i) => d.id === OFFICE_AGENTS[i].id));
@@ -105,7 +114,7 @@ const STORE = {
     { id: 'b', title: 'New', level: 'L9', status: 'Closed', jev: 1.4, date: '2026-10-05T00:00:00Z' },
     { id: 'c', title: 'No score', level: 'L0', status: 'Open', date: 'not a date' },
     { id: 'x', title: '   ' },
-  ] } }, { env: {} });
+  ] } }, { env: {}, pack: null });
   check('decisions: rows without a title are dropped', logData.decisions.length === 3);
   check('decisions: newest first', logData.decisions[0].id === 'b');
   check('decisions: invalid level becomes empty', logData.decisions[0].level === '');
@@ -143,7 +152,7 @@ const STORE = {
     fetchImpl: async () => { throw new Error('down'); },
     health: null,
   });
-  check('KV failure -> empty states', failing.storeAvailable === false && failing.routines === null);
+  check('KV failure -> store-backed widgets empty, static pack still shown', failing.storeAvailable === false && failing.approvals === null && failing.notes === null && failing.routines.length === 14 && failing.decisions.length === 52);
   const notOk = await osData.loadOsData({
     env: { KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't' },
     fetchImpl: async () => ({ ok: false, json: async () => ({}) }),

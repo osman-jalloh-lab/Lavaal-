@@ -1,0 +1,182 @@
+[
+  {
+    "id": "FR-001",
+    "title": "L0\u2013L4 permission levels; L3 and L4 stop for Osman",
+    "rule": "Research, drafts, audits and builds (L0\u2013L2) can go ahead; sends, deploys, payments and contracts (L3) and secrets, credentials and deletes (L4) wait for Osman's explicit OK.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-002",
+    "title": "Outbound messages are drafts only",
+    "rule": "Any email, text, Slack or social message to an outside person is written as a draft; it goes out only after Osman approves that message.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-003",
+    "title": "Jev scores every L3/L4 decision and every recommendation to Osman",
+    "rule": "Before an L3/L4 decision or a founder-facing recommendation reaches Osman, it is scored by Jev and carries a `Jev: <score> (<verdict>)` line, or `Jev: not run \u2014 <reason>`; Jev never approves anything.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-004",
+    "title": "Nothing goes live until Osman says go",
+    "rule": "No push, merge to `main`, deploy, publish or live link without Osman's sign-off; local commits stay on hold until he says go.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-005",
+    "title": "No spending until Osman approves the plan and the price in writing",
+    "rule": "No money, credits, paid API calls, trials or subscriptions for LAVAALL build, page or video work until Osman has approved both a specific plan and its price in writing.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-006",
+    "title": "Don't default to Opus; Opus only with Osman's OK",
+    "rule": "Don't run work on Opus by default: use Sonnet for routine work and Codex too, and use Opus only when Osman has OK'd it.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-007",
+    "title": "Duplicate-idea guard",
+    "rule": "Before working on a new idea or tool, check the vault and records; if we already have it or something like it, say \"We already looked at this\" with what we found and where we stopped.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-008",
+    "title": "Jev end-of-day review at midnight CT",
+    "rule": "Every weekday closes with a Jev review that scores the day's ideas and decisions and files keepers to the Obsidian vault; it runs at midnight CT.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-009",
+    "title": "Use Chicago time",
+    "rule": "Times, schedules and logs use US Central (Chicago) time.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-010",
+    "title": "If you already have access, don't ask, just do it",
+    "rule": "When a desk already has the access it needs for an L0\u2013L2 step, it does the step instead of asking Osman; FR-001 still stops anything L3/L4.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-011",
+    "title": "Friday decide-or-kill: unanswered means parked, never approved",
+    "rule": "Every Friday the CEO shows Osman the 5 oldest open decisions with a recommendation each; anything he doesn't answer within 7 days of being shown is parked, never approved.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-012",
+    "title": "One change per round",
+    "rule": "Any re-score or re-send after a Jev FLAG or a real person's critique names exactly one change and why, written `Changed: X because Y`.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-036",
+    "title": "Ask Osman with the expected cost before every paid Claude or Codex call",
+    "rule": "Before any paid Claude (Anthropic) or Codex call, ask Osman first and tell him the expected cost; run it only after he says yes.",
+    "section": "A. Approvals, spending and safety"
+  },
+  {
+    "id": "FR-013",
+    "title": "His newest correction wins",
+    "rule": "When his instructions conflict, his newest explicit correction overrides earlier wording, then his newest decision, then project rules, then older locked decisions.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-014",
+    "title": "\"Lock that in\" makes it an operating rule",
+    "rule": "When he says \"lock that in\", it becomes the working decision and future work respects it until he overrides it.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-015",
+    "title": "Never invent; say plainly when something is missing",
+    "rule": "Don't invent files, facts, suppliers, prices, customers, statistics or partnerships; if something can't be found, say so.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-016",
+    "title": "Check what he can actually see",
+    "rule": "When he says something is missing or broken, check the real visible behaviour and fix it, instead of pointing at the source code.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-017",
+    "title": "Talk is not Assign",
+    "rule": "Talk is a conversation; Assign creates a real task with an owner; never claim a handoff or task exists without a real record.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-018",
+    "title": "Push back when something doesn't make sense",
+    "rule": "Don't agree automatically; say so when a request is impossible, risky, wasteful, contradictory or sent to the wrong desk.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-019",
+    "title": "Ask only when the answer changes the result",
+    "rule": "Ask him a question only when the missing information would really change the result or create risk.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-020",
+    "title": "Show options before spending resources",
+    "rule": "For paid generations, credits, ads, purchases, outside sends or destructive steps: research, show ranked options, let him review, then do the one he picks.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-021",
+    "title": "Simple one-page docs; casual, phone-first supplier outreach",
+    "rule": "Keep LAVAALL docs to one short plain page, and make supplier outreach sound casual and phone-first, not formal RFQ language.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-022",
+    "title": "\"Creole\" means Sierra Leone Krio",
+    "rule": "When Osman says Creole he means Sierra Leone (Freetown) Krio, not Haitian Creole.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-023",
+    "title": "Answer in Krio when he speaks Krio",
+    "rule": "If Osman talks to a desk in Krio, it answers in Krio.",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-024",
+    "title": "Spell the partner's name \"Hameed\"",
+    "rule": "Abdulhamid Ba is always written \"Hameed\", never \"Hamid\".",
+    "section": "B. How Osman talks to the desks (founder communication contract v1.0)"
+  },
+  {
+    "id": "FR-027",
+    "title": "No AI-generated images or video for product imagery",
+    "rule": "Product pages, scrolls and videos use real photos, official renders (mockup only) or LAVAALL's own shots, never AI image, video, voice or music models; the rejected MiniMax clip is never used.",
+    "section": "C. Email, brand, product"
+  },
+  {
+    "id": "FR-030",
+    "title": "Skills are internal desk tools, never LAVAALL OS UI",
+    "rule": "Every skill Osman gives is a tool the desks use when he asks them to build or QA something; it never becomes a button or feature in the LAVAALL OS.",
+    "section": "C. Email, brand, product"
+  },
+  {
+    "id": "FR-031",
+    "title": "A repo that passes Jev becomes an internal skill, filed in Obsidian",
+    "rule": "When Osman gives a repo and it passes Jev, Technical builds an internal skill from it and it is filed in the Obsidian vault; desks check the vault for an existing skill before building.",
+    "section": "C. Email, brand, product"
+  },
+  {
+    "id": "FR-032",
+    "title": "Scout owns YouTube and X scanning",
+    "rule": "Scout is the desk that scans YouTube creators and X for AI, web-building and new-tool news.",
+    "section": "C. Email, brand, product"
+  },
+  {
+    "id": "FR-033",
+    "title": "Keep the X scan minimal",
+    "rule": "The Scout X scan runs once a week (every two weeks is fine), stays small to stretch the free X credit, and is saved rather than sent as a digest.",
+    "section": "C. Email, brand, product"
+  }
+]

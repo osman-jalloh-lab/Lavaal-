@@ -32,14 +32,14 @@
         '<td class="dim num">' + esc(OS.fmtDate(d.date) || '—') + '</td>' +
         '<td>' + OS.level(d.level) + '</td>' +
         '<td class="wrap">' + esc(d.title) + '</td>' +
-        '<td class="dim">' + esc(d.desk || '—') + '</td>' +
+        '<td class="dim dc-desk">' + esc(d.desk || '—') + '</td>' +
         '<td>' + (d.status ? '<span class="pill">' + esc(d.status) + '</span>' : '<span class="dim">—</span>') + '</td>' +
         '<td class="n">' + OS.jev(d.jev) + '</td></tr>';
     }).join('');
   }
 
   function table(list) {
-    return '<div class="card tablewrap"><table><thead><tr><th>Date</th><th>Level</th><th>Decision</th><th>Desk</th><th>Status</th><th class="n">Jev</th></tr></thead>' +
+    return '<div class="card tablewrap"><table><thead><tr><th>Date</th><th>Level</th><th>Decision</th><th class="dc-desk">Desk</th><th>Status</th><th class="n">Jev</th></tr></thead>' +
       '<tbody id="dec-rows">' + rows(list) + '</tbody></table></div>';
   }
 

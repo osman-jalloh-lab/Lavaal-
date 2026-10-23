@@ -27,7 +27,7 @@ function loadOS() {
 
 const OS = loadOS();
 const B = OS.brain;
-const baseDesks = osData.buildOsData({ store: {} }, { env: {} }).desks;
+const baseDesks = osData.buildOsData({ store: {} }, { env: {}, pack: null }).desks;
 const DESK_IDS = baseDesks.map((d) => d.id);
 
 function graph(extra) {
@@ -105,7 +105,7 @@ const RELATIONS = ['uses skill', 'follows rule', 'runs', 'decided', 'works lead'
   check(`graph ${i}: type counts add up`, Object.values(g.counts).reduce((a, b) => a + b, 0) === g.nodes.length);
 });
 check('source line lists only live sources', graph().source === 'desk registry' && gd.source.includes('decision log') && !gd.source.includes('outreach board') && gl.source.includes('outreach board'));
-check('source line mentions SOUL packs only when skills or rules exist', gs.source.includes('desk SOUL packs') && !gd.source.includes('SOUL'));
+check('source line names desk skills and rules only when they exist, and the data pack when there is one', gs.source.includes('desk skills and rules') && !gd.source.includes('skills and rules') && graph({ packBuiltAt: '2026-10-22' }).source === 'desk registry, data pack 2026-10-22' && !/SOUL/.test(gs.source));
 
 // ---- types and colours ----------------------------------------------------------
 check('seven node types', B.ORDER.length === 7 && B.ORDER.join() === 'desk,rule,skill,routine,decision,lead,note');
@@ -140,14 +140,14 @@ check('hidden types stop repelling after layout', (() => {
 })());
 
 // ---- the view shell -------------------------------------------------------------
-OS.data = osData.buildOsData({ store: { decisions: decs, notes: [{ id: 'n1', title: 'A note', body: '' }] } }, { env: {} });
+OS.data = osData.buildOsData({ store: { decisions: decs, notes: [{ id: 'n1', title: 'A note', body: '' }] } }, { env: {}, pack: null });
 const view = OS.views.brain.render({ id: 'brain', sub: '', data: OS.data });
 check('view has a search box, Fit and a canvas', /id="bq"/.test(view) && /id="bfit"/.test(view) && /<canvas id="bc"/.test(view));
 check('one toggle chip per type with its count', B.ORDER.every((t) => new RegExp(`data-t="${t}"[^>]*>[\\s\\S]*?<b>${OS.brainGraph(OS.data).counts[t]}</b>`).test(view)) && (view.match(/class="tchip"/g) || []).length === 7);
 check('skills chip label shown', /Skills \(FR-030 override\)/.test(view));
 check('canvas is described for screen readers', /role="img" aria-label="Graph of desks/.test(view));
 check('side panel and footer slots exist', /id="bside"/.test(view) && /id="bleg"/.test(view));
-check('no nodes -> empty state, no canvas', (() => { OS.data = osData.buildOsData({ store: {} }, { env: {} }); OS.data.desks = []; const v = OS.views.brain.render({ id: 'brain', sub: '', data: OS.data }); return /The Brain has no nodes yet\./.test(v) && !/<canvas/.test(v); })());
+check('no nodes -> empty state, no canvas', (() => { OS.data = osData.buildOsData({ store: {} }, { env: {}, pack: null }); OS.data.desks = []; const v = OS.views.brain.render({ id: 'brain', sub: '', data: OS.data }); return /The Brain has no nodes yet\./.test(v) && !/<canvas/.test(v); })());
 check('Home mini card is exposed', typeof OS.brainMini === 'function');
 
 // ---- source hygiene -------------------------------------------------------------

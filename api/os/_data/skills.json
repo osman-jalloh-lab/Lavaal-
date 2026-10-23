@@ -1,0 +1,382 @@
+[
+  {
+    "id": "ad-creative-brief",
+    "name": "ad-creative-brief",
+    "whenToUse": "When Growth, UGC & Ads plans a LAVAALL ad (static, video, UGC-style, paid or organic) \u2014 write a one-page brief, plan hooks and variants, run any Higgsfield generation through a free quote plus Osman's L4 OK, and QA before Osman sees it. Draft-only; never publishes or launches.",
+    "desks": []
+  },
+  {
+    "id": "addyosmani-agent-skills",
+    "name": "addyosmani-agent-skills",
+    "whenToUse": "Use this when someone mentions Addy Osmani's agent-skills pack, /webperf or \"npx skills add addyosmani/agent-skills\". It is PARKED until Osman decides on Sat 10 Oct 2026; use this only as a reference and to answer \"we already looked at this\".",
+    "desks": []
+  },
+  {
+    "id": "agency-agents-reference",
+    "name": "agency-agents-reference",
+    "whenToUse": "Use this when a LAVAALL desk wants an outside specialist persona or checklist (sales discovery, returns, paid-social creative, tracking, accessibility, i18n, AI-code security, research synthesis) and someone points to msitarzewski/agency-agents (\"The Agency\"). Reference only: read one persona, adapt its text into a LAVAALL skill with MIT credit, never install the roster, app or scripts.",
+    "desks": []
+  },
+  {
+    "id": "anime-js-motion",
+    "name": "anime-js-motion",
+    "whenToUse": "Use this when a desk is adding or reviewing plain-JavaScript animation (CSS properties, SVG, DOM attributes, JS objects) on a LAVAALL page or test branch with Anime.js, and needs the self-hosting, reduced-motion and kit-scroll rules for it.",
+    "desks": []
+  },
+  {
+    "id": "bklit-ui-charts",
+    "name": "bklit-ui-charts",
+    "whenToUse": "Use this when a client project needs React dashboard charts or utility components and a desk is considering Bklit UI's MIT chart library (packages/ui). Never for reusing Bklit Studio code.",
+    "desks": []
+  },
+  {
+    "id": "brand-check",
+    "name": "brand-check",
+    "whenToUse": "When reviewing customer-facing LAVAALL copy (site, email drafts, social, ads, quotes) against tone, claims, terminology, localization, and approved messaging \u2014 flag mismatches before publish.",
+    "desks": [
+      "growth",
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "business-handoff",
+    "name": "business-handoff",
+    "whenToUse": "When switching bots, ending a discovery session, or passing work between LAVAALL agents \u2014 write a structured handoff with TASK/OBJECTIVE/COMPLETED/FINDINGS/DECISIONS/ARTIFACTS/OPEN/RISKS/NEXT/APPROVAL; redact secrets.",
+    "desks": [
+      "all"
+    ]
+  },
+  {
+    "id": "ceo-router",
+    "name": "ceo-router",
+    "whenToUse": "When a task is unclear, cross-bot, or needs a front-door classification \u2014 map the ask to a LAVAALL skill chain and primary bot owner before deep work.",
+    "desks": [
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "chatwoot-inbox-candidate",
+    "name": "chatwoot-inbox-candidate",
+    "whenToUse": "Use this when someone proposes a shared inbox for Gmail, WhatsApp and Messenger customer conversations and Chatwoot comes up. Optional candidate only: no install and no customer messaging.",
+    "desks": []
+  },
+  {
+    "id": "code-review",
+    "name": "code-review",
+    "whenToUse": "When reviewing a LAVAALL website or repo change before it is considered finished \u2014 run separate Spec and Quality reviews (security, a11y, locales, tests, secrets, sourcing wording); do not merge axes into one score.",
+    "desks": [
+      "technical"
+    ]
+  },
+  {
+    "id": "crm-sheet-hygiene",
+    "name": "crm-sheet-hygiene",
+    "whenToUse": "When the LAVAALL Customer Requests Sheet needs cleanup or QA \u2014 classify real inquiries vs noise, note missing fields, propose norms; never auto-email customers or invent leads.",
+    "desks": [
+      "sales"
+    ]
+  },
+  {
+    "id": "daily-brief",
+    "name": "daily-brief",
+    "whenToUse": "When designing or running a LAVAALL CEO brief from connected sources \u2014 summarize requests, suppliers, site, blockers with no invented metrics; do not activate recurring cadence without founder.",
+    "desks": [
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "decision-log",
+    "name": "decision-log",
+    "whenToUse": "When a founder decision is made or confirmed (policy, permissions, wording, markets, tooling), append it in plain English to the LAVAALL decision log and note open items \u2014 do not invent decisions.",
+    "desks": [
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "diagnose-bug",
+    "name": "diagnose-bug",
+    "whenToUse": "When something on lavaall.com, booking/Apps Script, Sheet routing, or related systems is broken or flaky \u2014 run reproduce \u2192 minimize \u2192 hypothesize \u2192 instrument \u2192 fix \u2192 verify \u2192 regression \u2192 document; never shotgun production.",
+    "desks": [
+      "technical"
+    ]
+  },
+  {
+    "id": "diagram-design",
+    "name": "diagram-design",
+    "whenToUse": "Use this when Osman or a LAVAALL desk wants an internal diagram (idea map, decision flow, plan, pipeline-queue item) drawn as clean HTML/SVG plus a PNG and saved to obsidian-mirror/Diagrams/ as YYYY-MM-DD-<slug>.{html,svg,png}. Internal only; offline; $0.",
+    "desks": []
+  },
+  {
+    "id": "domain-glossary",
+    "name": "domain-glossary",
+    "whenToUse": "When LAVAALL agents disagree on terms, a new business concept appears, or CONTEXT/GLOSSARY needs sharpening \u2014 update the shared glossary from real operations; do not invent definitions.",
+    "desks": [
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "ecc-agentshield-reference",
+    "name": "ecc-agentshield-reference",
+    "whenToUse": "Use this when a desk is considering ECC (affaan-m/ECC) or its AgentShield scanner for a secrets/security review of agent config, hooks or MCP setup. Reference only. The only part of interest is AgentShield, and it is parked.",
+    "desks": []
+  },
+  {
+    "id": "emil-design-eng",
+    "name": "emil-design-eng",
+    "whenToUse": "Use this when a desk is deciding whether and how something on a LAVAALL or client page should animate (purpose, easing, duration, springs, press states, reduced motion) or reviewing UI polish, using Emil Kowalski's text-only design-engineering rules. Pair it with anime-js-motion for the implementation.",
+    "desks": []
+  },
+  {
+    "id": "feature-spec",
+    "name": "feature-spec",
+    "whenToUse": "When LAVAALL needs a major website or internal feature built \u2014 write a complete feature spec (problem, stories, rules, security, tests, out of scope, approvals) before implementation.",
+    "desks": [
+      "technical",
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "frappe-crm-candidate",
+    "name": "frappe-crm-candidate",
+    "whenToUse": "Use this when a CRM is being considered and invoicing or ERP integration matters (Frappe/ERPNext stack). Frappe CRM is an alternative candidate only. No install.",
+    "desks": []
+  },
+  {
+    "id": "github-mcp-server-reference",
+    "name": "github-mcp-server-reference",
+    "whenToUse": "Use this when someone suggests adding GitHub's official MCP server for repo access. GitHub is already connected through the existing GitHub MCP connector, so check for duplicates and use that instead.",
+    "desks": []
+  },
+  {
+    "id": "grill-founder",
+    "name": "grill-founder",
+    "whenToUse": "When a LAVAALL plan, policy, or design needs founder decisions sharpened \u2014 ask only unresolved decisions; pull facts from context first (inspired by grilling / grill-me patterns).",
+    "desks": [
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "hyperframes-video-render",
+    "name": "hyperframes-video-render",
+    "whenToUse": "Use this when a desk needs to turn an existing LAVAALL HTML/CSS/JS page with seekable animation (e.g. the kit construct/deconstruct page) into an MP4 by code rendering with HyperFrames through hf.sh. Never for AI-generated video.",
+    "desks": []
+  },
+  {
+    "id": "impeccable-design-checks",
+    "name": "impeccable-design-checks",
+    "whenToUse": "Use this when a desk needs a design critique, audit or polish checklist for a LAVAALL web page or client front end and wants Impeccable's design playbooks (markdown, no engine) or, after Osman approves adoption, its pinned checks-only engine. Not for image generation, \"Design first\", installs or hooks.",
+    "desks": []
+  },
+  {
+    "id": "inquiry-triage",
+    "name": "inquiry-triage",
+    "whenToUse": "When new Customer Requests rows, Gmail/WhatsApp/Messenger inbound, or social DMs need triage \u2014 classify state, owner, and next action; never auto-send customer email (L3).",
+    "desks": [
+      "sales"
+    ]
+  },
+  {
+    "id": "kit-screenshot-add",
+    "name": "kit-screenshot-add",
+    "whenToUse": "Use this when a founder sends a screenshot or typed kit number plus a person name and that row should be added to the Kit Registry with today's date.",
+    "desks": []
+  },
+  {
+    "id": "klaviyo-api-python-sdk",
+    "name": "klaviyo-api-python-sdk",
+    "whenToUse": "Use this when the Lifecycle desk finds that the existing Klaviyo access lacks an operation it needs (read profiles, lists, metrics) and is considering Klaviyo's official Python SDK. Never for sending email.",
+    "desks": []
+  },
+  {
+    "id": "kokonutui-components",
+    "name": "kokonutui-components",
+    "whenToUse": "Use this when a desk wants to reuse a free Kokonut UI component (React + Tailwind + shadcn/ui + Motion) in a client front end and needs the rules on demo images, banned components and the paid Pro tier.",
+    "desks": []
+  },
+  {
+    "id": "laya-decision-model-eval",
+    "name": "laya-decision-model-eval",
+    "whenToUse": "Use this when someone asks about Laya (\"Lyre\") as an open-source alternative to Jev, or proposes a side-by-side test. Evaluation-only: no switch from Jev and no Gateway or model calls without Osman's OK.",
+    "desks": []
+  },
+  {
+    "id": "magnum-sync",
+    "name": "magnum-sync",
+    "whenToUse": "When MAGNUM, lavaall.com, and LAVAALL OS may disagree (catalog, markets, marketplace vs sourcing, claims, booking flows) \u2014 diff the three and report MATCH/DRIFT/CONFLICT with recommended fixes.",
+    "desks": [
+      "technical",
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "marketingskills-reference",
+    "name": "marketingskills-reference",
+    "whenToUse": "Use this when Growth, Sales or Lifecycle wants outside playbook ideas (CRO, copywriting, SEO, analytics, growth) and is thinking of Corey Haines' marketingskills repo. Read and adapt the text only; it is not an install list.",
+    "desks": []
+  },
+  {
+    "id": "motion-library",
+    "name": "motion-library",
+    "whenToUse": "Use this when a desk is planning or reviewing animation in a React/Next client build (or vanilla animate()/scroll()) with the free MIT Motion library (formerly Framer Motion). Never for buying Motion+ or installing the repo itself.",
+    "desks": []
+  },
+  {
+    "id": "n8n-automation-candidate",
+    "name": "n8n-automation-candidate",
+    "whenToUse": "Use this when a desk thinks an automation can't be done with native Grok Bot routines and connectors and n8n is suggested. Candidate only, for a demonstrated gap. No install.",
+    "desks": []
+  },
+  {
+    "id": "newsjack-press-desk",
+    "name": "newsjack-press-desk",
+    "whenToUse": "Use this when the press desk wants to check West Africa connectivity or Apple reseller news for newsjacking angles with the configured-but-not-live NewsJack setup (free RSS only), or when someone proposes taking NewsJack live.",
+    "desks": []
+  },
+  {
+    "id": "ops-script-standards",
+    "name": "ops-script-standards",
+    "whenToUse": "Use this when Technical writes a new LAVAALL ops script, routine or automation, or changes an existing one (ops-rules/*.sh|*.py, scan scripts, webhook handlers, scheduled jobs): apply the CLI shape, guards and automation checklist so runs are predictable, logged and safe to stop. New or changed scripts only.",
+    "desks": []
+  },
+  {
+    "id": "permission-gate",
+    "name": "permission-gate",
+    "whenToUse": "When mapping any LAVAALL action to Level 0\u20134 permissions, or before outbound send, deploy, spend, secrets, or other side effects \u2014 block or require founder for L3\u2013L4; never self-elevate.",
+    "desks": [
+      "all"
+    ]
+  },
+  {
+    "id": "plain-rephrase",
+    "name": "plain-rephrase",
+    "whenToUse": "When a LAVAALL doc, message, or explanation is confusing, long, or too formal \u2014 rewrite it plain and short for the founder\u2019s preference (phone-first, simple pages).",
+    "desks": [
+      "all"
+    ]
+  },
+  {
+    "id": "playwright-mcp-browser-qa",
+    "name": "playwright-mcp-browser-qa",
+    "whenToUse": "Use this when Technical/QA needs scripted browser checks of lavaall.com or a Preview (clicks, forms, viewports) and Microsoft's Playwright MCP server is suggested. Browser QA only; check against the website-qa skill and the box browser first.",
+    "desks": []
+  },
+  {
+    "id": "quote-pack",
+    "name": "quote-pack",
+    "whenToUse": "When turning a customer inquiry into commercial next steps \u2014 gather clarifiers and produce a quote outline; never invent prices or payment terms.",
+    "desks": [
+      "sales"
+    ]
+  },
+  {
+    "id": "regulatory-research",
+    "name": "regulatory-research",
+    "whenToUse": "",
+    "desks": [
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "research-primary",
+    "name": "research-primary",
+    "whenToUse": "When a LAVAALL task needs external factual investigation (suppliers, markets, regs, APIs, competitors) \u2014 prioritize primary sources and produce a cited research note; never invent prices or legal conclusions.",
+    "desks": [
+      "lavaall-ceo",
+      "sales",
+      "technical"
+    ]
+  },
+  {
+    "id": "scroll-craft-engine",
+    "name": "scroll-craft-engine",
+    "whenToUse": "Use this when building or reviewing a LAVAALL scroll-driven kit page (construct/deconstruct on scroll) with the locked scroll-craft engine, and you need the rules on keeping the engine unmodified, brand precedence and the reduced-motion version.",
+    "desks": []
+  },
+  {
+    "id": "search-first",
+    "name": "search-first",
+    "whenToUse": "When starting coding, product, ops, or kit/CRM work \u2014 look up repo, Sheet, Drive, and OS truth before inventing behavior or facts; pair with research-primary for deep external investigation.",
+    "desks": []
+  },
+  {
+    "id": "security-sweep-checklist",
+    "name": "security-sweep-checklist",
+    "whenToUse": "Use this when Technical builds or QA reviews LAVAALL code (lavaall.com, /ops Vercel functions, ops scripts, forms) or vets an outside plugin, skill or MCP before use: run a read-only 8-area security checklist and report the top 3 priorities plus positive findings. Fixes go through feature-spec and code-review.",
+    "desks": []
+  },
+  {
+    "id": "skill-author",
+    "name": "skill-author",
+    "whenToUse": "When creating or editing a LAVAALL-owned skill (SKILL recipe via update_state), or when a reusable multi-step ops pattern should be saved for bots to reuse.",
+    "desks": [
+      "lavaall-ceo",
+      "technical"
+    ]
+  },
+  {
+    "id": "supplier-evaluation",
+    "name": "supplier-evaluation",
+    "whenToUse": "When shortlisting or vetting wholesalers/distributors for LAVAALL sourcing \u2014 score with evidence and cite primary sources; contact remains L3.",
+    "desks": [
+      "sales"
+    ]
+  },
+  {
+    "id": "supplier-outreach",
+    "name": "supplier-outreach",
+    "whenToUse": "When preparing first contact to a wholesaler/distributor for West Africa sourcing \u2014 write a casual phone-first draft only; stop before send (L3).",
+    "desks": [
+      "sales"
+    ]
+  },
+  {
+    "id": "tdd",
+    "name": "tdd",
+    "whenToUse": "When building or fixing LAVAALL site/repo behavior test-first \u2014 run red (failing behavior check) \u2192 green (smallest fix) \u2192 leave refactor for code-review; test business behavior at agreed seams.",
+    "desks": [
+      "technical",
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "to-tickets",
+    "name": "to-tickets",
+    "whenToUse": "When an approved LAVAALL feature spec or plan must become executable work \u2014 split it into small vertical tickets with blockers, acceptance criteria, risk, and required skill; prefer local OS markdown first.",
+    "desks": [
+      "technical",
+      "lavaall-ceo"
+    ]
+  },
+  {
+    "id": "twenty-crm-candidate",
+    "name": "twenty-crm-candidate",
+    "whenToUse": "Use this when someone proposes replacing or extending the Customer Requests sheet with a real CRM and Twenty (open Salesforce alternative) comes up. It is a candidate only if no adequate CRM exists. No install.",
+    "desks": []
+  },
+  {
+    "id": "ui-ux-pro-max",
+    "name": "ui-ux-pro-max",
+    "whenToUse": "Use this when a desk is picking a style, palette, font pairing or UX checklist for a client site or LAVAALL page and wants UI/UX Pro Max's local design database (core skill only). Not for its sister skills (design, brand, banner, slides, design-system), which use AI image generation or stock hot-links.",
+    "desks": []
+  },
+  {
+    "id": "verify-loop",
+    "name": "verify-loop",
+    "whenToUse": "Use this when finishing a code or /ops change \u2014 prove behavior with tests or Preview smoke, prefer a fresh-context review, then distill a short session note; never claim done on green CI alone without the agreed check.",
+    "desks": []
+  },
+  {
+    "id": "website-qa",
+    "name": "website-qa",
+    "whenToUse": "Use this when checking lavaall.com quality (forms, locales, links, claims, booking) \u2014 run a reproducible QA checklist; file bugs clearly; do not deploy unless Level 3+ founder-approved.",
+    "desks": [
+      "technical"
+    ]
+  },
+  {
+    "id": "wshobson-agents-reference",
+    "name": "wshobson-agents-reference",
+    "whenToUse": "Use this when Technical or a research desk wants specialist implementation or research prompt patterns and is considering Seth Hobson's wshobson/agents plugin marketplace. Reference only: read and adapt text, never install it.",
+    "desks": []
+  }
+]
