@@ -138,11 +138,11 @@ async function call(area, extra) {
   check('embedded JSON cannot close its script tag', !hostile.includes('<'));
   check('embedded JSON round-trips', JSON.parse(hostile).t === '</script><script>alert(1)</script>');
 
-  // 7. vercel.json: exactly one /os rewrite, /ops untouched.
+  // 7. vercel.json: the two /os rewrites (/os/ and /os/:path*), /ops untouched.
   const cfg = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
   const osRewrites = cfg.rewrites.filter((r) => /^\/os(\/|$)/.test(r.source));
-  check('exactly one /os rewrite', osRewrites.length === 1);
-  check('/os rewrite target', osRewrites[0] && osRewrites[0].source === '/os/:path*' && osRewrites[0].destination === '/api/os?area=:path*');
+  check('exactly two /os rewrites: /os/ and /os/:path*', osRewrites.length === 2 && osRewrites.map((r) => r.source).join() === '/os/,/os/:path*');
+  check('/os rewrite targets', osRewrites[0].destination === '/api/os' && osRewrites[1].destination === '/api/os?area=:path*');
   check('no functions entry for api/os (soul data deferred)', !Object.keys(cfg.functions || {}).some((k) => k.startsWith('api/os')));
   check('/ops rewrites still present', cfg.rewrites.some((r) => r.source === '/ops/:path*' && r.destination === '/api/ops?area=:path*'));
 
