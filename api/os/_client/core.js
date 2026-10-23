@@ -109,6 +109,11 @@
     var pass = score >= 0.75;
     return '<span class="pill ' + (pass ? 'pass' : 'flag') + ' num">' + (pass ? 'PASS' : 'FLAG') + ' ' + score.toFixed(2) + '</span>';
   };
+  // US dollars, from whole cents or dollars. Never rounds a missing value into a number.
+  OS.money = function (dollars) {
+    if (typeof dollars !== 'number' || !isFinite(dollars)) return '—';
+    try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dollars); } catch (e) { return '$' + dollars.toFixed(2); }
+  };
   OS.level = function (level) { return '<span class="lv num">' + esc(level || '—') + '</span>'; };
   OS.fmtLongDate = function (ms) {
     if (!(ms > 0)) return '';

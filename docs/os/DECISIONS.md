@@ -42,3 +42,23 @@ Settled by Osman Jalloh. Do not re-ask.
    visible with a count of 0 until then.
 10. **The graph refits on resize until the user pans or zooms,** because layout can still be settling when the
     canvas is first measured. A manual pan or zoom stops auto-fit; the Fit button turns it back on.
+
+## 2026-10-22 — Council, Spend and Settings (brief section 5)
+
+11. **Council and Spend read stored records only, and none exist yet.** The read-only loaders return `null`
+    until the store holds `council` or `spend` arrays, so both views show empty states today. The record
+    shapes the loaders accept are the contract for whatever writes them later:
+    council `{ id, title, desk, level (L0-L4), date, drafter {name, role}, reviewer {name, role}, maxRounds
+    (default 3), rounds [{ n, draft, review, at }], jev (0-1), status (waiting_l3 | approved |
+    changes_requested | flagged | held) }`; spend `{ id, date, amount (US dollars), currency (optional, USD
+    only), provider, note }`.
+12. **Spend is dollars summed in whole cents, never estimated.** Records in another currency, with a
+    non-numeric or negative amount, an unreadable date, or dated after today (Chicago) are skipped. There is
+    no budget, forecast or projection, and an empty chart prints no axis numbers. "This month" is the
+    America/Chicago calendar month.
+13. **Two prototype cards are left out on purpose.** "Cost estimate, per run" is an estimate, and "Model
+    settings" (builder, Opus gate, daily cap) is configuration that no record backs. Neither is shown. The
+    Council view has no Approve, Request changes, New run or Replay actions: it runs no model and writes
+    nothing.
+14. **Settings reports presence of env var names, not service health.** GitHub has no env variable in the
+    ops app, so it is "unknown", never "connected". Values are never read into the page.

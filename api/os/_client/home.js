@@ -66,8 +66,18 @@
     return card('', 'brain', 'Brain', '<span id="bmini-stat" class="num"></span><span class="link" data-go="brain">Open graph</span><kbd>G B</kbd>', body);
   }
 
-  function councilCard() {
-    return card('', 'council', 'AI Council', '', empty('No council records yet.', 'council'));
+  var COUNCIL_STATUS = { waiting_l3: 'Waiting', approved: 'Approved', changes_requested: 'Changes requested', flagged: 'Flagged', held: 'Held' };
+
+  function councilCard(d) {
+    var list = d.council;
+    if (list === null) return card('', 'council', 'AI Council', '', empty('No council records yet.', 'council'));
+    if (!list.length) return card('', 'council', 'AI Council', '', empty('The council record list is empty.', 'council'));
+    var r = list[0];
+    var right = r.round ? 'round ' + r.round + ' of ' + r.maxRounds : '';
+    var people = [r.drafter.name ? r.drafter.name + ' drafted' : '', r.reviewer.name ? r.reviewer.name + ' reviewed' : '', COUNCIL_STATUS[r.status] ? (r.status === 'waiting_l3' ? 'waiting for ' + (r.level || 'L3') + ' OK' : COUNCIL_STATUS[r.status].toLowerCase()) : ''].filter(Boolean).join(' · ');
+    var row = '<div class="li" data-go="council/' + esc(r.id) + '"><div class="t"><div>' + esc(r.title) + '</div><small>' + esc(people || 'No participants recorded') + '</small></div>' +
+      OS.jev(r.jev) + '<button class="btn" type="button" data-go="council/' + esc(r.id) + '">Open</button></div>';
+    return card('', 'council', 'AI Council', esc(right), row);
   }
 
   function decisionsCard(d) {
@@ -111,13 +121,13 @@
         '<button class="btn pri" type="button" id="home-review">Review approvals</button></div></div>' +
         '<div class="grid g4">' +
           kpi('b', 'Awaiting approval', k.awaitingApproval, 'pending proposals') +
-          kpi('v', 'Open decisions', k.openDecisions, 'no decision log yet') +
+          kpi('v', 'Open decisions', k.openDecisions, k.openDecisions == null ? 'no decision log yet' : 'from the decision log') +
           kpi('o', 'Hotel bounce rate', k.hotelBounceRate, 'no outreach results yet') +
-          kpi('g', 'AI spend this month', k.aiSpendMonth, 'no spend records yet') +
+          kpi('g', 'AI spend this month', k.aiSpendMonth == null ? null : OS.money(k.aiSpendMonth), k.aiSpendMonth == null ? 'no spend records yet' : 'from spend records') +
         '</div>' +
         '<div class="stack">' +
           '<div class="grid g32">' + briefCard(d) + approvalsCard(d) + '</div>' +
-          brainCard() + councilCard() +
+          brainCard() + councilCard(d) +
           '<div class="grid g32">' + decisionsCard(d) + desksCard(d) + '</div>' +
         '</div>';
     },

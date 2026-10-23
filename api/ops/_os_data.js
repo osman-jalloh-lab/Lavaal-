@@ -190,6 +190,101 @@ function decisionsFrom(store) {
     .sort((a, b) => b.date - a.date);
 }
 
+const COUNCIL_STATUSES = ['waiting_l3', 'approved', 'changes_requested', 'flagged', 'held'];
+
+function wholeNumber(value, min, max) {
+  return Number.isInteger(value) && value >= min && value <= max;
+}
+
+// Reads store.council only if council records exist there (they do not today).
+// A record is data the council already produced; nothing here runs or calls a model.
+function councilFrom(store) {
+  if (!store || !Array.isArray(store.council)) return null;
+  const person = (row) => ({ name: text(row && row.name, 60), role: text(row && row.role, 60) });
+  return store.council
+    .filter((row) => row && text(row.title, 200))
+    .map((row) => {
+      const seen = new Set();
+      const rounds = (Array.isArray(row.rounds) ? row.rounds : [])
+        .filter((r) => r && wholeNumber(r.n, 1, 20) && (text(r.draft, 8000) || text(r.review, 8000)))
+        .sort((a, b) => a.n - b.n)
+        .filter((r) => (seen.has(r.n) ? false : seen.add(r.n)))
+        .map((r) => ({ n: r.n, draft: text(r.draft, 8000), review: text(r.review, 8000), at: stamp(r.at) }));
+      return {
+        id: text(row.id, 40),
+        title: text(row.title, 200),
+        desk: text(row.desk, 60),
+        level: DECISION_LEVELS.test(text(row.level, 4)) ? text(row.level, 4) : '',
+        date: stamp(row.date),
+        drafter: person(row.drafter),
+        reviewer: person(row.reviewer),
+        maxRounds: wholeNumber(row.maxRounds, 1, 10) ? row.maxRounds : 3,
+        rounds,
+        round: rounds.length ? rounds[rounds.length - 1].n : 0,
+        jev: Number.isFinite(row.jev) && row.jev >= 0 && row.jev <= 1 ? row.jev : null,
+        status: COUNCIL_STATUSES.includes(row.status) ? row.status : '',
+        source: text(row.source, 240),
+      };
+    })
+    .sort((a, b) => b.date - a.date);
+}
+
+// Reads store.spend only if spend records exist there (they do not today).
+// Amounts are US dollars. A record in another currency, or without a real amount, is skipped:
+// nothing is converted, guessed or estimated.
+function spendFrom(store) {
+  if (!store || !Array.isArray(store.spend)) return null;
+  return store.spend
+    .filter((row) => row && Number.isFinite(row.amount) && row.amount >= 0 && row.amount <= 1000000)
+    .filter((row) => !row.currency || String(row.currency).toUpperCase() === 'USD')
+    .filter((row) => stamp(row.date) > 0)
+    .map((row) => ({
+      id: text(row.id, 40),
+      date: stamp(row.date),
+      cents: Math.round(row.amount * 100),
+      provider: text(row.provider, 60),
+      note: text(row.note, 200),
+    }))
+    .sort((a, b) => b.date - a.date);
+}
+
+const CHICAGO_DAY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', year: 'numeric', month: 'numeric', day: 'numeric' });
+function chicagoDay(ms) {
+  const p = {};
+  CHICAGO_DAY.formatToParts(new Date(ms)).forEach((x) => { p[x.type] = Number(x.value); });
+  return { y: p.year, m: p.month, d: p.day };
+}
+
+// Month-to-date summary for the Chicago month containing `now`. Totals are summed in whole cents.
+function spendSummary(records, now) {
+  if (!records) return null;
+  const today = chicagoDay(Number.isFinite(now) ? now : Date.now());
+  const inMonth = records.filter((r) => { const d = chicagoDay(r.date); return d.y === today.y && d.m === today.m && d.d <= today.d; });
+  const daysInMonth = new Date(Date.UTC(today.y, today.m, 0)).getUTCDate();
+  const byDay = new Array(today.d + 1).fill(0);
+  inMonth.forEach((r) => { byDay[chicagoDay(r.date).d] += r.cents; });
+  const series = [];
+  let run = 0;
+  for (let day = 1; day <= today.d; day++) { run += byDay[day]; series.push({ day, cents: byDay[day], cumulativeCents: run }); }
+  const providers = {};
+  inMonth.forEach((r) => { const k = r.provider || 'Unspecified'; providers[k] = (providers[k] || 0) + r.cents; });
+  const largest = inMonth.reduce((best, r) => (!best || r.cents > best.cents ? r : best), null);
+  return {
+    year: today.y,
+    month: today.m,
+    today: today.d,
+    daysInMonth,
+    count: inMonth.length,
+    totalCents: run,
+    total: run / 100,
+    largest: largest ? { cents: largest.cents, date: largest.date, provider: largest.provider } : null,
+    last: inMonth.length ? { cents: inMonth[0].cents, date: inMonth[0].date, provider: inMonth[0].provider } : null,
+    providers: Object.keys(providers).sort().map((name) => ({ name, cents: providers[name] })),
+    entries: inMonth.slice(0, 50).map((r) => ({ id: r.id, date: r.date, cents: r.cents, provider: r.provider, note: r.note })),
+    series,
+  };
+}
+
 function desksFrom() {
   return OFFICE_AGENTS.map((agent) => ({
     id: agent.id,
@@ -231,6 +326,9 @@ function buildOsData(sources, opts) {
 
   const approvals = approvalsFrom(store);
   const decisions = decisionsFrom(store);
+  const council = councilFrom(store);
+  const spend = spendFrom(store);
+  const spendMonth = spendSummary(spend, opts && opts.now);
   const data = {
     storeAvailable: Boolean(store),
     approvals,
@@ -238,13 +336,14 @@ function buildOsData(sources, opts) {
       awaitingApproval: approvals ? approvals.length : null,
       openDecisions: decisions ? decisions.filter((row) => row.status.toLowerCase() === 'open').length : null,
       hotelBounceRate: null,
-      aiSpendMonth: null,
+      aiSpendMonth: spendMonth ? spendMonth.total : null,
     },
     brief: null,
     decisions,
     outreach: null,
-    council: null,
-    spend: null,
+    council,
+    spend,
+    spendMonth,
     routines: routinesFrom(store, health),
     notes: notesFrom(store),
     desks: desksFrom(),
@@ -257,8 +356,10 @@ function buildOsData(sources, opts) {
         : key === 'routines' ? data.routines !== null
           : key === 'notes' ? data.notes !== null
             : key === 'decisions' ? decisions !== null
-              : key === 'jev' ? Boolean(decisions && decisions.some((row) => row.jev !== null))
-                : false;
+              : key === 'jev' ? Boolean((decisions && decisions.some((row) => row.jev !== null)) || (council && council.some((row) => row.jev !== null)))
+                : key === 'council' ? council !== null
+                  : key === 'spend' ? spend !== null
+                    : false;
     out[key] = Object.assign({ live }, SOURCES[key]);
     return out;
   }, {});
@@ -275,7 +376,10 @@ module.exports = {
   SOURCES,
   approvalsFrom,
   buildOsData,
+  councilFrom,
   decisionsFrom,
+  spendFrom,
+  spendSummary,
   desksFrom,
   loadOsData,
   notesFrom,
