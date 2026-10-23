@@ -10,6 +10,7 @@ const path = require('path');
 const { json, queryOf } = require('../ops/_lib');
 const { loadOsData } = require('../ops/_os_data');
 const { osGuard } = require('../ops/_os_guard');
+const { osReturnCookie } = require('../ops/_os_return');
 const { OS_CSP, osPage } = require('./_page');
 
 const assetCache = new Map();
@@ -68,8 +69,9 @@ function areaOf(req) {
 
 function deny(req, res, access) {
   if (access.status === 401 && req.method === 'GET' && !String(req.headers && req.headers.accept || '').includes('json')) {
-    // Same sign-in as /ops: send the founder to the existing login page.
+    // Same sign-in as /ops: send the founder to the existing login page, and remember to come back here.
     baseHeaders(res, 'text/plain; charset=utf-8');
+    res.setHeader('Set-Cookie', osReturnCookie(req));
     res.status(302).setHeader('Location', '/ops').send('');
     return;
   }

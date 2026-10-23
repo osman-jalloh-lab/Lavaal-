@@ -81,3 +81,16 @@ Settled by Osman Jalloh. Do not re-ask.
     Brain, AI Council, Spend and Settings (entry 15). Osman confirmed.
 18. **The "Sierra Leone leads routine" mentions stay.** They appear in `api/ops/_os_data.js` (the Outreach and
     hotel-bounce source lines) and in this file, even though the repository is public. Osman confirmed.
+
+## 2026-10-22 — Return to /os after sign-in (approved fence exception)
+
+19. **Signing in from /os returns the founder to /os.** Osman approved editing `api/ops/auth.js`, outside the
+    original fence, for exactly this and nothing else. When `/os` sends a signed-out visitor to the `/ops`
+    login it sets a 10-minute cookie `lavaall-os-return=os` (HttpOnly, SameSite=Lax, Secure on HTTPS).
+    `auth.js` now asks `postSignInPath(req)` (new file `api/ops/_os_return.js`) in its two successful sign-in
+    redirects, Google and magic link, and clears the cookie there. The cookie must equal exactly `os` and the
+    answer is one of two fixed paths, `/os` or `/ops`; nothing from a request is ever used as a URL, so there is
+    no open redirect. No cookie, or any other value, gives `/ops` as before. Failed sign-ins, logout and the
+    JSON responses are unchanged. The edit to `auth.js` is one `require` line plus those two redirects
+    (+3 lines, -2 lines). Limit: a magic link opened on a different device or browser has no cookie and lands
+    on `/ops`.
