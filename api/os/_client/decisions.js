@@ -1,46 +1,78 @@
-/* LAVAALL OS Decisions + Jev: a filterable table (All / Open / Closed), level L0-L4, a Jev pill
-   (PASS at 0.75 and above, FLAG below, "Jev: not run" without a score) and a detail drawer,
-   opened by #decisions/<id>. Reads data.decisions, which is null until a decision log exists. */
+/* LAVAALL OS Decisions + Jev: cards grouped as "Waiting on you" (open, L3/L4), "Open" and "Closed", with
+   status, desk and level filters. Each card shows the title, a status pill, a level chip (L3/L4 in orange),
+   the desk (short name, with its colour dot), a Jev pill ("Jev: not run" without a score) and the age.
+   A card opens the detail drawer, also reachable by #decisions/<id>. Reads data.decisions, which is null
+   until a decision log exists. */
 (function () {
   'use strict';
   var OS = window.OS;
   var esc = OS.esc;
   var icon = OS.icon;
 
-  var FILTERS = ['All', 'Open', 'Closed'];
-  var filter = 'All';
+  var STATUS_FILTERS = ['All', 'Open', 'Closed'];
+  var DAY = 86400000;
+  var f = { status: 'All', desk: 'All', level: 'All' };
 
-  function matches(row) {
-    return filter === 'All' || String(row.status).toLowerCase() === filter.toLowerCase();
+  function isOpen(d) { return String(d.status).toLowerCase() === 'open'; }
+  function isWaiting(d) { return isOpen(d) && (d.level === 'L3' || d.level === 'L4'); }
+
+  function ageText(d) {
+    if (!(d.date > 0)) return '';
+    var n = Math.max(0, Math.floor((Date.now() - d.date) / DAY));
+    if (isOpen(d)) return n === 1 ? '1 day open' : n + ' days open';
+    return (String(d.status).toLowerCase() === 'closed' ? 'Decided ' : '') + OS.fmtDate(d.date);
   }
 
-  function count(list, name) {
-    return name === 'All' ? list.length : list.filter(function (r) { return String(r.status).toLowerCase() === name.toLowerCase(); }).length;
+  function passes(d) {
+    if (f.status !== 'All' && String(d.status).toLowerCase() !== f.status.toLowerCase()) return false;
+    if (f.desk !== 'All' && (d.desk || '') !== f.desk) return false;
+    if (f.level !== 'All' && d.level !== f.level) return false;
+    return true;
   }
 
-  function chips(list) {
-    return '<div class="chips" role="group" aria-label="Filter decisions">' + FILTERS.map(function (f) {
-      return '<button class="chip' + (f === filter ? ' on' : '') + '" type="button" data-filter="' + f + '">' + f + ' <span class="num">' + count(list, f) + '</span></button>';
-    }).join('') + '</div>';
+  function chip(kind, value, label, n) {
+    return '<button class="chip' + (f[kind] === value ? ' on' : '') + '" type="button" data-f="' + kind + '" data-v="' + esc(value) + '">' + esc(label) +
+      (n == null ? '' : ' <span class="num">' + n + '</span>') + '</button>';
   }
 
-  function rows(list) {
-    var shown = list.filter(matches);
-    if (!shown.length) return '<tr><td colspan="6" class="none">No ' + esc(filter.toLowerCase()) + ' decisions.</td></tr>';
-    return shown.map(function (d) {
-      return '<tr class="row" tabindex="0" data-go="decisions/' + esc(d.id) + '">' +
-        '<td class="dim num">' + esc(OS.fmtDate(d.date) || '—') + '</td>' +
-        '<td>' + OS.level(d.level) + '</td>' +
-        '<td class="wrap">' + esc(d.title) + '</td>' +
-        '<td class="dim dc-desk">' + esc(d.desk || '—') + '</td>' +
-        '<td>' + (d.status ? '<span class="pill">' + esc(d.status) + '</span>' : '<span class="dim">—</span>') + '</td>' +
-        '<td class="n">' + OS.jev(d.jev) + '</td></tr>';
+  function filters(list) {
+    var status = STATUS_FILTERS.map(function (s) {
+      return chip('status', s, s, s === 'All' ? list.length : list.filter(function (d) { return String(d.status).toLowerCase() === s.toLowerCase(); }).length);
     }).join('');
+    var deskIds = [];
+    list.forEach(function (d) { if (d.desk && deskIds.indexOf(d.desk) === -1) deskIds.push(d.desk); });
+    var desks = chip('desk', 'All', 'All', null) + deskIds.map(function (id) { return chip('desk', id, OS.deskShort(id), null); }).join('');
+    var levels = ['L0', 'L1', 'L2', 'L3', 'L4'].filter(function (l) { return list.some(function (d) { return d.level === l; }); });
+    var lv = chip('level', 'All', 'All', null) + levels.map(function (l) { return chip('level', l, l, null); }).join('');
+    return '<div class="dfilters" role="group" aria-label="Filter decisions">' +
+      '<div class="dfrow"><b>Status</b><div class="chips">' + status + '</div></div>' +
+      '<div class="dfrow"><b>Desk</b><div class="chips">' + desks + '</div></div>' +
+      '<div class="dfrow"><b>Level</b><div class="chips">' + lv + '</div></div></div>';
   }
 
-  function table(list) {
-    return '<div class="card tablewrap"><table><thead><tr><th>Date</th><th>Level</th><th>Decision</th><th class="dc-desk">Desk</th><th>Status</th><th class="n">Jev</th></tr></thead>' +
-      '<tbody id="dec-rows">' + rows(list) + '</tbody></table></div>';
+  function card(d, kind) {
+    return '<article class="dcard ' + kind + '" tabindex="0" role="button" data-go="decisions/' + esc(d.id) + '">' +
+      '<h3>' + esc(d.title) + '</h3>' +
+      '<div class="dmeta"><span class="pill ' + (isOpen(d) ? 'open' : 'closed') + '">' + esc(d.status || '—') + '</span>' +
+      OS.level(d.level) + OS.deskChip(d.desk) + OS.jev(d.jev) + '</div>' +
+      '<div class="dfoot"><span>' + esc(ageText(d) || 'Date not recorded') + '</span><span class="num">' + esc(OS.fmtDate(d.date)) + '</span></div></article>';
+  }
+
+  function group(title, items, kind) {
+    if (!items.length) return '';
+    return '<section class="dgroup"><h2>' + esc(title) + ' <span class="num">' + items.length + '</span></h2><div class="dgrid">' +
+      items.map(function (d) { return card(d, kind); }).join('') + '</div></section>';
+  }
+
+  // Oldest first for the groups that are waiting on someone; newest first for Closed.
+  function groups(list) {
+    var shown = list.filter(passes);
+    if (!shown.length) return '<div class="card"><div class="empty"><b>No decisions match these filters.</b></div></div>';
+    var waiting = shown.filter(isWaiting).sort(function (a, b) { return a.date - b.date; });
+    var open = shown.filter(function (d) { return isOpen(d) && !isWaiting(d); }).sort(function (a, b) { return a.date - b.date; });
+    var closed = shown.filter(function (d) { return String(d.status).toLowerCase() === 'closed'; });
+    var other = shown.filter(function (d) { return !isOpen(d) && String(d.status).toLowerCase() !== 'closed'; });
+    return group('Waiting on you', waiting, 'wait') + group('Open', open, 'open') + group('Closed', closed, 'done') + group('Other', other, 'done');
   }
 
   function scoreBlock(d) {
@@ -51,7 +83,7 @@
   }
 
   function drawer(d) {
-    var kv = [['Date', OS.fmtLongDate(d.date)], ['Desk', d.desk], ['Status', d.status]]
+    var kv = [['Date', OS.fmtLongDate(d.date)], ['Desk', OS.deskShort(d.desk)], ['Status', d.status], ['Age', ageText(d)]]
       .filter(function (r) { return r[1]; })
       .map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join('');
     return '<div class="dh">' + OS.level(d.level) + '<h3>' + esc(d.title) + '</h3>' +
@@ -69,22 +101,24 @@
       var head = '<div class="ph"><div><h1>Decisions + Jev</h1><p>Evidence first, then the Jev line. PASS at 0.75 and above.</p></div></div>';
       if (list === null) return head + '<div class="card">' + OS.empty('No decision log yet.', 'decisions') + '</div>';
       if (!list.length) return head + '<div class="card">' + OS.empty('The decision log is empty.', 'decisions') + '</div>';
-      return head + '<div id="dec-chips">' + chips(list) + '</div>' + table(list);
+      return head + '<div id="dec-filters">' + filters(list) + '</div><div id="dec-groups">' + groups(list) + '</div>';
     },
     mount: function (root, ctx) {
       var list = ctx.data.decisions;
       if (!list || !list.length) return;
       root.addEventListener('click', function (e) {
-        var chip = e.target.closest ? e.target.closest('[data-filter]') : null;
-        if (!chip) return;
-        filter = chip.getAttribute('data-filter');
-        root.querySelector('#dec-chips').innerHTML = chips(list);
-        root.querySelector('#dec-rows').innerHTML = rows(list);
+        var b = e.target.closest ? e.target.closest('[data-f]') : null;
+        if (!b) return;
+        f[b.getAttribute('data-f')] = b.getAttribute('data-v');
+        root.querySelector('#dec-filters').innerHTML = filters(list);
+        root.querySelector('#dec-groups').innerHTML = groups(list);
       });
       root.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter') return;
-        var row = e.target.closest ? e.target.closest('tr[data-go]') : null;
-        if (row) OS.go('decisions', row.getAttribute('data-go').split('/')[1]);
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var c = e.target.closest ? e.target.closest('.dcard[data-go]') : null;
+        if (!c) return;
+        e.preventDefault();
+        OS.go('decisions', c.getAttribute('data-go').split('/')[1]);
       });
       if (ctx.sub) {
         var d = list.filter(function (x) { return x.id === ctx.sub; })[0];

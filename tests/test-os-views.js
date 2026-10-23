@@ -74,15 +74,21 @@ const log = build({ decisions: [
   { id: 'd', title: 'Delta', level: 'L9', status: 'Parked', jev: 1.5, date: 1 },
 ] });
 const dTable = html('decisions', log);
-check('decisions: one row per decision', (dTable.match(/<tr class="row"/g) || []).length === 4);
+check('decisions: one card per decision', (dTable.match(/<article class="dcard/g) || []).length === 4);
 check('decisions: all three Jev states render', /PASS 0\.82/.test(dTable) && /FLAG 0\.40/.test(dTable) && /Jev: not run/.test(dTable));
 check('decisions: out-of-range score becomes "not run", never clamped', !/1\.50|PASS 1\.00/.test(dTable));
 check('decisions: invalid level shows a dash', (dTable.match(/class="lv num">—/g) || []).length === 1);
 check('decisions: levels L0 to L4 shown', /L0/.test(dTable) && /L3/.test(dTable) && /L4/.test(dTable));
 check('decisions: filter chips with counts', /All <span class="num">4<\/span>/.test(dTable) && /Open <span class="num">2<\/span>/.test(dTable) && /Closed <span class="num">1<\/span>/.test(dTable));
-check('decisions: only All / Open / Closed filters', (dTable.match(/data-filter="/g) || []).length === 3);
+check('decisions: status filters are All / Open / Closed', (dTable.match(/data-f="status"/g) || []).length === 3);
+check('decisions: desk and level filters sit next to them', /data-f="desk" data-v="All"/.test(dTable) && /data-f="level" data-v="L3"/.test(dTable) && /data-f="level" data-v="L4"/.test(dTable) && !/data-f="level" data-v="L9"/.test(dTable));
 check('decisions: titles are escaped', !/<img src=x/.test(dTable) && /&lt;img src=x/.test(dTable));
-check('decisions: newest first', dTable.indexOf('Alpha') < dTable.indexOf('Beta') && dTable.indexOf('Beta') < dTable.indexOf('&lt;img') && dTable.indexOf('&lt;img') < dTable.indexOf('Delta'));
+check('decisions: groups run Waiting on you, Open, Closed, Other; waiting is oldest first', dTable.indexOf('<h2>Waiting on you') < dTable.indexOf('<h2>Closed ') && dTable.indexOf('<h2>Closed ') < dTable.indexOf('<h2>Other ') && dTable.indexOf('&lt;img') < dTable.indexOf('Alpha') && dTable.indexOf('Alpha') < dTable.indexOf('Beta') && dTable.indexOf('Beta') < dTable.indexOf('Delta'));
+check('decisions: no Open group when every open decision is L3/L4', !/<h2>Open </.test(dTable));
+check('decisions: status pills are amber for Open, muted green for Closed', /pill open">Open/.test(dTable) && /pill closed">Closed/.test(dTable));
+check('decisions: L3 and L4 chips are orange, L0 is not', /lv num hi">L3/.test(dTable) && /lv num hi">L4/.test(dTable) && /lv num">L0/.test(dTable));
+check('decisions: desk shows its short name, not the id', /<\/i>Sales<\/span>/.test(dTable) && /<\/i>Growth<\/span>/.test(dTable) && !/>sales</.test(dTable));
+check('decisions: age reads "N days open" for open items', /\d+ days open/.test(dTable));
 const dDrawer = mount('decisions', log, 'a');
 check('decisions: deep link opens a drawer', /Full alpha text/.test(dDrawer) && /src a/.test(dDrawer));
 check('decisions: drawer shows the Jev score and PASS line', /0\.82/.test(dDrawer) && /0\.75 = PASS line/.test(dDrawer));
