@@ -56,7 +56,7 @@
 
 /* page + cards */
 .os-root .ph{display:flex;align-items:flex-end;gap:16px;margin-bottom:24px}.os-root .ph h1{font-size:24px;line-height:32px}.os-root .ph p{color:var(--tx2);margin-top:2px}.os-root .ph .r{margin-left:auto;display:flex;gap:8px}
-.os-root .grid{display:grid;gap:16px}.os-root .g4{grid-template-columns:repeat(4,minmax(0,1fr))}.os-root .g32{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.os-root .grid{display:grid;gap:16px}.os-root .g4{grid-template-columns:repeat(4,minmax(0,1fr))}.os-root .g2{grid-template-columns:repeat(2,minmax(0,1fr))}.os-root .today-h{margin:4px 0 -4px;font:600 13px Inter,system-ui,sans-serif;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em}.os-root .g2.today{align-items:start}.os-root .g32{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .os-root .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card)}
 .os-root .ch{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}.os-root .ch h3{font-size:13px;font-weight:500}.os-root .ch .r{margin-left:auto;color:var(--tx3);font-size:12px;display:flex;gap:8px;align-items:center}
 .os-root .kpi{padding:16px}.os-root .kpi span{color:var(--tx2);font-size:12px}.os-root .kpi b{display:block;font-size:24px;line-height:32px;font-weight:500;margin-top:4px}.os-root .kpi i{font-style:normal;font-size:12px;color:var(--tx3)}
@@ -206,7 +206,7 @@
  .os-root .notes{grid-template-columns:1fr}.os-root .notes .lst{border-right:0;border-bottom:1px solid var(--line);max-height:240px}.os-root .md{padding:16px}
  .os-root .side{display:none}
  .os-root #view{padding:16px 16px 88px}
- .os-root .g4{grid-template-columns:repeat(2,minmax(0,1fr))}.os-root .g32{grid-template-columns:minmax(0,1fr)}
+ .os-root .g4{grid-template-columns:repeat(2,minmax(0,1fr))}.os-root .g32,.os-root .g2{grid-template-columns:minmax(0,1fr)}
  .os-root .btn{height:36px}.os-root .chip{height:36px}.os-root .tchip{height:34px}.os-root .ib{width:36px;height:36px}
  .os-root input.q,.os-root .btool input,.os-root .pbox input{font-size:16px}.os-root .btool input{height:34px}
  .os-root .kpi b{font-size:22px}

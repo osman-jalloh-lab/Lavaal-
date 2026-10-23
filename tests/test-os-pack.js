@@ -115,7 +115,7 @@ check('Desks view: seven cards, Lifecycle shows its now line, the other six say 
 check('Desks view: cards show real skill and routine counts', /16 skills · 10 routines/.test(dkv.replace(/·/g, '·')) && /0 skills · 3 routines/.test(dkv.replace(/·/g, '·')));
 check('Desks view: Scout is there and links to its drawer', /data-go="desks\/scout"/.test(dkv));
 const home = html('home');
-check('Home: open decisions 22, five recent decisions, seven desks', /Open decisions<\/span><b class="num">22<\/b>/.test(home) && (home.match(/data-go="decisions\/D-/g) || []).length === 5 && (home.match(/data-go="desks\/[a-z-]+"><span class="dot">/g) || []).length === 7);
+check('Home: open decisions 22, five recent decisions, seven desks', /Open decisions<\/span><b class="num">22<\/b>/.test(home) && (home.split('<h3>Recent decisions</h3>')[1].match(/data-go="decisions\/D-/g) || []).length === 5 && (home.match(/data-go="desks\/[a-z-]+"><span class="dot">/g) || []).length === 7);
 
 // ================= 5. bundling and read-only =================
 const adapter = fs.readFileSync(path.join(root, 'api/ops/_os_data.js'), 'utf8');

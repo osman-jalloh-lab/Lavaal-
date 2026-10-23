@@ -6,7 +6,6 @@
   var esc = OS.esc;
   var icon = OS.icon;
 
-  var miniEngine = null;
   var KIND = { 'save-goal': 'Goal', 'add-task': 'Task', 'add-note': 'Note', 'update-task': 'Task update' };
 
   function from(key) {
@@ -70,18 +69,14 @@
       .map(function (r) {
         return '<div class="li static"><span class="pill ' + r[1] + '">' + esc(r[2]) + '</span><div class="t"></div><b class="num">' + h.counts[r[0]] + '</b></div>';
       }).join('');
-    var foot = '<p class="note foot">' + h.reporting + ' of ' + h.total + ' routines report' + (h.checkedLabel ? '. Checked ' + esc(h.checkedLabel) : '') + '.</p>';
+    var failed = (h.failed || []).length
+      ? '<p class="note foot">Failed: ' + h.failed.map(esc).join(', ') + '.</p>' : '';
+    var foot = failed + '<p class="note foot">' + h.reporting + ' of ' + h.total + ' routines report' + (h.checkedLabel ? '. Checked ' + esc(h.checkedLabel) : '') + '.</p>';
     return card('', 'timer', 'Routine health', right, rows, foot);
   }
 
   function bounceText(k) {
     return k.hotelBounceRate == null ? null : (Math.round(k.hotelBounceRate * 1000) / 10) + '%';
-  }
-
-  function brainCard() {
-    // Mini mode of the Brain graph (api/os/_client/brain.js). It draws the same layout as the full view.
-    var body = '<div class="bmini" role="link" tabindex="0" aria-label="Open the Brain graph"><canvas id="bmini-c"></canvas></div>';
-    return card('', 'brain', 'Brain', '<span id="bmini-stat" class="num"></span><span class="link" data-go="brain">Open graph</span><kbd>G B</kbd>', body);
   }
 
   var COUNCIL_STATUS = { waiting_l3: 'Waiting', approved: 'Approved', changes_requested: 'Changes requested', flagged: 'Flagged', held: 'Held' };
@@ -96,6 +91,50 @@
     var row = '<div class="li" data-go="council/' + esc(r.id) + '"><div class="t"><div>' + esc(r.title) + '</div><small>' + esc(people || 'No participants recorded') + '</small></div>' +
       OS.jev(r.jev) + '<button class="btn" type="button" data-go="council/' + esc(r.id) + '">Open</button></div>';
     return card('', 'council', 'AI Council', esc(right), row);
+  }
+
+  // ---- Today column ------------------------------------------------------
+  var DAY = 86400000;
+
+  function ageText(ms) {
+    if (!(ms > 0)) return '';
+    var n = Math.max(0, Math.floor((Date.now() - ms) / DAY));
+    return n === 1 ? '1 day open' : n + ' days open';
+  }
+
+  // Open decisions at L3 or L4, oldest first. Only the decision log feeds this.
+  function waitingCard(d) {
+    var right = '<span class="link" data-go="decisions">View all</span>';
+    var list = d.decisions;
+    if (list === null) return card('', 'scale', 'Waiting on Osman', right, empty('No decision log yet.', 'decisions'));
+    var rows = list.filter(function (x) { return String(x.status).toLowerCase() === 'open' && (x.level === 'L3' || x.level === 'L4'); })
+      .sort(function (a, b) { return a.date - b.date; });
+    if (!rows.length) return card('', 'scale', 'Waiting on Osman', right, empty('Nothing at L3 or L4 is waiting.', 'decisions'));
+    var body = rows.slice(0, 6).map(function (x) {
+      return '<div class="li" data-go="decisions/' + esc(x.id) + '">' + OS.level(x.level) +
+        '<div class="t"><div>' + esc(x.title) + '</div><small>' + esc(ageText(x.date) || 'Date not recorded') + '</small></div>' + icon('chev') + '</div>';
+    }).join('');
+    var more = rows.length > 6 ? '<p class="note foot">' + (rows.length - 6) + ' more in Decisions.</p>' : '';
+    return card('', 'scale', 'Waiting on Osman', '<span class="num">' + rows.length + '</span>', body, more);
+  }
+
+  // The five newest notes typed scout-find (notes pack, phase 3). No note, no row.
+  function scoutCard(d) {
+    var right = '<span class="link" data-go="notes">View notes</span>';
+    if (d.notes === null) return card('', 'sunrise', 'Latest Scout finds', right, empty('No notes yet.', 'notes'));
+    var rows = d.notes.filter(function (n) { return n.type === 'scout-find'; })
+      .sort(function (a, b) { return (b.date || b.updatedAt || 0) - (a.date || a.updatedAt || 0); }).slice(0, 5);
+    if (!rows.length) return card('', 'sunrise', 'Latest Scout finds', right, empty('No Scout finds yet.', 'notes'));
+    var body = rows.map(function (n) {
+      return '<div class="li" data-go="notes/' + esc(n.id) + '"><div class="t"><div>' + esc(n.title) + '</div><small>' +
+        esc(OS.fmtDate(n.date || n.updatedAt)) + '</small></div>' + (n.urgent ? '<span class="pill bad">urgent</span>' : '') + '</div>';
+    }).join('');
+    return card('', 'sunrise', 'Latest Scout finds', right, body);
+  }
+
+  function todayColumn(d) {
+    return '<div class="sect today-h">Today</div>' +
+      '<div class="grid g2 today">' + waitingCard(d) + healthCard(d) + scoutCard(d) + councilCard(d) + '</div>';
   }
 
   function decisionsCard(d) {
@@ -145,18 +184,13 @@
         '</div>' +
         '<div class="stack">' +
           '<div class="grid g32">' + briefCard(d) + approvalsCard(d) + '</div>' +
-          brainCard() +
-          '<div class="grid g32">' + councilCard(d) + healthCard(d) + '</div>' +
+          todayColumn(d) +
           '<div class="grid g32">' + decisionsCard(d) + desksCard(d) + '</div>' +
         '</div>';
-    },
-    unmount: function () {
-      if (miniEngine) { miniEngine.destroy(); miniEngine = null; }
     },
     mount: function (root, ctx) {
       var byId = {};
       (ctx.data.approvals || []).forEach(function (a) { byId[a.id] = a; });
-      if (OS.brainMini) miniEngine = OS.brainMini(root, ctx.data);
       var cmd = root.querySelector('#home-cmd');
       if (cmd) cmd.addEventListener('click', OS.openPalette);
       var review = root.querySelector('#home-review');
