@@ -126,12 +126,15 @@ async function call(area, extra) {
   check('no gradient purple-to-pink, no glass blur', !/backdrop-filter|blur\(/.test(cssText));
 
   // 5. Shell behaviour contract.
-  const hints = ['G H', 'G D', 'G J', 'G O', 'G R', 'G N', 'G B', 'G C', 'G S', 'G ,'];
-  check('all ten views with shortcuts', hints.every((h) => js.body.includes(`'${h}'`)));
+  const hints = ['G H', 'G D', 'G T', 'G J', 'G O', 'G R', 'G N', 'G B', 'G C', 'G S', 'G ,'];
+  check('all eleven views with shortcuts', hints.every((h) => js.body.includes(`'${h}'`)));
   check('palette offers Open Brain graph and Search Brain', js.body.includes('Open Brain graph') && js.body.includes('Search Brain'));
   check('clock is Chicago time', js.body.includes('America/Chicago') && js.body.includes("' CT'"));
   check('theme is persisted defensively', /try \{[^}]*localStorage/.test(js.body));
-  check('no eval, no new Function, no remote calls', !/\beval\s*\(|new Function\(|fetch\(|XMLHttpRequest|sendBeacon/.test(js.body));
+  check('no eval, no new Function, no XHR or beacons', !/\beval\s*\(|new Function\(|XMLHttpRequest|sendBeacon/.test(js.body));
+  // Talk (phase 5) is the one place that calls the server: same origin, the existing /ops Talk endpoints only.
+  const talkSrc = fs.readFileSync(path.join(root, 'api/os/_client/talk.js'), 'utf8');
+  check('the only fetch is in talk.js, same origin, to /ops Talk paths', (js.body.match(/fetch\(/g) || []).length === 1 && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && /credentials: 'same-origin'/.test(talkSrc) && !/https?:\/\//.test(talkSrc.replace(/\/\*[\s\S]*?\*\//, '')) && /'\/ops\/ceo-bridge\/'/.test(talkSrc) && /'\/ops\/desk-talk\/'/.test(talkSrc));
 
   // 6. JSON embedding is inert.
   const hostile = embedJson({ t: '</script><script>alert(1)</script>' });

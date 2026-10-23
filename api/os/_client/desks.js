@@ -70,7 +70,7 @@
       '<button class="ib" type="button" data-close aria-label="Close" style="margin-left:auto">' + icon('x') + '</button></div>' +
       '<div class="db">' + section('Now', now) + section('Rules', rules) + section('Skills', skills) +
       section('Routines', '<div class="listbox">' + rts + '</div>') + section('Recent decisions', '<div class="listbox">' + recent + '</div>') + '</div>' +
-      '<div class="df">' + (desk.talk ? '<a class="btn" href="' + esc(desk.talk) + '">' + icon('council') + 'Talk in /ops</a>' : '') + '<button class="btn" type="button" data-close>Close</button></div>';
+      '<div class="df">' + (desk.talk ? '<button class="btn pri" type="button" data-go="talk/' + esc(desk.id) + '">' + icon('council') + 'Talk to ' + esc(desk.short || desk.name) + '</button><a class="btn" href="' + esc(desk.talk) + '">Talk in /ops</a>' : '') + '<button class="btn" type="button" data-close>Close</button></div>';
   }
 
   OS.registerView('desks', {
