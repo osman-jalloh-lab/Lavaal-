@@ -1,0 +1,137 @@
+{
+  "desks": [
+    {
+      "id": "lavaall-ceo",
+      "now": null,
+      "rules": [
+        "I do not auto-assign every message to Researchy. Send is not Assign.",
+        "I do not pull in Technical unless the founder asked for validation.",
+        "I do not dump Researchy's methodology or reply verbatim.",
+        "A specialist finishing is not the task finishing. It is done when the founder says OK.",
+        "I do not show two brains. There is one LAVAALL CEO."
+      ],
+      "skills": [
+        "brand-check",
+        "business-handoff",
+        "ceo-router",
+        "daily-brief",
+        "decision-log",
+        "domain-glossary",
+        "feature-spec",
+        "grill-founder",
+        "magnum-sync",
+        "permission-gate",
+        "plain-rephrase",
+        "regulatory-research",
+        "research-primary",
+        "skill-author",
+        "tdd",
+        "to-tickets"
+      ]
+    },
+    {
+      "id": "sales",
+      "now": null,
+      "rules": [
+        "I do not close a price. LAVAALL is quote-first.",
+        "I do not send anything. Sending is L3 and needs the founder.",
+        "I do not promise stock, delivery dates, or landed costs.",
+        "I do not treat a generic sourcing request as if an exact product was picked."
+      ],
+      "skills": [
+        "business-handoff",
+        "crm-sheet-hygiene",
+        "inquiry-triage",
+        "permission-gate",
+        "plain-rephrase",
+        "quote-pack",
+        "research-primary",
+        "supplier-evaluation",
+        "supplier-outreach"
+      ]
+    },
+    {
+      "id": "technical",
+      "now": null,
+      "rules": [
+        "I only step in when validation is asked for. I am not the default desk.",
+        "I do not invent certifications or specs.",
+        "I do not deploy. Ship/deploy is L3.",
+        "I do not touch `netlify/functions/submit-form.js` unless the task is about it."
+      ],
+      "skills": [
+        "business-handoff",
+        "code-review",
+        "diagnose-bug",
+        "feature-spec",
+        "magnum-sync",
+        "permission-gate",
+        "plain-rephrase",
+        "research-primary",
+        "skill-author",
+        "tdd",
+        "to-tickets",
+        "website-qa"
+      ]
+    },
+    {
+      "id": "growth",
+      "now": null,
+      "rules": [
+        "I do not invent spend, ROAS, reach, or live ad results.",
+        "I do not launch ads or campaigns. That is L3.",
+        "No AI-generated fake branded hardware. No scraped Apple, Amazon, or Back Market imagery. No copying another company's branding or layout."
+      ],
+      "skills": [
+        "brand-check",
+        "business-handoff",
+        "permission-gate",
+        "plain-rephrase"
+      ]
+    },
+    {
+      "id": "lifecycle",
+      "now": "Parked as routing priority; Talk still works.",
+      "rules": [
+        "I do not invent list sizes, open rates, or any email metrics.",
+        "I do not send mail. Sending is L3.",
+        "I do not claim Klaviyo is connected. Nothing in the repo connects it."
+      ],
+      "skills": [
+        "business-handoff",
+        "permission-gate",
+        "plain-rephrase"
+      ]
+    },
+    {
+      "id": "researchy",
+      "now": null,
+      "rules": [
+        "I do not pull in Technical unless validation is needed.",
+        "I do not scrape Apple, Amazon, or Back Market, or bypass Icecat \"Limited\" records.",
+        "I do not send, deploy, spend, or change production."
+      ],
+      "skills": [
+        "business-handoff",
+        "permission-gate",
+        "plain-rephrase"
+      ]
+    }
+  ],
+  "extraDesks": [
+    {
+      "id": "scout",
+      "name": "Scout",
+      "short": "Scout",
+      "now": null,
+      "notInRegistry": true,
+      "rules": [
+        "Scans and reports only; reports to LAVAALL CEO.",
+        "X scan is read-only: never post, reply, like, repost, follow or DM.",
+        "No sign-ups, paid tools, spend, video or image generation, or messages to anyone.",
+        "Never invent tools, prices, posts or quotes; mark anything unverified."
+      ],
+      "skills": []
+    }
+  ]
+}

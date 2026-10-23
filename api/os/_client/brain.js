@@ -132,6 +132,7 @@
           ctx.globalAlpha = dim ? 0.25 : (n.t === 'desk' || n === foc ? 1 : 0.78);
           var lb = n.label.length > 34 ? n.label.slice(0, 33) + '…' : n.label;
           if (mini) lb = (n.info && n.info.short) || lb.split(/[ ,&]/)[0];
+          else if (n.t === 'desk' && st.W < 520 && n.info && n.info.short) lb = n.info.short; // long names collide on a phone
           ctx.textAlign = 'center';
           ctx.fillText(lb, n.x, n.y + r + 12 / st.k);
         }
@@ -301,7 +302,8 @@
   function infoLines(n) {
     var i = n.info, out = [];
     if (n.t === 'desk' && i.now) out.push('Now: ' + i.now);
-    if (n.t === 'rule' && i.text) out.push(i.text);
+    if (n.t === 'rule') { if (i.title) out.push(i.title); if (i.text) out.push(i.text); }
+    if (n.t === 'skill' && i.whenToUse) out.push(i.whenToUse);
     if (n.t === 'routine') out.push('Last run: ' + (i.lastRun || 'never') + (i.status ? ' · ' + String(i.status).replace(/_/g, ' ') : ''));
     if (n.t === 'decision') out.push([i.level, i.status, OS.fmtLongDate(i.date), i.desk].filter(Boolean).join(' · '));
     if (n.t === 'lead') out.push([i.stage, i.kind, i.place].filter(Boolean).join(' · '));
@@ -315,7 +317,7 @@
     }).join('');
     return '<h3>Select a node</h3><p>Click a node to see what it links to. Hover to highlight its neighbours.</p>' +
       '<div class="lbl">Nodes by type</div>' + rows +
-      (g.links.length ? '' : '<p class="note">No links yet: desks, rules and skills link once SOUL data is loaded, and routines link to desks once routines record an owner.</p>');
+      (g.links.length ? '' : '<p class="note">Nothing links yet: a link needs a real relation in the data.</p>');
   }
 
   function sideNode(n, g, off) {

@@ -94,3 +94,28 @@ Settled by Osman Jalloh. Do not re-ask.
     JSON responses are unchanged. The edit to `auth.js` is one `require` line plus those two redirects
     (+3 lines, -2 lines). Limit: a magic link opened on a different device or browser has no cookie and lands
     on `/ops`.
+
+## 2026-10-23 — Static LAVAALL OS data pack (next entry after 19)
+
+20. **/os reads a static data pack built 22 Oct 2026. It ends the SOUL deferral of entry 4 for desk now line, rules and
+    skills, adds a routine owner and schedule, and adds the decision log.** Five JSON files (`decisions.json` 52 rows,
+    22 Open and 30 Closed, 6 with a Jev score; `routines.json` 14; `desks.json` 6 desks plus Scout; `skills.json` 54;
+    `rules.json` 30) are committed unchanged in `api/os/_data/` and bundled with the /os function by literal
+    `require()` in `api/os/_data/index.js`. No `vercel.json` change was needed. They are read-only and are never written
+    to the KV store: `normalizeStore` drops a `decisions` key, and `store.routines` are /ops runnable prompts.
+    - **Decisions** come from the pack; a `decisions` array in the store wins if one ever exists (even an empty one).
+      Decision `desk` is empty on all 52 and 10 have no `level`, so /os shows dashes and there are no decision-to-desk links.
+    - **Routines** come from the pack with schedule, owner (a desk id) and status, and replace store routines in /os.
+      The pack's `lastRunAt` and `lastRunStatus` are stale and ignored: "last run" shows only the live routine-health
+      record, merged by routine id, and a dash without one.
+    - **Desks** merge `desks.json` into the desk registry by id (now line, rules, skills). **Scout is a seventh desk**,
+      taken from `extraDesks` (Osman approved), so its three routines link to it. It has no /ops Talk link. Only
+      Lifecycle has a now line ("Parked as routing priority; Talk still works.").
+    - **Brain** gets a node for every pack skill (54) and rule (30), as entries 2 and 8 describe. Links stay exact: a
+      skill links to a desk only through that desk's own skill list (24 of the 54 are linked, 30 are not), a routine to
+      its owner desk (14 links), and a rule only when a note cites its FR id. Desk rules in `desks.json` carry no FR ids,
+      so rule nodes start unlinked. Total today: 157 nodes and 61 links.
+    - **Left out on purpose:** Starlink, Guinea, leads and customer items, as the pack was built. The one decision titled
+      "No free trial anywhere" is kept as is: it is the rule itself, internal data and not copy.
+    - **Pack provenance:** the pack was re-exported after two fixes (a duplicate decision id and Researchy's rules that had
+      lost their "I do not"). Its own README had stale counts (53 and 23), so `api/os/_data/README.md` was rewritten.

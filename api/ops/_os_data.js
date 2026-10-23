@@ -7,26 +7,32 @@
 //  - Never invent data. A source that does not exist returns null, and the
 //    caller shows an empty state using SOURCES[key].reason.
 //  - No model calls, no env writes, no secrets: Settings reports names only.
+//  - The static LAVAALL OS data pack (api/os/_data, built 22 Oct 2026) supplies decisions, routines, desk
+//    now/rules/skills, skills and rules. It is bundled with the function by literal require() and is never
+//    written to the KV store (DECISIONS.md #20).
 
 const fs = require('fs');
 
 const { STORE_KEY } = require('./_store');
 const { OFFICE_AGENTS } = require('./_office');
-const { formatChicago, readRoutineHealthView } = require('./_routine_health');
+const { readRoutineHealthView } = require('./_routine_health');
+const DATA_PACK = require('../os/_data/index.js');
 
 // Where each widget's data comes from today. `live` is set per load.
 const SOURCES = Object.freeze({
   approvals: { label: 'Pending chat proposals', from: 'store lavaall-ops-v2, chats[].proposals (status pending)' },
-  decisions: { label: 'Decision log', from: 'a decisions record in the store or docs; none exists yet' },
-  jev: { label: 'Jev scores', from: 'Jev scores stored with the decision log; none exist yet' },
+  decisions: { label: 'Decision log', from: 'decisions.json in the LAVAALL OS data pack (built 22 Oct 2026); a decisions copy in the store wins if one exists' },
+  jev: { label: 'Jev scores', from: 'Jev scores recorded with the decision log; a decision without one shows "Jev: not run"' },
   hotelBounceRate: { label: 'Hotel bounce rate', from: 'outreach results from the daily Sierra Leone leads routine; none are read yet' },
   outreach: { label: 'Outreach leads', from: 'the daily Sierra Leone leads routine; no read path is wired in this PR' },
   spend: { label: 'AI spend', from: 'AI spend records; none exist yet' },
   council: { label: 'AI Council records', from: 'stored council records (drafter, reviewer, rounds); none exist yet' },
   brief: { label: 'Morning brief', from: 'the latest CEO brief in the store; none is stored yet' },
-  routines: { label: 'Routines', from: 'store lavaall-ops-v2, routines[]; health from the routine-health record' },
+  routines: { label: 'Routines', from: 'routines.json in the LAVAALL OS data pack (schedule, owner, status); live routine health merged by id' },
   notes: { label: 'Notes', from: 'store lavaall-ops-v2, notes[] (not deleted)' },
-  desks: { label: 'Desks', from: 'desk registry (api/ops/_office.js); SOUL data deferred (DECISIONS.md #4)' },
+  desks: { label: 'Desks', from: 'desk registry (api/ops/_office.js) plus desks.json in the data pack (now line, rules, skills; Scout from extraDesks)' },
+  skills: { label: 'Skills', from: 'skills.json in the LAVAALL OS data pack' },
+  rules: { label: 'Founder rules', from: 'rules.json in the LAVAALL OS data pack (matched by FR id)' },
   settings: { label: 'Connections', from: 'presence of existing env var names only' },
 });
 
@@ -119,26 +125,29 @@ function approvalsFrom(store) {
   return items.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-function routinesFrom(store, health) {
-  if (!store) return null;
+// Routines come from the data pack: name, schedule, owner (a desk id) and status. The pack's lastRunAt and
+// lastRunStatus are stale and are ignored. The only "last run" shown is the live routine-health record,
+// merged by id.
+function routinesFrom(pack, health) {
+  if (!pack || !Array.isArray(pack.routines)) return null;
   const byId = new Map();
   if (health && Array.isArray(health.routines)) {
     health.routines.forEach((row) => byId.set(row.slug, row));
   }
-  const rows = Array.isArray(store.routines) ? store.routines : [];
-  return rows
-    .filter((row) => row && text(row.id, 40) && text(row.name, 160))
+  return pack.routines
+    .filter((row) => row && text(row.id, 60) && text(row.name, 160))
     .map((row) => {
-      const lastRunAt = time(row.lastRunAt);
-      const h = byId.get(row.id) || null;
+      const h = byId.get(text(row.id, 60)) || null;
+      const ranAt = h ? Date.parse(h.lastRunAt) : NaN;
       return {
-        id: text(row.id, 40),
+        id: text(row.id, 60),
         name: text(row.name, 160),
-        schedule: null, // the store keeps no schedule field; shown as "—"
-        owner: null, // the store keeps no owner field; routine->desk links need one
-        lastRunAt,
-        lastRunLabel: lastRunAt ? formatChicago(new Date(lastRunAt).toISOString()) : '',
-        lastRunStatus: text(row.lastRunStatus, 40),
+        schedule: text(row.schedule, 160) || null,
+        owner: text(row.owner, 40) || null,
+        status: text(row.status, 20),
+        lastRunAt: Number.isFinite(ranAt) ? ranAt : 0,
+        lastRunLabel: h ? text(h.lastRunLabel, 40) : '',
+        lastRunStatus: '',
         health: h ? { status: h.status, tone: h.tone, reason: h.reason, checkedLabel: health.checkedLabel } : null,
       };
     });
@@ -170,11 +179,15 @@ function stamp(value) {
   return 0;
 }
 
-// Reads store.decisions only if a decision log exists there (it does not today).
-// A Jev score outside 0..1 is dropped, never clamped: no score means "Jev: not run".
-function decisionsFrom(store) {
-  if (!store || !Array.isArray(store.decisions)) return null;
-  return store.decisions
+// Decisions: a decisions array in the store wins if one ever exists (normalizeStore drops the key today, so
+// none does); otherwise the data pack's decisions.json. A Jev score outside 0..1 is dropped, never clamped:
+// no score means "Jev: not run". An unreadable level becomes empty and shows as a dash.
+function decisionsFrom(store, pack) {
+  const rows = store && Array.isArray(store.decisions) ? store.decisions
+    : pack && Array.isArray(pack.decisions) ? pack.decisions
+      : null;
+  if (!rows) return null;
+  return rows
     .filter((row) => row && text(row.title, 200))
     .map((row) => ({
       id: text(row.id, 40),
@@ -285,18 +298,65 @@ function spendSummary(records, now) {
   };
 }
 
-function desksFrom() {
-  return OFFICE_AGENTS.map((agent) => ({
+// Desk now line, rules and skills come from the data pack's desks.json, merged into the desk registry by id.
+// A desk the pack has no row for keeps null (unknown). Scout is not in the registry; desks.json lists it under
+// extraDesks, and it is added as a seventh desk with no Talk link (there is no /ops chat for it).
+function packDesk(row) {
+  const list = (value, max) => (Array.isArray(value) ? value.map((x) => text(x, max)).filter(Boolean) : null);
+  return {
+    now: row ? text(row.now, 200) || null : null,
+    skills: row ? list(row.skills, 80) : null,
+    rules: row ? list(row.rules, 400) : null,
+  };
+}
+
+function desksFrom(pack) {
+  const rows = pack && pack.desks && Array.isArray(pack.desks.desks) ? pack.desks.desks : [];
+  const extra = pack && pack.desks && Array.isArray(pack.desks.extraDesks) ? pack.desks.extraDesks : [];
+  const byId = new Map(rows.map((row) => [text(row.id, 40), row]));
+  const registry = OFFICE_AGENTS.map((agent) => Object.assign({
     id: agent.id,
     name: agent.name,
     short: agent.short,
     talk: agent.talk,
-    now: null, // SOUL data deferred
-    skills: null,
-    rules: null,
-    routines: null,
-    decisions: null,
-  }));
+    inRegistry: true,
+  }, packDesk(byId.get(agent.id)), { routines: null, decisions: null }));
+  const added = extra
+    .filter((row) => row && text(row.id, 40) && text(row.name, 120))
+    .map((row) => Object.assign({
+      id: text(row.id, 40),
+      name: text(row.name, 120),
+      short: text(row.short, 40) || text(row.name, 40),
+      talk: '',
+      inRegistry: false,
+    }, packDesk(row), { routines: null, decisions: null }));
+  return registry.concat(added);
+}
+
+// Skills (id, name, when to use, desks the routing table names) and founder rules (FR id, title, rule, section).
+// Long text is never truncated: limits sit far above the longest value in the pack.
+function skillsFrom(pack) {
+  if (!pack || !Array.isArray(pack.skills)) return null;
+  return pack.skills
+    .filter((row) => row && text(row.id, 80))
+    .map((row) => ({
+      id: text(row.id, 80),
+      name: text(row.name, 120) || text(row.id, 80),
+      whenToUse: text(row.whenToUse, 4000),
+      desks: Array.isArray(row.desks) ? row.desks.map((d) => text(d, 40)).filter(Boolean) : [],
+    }));
+}
+
+function rulesFrom(pack) {
+  if (!pack || !Array.isArray(pack.rules)) return null;
+  return pack.rules
+    .filter((row) => row && /^FR-\d+$/.test(text(row.id, 20)))
+    .map((row) => ({
+      id: text(row.id, 20),
+      title: text(row.title, 400),
+      rule: text(row.rule, 4000),
+      section: text(row.section, 200),
+    }));
 }
 
 function present(env, names) {
@@ -324,8 +384,10 @@ function buildOsData(sources, opts) {
   const health = sources && sources.health ? sources.health : null;
   const env = (opts && opts.env) || process.env;
 
+  const pack = opts && opts.pack !== undefined ? opts.pack : DATA_PACK;
+
   const approvals = approvalsFrom(store);
-  const decisions = decisionsFrom(store);
+  const decisions = decisionsFrom(store, pack);
   const council = councilFrom(store);
   const spend = spendFrom(store);
   const spendMonth = spendSummary(spend, opts && opts.now);
@@ -344,9 +406,12 @@ function buildOsData(sources, opts) {
     council,
     spend,
     spendMonth,
-    routines: routinesFrom(store, health),
+    routines: routinesFrom(pack, health),
     notes: notesFrom(store),
-    desks: desksFrom(),
+    desks: desksFrom(pack),
+    skills: skillsFrom(pack),
+    rules: rulesFrom(pack),
+    packBuiltAt: pack && pack.builtAt ? pack.builtAt : null,
     settings: settingsFrom(env),
   };
   data.sources = Object.keys(SOURCES).reduce((out, key) => {
@@ -359,7 +424,9 @@ function buildOsData(sources, opts) {
               : key === 'jev' ? Boolean((decisions && decisions.some((row) => row.jev !== null)) || (council && council.some((row) => row.jev !== null)))
                 : key === 'council' ? council !== null
                   : key === 'spend' ? spend !== null
-                    : false;
+                    : key === 'skills' ? data.skills !== null
+                      : key === 'rules' ? data.rules !== null
+                        : false;
     out[key] = Object.assign({ live }, SOURCES[key]);
     return out;
   }, {});
@@ -385,5 +452,7 @@ module.exports = {
   notesFrom,
   readRawStore,
   routinesFrom,
+  rulesFrom,
   settingsFrom,
+  skillsFrom,
 };

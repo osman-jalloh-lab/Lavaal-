@@ -89,7 +89,7 @@ async function call(area, extra) {
   try { data = JSON.parse(m && m[1]); } catch { data = null; }
   check('data block parses', data && typeof data === 'object');
   check('data block carries the founder email', data && data.me && data.me.email === ALLOWED);
-  check('data block has 4 live-or-empty KPIs and sources', data && data.kpis && data.sources && data.sources.decisions && data.sources.decisions.live === false);
+  check('data block carries the KPIs and an honest live/empty flag per source', data && data.kpis && data.sources && data.sources.decisions.live === true && ['spend', 'council', 'outreach', 'brief', 'hotelBounceRate'].every((k) => data.sources[k].live === false) && data.kpis.hotelBounceRate === null && data.kpis.aiSpendMonth === null);
   check('settings carry names only, no secret values', !html.includes('SECRET-MAIL-VALUE-123') && !html.includes('SECRET-RESEND-VALUE-456'));
   check('page made no network call', fetched === 0);
 

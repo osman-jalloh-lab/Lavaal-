@@ -34,7 +34,7 @@ function loadHome() {
 
 function renderWith(store) {
   const { view, OS } = loadHome();
-  const data = osData.buildOsData({ store, health: null }, { env: {} });
+  const data = osData.buildOsData({ store, health: null }, { env: {}, pack: null });
   OS.data = data;
   return view.render({ data, id: 'home', sub: '' });
 }

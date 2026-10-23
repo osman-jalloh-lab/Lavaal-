@@ -1,0 +1,128 @@
+[
+  {
+    "id": "support-ranked-inbox-push",
+    "name": "support@ ranked inbox push",
+    "schedule": "13,43 7-21 * * * (daily, :13 and :43, 7 AM-9 PM CT)",
+    "owner": "lavaall-ceo",
+    "status": "active",
+    "lastRunAt": 1792723660000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "sl-daily-leads",
+    "name": "SL daily leads + outreach drafts",
+    "schedule": "Weekdays ~7:00 AM CT",
+    "owner": "lavaall-ceo",
+    "status": "active",
+    "lastRunAt": 0,
+    "lastRunStatus": ""
+  },
+  {
+    "id": "overnight-ops-fix-morning-brief",
+    "name": "Overnight /ops fix morning brief",
+    "schedule": "Weekdays ~7:30 AM CT",
+    "owner": "lavaall-ceo",
+    "status": "active",
+    "lastRunAt": 1792153685000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "scout-youtube-deep-scan",
+    "name": "Scout daily YouTube deep scan",
+    "schedule": "Weekdays 8:07 AM CT",
+    "owner": "scout",
+    "status": "active",
+    "lastRunAt": 1792167423000,
+    "lastRunStatus": "skipped"
+  },
+  {
+    "id": "scout-youtube-catchup",
+    "name": "Scout YouTube scan catch-up",
+    "schedule": "Weekdays 10:44 AM CT",
+    "owner": "scout",
+    "status": "active",
+    "lastRunAt": 1792165685000,
+    "lastRunStatus": "skipped"
+  },
+  {
+    "id": "scout-weekly-minimal-x-scan",
+    "name": "Scout weekly minimal X scan",
+    "schedule": "Mon 8:22 AM CT",
+    "owner": "scout",
+    "status": "active",
+    "lastRunAt": 1791813926000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "ceo-talk-bridge-poll",
+    "name": "CEO Talk bridge poll",
+    "schedule": "Weekdays hourly 12:55-5:55 PM CT",
+    "owner": "lavaall-ceo",
+    "status": "active",
+    "lastRunAt": 1792709937000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "researchy-assign-wake-poll",
+    "name": "Researchy Assign wake poll",
+    "schedule": "Weekdays hourly 12:55-5:55 PM CT",
+    "owner": "researchy",
+    "status": "active",
+    "lastRunAt": 1792710268000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "kit-registry-eod-sync",
+    "name": "Kit Registry EOD sync",
+    "schedule": "Weekdays ~6:00 PM CT",
+    "owner": "lavaall-ceo",
+    "status": "active",
+    "lastRunAt": 1792710772000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "midnight-closeout",
+    "name": "Midnight close-out Jev review + vault save",
+    "schedule": "Tue-Sat 12:00 AM CT",
+    "owner": "lavaall-ceo",
+    "status": "active",
+    "lastRunAt": 1792127142000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "nightly-decision-flush-to-obsidian",
+    "name": "Nightly decision flush to Obsidian",
+    "schedule": "Tue-Sat 12:05 AM CT",
+    "owner": "lavaall-ceo",
+    "status": "active",
+    "lastRunAt": 1791553573000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "weekly-self-review-read-only",
+    "name": "Weekly self-review (read-only)",
+    "schedule": "Fri 8:47 AM CT",
+    "owner": "lavaall-ceo",
+    "status": "active",
+    "lastRunAt": 1792158714000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "friday-decide-or-kill",
+    "name": "Friday decide-or-kill",
+    "schedule": "Fri 9:23 AM CT",
+    "owner": "lavaall-ceo",
+    "status": "active",
+    "lastRunAt": 1792161288000,
+    "lastRunStatus": "ok"
+  },
+  {
+    "id": "lavaall-slack-task-bridge",
+    "name": "LAVAALL Slack task bridge",
+    "schedule": "\u2014",
+    "owner": "lavaall-ceo",
+    "status": "paused",
+    "lastRunAt": 1790544701000,
+    "lastRunStatus": "ok"
+  }
+]

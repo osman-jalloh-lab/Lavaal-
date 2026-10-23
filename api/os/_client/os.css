@@ -119,6 +119,7 @@
 .os-root ul.plain{list-style:none;display:flex;flex-direction:column;gap:8px}.os-root ul.plain li{display:flex;gap:8px;align-items:flex-start}.os-root ul.plain svg{margin-top:2px;color:var(--tx3)}
 .os-root .tablewrap{overflow:auto}
 .os-root th.n{text-align:right}
+.os-root .m-only{display:none}
 .os-root td.wrap{white-space:normal;min-width:220px}.os-root td.none{color:var(--tx3);text-align:center;padding:24px}
 .os-root td .sub{font-size:11px;color:var(--tx3)}
 .os-root .chips{margin-bottom:12px}
@@ -208,6 +209,8 @@
  .os-root .btn{height:36px}.os-root .chip{height:36px}.os-root .tchip{height:34px}.os-root .ib{width:36px;height:36px}
  .os-root input.q,.os-root .btool input,.os-root .pbox input{font-size:16px}.os-root .btool input{height:34px}
  .os-root .kpi b{font-size:22px}
+ .os-root .rt-sched,.os-root .rt-last,.os-root .dc-desk{display:none}.os-root .m-only{display:block}
+ .os-root .tablewrap td,.os-root .tablewrap th{padding-left:8px;padding-right:8px}.os-root .tablewrap td.wrap{min-width:130px}
  .os-root .btool{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}.os-root .btool::-webkit-scrollbar{display:none}
  .os-root .btool input{width:150px;flex:none}.os-root .tchip{flex:none}
  .os-root .bleg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.os-root .bhint{bottom:38px}

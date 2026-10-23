@@ -1,6 +1,7 @@
 /* LAVAALL OS Desks: a card grid and a detail drawer, opened by #desks/<deskId>.
-   Desk names come from the desk registry. Skills, rules and the "now" line come from SOUL packs,
-   which are deferred (docs/os/DECISIONS.md #4), so they show empty states. Nothing is invented. */
+   Desk names come from the desk registry; the "now" line, rules and skills come from the static data pack's
+   desks.json (docs/os/DECISIONS.md #20), and Scout is the seventh desk. A desk with nothing recorded shows
+   an empty state. Nothing is invented. */
 (function () {
   'use strict';
   var OS = window.OS;
@@ -21,9 +22,14 @@
     return data.routines.filter(function (r) { return r.owner === desk.id; });
   }
 
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
   function card(desk, data) {
-    var decisions = decisionsFor(data, desk);
-    var meta = decisions ? decisions.length + (decisions.length === 1 ? ' decision' : ' decisions') : '';
+    var routines = routinesFor(data, desk);
+    var bits = [];
+    if (desk.skills) bits.push(plural(desk.skills.length, 'skill', 'skills'));
+    if (routines) bits.push(plural(routines.length, 'routine', 'routines'));
+    var meta = bits.join(' \u00b7 ');
     return '<button class="card deskcard" type="button" data-go="desks/' + esc(desk.id) + '">' +
       '<span class="av sq" aria-hidden="true">' + initial(desk) + '</span>' +
       '<span class="dc-t"><b>' + esc(desk.name) + '</b>' +
@@ -36,22 +42,22 @@
   function drawer(desk, data) {
     var decisions = decisionsFor(data, desk);
     var routines = routinesFor(data, desk);
-    var soulNote = 'Desk SOUL data is not loaded yet.';
-
     var now = desk.now
       ? '<p>' + esc(desk.now) + '</p>'
-      : '<div class="empty tight"><b>No "now" line recorded.</b><small>' + esc(soulNote) + '</small></div>';
+      : '<div class="empty tight"><b>No "now" line is recorded for this desk.</b></div>';
     var rules = desk.rules && desk.rules.length
       ? '<ul class="plain">' + desk.rules.map(function (r) { return '<li>' + icon('shield') + esc(r) + '</li>'; }).join('') + '</ul>'
-      : '<div class="empty tight"><b>No rules loaded.</b><small>' + esc(soulNote) + '</small></div>';
+      : '<div class="empty tight"><b>No rules are recorded for this desk.</b></div>';
+    var why = {};
+    (data.skills || []).forEach(function (s) { why[s.id] = s.whenToUse; });
     var skills = desk.skills && desk.skills.length
-      ? '<div class="chips">' + desk.skills.map(function (k) { return '<span class="tag mono">' + esc(k) + '</span>'; }).join('') + '</div>'
-      : '<div class="empty tight"><b>No skills loaded.</b><small>' + esc(soulNote) + '</small></div>';
+      ? '<div class="chips">' + desk.skills.map(function (k) { return '<span class="tag mono"' + (why[k] ? ' title="' + esc(why[k]) + '"' : '') + '>' + esc(k) + '</span>'; }).join('') + '</div>'
+      : '<div class="empty tight"><b>No skills are recorded for this desk.</b></div>';
     var rts = routines === null
       ? OS.empty('Routines could not be loaded.', 'routines')
       : routines.length
-        ? routines.map(function (r) { return '<div class="li" data-go="routines"><div class="t"><div>' + esc(r.name) + '</div><small>' + esc(r.lastRunLabel || 'never run') + '</small></div></div>'; }).join('')
-        : '<div class="empty tight"><b>No routines are linked to this desk.</b><small>The store keeps no owner on routines.</small></div>';
+        ? routines.map(function (r) { return '<div class="li" data-go="routines"><div class="t"><div>' + esc(r.name) + '</div><small>' + esc(r.schedule || r.status || '') + '</small></div></div>'; }).join('')
+        : '<div class="empty tight"><b>No routines are linked to this desk.</b></div>';
     var recent = decisions === null
       ? OS.empty('No decision log yet.', 'decisions')
       : decisions.length
@@ -64,7 +70,7 @@
       '<button class="ib" type="button" data-close aria-label="Close" style="margin-left:auto">' + icon('x') + '</button></div>' +
       '<div class="db">' + section('Now', now) + section('Rules', rules) + section('Skills', skills) +
       section('Routines', '<div class="listbox">' + rts + '</div>') + section('Recent decisions', '<div class="listbox">' + recent + '</div>') + '</div>' +
-      '<div class="df"><a class="btn" href="' + esc(desk.talk || '/ops/office') + '">' + icon('council') + 'Talk in /ops</a><button class="btn" type="button" data-close>Close</button></div>';
+      '<div class="df">' + (desk.talk ? '<a class="btn" href="' + esc(desk.talk) + '">' + icon('council') + 'Talk in /ops</a>' : '') + '<button class="btn" type="button" data-close>Close</button></div>';
   }
 
   OS.registerView('desks', {
