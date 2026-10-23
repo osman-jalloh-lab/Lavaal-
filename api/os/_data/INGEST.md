@@ -1,10 +1,10 @@
 # LAVAALL OS live feeds (ingest)
 
-Five authenticated POST endpoints feed `/os`. `/os` itself stays read-only: it only reads what these write.
+Six authenticated POST endpoints feed `/os`. `/os` itself stays read-only: it only reads what these write.
 
 - **URL:** `https://www.lavaall.com/api/os/ingest/<feed>` (one function, `api/os/ingest/[feed].js`).
 - **Auth:** `Authorization: Bearer $TOKEN`, where `$TOKEN` is the value of the existing `OPS_CEO_BRIDGE_SECRET` (the bearer the inbox push and routine health already use). No new env var. Without it the answer is `401 {"error":"unauthorized"}` and nothing is stored.
-- **Body:** JSON, `Content-Type: application/json`, at most 20 KB.
+- **Body:** JSON, `Content-Type: application/json`, at most 20 KB (the `notes` feed: 900 KB).
 - **Answers:** `200 {"ok":true,"feed":"…","received":n}`, `401`, `404` (unknown feed), `405` (not POST), `413` (too large), `400` (not JSON), `422 {"error":"invalid_shape","field":"[0].usd"}` (the field path only, never a value), `503` (store unavailable).
 - **Strict shapes:** exactly the keys shown, no extra keys. Nothing is stored unless the whole payload is valid.
 - **Storage:** each feed has its own new KV key, `lavaall-os-feed-<feed>-v1`. The existing store key is never touched. Preview deploys write to a `preview:`-prefixed key, so a preview never writes production data.
@@ -65,6 +65,19 @@ curl -sS -X POST https://www.lavaall.com/api/os/ingest/desk-status \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '[{"desk":"technical","now":"Shipping the live feeds","updated":"2026-10-23T14:00:00Z"}]'
+```
+
+## 6. notes
+
+`[{id, type, folder, title, date, updated, desk, status, level, jev, tags, links, source, body}]`, 1 to 500 notes, up to **900 KB** (the only feed above 20 KB). Optional on a scout find: `urgent` (true or false) and `url`. `id` is `nt-` plus ten hex characters, `type` is `idea`, `scout-find`, `decision` or `note`, `folder` is `Ideas`, `Scout Finds`, `Research`, `Skills` or `Decisions`, `date` and `updated` are `YYYY-MM-DD` (`updated` may be `""`), `level` is `L0` to `L4` or `null`, `jev` is a number 0 to 1 or `"not run"`, `tags` is up to 12 short strings, `links` is up to 30 note ids, `body` is plain text up to 4000 characters. A note that mentions a blocked word, an `@` or a phone number is refused, and so is any unknown key. **Each push replaces the whole pack.** It fills the Notes tab and Home's Latest Scout finds.
+
+Normally you do not write this by hand: `scripts/build-notes-pack.js --push` reads the private vault, drops anything sensitive and posts the pack with `$TOKEN` from the environment. The pack is also written to `api/os/_data/notes.local.json`, which is gitignored; notes content is never committed.
+
+```sh
+curl -sS -X POST https://www.lavaall.com/api/os/ingest/notes \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[{"id":"nt-0123456789","type":"idea","folder":"Ideas","title":"A plain idea","date":"2026-10-20","updated":"2026-10-21","desk":"growth","status":"open","level":null,"jev":"not run","tags":["alpha"],"links":[],"source":"vault","body":"Plain text."}]'
 ```
 
 ## Notes

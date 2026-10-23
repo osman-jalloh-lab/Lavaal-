@@ -15,11 +15,12 @@
 //    written to the KV store (DECISIONS.md #20).
 
 const fs = require('fs');
+const path = require('path');
 
 const { STORE_KEY } = require('./_store');
 const { OFFICE_AGENTS } = require('./_office');
 const { readRoutineHealthView } = require('./_routine_health');
-const { briefView, deskStatusView, healthView, outreachView, readFeeds, spendRows } = require('./_os_feeds');
+const { briefView, deskStatusView, healthView, notesView, notePackRow, outreachView, readFeeds, spendRows, validate } = require('./_os_feeds');
 const DATA_PACK = require('../os/_data/index.js');
 
 // Where each widget's data comes from today. `live` is set per load.
@@ -33,7 +34,7 @@ const SOURCES = Object.freeze({
   council: { label: 'AI Council records', from: 'stored council records (drafter, reviewer, rounds); none exist yet' },
   brief: { label: 'Morning brief', from: 'the morning-brief feed; none has been received yet' },
   routines: { label: 'Routines', from: 'routines.json in the LAVAALL OS data pack (schedule, owner, status); live routine health (the routine-health feed) merged by id' },
-  notes: { label: 'Notes', from: 'store lavaall-ops-v2, notes[] (not deleted)' },
+  notes: { label: 'Notes', from: 'the notes feed (built from the private vault by scripts/build-notes-pack.js and pushed with --push); on a developer PC, api/os/_data/notes.local.json; and store lavaall-ops-v2, notes[] (not deleted)' },
   desks: { label: 'Desks', from: 'desk registry (api/ops/_office.js) plus desks.json in the data pack (rules, skills; Scout from extraDesks); the now line comes from the desk-status feed when one exists' },
   skills: { label: 'Skills', from: 'skills.json in the LAVAALL OS data pack' },
   rules: { label: 'Founder rules', from: 'rules.json in the LAVAALL OS data pack (matched by FR id)' },
@@ -168,11 +169,44 @@ function notesFrom(store) {
       body: text(row.body, 4000),
       source: text(row.source, 240),
       type: text(row.type, 40),
+      folder: '',
+      desk: '',
+      status: '',
+      level: '',
+      jev: null,
+      tags: [],
+      links: [],
+      url: '',
       date: stamp(row.date),
       urgent: row.urgent === true,
       updatedAt: time(row.updatedAt),
     }))
     .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+// Notes pack from the private vault. It is never committed: on a developer PC it is the gitignored
+// api/os/_data/notes.local.json; in production it is the `notes` feed (KV), pushed by build-notes-pack.js --push.
+// The file is read only when the local dev server asks for it (OS_LOCAL_NOTES=1) and never on Vercel, so tests and
+// production never touch it. A missing or damaged file is "no notes pack", never an error.
+function localNotesPack(env) {
+  if (!env || env.OS_LOCAL_NOTES !== '1' || env.VERCEL) return null;
+  try {
+    const file = path.join(__dirname, '../os/_data/notes.local.json');
+    if (!fs.existsSync(file)) return null;
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const checked = validate('notes', parsed && parsed.notes, { now: Number.MAX_SAFE_INTEGER / 4 });
+    return checked.ok ? checked.value.map(notePackRow) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Store notes plus the pack. The feed wins over the local file; a store note wins over a pack note with the same id.
+function mergeNotes(storeNotes, packNotes) {
+  if (!storeNotes && !packNotes) return null;
+  const seen = new Set((storeNotes || []).map((n) => n.id));
+  const merged = (storeNotes || []).concat((packNotes || []).filter((n) => !seen.has(n.id)));
+  return merged.sort((a, b) => (b.date || b.updatedAt || 0) - (a.date || a.updatedAt || 0));
 }
 
 const DECISION_LEVELS = /^L[0-4]$/;
@@ -422,6 +456,7 @@ function buildOsData(sources, opts) {
 
   const pack = opts && opts.pack !== undefined ? opts.pack : DATA_PACK;
 
+  const packNotes = notesView(feeds.notes) || (opts && opts.localNotes !== undefined ? opts.localNotes : localNotesPack(env));
   const approvals = approvalsFrom(store);
   const decisions = decisionsFrom(store, pack);
   const council = councilFrom(store);
@@ -449,7 +484,7 @@ function buildOsData(sources, opts) {
     spendMonth,
     routines,
     routineHealth: healthSummary(routines),
-    notes: notesFrom(store),
+    notes: mergeNotes(notesFrom(store), packNotes),
     desks: desksFrom(pack, deskStatusView(feeds.desks)),
     skills: skillsFrom(pack),
     rules: rulesFrom(pack),

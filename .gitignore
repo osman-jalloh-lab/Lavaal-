@@ -31,3 +31,4 @@ scripts/qa/reports/
 # Local /os development (never commit)
 .env.local
 .os-dev-store.json
+api/os/_data/notes.local.json
