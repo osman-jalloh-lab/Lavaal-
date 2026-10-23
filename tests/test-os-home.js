@@ -83,10 +83,39 @@ check('proposal ids are escaped in attributes', !/data-approval="[^"]*[<>]/.test
 
 // 5. Widgets without a source are empty states that name the source.
 ['No morning brief has been received yet.', 'No council records yet.', 'No decision log yet.', 'No routine health has been received yet.'].forEach((t) => check(`empty state: ${t}`, full.includes(t)));
-check('each empty state names where data would come from', (full.match(/Source: /g) || []).length === 4 && (empty.match(/Source: /g) || []).length === 5);
-check('brain card hosts the mini graph canvas and a link to the full view', /id="bmini-c"/.test(full) && /data-go="brain"/.test(full) && !/not built yet/.test(full));
-check('no sample content from the prototype', !/Kabala|Makama|Mania|Shalom|Metricool|\$18\.40|PASS 0\.8|Jev: not run|Hillside|Scout/.test(full));
+check('each empty state names where data would come from', (full.match(/Source: /g) || []).length === 6 && (empty.match(/Source: /g) || []).length === 7);
+check('Waiting and Scout cards are empty states when their data is null', /No decision log yet\./.test(full) && /No notes yet\./.test(down) && /No Scout finds yet\./.test(empty));
+check('Home has no Brain panel and no canvas (the Brain tab keeps the graph)', !/<canvas/.test(full) && !/bmini/.test(full) && !/data-go="brain"/.test(full) && !/>Brain</.test(full));
+check('Today column has its four cards', /class="sect today-h">Today</.test(full) && ['Waiting on Osman', 'Routine health', 'Latest Scout finds', 'AI Council'].every((t) => full.includes('<h3>' + t + '</h3>')));
+check('no sample content from the prototype', !/Kabala|Makama|Mania|Shalom|Metricool|\$18\.40|PASS 0\.8|Jev: not run|Hillside/.test(full));
 check('no invented dollar amounts or percentages', !/\$\d|\d\s?%/.test(full));
+
+// 5b. Today column with data: waiting list, routine failures, Scout finds.
+(function () {
+  const day = 86400000;
+  const now = Date.now();
+  const pack = {
+    decisions: [
+      { id: 'D-new', title: 'Newer L3', level: 'L3', status: 'Open', date: now - 2 * day },
+      { id: 'D-old', title: 'Older L4', level: 'L4', status: 'Open', date: now - 12 * day },
+      { id: 'D-l1', title: 'Small one', level: 'L1', status: 'Open', date: now - 30 * day },
+      { id: 'D-done', title: 'Closed L3', level: 'L3', status: 'Closed', date: now - 40 * day },
+    ],
+    routines: [{ id: 'r1', name: 'Alpha run', schedule: '', owner: '', status: 'active' }, { id: 'r2', name: 'Beta run', schedule: '', owner: '', status: 'active' }],
+  };
+  const notes = [1, 2, 3, 4, 5, 6].map((i) => ({ id: 'n' + i, title: 'Find ' + i, type: 'scout-find', date: now - i * day, urgent: i === 1 }))
+    .concat([{ id: 'x', title: 'Plain idea', type: 'idea', date: now }]);
+  const { view, OS } = loadHome();
+  OS.level = (l) => `<span class="lv">${l}</span>`;
+  OS.jev = () => '';
+  const health = { checkedLabel: 'now', routines: [{ slug: 'r1', status: 'ok', tone: 'ok', lastRunLabel: 'x' }, { slug: 'r2', status: 'failed', tone: 'bad', lastRunLabel: 'y' }] };
+  const data = osData.buildOsData({ store: { notes }, health }, { env: {}, pack });
+  OS.data = data;
+  const html = view.render({ data, id: 'home', sub: '' });
+  check('waiting card lists only open L3/L4, oldest first, with age and a link', html.indexOf('Older L4') > -1 && html.indexOf('Older L4') < html.indexOf('Newer L3') && !/Small one/.test(html.split('Waiting on Osman')[1].split('Latest Scout')[0].replace(/Recent decisions[\s\S]*/, '')) && /12 days open/.test(html) && /data-go="decisions\/D-old"/.test(html));
+  check('routine health names the failed routine', /Failed: Beta run\./.test(html));
+  check('Scout card shows the five newest scout-find notes only, with an urgent pill', (html.match(/data-go="notes\/n\d"/g) || []).length === 5 && !/Find 6/.test(html) && !/Plain idea/.test(html) && /<span class="pill bad">urgent<\/span>/.test(html));
+})();
 
 // 6. Desks come from the registry; no invented status.
 const deskRows = (full.match(/data-go="desks\//g) || []).length;

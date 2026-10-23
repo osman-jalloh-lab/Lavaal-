@@ -1,7 +1,7 @@
 // scripts/os-dev-server.js — run /os on this PC, nothing else.
 //   node scripts/os-dev-server.js            (default port 3100)
 //   PORT=3200 node scripts/os-dev-server.js
-// Reads .env.local (gitignored). Binds to 127.0.0.1 only. Serves the same handlers
+// Reads .env.local (gitignored). With no store configured it uses an empty temp-file store. Binds to 127.0.0.1 only. Serves the same handlers
 // the vercel.json rewrites reach: /os, /os/, /os/app.css, /os/app.js and the
 // /api/os/ingest/<feed> feeds. Nothing else is served, and /ops is not mounted.
 // Set OS_DEV_BYPASS=1 in .env.local to skip the founder sign-in on loopback only
@@ -27,6 +27,17 @@ loadEnvFile(path.join(root, '.env.local'));
 if (process.env.NODE_ENV === 'production') {
   console.error('os-dev-server: refusing to run with NODE_ENV=production');
   process.exit(1);
+}
+
+// Local only: with no store configured, give /os an empty one so Home shows normal empty states
+// instead of "store could not be read". An ephemeral file in the OS temp folder, removed on exit.
+// Never used when KV or OPS_STORE_FILE is set, and this script is not part of any deploy.
+if (!process.env.OPS_STORE_FILE && !(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)) {
+  const tmp = path.join(require('os').tmpdir(), `lavaall-os-dev-store-${process.pid}.json`);
+  fs.writeFileSync(tmp, '{}');
+  process.env.OPS_STORE_FILE = tmp;
+  process.on('exit', () => { try { fs.unlinkSync(tmp); } catch { /* already gone */ } });
+  ['SIGINT', 'SIGTERM'].forEach((sig) => process.on(sig, () => process.exit(0)));
 }
 
 const os = require(path.join(root, 'api/os/index.js'));

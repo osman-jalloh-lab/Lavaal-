@@ -167,6 +167,9 @@ function notesFrom(store) {
       title: text(row.title, 160),
       body: text(row.body, 4000),
       source: text(row.source, 240),
+      type: text(row.type, 40),
+      date: stamp(row.date),
+      urgent: row.urgent === true,
       updatedAt: time(row.updatedAt),
     }))
     .sort((a, b) => b.updatedAt - a.updatedAt);
@@ -406,7 +409,8 @@ function healthSummary(routines) {
     else if (k === 'skipped') counts.skipped += 1;
     else counts.other += 1;
   });
-  return { reporting: reporting.length, total: routines.length, checkedLabel: reporting[0].health.checkedLabel || '', counts };
+  const failed = reporting.filter((r) => ['failed', 'missing'].includes(String(r.health.status).toLowerCase())).map((r) => r.name);
+  return { reporting: reporting.length, total: routines.length, checkedLabel: reporting[0].health.checkedLabel || '', counts, failed };
 }
 
 // Build the whole /os data object from already-read sources. Pure.
