@@ -1,6 +1,6 @@
 # LAVAALL OS data pack (static, read-only)
 
-Built 22 Oct 2026 (CT) against main at cba1c7c and re-exported the same day after two fixes.
+Built 22 Oct 2026 (CT) against main at cba1c7c, re-exported the same day after two fixes, then updated to v2 on 23 Oct 2026.
 The JSON files here are committed exactly as exported. They are bundled with the /os function and read with `require()`
 by `api/ops/_os_data.js`. They are never written to the KV store (`normalizeStore` drops a `decisions` key, and
 `store.routines` are /ops runnable prompts). See `docs/os/DECISIONS.md`.
@@ -14,4 +14,7 @@ by `api/ops/_os_data.js`. They are never written to the KV store (`normalizeStor
 | `rules.json` | 30 | Brain rule nodes, matched by FR id (DECISIONS.md #8). |
 
 Left out on purpose: Starlink, Guinea, leads and customer items. Nothing here is secret: no tokens, keys, phone numbers or
-customer emails. Decision `desk` is empty and 10 decisions have no `level`; /os shows those as dashes.
+customer emails. Decision `desk` is set on 25 of 52 (technical 16, lavaall-ceo 5, growth 2, sales 2) and blank on 27; 10 decisions have no
+`level`. /os shows blanks as dashes. 15 desk rules end with an FR id such as " (FR-002)"; the Brain links each to that rule.
+
+v2 (23 Oct 2026) changed only `decisions.json` and `desks.json`.
