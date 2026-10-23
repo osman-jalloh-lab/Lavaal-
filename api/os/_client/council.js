@@ -78,7 +78,7 @@
   }
 
   function runCard(rec) {
-    var meta = [rec.desk, rec.level].filter(Boolean).join(' · ');
+    var meta = [OS.deskShort(rec.desk), rec.level].filter(Boolean).join(' · ');
     var rounds = rec.rounds.length
       ? rec.rounds.map(function (r, i) { return roundBlock(rec, r, rec.rounds[i - 1]); }).join('')
       : '<div class="empty tight"><b>No rounds are stored for this run.</b></div>';
@@ -93,7 +93,7 @@
   function historyTable(list, current) {
     return '<section class="card tablewrap mt"><div class="ch">' + icon('timer') + '<h3>Run history</h3></div><table><thead><tr><th>Task</th><th>Desk</th><th>Round</th><th>Status</th><th class="n">Jev</th></tr></thead><tbody>' +
       list.map(function (r) {
-        return '<tr class="row' + (r === current ? ' sel' : '') + '" tabindex="0" data-go="council/' + esc(r.id) + '"><td class="wrap">' + esc(r.title) + '</td><td class="dim">' + esc(r.desk || '—') + '</td>' +
+        return '<tr class="row' + (r === current ? ' sel' : '') + '" tabindex="0" data-go="council/' + esc(r.id) + '"><td class="wrap">' + esc(r.title) + '</td><td class="dim">' + esc(OS.deskShort(r.desk) || '—') + '</td>' +
           '<td class="num">' + (r.round ? r.round + ' of ' + r.maxRounds : '—') + '</td><td>' + (STATUS[r.status] ? '<span class="pill">' + esc(STATUS[r.status]) + '</span>' : '<span class="dim">—</span>') +
           '</td><td class="n">' + OS.jev(r.jev) + '</td></tr>';
       }).join('') + '</tbody></table></section>';

@@ -21,6 +21,7 @@ function loadHome() {
     esc,
     icon: (n) => `<svg data-icon="${n}"></svg>`,
     fmtDate: (ms) => (ms > 0 ? 'D' + ms : ''),
+    deskShort: (id) => ({ 'lavaall-ceo': 'CEO', technical: 'Technical' }[id] || ''),
     chicagoHour: () => 20,
     registerView: (id, view) => { views[id] = view; },
     openPalette() {},

@@ -112,7 +112,7 @@
     if (!rows.length) return card('', 'scale', 'Waiting on Osman', right, empty('Nothing at L3 or L4 is waiting.', 'decisions'));
     var body = rows.slice(0, 6).map(function (x) {
       return '<div class="li" data-go="decisions/' + esc(x.id) + '">' + OS.level(x.level) +
-        '<div class="t"><div>' + esc(x.title) + '</div><small>' + esc(ageText(x.date) || 'Date not recorded') + '</small></div>' + icon('chev') + '</div>';
+        '<div class="t"><div>' + esc(x.title) + '</div><small>' + esc([OS.deskShort(x.desk), ageText(x.date) || 'Date not recorded'].filter(Boolean).join(' · ')) + '</small></div>' + icon('chev') + '</div>';
     }).join('');
     var more = rows.length > 6 ? '<p class="note foot">' + (rows.length - 6) + ' more in Decisions.</p>' : '';
     return card('', 'scale', 'Waiting on Osman', '<span class="num">' + rows.length + '</span>', body, more);
@@ -143,7 +143,7 @@
     if (list === null) return card('', 'scale', 'Recent decisions', right, empty('No decision log yet.', 'decisions'));
     if (!list.length) return card('', 'scale', 'Recent decisions', right, empty('The decision log is empty.', 'decisions'));
     var rows = list.slice(0, 5).map(function (x) {
-      var sub = [OS.fmtDate(x.date), x.desk].filter(Boolean).join(' · ');
+      var sub = [OS.fmtDate(x.date), OS.deskShort(x.desk)].filter(Boolean).join(' · ');
       return '<div class="li" data-go="decisions/' + esc(x.id) + '">' + OS.level(x.level) + '<div class="t"><div>' + esc(x.title) + '</div><small>' + esc(sub) + '</small></div>' + OS.jev(x.jev) + '</div>';
     }).join('');
     return card('', 'scale', 'Recent decisions', right, rows);

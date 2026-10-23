@@ -305,7 +305,7 @@
     if (n.t === 'rule') { if (i.title) out.push(i.title); if (i.text) out.push(i.text); }
     if (n.t === 'skill' && i.whenToUse) out.push(i.whenToUse);
     if (n.t === 'routine') out.push('Last run: ' + (i.lastRun || 'never') + (i.status ? ' · ' + String(i.status).replace(/_/g, ' ') : ''));
-    if (n.t === 'decision') out.push([i.level, i.status, OS.fmtLongDate(i.date), i.desk].filter(Boolean).join(' · '));
+    if (n.t === 'decision') out.push([i.level, i.status, OS.fmtLongDate(i.date), OS.deskShort(i.desk)].filter(Boolean).join(' · '));
     if (n.t === 'lead') out.push([i.stage, i.kind, i.place].filter(Boolean).join(' · '));
     if (n.t === 'note' && (i.source || i.updatedAt)) out.push([i.source, OS.fmtDate(i.updatedAt)].filter(Boolean).join(' · '));
     return out.filter(Boolean);

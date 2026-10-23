@@ -117,7 +117,33 @@
     if (typeof dollars !== 'number' || !isFinite(dollars)) return '—';
     try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dollars); } catch (e) { return '$' + dollars.toFixed(2); }
   };
-  OS.level = function (level) { return '<span class="lv num">' + esc(level || '—') + '</span>'; };
+  OS.level = function (level) { return '<span class="lv num' + (level === 'L3' || level === 'L4' ? ' hi' : '') + '">' + esc(level || '—') + '</span>'; };
+  // One place that turns a desk id (lavaall-ceo, technical, ...) into what people read ("CEO", "Technical").
+  // Looks the id up by registry id, short name or full name; an unknown id is tidied, never shown raw.
+  var DESK_COLORS = ['var(--accent)', 'var(--c-orange)', 'var(--c-violet)', 'var(--ok)', 'var(--c-amber)', 'var(--c-skill)', 'var(--c-note)'];
+  function findDesk(id) {
+    var want = String(id || '').trim().toLowerCase();
+    var list = (OS.data && OS.data.desks) || [];
+    if (!want) return null;
+    for (var i = 0; i < list.length; i++) {
+      var d = list[i];
+      if ([d.id, d.short, d.name].some(function (k) { return String(k || '').toLowerCase() === want; })) return { desk: d, index: i };
+    }
+    return null;
+  }
+  OS.deskShort = function (id) {
+    var hit = findDesk(id);
+    if (hit) return hit.desk.short || hit.desk.name || '';
+    var raw = String(id || '').trim();
+    return raw ? raw.replace(/[-_]+/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); }) : '';
+  };
+  OS.deskChip = function (id) {
+    var name = OS.deskShort(id);
+    if (!name) return '<span class="dim">—</span>';
+    var hit = findDesk(id);
+    var color = DESK_COLORS[(hit ? hit.index : DESK_COLORS.length - 1) % DESK_COLORS.length];
+    return '<span class="dchip"><i class="dot" style="background:' + color + '"></i>' + esc(name) + '</span>';
+  };
   OS.fmtLongDate = function (ms) {
     if (!(ms > 0)) return '';
     try {

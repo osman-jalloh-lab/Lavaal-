@@ -102,9 +102,9 @@ check('Brain: layout settles to finite coordinates for all 157 nodes', (() => { 
 // ================= 4. views from the real pack =================
 const html = (id, sub) => OS.views[id].render({ id, sub: sub || '', data });
 const dec = html('decisions');
-check('Decisions view: 52 rows, chips All 52 / Open 22 / Closed 30', (dec.match(/<tr class="row"/g) || []).length === 52 && /All <span class="num">52<\/span>/.test(dec) && /Open <span class="num">22<\/span>/.test(dec) && /Closed <span class="num">30<\/span>/.test(dec));
+check('Decisions view: 52 rows, chips All 52 / Open 22 / Closed 30', (dec.match(/<article class="dcard/g) || []).length === 52 && /All <span class="num">52<\/span>/.test(dec) && /Open <span class="num">22<\/span>/.test(dec) && /Closed <span class="num">30<\/span>/.test(dec));
 check('Decisions view: 6 scored (PASS or FLAG), 46 "Jev: not run"', (dec.match(/pill (pass|flag) num/g) || []).length === 6 && (dec.match(/Jev: not run/g) || []).length === 46);
-check('Decisions view: 10 rows have no level; 25 rows show their desk and 27 a dash', (dec.match(/class="lv num">—</g) || []).length === 10 && (dec.match(/<td class="dim dc-desk">—<\/td>/g) || []).length === 27 && ['technical', 'lavaall-ceo', 'growth', 'sales'].map((d) => (dec.match(new RegExp(`<td class="dim dc-desk">${d}</td>`, 'g')) || []).length).join() === '16,5,2,2');
+check('Decisions view: 10 cards have no level; 25 show their desk short name and 27 a dash', (dec.match(/class="lv num">—</g) || []).length === 10 && (dec.match(/<span class="dim">—<\/span><\/span>|<span class="dim">—<\/span><span class="pill/g) || []).length === 27 && ['Technical', 'CEO', 'Growth', 'Sales'].map((d) => (dec.match(new RegExp(`</i>${d}</span>`, 'g')) || []).length).join() === '16,5,2,2');
 check('Decisions view: a decision opens from its id', /data-go="decisions\/D-2026-09-25-38"/.test(dec));
 const rtv = html('routines');
 check('Routines view: 14 rows, 13 active and 1 paused', (rtv.match(/<tbody>[\s\S]*<\/tbody>/)[0].match(/<tr>/g) || []).length === 14 && (rtv.match(/pill pass">active/g) || []).length === 13 && (rtv.match(/pill flag">paused/g) || []).length === 1);
