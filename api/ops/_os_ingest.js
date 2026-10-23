@@ -6,7 +6,7 @@
 // revealed. Never logs a payload, a token or a header.
 
 const { header, noStore, timingSafeEqualString } = require('./_lib');
-const { FEEDS, MAX_BYTES, applyPayload, readFeed, validate, writeFeed } = require('./_os_feeds');
+const { FEEDS, applyPayload, maxBytesFor, readFeed, validate, writeFeed } = require('./_os_feeds');
 const DATA_PACK = require('../os/_data/index.js');
 
 function deskIds() {
@@ -77,9 +77,10 @@ async function handleIngest(req, res, opts) {
   const feed = feedName(req);
   if (!FEEDS.includes(feed)) return send(res, 404, { error: 'not_found' });
 
-  // 3. Size cap, declared and actual.
+  // 3. Size cap, declared and actual. 20 KB for every feed except notes (see _os_feeds.js).
+  const cap = maxBytesFor(feed);
   const declared = Number(String(header(req, 'content-length') || '').trim());
-  if ((Number.isFinite(declared) && declared > MAX_BYTES) || bodyBytes(req) > MAX_BYTES) {
+  if ((Number.isFinite(declared) && declared > cap) || bodyBytes(req) > cap) {
     return send(res, 413, { error: 'payload_too_large' });
   }
   const type = String(header(req, 'content-type') || '');

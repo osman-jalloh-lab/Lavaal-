@@ -40,6 +40,9 @@ if (!process.env.OPS_STORE_FILE && !(process.env.KV_REST_API_URL && process.env.
   ['SIGINT', 'SIGTERM'].forEach((sig) => process.on(sig, () => process.exit(0)));
 }
 
+// Local /os also reads the gitignored notes pack (api/os/_data/notes.local.json) when it exists.
+process.env.OS_LOCAL_NOTES = '1';
+
 const os = require(path.join(root, 'api/os/index.js'));
 const ingest = require(path.join(root, 'api/os/ingest/[feed].js'));
 

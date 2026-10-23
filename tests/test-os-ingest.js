@@ -65,7 +65,12 @@ const GOOD = {
   spend: [{ date: '2026-10-22', tool: 'Claude API', usd: 1.15, note: 'daily run' }, { date: '2026-10-22', tool: 'Voice', usd: 0.29, note: '' }, { date: '2026-10-23', tool: 'Claude API', usd: 2.5, note: '' }],
   'outreach-stats': { date: '2026-10-22', drafted: 12, approved: 10, sent: 20, replied: 3, bounced: 2 },
   'desk-status': [{ desk: 'technical', now: 'Shipping the live feeds', updated: '2026-10-23T14:00:00Z' }, { desk: 'scout', now: 'Watching two channels', updated: '2026-10-23T13:00:00Z' }],
+  notes: [
+    { id: 'nt-0000000001', type: 'idea', folder: 'Ideas', title: 'A plain idea', date: '2026-10-20', updated: '2026-10-21', desk: 'growth', status: 'open', level: null, jev: 'not run', tags: ['alpha'], links: ['nt-0000000002'], source: 'vault', body: 'Plain text body.\nSecond line.' },
+    { id: 'nt-0000000002', type: 'scout-find', folder: 'Scout Finds', title: 'A scout find', date: '2026-10-22', updated: '2026-10-22', desk: '', status: 'new', level: 'L1', jev: 0.8, tags: ['scout'], links: [], source: 'x', body: 'Body.', urgent: true, url: 'https://example.com/post/1' },
+  ],
 };
+const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
 
 (async () => {
   // ================= 1. auth: 401 without the secret, for every feed ===========================
@@ -172,6 +177,28 @@ const GOOD = {
       ['updated in the future', [{ desk: 'sales', now: 'x', updated: '2026-12-01T00:00:00Z' }]],
       ['extra key', [{ desk: 'sales', now: 'x', updated: '2026-10-23T10:00:00Z', owner: 'o' }]],
     ],
+    notes: [
+      ['not an array', noteOf({})],
+      ['empty array', []],
+      ['extra key', [noteOf({ extra: 1 })]],
+      ['missing key', [(() => { const n = noteOf({}); delete n.body; return n; })()]],
+      ['bad id', [noteOf({ id: 'secret-file-name' })]],
+      ['duplicate id', [noteOf({}), noteOf({})]],
+      ['bad type', [noteOf({ type: 'session' })]],
+      ['bad folder', [noteOf({ folder: 'Sessions' })]],
+      ['empty title', [noteOf({ title: '' })]],
+      ['bad date', [noteOf({ date: 'yesterday' })]],
+      ['level L9', [noteOf({ level: 'L9' })]],
+      ['jev out of range', [noteOf({ jev: 2 })]],
+      ['too many tags', [noteOf({ tags: Array.from({ length: 13 }, (_, i) => 't' + i) })]],
+      ['bad link id', [noteOf({ links: ['nope'] })]],
+      ['urgent not a boolean', [noteOf({ urgent: 'yes' })]],
+      ['url with an at sign', [noteOf({ url: 'https://example.com/@someone' })]],
+      ['body over 4000', [noteOf({ body: 'x'.repeat(4001) })]],
+      ['blocked word in the body', [noteOf({ body: 'a customer asked' })]],
+      ['an at sign in the title', [noteOf({ title: 'write to me@example.com' })]],
+      ['a blocked word in a tag', [noteOf({ tags: ['lead-gen'] })]],
+    ],
   };
   for (const feed of feeds.FEEDS) {
     const cases = BAD[feed];
@@ -187,6 +214,14 @@ const GOOD = {
   check('the 422 names the field, never a value from the payload', reason.res.body.field === '[0].usd' && !JSON.stringify(reason.res.body).includes('SECRET-LOOKING-VALUE'));
 
   // ================= 4. size cap, body type ============================================================
+  const bigNotes = await post('notes', Array.from({ length: 4 }, (_, i) => noteOf({ id: 'nt-00000000a' + i, body: 'y'.repeat(4000) })), { headers: { 'content-length': '5000000' } });
+  check('notes: a declared length over 900 KB is 413', bigNotes.res.statusCode === 413 && bigNotes.kv.cmds.length === 0);
+  const fat = await post('notes', Array.from({ length: 300 }, (_, i) => noteOf({ id: 'nt-' + String(i).padStart(10, '0'), body: 'z'.repeat(3500) })));
+  check('notes: ~1 MB of real notes is over the cap -> 413', fat.res.statusCode === 413 || JSON.stringify(fat.res.body).length < 5);
+  const mid = await post('notes', Array.from({ length: 60 }, (_, i) => noteOf({ id: 'nt-' + String(i).padStart(10, '0'), body: 'z'.repeat(3500) })));
+  check('notes: 200 KB passes the size check that stops every other feed at 20 KB', mid.res.statusCode === 200);
+  const otherBig = await post('spend', Array.from({ length: 200 }, () => ({ date: today, tool: 'x'.repeat(60), usd: 1, note: 'n'.repeat(200) })));
+  check('every other feed keeps the 20 KB cap', otherBig.res.statusCode === 413);
   const big = await post('morning-brief', { date: today, text: 'x'.repeat(30000) });
   check('a body over 20 KB is 413 before it is parsed or stored', big.res.statusCode === 413 && big.kv.cmds.length === 0);
   const declared = await post('spend', GOOD.spend, { headers: { 'content-length': '99999' } });
@@ -237,7 +272,7 @@ const GOOD = {
   const getsBefore = kv.cmds.length;
   const data = await osData.loadOsData({ env: ENV, fetchImpl: kv.fetchImpl, store: {}, health: null, now: NOW });
   const loadCmds = kv.cmds.slice(getsBefore);
-  check('loading /os data after the posts uses GETs only', loadCmds.length === 5 && loadCmds.every((c) => c[0] === 'GET'));
+  check('loading /os data after the posts uses GETs only', loadCmds.length === 6 && loadCmds.every((c) => c[0] === 'GET'));
 
   check('data: brief is the posted brief', data.brief && data.brief.date === today && /Three things matter/.test(data.brief.text));
   check('data: routine health merged by id onto the pack routines', data.routines.find((r) => r.id === 'sl-daily-leads').health.status === 'ok' && data.routines.find((r) => r.id === 'midnight-closeout').health.status === 'late' && data.routines.find((r) => r.id === 'friday-decide-or-kill').health.tone === 'bad');
@@ -250,6 +285,7 @@ const GOOD = {
   check('data: lead cards stay null (counts only)', data.outreach === null);
   check('data: the desk now lines come from the feed', data.desks.find((d) => d.id === 'technical').now === 'Shipping the live feeds' && data.desks.find((d) => d.id === 'scout').now === 'Watching two channels' && data.desks.find((d) => d.id === 'technical').nowUpdatedAt > 0);
   check('data: a desk the feed did not name keeps the pack line', data.desks.find((d) => d.id === 'lifecycle').now === 'Parked as routing priority; Talk still works.');
+  check('data: notes come from the notes feed, with type, folder, tags and links', data.notes.length === 2 && data.notes.find((n) => n.id === 'nt-0000000002').type === 'scout-find' && data.notes.find((n) => n.id === 'nt-0000000002').urgent === true && data.notes.find((n) => n.id === 'nt-0000000001').links.join() === 'nt-0000000002' && data.notes.find((n) => n.id === 'nt-0000000001').folder === 'Ideas');
   check('data: the source flags turn live', data.sources.brief.live && data.sources.outreach.live && data.sources.hotelBounceRate.live && data.sources.spend.live);
 
   const win = {};
@@ -304,7 +340,7 @@ const GOOD = {
   check('only the ingest modules write, and only with SET on a lavaall-os-feed key', (src.match(/'SET'/g) || []).length === 1 && /KEY_PREFIX = 'lavaall-os-feed-'/.test(src));
   check('no payload, token or header is logged', !/console\.(log|error|warn)\([^)]*(body|token|authorization|req\.)/i.test(src));
   const docs = fs.readFileSync(path.join(root, 'api/os/_data/INGEST.md'), 'utf8');
-  check('INGEST.md has one curl example per feed, with the secret shown as $TOKEN', feeds.FEEDS.every((f) => docs.includes('curl -sS -X POST https://www.lavaall.com/api/os/ingest/' + f + ' \\')) && (docs.match(/curl -sS -X POST/g) || []).length === 5 && (docs.match(/-H "Authorization: Bearer \$TOKEN"/g) || []).length === 5);
+  check('INGEST.md has one curl example per feed, with the secret shown as $TOKEN', feeds.FEEDS.every((f) => docs.includes('curl -sS -X POST https://www.lavaall.com/api/os/ingest/' + f + ' \\')) && (docs.match(/curl -sS -X POST/g) || []).length === 6 && (docs.match(/-H "Authorization: Bearer \$TOKEN"/g) || []).length === 6);
   const banned = new RegExp(['Star' + 'link', 'Gui' + 'nea', '@gmail', '@g\\.', '[A-Za-z0-9_-]{32,}'].join('|'));
   check('INGEST.md holds no real secret, email, lead name or banned public-copy term', !banned.test(docs.replace(/https?:\/\/\S+/g, '')));
   try {

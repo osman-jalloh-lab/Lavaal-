@@ -215,7 +215,7 @@ check('home: without a log the KPI stays a dash', /<span>Open decisions<\/span><
 
 // ---- every view: read only, no emoji, no banned copy -------------------------
 const all = ['desks', 'decisions', 'outreach', 'routines', 'notes'].map((id) => html(id, id === 'decisions' ? log : nd)).join('\n') + dkDrawer + dDrawer;
-check('views contain no forms or inputs that could write', !/<form|<input|<textarea/.test(all));
+check('views contain no forms or inputs that could write (the only input is the Notes search box)', !/<form|<textarea/.test(all) && (all.match(/<input/g) || []).length === 1 && /<input class="q" id="notes-q" type="search"/.test(all));
 const src = ['desks', 'decisions', 'outreach', 'routines', 'notes'].map((f) => fs.readFileSync(path.join(root, `api/os/_client/${f}.js`), 'utf8')).join('\n');
 check('views make no network calls', !/fetch\(|XMLHttpRequest|sendBeacon|navigator\./.test(src));
 check('views avoid banned copy and emoji', !/free[\s-]*trial|starlink|guinea|lorem ipsum/i.test(src) && !/[\u{1F300}-\u{1FAFF}\u{2728}]/u.test(src));
