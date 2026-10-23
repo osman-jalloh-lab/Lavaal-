@@ -74,3 +74,10 @@ Settled by Osman Jalloh. Do not re-ask.
     desk). A mouse click still only selects; the side panel's Open button opens. A hint reads "Tap again to
     open <name>". A few pixels of finger wobble still counts as a tap, touch gets a larger hit area, and two
     fingers pinch-zoom (same 0.25 to 4 limits).
+
+## 2026-10-22 — Answers to the draft PR's open questions
+
+17. **Routines stays in More on phones.** Routines has no tab of its own; it lives in the More sheet with Notes,
+    Brain, AI Council, Spend and Settings (entry 15). Osman confirmed.
+18. **The "Sierra Leone leads routine" mentions stay.** They appear in `api/ops/_os_data.js` (the Outreach and
+    hotel-bounce source lines) and in this file, even though the repository is public. Osman confirmed.
