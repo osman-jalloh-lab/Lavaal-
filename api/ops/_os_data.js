@@ -1,0 +1,249 @@
+// api/ops/_os_data.js — read-only data adapter for the /os section.
+// Underscore-prefixed, so Vercel does not treat it as a function.
+//
+// Hard rules (docs/os/DECISIONS.md, brief section 6):
+//  - Read only. This module never calls readStore() (it can SET the seeded goal)
+//    and never issues anything but a KV GET.
+//  - Never invent data. A source that does not exist returns null, and the
+//    caller shows an empty state using SOURCES[key].reason.
+//  - No model calls, no env writes, no secrets: Settings reports names only.
+
+const fs = require('fs');
+
+const { STORE_KEY } = require('./_store');
+const { OFFICE_AGENTS } = require('./_office');
+const { formatChicago, readRoutineHealthView } = require('./_routine_health');
+
+// Where each widget's data comes from today. `live` is set per load.
+const SOURCES = Object.freeze({
+  approvals: { label: 'Pending chat proposals', from: 'store lavaall-ops-v2, chats[].proposals (status pending)' },
+  decisions: { label: 'Decision log', from: 'no decision log exists yet; needs a decisions record in the store or docs' },
+  jev: { label: 'Jev scores', from: 'no Jev record exists yet; scores would come with the decision log' },
+  hotelBounceRate: { label: 'Hotel bounce rate', from: 'no outreach results yet; leads come from the daily Sierra Leone leads routine' },
+  outreach: { label: 'Outreach leads', from: 'daily Sierra Leone leads routine; no read path is wired in this PR' },
+  spend: { label: 'AI spend', from: 'no spend records exist yet' },
+  council: { label: 'AI Council records', from: 'no stored council records exist yet' },
+  brief: { label: 'Morning brief', from: 'no CEO brief is stored yet' },
+  routines: { label: 'Routines', from: 'store lavaall-ops-v2, routines[]; health from the routine-health record' },
+  notes: { label: 'Notes', from: 'store lavaall-ops-v2, notes[] (not deleted)' },
+  desks: { label: 'Desks', from: 'desk registry (api/ops/_office.js); SOUL data deferred (DECISIONS.md #4)' },
+  settings: { label: 'Connections', from: 'presence of existing env var names only' },
+});
+
+// ---- raw readers (GET only) -------------------------------------------------
+
+function kvGet(key, env, fetchImpl) {
+  const base = String(env.KV_REST_API_URL || '').replace(/\/$/, '');
+  const body = ['GET', key];
+  if (body[0] !== 'GET') throw new Error('os_data_read_only');
+  return fetchImpl(base, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.KV_REST_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }).then((response) => {
+    if (!response.ok) throw new Error('kv_get_failed');
+    return response.json();
+  });
+}
+
+function parseJson(value) {
+  if (value && typeof value === 'object') return value;
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+// Returns the raw store object, or null when it cannot be read.
+async function readRawStore(opts) {
+  const env = (opts && opts.env) || process.env;
+  const fetchImpl = (opts && opts.fetchImpl) || globalThis.fetch;
+  try {
+    if (env.KV_REST_API_URL && env.KV_REST_API_TOKEN) {
+      const payload = await kvGet(STORE_KEY, env, fetchImpl);
+      return parseJson(payload && payload.result);
+    }
+    const file = String(env.OPS_STORE_FILE || '').trim();
+    if (file && !env.VERCEL && fs.existsSync(file)) {
+      return parseJson(fs.readFileSync(file, 'utf8'));
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+async function readHealth(opts) {
+  if (opts && opts.health !== undefined) return opts.health;
+  try {
+    const view = await readRoutineHealthView();
+    return view && view.ok && !view.empty ? view : null;
+  } catch {
+    return null;
+  }
+}
+
+// ---- pure mappers: raw sources in, view data out ----------------------------
+
+function text(value, max) {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+
+function time(value) {
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function approvalsFrom(store) {
+  if (!store) return null;
+  const chats = Array.isArray(store.chats) ? store.chats : [];
+  const items = [];
+  chats.forEach((chat) => {
+    (Array.isArray(chat && chat.proposals) ? chat.proposals : []).forEach((row) => {
+      if (!row || row.status !== 'pending') return;
+      items.push({
+        id: text(row.id, 40),
+        kind: text(row.kind, 40),
+        title: text(row.title, 200),
+        body: text(row.body, 2000),
+        source: text(row.fields && row.fields.source, 240),
+        createdAt: time(row.createdAt),
+      });
+    });
+  });
+  return items.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+function routinesFrom(store, health) {
+  if (!store) return null;
+  const byId = new Map();
+  if (health && Array.isArray(health.routines)) {
+    health.routines.forEach((row) => byId.set(row.slug, row));
+  }
+  const rows = Array.isArray(store.routines) ? store.routines : [];
+  return rows
+    .filter((row) => row && text(row.id, 40) && text(row.name, 160))
+    .map((row) => {
+      const lastRunAt = time(row.lastRunAt);
+      const h = byId.get(row.id) || null;
+      return {
+        id: text(row.id, 40),
+        name: text(row.name, 160),
+        schedule: null, // the store keeps no schedule field; shown as "—"
+        owner: null, // the store keeps no owner field; routine->desk links need one
+        lastRunAt,
+        lastRunLabel: lastRunAt ? formatChicago(new Date(lastRunAt).toISOString()) : '',
+        lastRunStatus: text(row.lastRunStatus, 40),
+        health: h ? { status: h.status, tone: h.tone, reason: h.reason, checkedLabel: health.checkedLabel } : null,
+      };
+    });
+}
+
+function notesFrom(store) {
+  if (!store) return null;
+  const rows = Array.isArray(store.notes) ? store.notes : [];
+  return rows
+    .filter((row) => row && !(row.deletedAt > 0) && text(row.title, 160))
+    .map((row) => ({
+      id: text(row.id, 40),
+      title: text(row.title, 160),
+      body: text(row.body, 4000),
+      source: text(row.source, 240),
+      updatedAt: time(row.updatedAt),
+    }))
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+function desksFrom() {
+  return OFFICE_AGENTS.map((agent) => ({
+    id: agent.id,
+    name: agent.name,
+    short: agent.short,
+    now: null, // SOUL data deferred
+    skills: null,
+    rules: null,
+    routines: null,
+    decisions: null,
+  }));
+}
+
+function present(env, names) {
+  return names.some((name) => Boolean(env[name] && String(env[name]).trim()));
+}
+
+// Names only. Never values, never key material.
+function settingsFrom(env) {
+  const conn = (name, envNames, status) => ({ name, envNames: envNames.slice(), status });
+  const status = (set) => (set ? 'configured' : 'not configured');
+  const kvNames = ['KV_REST_API_URL', 'KV_REST_API_TOKEN'];
+  const mailNames = ['OPS_GMAIL_CLIENT_ID', 'OPS_GMAIL_CLIENT_SECRET', 'OPS_GMAIL_REFRESH_TOKEN', 'RESEND_API_KEY'];
+  return [
+    // No GitHub env var exists in the ops app; report it as unknown, not as connected.
+    conn('GitHub', [], 'unknown'),
+    conn('Vercel', ['VERCEL', 'VERCEL_ENV'], status(present(env, ['VERCEL']))),
+    conn('Mail', mailNames, status(present(env, mailNames))),
+    conn('Store (KV)', kvNames, status(kvNames.every((name) => present(env, [name])))),
+  ];
+}
+
+// Build the whole /os data object from already-read sources. Pure.
+function buildOsData(sources, opts) {
+  const store = sources && sources.store ? sources.store : null;
+  const health = sources && sources.health ? sources.health : null;
+  const env = (opts && opts.env) || process.env;
+
+  const approvals = approvalsFrom(store);
+  const data = {
+    storeAvailable: Boolean(store),
+    approvals,
+    kpis: {
+      awaitingApproval: approvals ? approvals.length : null,
+      openDecisions: null,
+      hotelBounceRate: null,
+      aiSpendMonth: null,
+    },
+    brief: null,
+    decisions: null,
+    outreach: null,
+    council: null,
+    spend: null,
+    routines: routinesFrom(store, health),
+    notes: notesFrom(store),
+    desks: desksFrom(),
+    settings: settingsFrom(env),
+  };
+  data.sources = Object.keys(SOURCES).reduce((out, key) => {
+    const live = key === 'desks' || key === 'settings'
+      ? true
+      : key === 'approvals' ? approvals !== null
+        : key === 'routines' ? data.routines !== null
+          : key === 'notes' ? data.notes !== null
+            : false;
+    out[key] = Object.assign({ live }, SOURCES[key]);
+    return out;
+  }, {});
+  return data;
+}
+
+async function loadOsData(opts) {
+  const store = (opts && opts.store !== undefined) ? opts.store : await readRawStore(opts);
+  const health = await readHealth(opts);
+  return buildOsData({ store, health }, opts);
+}
+
+module.exports = {
+  SOURCES,
+  approvalsFrom,
+  buildOsData,
+  desksFrom,
+  loadOsData,
+  notesFrom,
+  readRawStore,
+  routinesFrom,
+  settingsFrom,
+};
