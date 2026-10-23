@@ -1,7 +1,8 @@
 /* LAVAALL OS Outreach: a kanban by stage (Drafted / Approved / Sent / Replied / Bounced).
    View only. Nothing is sent from here and nothing is saved: dragging a card moves it on screen
-   and it snaps back on the next load. Reads data.outreach, which is null until a read path from the
-   daily Sierra Leone leads routine exists. */
+   and it snaps back on the next load. Reads data.outreach (lead cards), which stays null: lead names are not
+   stored. The daily Sierra Leone leads routine posts COUNTS ONLY (the outreach-stats feed), read as
+   data.outreachStats and shown in the column headers. */
 (function () {
   'use strict';
   var OS = window.OS;
@@ -23,12 +24,12 @@
       (lead.note ? '<div class="m"><span class="pill' + (stageOf(lead) === 'Bounced' ? ' bad' : '') + '">' + esc(lead.note) + '</span></div>' : '') + '</div>';
   }
 
-  function board(leads) {
+  function board(leads, stats) {
     var byStage = {};
     STAGES.forEach(function (s) { byStage[s] = []; });
     (leads || []).forEach(function (l) { var s = stageOf(l); if (s) byStage[s].push(l); });
     return '<div class="kb">' + STAGES.map(function (s) {
-      var n = leads ? byStage[s].length : null;
+      var n = leads ? byStage[s].length : stats ? stats[s.toLowerCase()] : null;
       return '<div class="col" data-stage="' + s + '"><h4><span class="dot ' + DOT[s] + '"></span>' + s +
         '<span class="num" data-count>' + (n === null ? '—' : n) + '</span></h4>' +
         (leads ? byStage[s].map(cardHtml).join('') : '') + '</div>';
@@ -38,11 +39,13 @@
   OS.registerView('outreach', {
     render: function (ctx) {
       var leads = ctx.data.outreach;
-      var head = '<div class="ph"><div><h1>Outreach</h1><p>Leads by stage. View only; nothing is sent from here.</p></div></div>';
-      var note = leads === null
-        ? '<div class="card mb">' + OS.empty('No outreach leads are loaded.', 'outreach') + '</div>'
-        : '';
-      return head + note + board(leads);
+      var stats = ctx.data.outreachStats;
+      var head = '<div class="ph"><div><h1>Outreach</h1><p>' + (stats && !leads ? 'Counts by stage. View only; nothing is sent from here.' : 'Leads by stage. View only; nothing is sent from here.') + '</p></div></div>';
+      var note = leads !== null ? ''
+        : stats
+          ? '<p class="note foot">Counts only, as of ' + esc(stats.date) + '. No lead names or addresses are stored here.</p>'
+          : '<div class="card mb">' + OS.empty('No outreach counts have been received yet.', 'outreach') + '</div>';
+      return head + note + board(leads, stats);
     },
     mount: function (root, ctx) {
       var dragged = null;

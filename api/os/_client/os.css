@@ -102,6 +102,7 @@
 .os-root .brief{padding:16px;color:var(--tx2);line-height:22px;white-space:pre-wrap}
 .os-root .pre{white-space:pre-wrap;color:var(--tx2);line-height:20px}
 .os-root .note{color:var(--tx3);font-size:12px}
+.os-root .card>.note.foot{margin:0;padding:10px 16px}
 .os-root .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .os-root .mb{margin-bottom:16px}
 .os-root .dim{color:var(--tx2)}

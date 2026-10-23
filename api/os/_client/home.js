@@ -56,8 +56,26 @@
   function briefCard(d) {
     var body = d.brief && d.brief.text
       ? '<div class="brief">' + esc(d.brief.text) + '</div>'
-      : empty('No morning brief is stored yet.', 'brief');
-    return card('', 'sunrise', 'Morning brief', '', body);
+      : empty('No morning brief has been received yet.', 'brief');
+    return card('', 'sunrise', 'Morning brief', d.brief && d.brief.date ? '<span class="num">' + esc(d.brief.date) + '</span>' : '', body);
+  }
+
+  // Routines that report a status, by status. Counts come from the routine-health feed; nothing is guessed.
+  function healthCard(d) {
+    var h = d.routineHealth;
+    var right = '<span class="link" data-go="routines">View routines</span>';
+    if (!h) return card('', 'timer', 'Routine health', right, empty('No routine health has been received yet.', 'routines'));
+    var rows = [['ok', 'pass', 'OK'], ['late', 'flag', 'Late'], ['failed', 'bad', 'Failed'], ['skipped', 'flag', 'Skipped'], ['other', '', 'Other']]
+      .filter(function (r) { return r[0] !== 'other' || h.counts.other > 0; })
+      .map(function (r) {
+        return '<div class="li static"><span class="pill ' + r[1] + '">' + esc(r[2]) + '</span><div class="t"></div><b class="num">' + h.counts[r[0]] + '</b></div>';
+      }).join('');
+    var foot = '<p class="note foot">' + h.reporting + ' of ' + h.total + ' routines report' + (h.checkedLabel ? '. Checked ' + esc(h.checkedLabel) : '') + '.</p>';
+    return card('', 'timer', 'Routine health', right, rows, foot);
+  }
+
+  function bounceText(k) {
+    return k.hotelBounceRate == null ? null : (Math.round(k.hotelBounceRate * 1000) / 10) + '%';
   }
 
   function brainCard() {
@@ -122,12 +140,13 @@
         '<div class="grid g4">' +
           kpi('b', 'Awaiting approval', k.awaitingApproval, 'pending proposals') +
           kpi('v', 'Open decisions', k.openDecisions, k.openDecisions == null ? 'no decision log yet' : 'from the decision log') +
-          kpi('o', 'Hotel bounce rate', k.hotelBounceRate, 'no outreach results yet') +
+          kpi('o', 'Hotel bounce rate', bounceText(k), k.hotelBounceRate == null ? 'no outreach results yet' : 'bounced of sent, ' + k.hotelBounceDate) +
           kpi('g', 'AI spend this month', k.aiSpendMonth == null ? null : OS.money(k.aiSpendMonth), k.aiSpendMonth == null ? 'no spend records yet' : 'from spend records') +
         '</div>' +
         '<div class="stack">' +
           '<div class="grid g32">' + briefCard(d) + approvalsCard(d) + '</div>' +
-          brainCard() + councilCard(d) +
+          brainCard() +
+          '<div class="grid g32">' + councilCard(d) + healthCard(d) + '</div>' +
           '<div class="grid g32">' + decisionsCard(d) + desksCard(d) + '</div>' +
         '</div>';
     },

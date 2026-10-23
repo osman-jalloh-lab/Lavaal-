@@ -155,7 +155,7 @@ async function call(area, extra) {
     });
   })(path.join(root, 'api/os'));
   const functions = files.filter((f) => f.endsWith('.js') && !f.split('/').some((seg) => seg.startsWith('_')));
-  check('api/os exposes exactly one function (index.js)', functions.length === 1 && functions[0] === 'index.js');
+  check('api/os exposes exactly two functions: index.js (the app) and ingest/[feed].js (the feeds)', functions.length === 2 && functions.includes('index.js') && functions.includes('ingest/[feed].js'));
 
   globalThis.fetch = realFetch;
   const failed = results.filter((r) => !r.pass);

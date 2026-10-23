@@ -140,10 +140,10 @@ const STORE = {
     health: null,
   });
   check('KV load reads the store', live.storeAvailable && live.kpis.awaitingApproval === 2);
-  check('KV load made exactly one call', calls.length === 1);
+  check('KV load made six calls: the store, then one for each of the five feeds', calls.length === 6);
   const cmds = calls.map((c) => JSON.parse(c.init.body));
   check('KV commands are GET only', cmds.every((c) => c[0] === 'GET'));
-  check('KV GET targets lavaall-ops-v2', cmds.every((c) => c[1] === 'lavaall-ops-v2'));
+  check('KV GETs target lavaall-ops-v2 once and the five lavaall-os-feed-* keys, nothing else', cmds.filter((c) => c[1] === 'lavaall-ops-v2').length === 1 && cmds.filter((c) => /^lavaall-os-feed-(morning-brief|routine-health|spend|outreach-stats|desk-status)-v1$/.test(c[1])).length === 5);
   check('no SET/DEL/EXPIRE anywhere', !cmds.some((c) => /^(SET|DEL|EXPIRE|MSET|HSET|INCR|APPEND)$/i.test(c[0])));
 
   // 10. A failing store degrades to null, not a throw or sample data.

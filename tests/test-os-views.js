@@ -136,7 +136,7 @@ check('desks: a desk with no pack row still gets its empty states', /No rules ar
 
 // ---- Outreach ----------------------------------------------------------------
 const oNull = html('outreach', build({}));
-check('outreach: empty state naming the leads routine', /No outreach leads are loaded\./.test(oNull) && /Sierra Leone leads routine/.test(oNull));
+check('outreach: empty state naming the leads routine', /No outreach counts have been received yet\./.test(oNull) && /Sierra Leone leads routine/.test(oNull));
 check('outreach: five stages, in order', ['Drafted', 'Approved', 'Sent', 'Replied', 'Bounced'].map((s) => oNull.indexOf(`data-stage="${s}"`)).every((v, i, a) => v >= 0 && (i === 0 || v > a[i - 1])));
 check('outreach: no Follow-up column', !/Follow-up/.test(oNull));
 check('outreach: counts are dashes when there is no data', (oNull.match(/data-count>—</g) || []).length === 5 && !/class="kc"/.test(oNull));
