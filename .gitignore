@@ -27,3 +27,7 @@ new_*.html
 fix.html
 .gstack/
 scripts/qa/reports/
+
+# Local /os development (never commit)
+.env.local
+.os-dev-store.json
