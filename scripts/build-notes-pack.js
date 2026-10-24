@@ -10,13 +10,22 @@
 // fills (POST https://www.lavaall.com/api/os/ingest/notes, bearer $TOKEN). Never runs in CI.
 //
 // Only the Ideas, Scout Finds, Research, Skills and Decisions folders are read. Sessions, Jev Scores,
-// Templates, *.bak* files and dot files are left out. A note is DROPPED when its text matches
-// the blocked-word pattern, or holds a phone number or an email-like string. The run prints the
-// counts kept and dropped, and the dropped file names only, never their contents.
+// Templates, *.bak* files and dot files are left out. A note is DROPPED, with a specific reason, when its title,
+// path or body holds (api/ops/_notes_filter.js, the same detector the notes feed re-checks on a push):
+//   email         a real email address (a bare "@handle" or "@" alone is fine)
+//   phone         a phone number (7+ digits; dates, times, version numbers and PR numbers are ignored)
+//   blocked-word  one of four words that must never appear
+//   lead-data     a lead list / outreach batch / quote request / RFQ title or path, or a markdown table with a
+//                 Name, Business, Contact, School or Hotel column
+//   excluded      a path matched by the vault's .os-exclude file (one glob per line), or Skills/_NEVER-LOAD.md
+// Everything else is kept, including notes that only use the words "lead" or "customer" or an "@handle".
+// The run prints the counts kept and dropped, then the dropped file names with their reasons, never content.
 
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
+const { dropReasons } = require('../api/ops/_notes_filter');
 
 const DEFAULT_VAULT = 'C:\\Users\\osman\\LAVAALL Ideas';
 const OUT_FILE = path.join(__dirname, '..', 'api', 'os', '_data', 'notes.local.json');
@@ -34,20 +43,9 @@ const PACK_MAX_NOTES = 500;
 // The notes feed accepts up to 900 KB (api/ops/_os_feeds.js). Leave room for the JSON envelope.
 const PACK_MAX_BYTES = 880 * 1024;
 
-// Built from pieces on purpose: the repo is public and must not carry these words as plain text.
-const DROP = new RegExp(['star' + 'link', 'gui' + 'nea', '@', 'lead', 'customer'].join('|'), 'i');
-const URL_RE = /https?:\/\/\S+/g;
-const PHONE = [
-  /\+\d[\d\s().-]{6,}\d/,
-  /\(\d{3}\)\s?\d{3}[\s.-]\d{4}/,
-  /\b\d{3}[\s.-]\d{3}[\s.-]\d{4}\b/,
-  /\b\d{2,4}[\s.-]\d{2,4}[\s.-]\d{3,4}[\s.-]\d{3,4}\b/,
-];
-const LONG_DIGITS = /\b\d{9,}\b/;
-const EMAIL_LIKE = [
-  /[^\s@]+@[^\s@]+/,
-  /\b[\w.+-]+\s*[[(]?\s*at\s*[\])]?\s*[\w-]+\s*[[(]?\s*dot\s*[\])]?\s*[a-z]{2,}\b/i,
-];
+// Never shipped, whatever the vault's .os-exclude says.
+const ALWAYS_EXCLUDED = /(^|\/)_NEVER-LOAD\.md$/i;
+const EXCLUDE_FILE = '.os-exclude';
 
 // ---- front matter (a small YAML subset: scalars, inline [a, b] lists and "- item" lists) -------------
 
@@ -91,15 +89,32 @@ function parseFrontmatter(text) {
 
 // ---- the drop filter -----------------------------------------------------------------------------------
 
-// Returns the reason a note must not leave this machine, or '' when it is clean. The reason is a category
-// name, never a piece of the note.
-function dropReason(text) {
-  const s = String(text);
-  if (DROP.test(s)) return 'blocked word or @';
-  const plain = s.replace(URL_RE, ' ');
-  if (PHONE.some((re) => re.test(plain)) || LONG_DIGITS.test(plain)) return 'phone number';
-  if (EMAIL_LIKE.some((re) => re.test(s))) return 'email-like string';
-  return '';
+// A vault-root .os-exclude file: one glob per line, "#" comments and blank lines ignored. A pattern with no "/" matches
+// that file name anywhere; "dir/" matches everything under dir; "**" crosses folders, "*" and "?" do not.
+function globToRegex(glob) {
+  let g = glob.trim().replace(/\\/g, '/');
+  const anywhere = !g.includes('/');
+  if (g.endsWith('/')) g += '**';
+  let re = '';
+  for (let i = 0; i < g.length; i += 1) {
+    const c = g[i];
+    if (c === '*') {
+      if (g[i + 1] === '*') { re += '.*'; i += 1; if (g[i + 1] === '/') i += 1; } else re += '[^/]*';
+    } else if (c === '?') re += '[^/]';
+    else re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  }
+  return new RegExp(anywhere ? `(^|/)${re}$` : `^${re}$`, 'i');
+}
+
+function readExcludes(vault) {
+  const file = path.join(vault, EXCLUDE_FILE);
+  if (!fs.existsSync(file)) return [];
+  return fs.readFileSync(file, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#')).map(globToRegex);
+}
+
+// The specific reasons a note must not leave this machine: [] when it is clean. Category names, never content.
+function dropReason(fields) {
+  return dropReasons(fields);
 }
 
 // ---- building ------------------------------------------------------------------------------------------
@@ -130,12 +145,13 @@ function buildPack(vault, opts) {
   const deskIds = o.deskIds || [];
   const kept = [];
   const dropped = [];
-  const skipped = { notes: 0 };
+  const excludes = readExcludes(vault);
   Object.keys(FOLDERS).forEach((folder) => {
     const dir = path.join(vault, folder);
     if (!fs.existsSync(dir)) return;
     walk(dir, []).forEach((file) => {
       const rel = path.relative(vault, file).replace(/\\/g, '/');
+      if (ALWAYS_EXCLUDED.test(rel) || excludes.some((re) => re.test(rel))) { dropped.push({ file: rel, reasons: ['excluded'] }); return; }
       const raw = fs.readFileSync(file, 'utf8');
       const { meta, body } = parseFrontmatter(raw);
       const heading = /^#\s+(.+)$/m.exec(body);
@@ -143,10 +159,9 @@ function buildPack(vault, opts) {
       const tags = (Array.isArray(meta.tags) ? meta.tags : []).map((t) => String(t).trim()).filter(Boolean).slice(0, 12).map((t) => t.slice(0, 40));
       const source = String(meta.source || '').trim().slice(0, 240);
       const url = typeof meta.url === 'string' && /^https?:\/\/[^\s@]+$/.test(meta.url.trim()) ? meta.url.trim().slice(0, 500) : '';
-      // Scanned: everything that would leave this machine (the channel handle is never exported).
-      const scanned = [title, tags.join(' '), source, typeof meta.url === 'string' ? meta.url : '', String(meta.status || ''), body].join('\n');
-      const reason = dropReason(scanned);
-      if (reason) { dropped.push({ file: rel, reason }); return; }
+      // Scanned: the title, the path and everything else that would leave this machine (the channel handle is never exported).
+      const reasons = dropReason({ title, path: rel, body, tags, source, url: typeof meta.url === 'string' ? meta.url : '', status: String(meta.status || '') });
+      if (reasons.length) { dropped.push({ file: rel, reasons }); return; }
       const stat = fs.statSync(file);
       const created = day(meta.date) || day(meta.created) || day(path.basename(file)) || day(stat.birthtime) || day(stat.mtime);
       const updated = day(meta.updated) || day(stat.mtime) || created;
@@ -238,6 +253,9 @@ async function main() {
     deskIds = (d.desks || []).concat(d.extraDesks || []).map((x) => String(x.id));
   } catch { /* desk ids are optional */ }
   const pack = buildPack(a.vault, { deskIds });
+  // The same check the notes feed runs on a push, so a pack the feed would refuse is caught here (field path only).
+  const checked = require('../api/ops/_os_feeds').validate('notes', pack.notes, { now: Date.now() });
+  if (!checked.ok) throw new Error('the notes feed would refuse this pack at ' + checked.reason + '; nothing was written');
   fs.writeFileSync(a.out, JSON.stringify({ builtAt: pack.builtAt, notes: pack.notes }));
   console.log(`Notes pack: ${pack.notes.length} kept, ${pack.dropped.length} dropped.`);
   const counts = {};
@@ -246,8 +264,11 @@ async function main() {
   if (pack.clipped) console.log(`Not included (over ${PACK_MAX_NOTES} notes): ${pack.clipped}`);
   if (pack.bodyCap < BODY_MAX) console.log(`Bodies cut to ${pack.bodyCap} characters to fit the feed size cap.`);
   if (pack.dropped.length) {
-    console.log('Dropped files (names only):');
-    pack.dropped.forEach((d) => console.log(`  ${d.file}  [${d.reason}]`));
+    const tally = {};
+    pack.dropped.forEach((d) => d.reasons.forEach((r) => { tally[r] = (tally[r] || 0) + 1; }));
+    console.log('Dropped by reason: ' + Object.keys(tally).sort().map((k) => `${k} ${tally[k]}`).join(', '));
+    console.log('Dropped files (names and reasons only, never content):');
+    pack.dropped.forEach((d) => console.log(`  ${d.file}  [${d.reasons.join(', ')}]`));
   }
   console.log('Wrote ' + a.out);
   if (a.push) {
@@ -259,7 +280,7 @@ async function main() {
   }
 }
 
-module.exports = { BODY_MAX, DROP, FOLDERS, OUT_FILE, PACK_MAX_BYTES, PUSH_URL, buildPack, dropReason, parseFrontmatter, push };
+module.exports = { BODY_MAX, FOLDERS, OUT_FILE, PACK_MAX_BYTES, PUSH_URL, buildPack, dropReason, globToRegex, parseFrontmatter, push, readExcludes };
 
 if (require.main === module) {
   main().catch((err) => { console.error(String(err && err.message || err)); process.exit(1); });

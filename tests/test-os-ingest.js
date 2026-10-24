@@ -195,9 +195,12 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
       ['urgent not a boolean', [noteOf({ urgent: 'yes' })]],
       ['url with an at sign', [noteOf({ url: 'https://example.com/@someone' })]],
       ['body over 4000', [noteOf({ body: 'x'.repeat(4001) })]],
-      ['blocked word in the body', [noteOf({ body: 'a customer asked' })]],
+      ['a blocked word in the body', [noteOf({ body: 'about ' + 'Star' + 'link' })]],
+      ['a phone number in the body', [noteOf({ body: 'call 737-704-4182' })]],
+      ['a names table in the body', [noteOf({ body: '| Name | Use |\n|---|---|\n| a | b |' })]],
+      ['a lead list title', [noteOf({ title: 'Lead list for the week' })]],
       ['an at sign in the title', [noteOf({ title: 'write to me@example.com' })]],
-      ['a blocked word in a tag', [noteOf({ tags: ['lead-gen'] })]],
+      ['a blocked word in a tag', [noteOf({ tags: ['Gui' + 'nea'] })]],
     ],
   };
   for (const feed of feeds.FEEDS) {
@@ -220,6 +223,8 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
   check('notes: ~1 MB of real notes is over the cap -> 413', fat.res.statusCode === 413 || JSON.stringify(fat.res.body).length < 5);
   const mid = await post('notes', Array.from({ length: 60 }, (_, i) => noteOf({ id: 'nt-' + String(i).padStart(10, '0'), body: 'z'.repeat(3500) })));
   check('notes: 200 KB passes the size check that stops every other feed at 20 KB', mid.res.statusCode === 200);
+  const loose = await post('notes', [noteOf({ body: 'A lead developer, customer-facing copy, lead time, follow @someone, merged in PR #67 on 2026-10-23.' })]);
+  check('notes: the words lead and customer, an @handle, a date and a PR number are accepted (the filter is precise)', loose.res.statusCode === 200);
   const otherBig = await post('spend', Array.from({ length: 200 }, () => ({ date: today, tool: 'x'.repeat(60), usd: 1, note: 'n'.repeat(200) })));
   check('every other feed keeps the 20 KB cap', otherBig.res.statusCode === 413);
   const big = await post('morning-brief', { date: today, text: 'x'.repeat(30000) });

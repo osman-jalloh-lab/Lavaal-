@@ -211,3 +211,19 @@ Settled by Osman Jalloh. Do not re-ask.
     - **Brain edges from `links[]` and `desk`:** a note's `links` give "links to" edges (both ends must exist) and its `desk` gives an
       "owned by" edge. The older exact-match relations are unchanged.
 
+## 2026-10-23 — Precise notes filter
+
+26. **The notes filter drops for specific reasons instead of any "@", "lead" or "customer".** It now lives in one module,
+    `api/ops/_notes_filter.js`, used by `scripts/build-notes-pack.js` and re-checked by the notes feed on a push. A note is dropped when its
+    title, path or body holds: a real **email** address (a bare "@handle" or a lone "@" is fine); a **phone** number (7 or more digits,
+    optional +, spaces, dashes, parentheses; dates, times, version numbers, PR numbers, sizes, year ranges, money and ids inside URLs or
+    identifiers are ignored); one of four **blocked words**; or **lead data**: a title or path naming a lead list, outreach batch, quote
+    request or RFQ, or a markdown table with a Name, Business, Contact, School or Hotel column. Everything else is kept, including notes
+    that only use the words "lead" or "customer".
+    - **Manual drops:** a vault-root `.os-exclude` file (one glob per line, `#` comments) drops matching paths as `excluded`;
+      `Skills/_NEVER-LOAD.md` is never shipped, whatever `.os-exclude` says.
+    - **Output:** counts kept and dropped, a tally by reason, then each dropped file name with its reasons (`email`, `phone`,
+      `blocked-word`, `lead-data`, `excluded`), never content. The builder also runs the feed's own validator over the pack before writing
+      it, so a pack the feed would refuse is caught on the PC.
+    - Still local: nothing is pushed by running the builder, and notes content is never committed.
+

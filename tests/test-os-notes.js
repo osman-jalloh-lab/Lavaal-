@@ -16,31 +16,84 @@ const { handleIngest } = require(path.join(root, 'api/ops/_os_ingest.js'));
 const results = [];
 function check(name, cond) { results.push({ name, pass: !!cond }); }
 
-// ================= 1. the drop filter, with planted bad notes =================
-const BAD = {
-  'blocked word one': 'we looked at ' + 'Star' + 'link kits',
-  'blocked word two, any case': 'market: ' + 'GUI' + 'NEA is blocked',
-  'an at sign': 'handle @someone said so',
-  'an email address': 'write to person at their address: a.b@example.org',
-  'the word lead': 'a hot lead from the daily run',
-  'leadership counts too': 'leadership notes',
-  'the word customer': 'the customer asked for a quote',
-  'US phone, dashes': 'call 737-704-4182 tomorrow',
-  'US phone, brackets': 'call (737) 704 4182',
-  'international phone': 'whatsapp +232 79 121651 now',
-  'long digit run': 'account 123456789012',
-  'email spelled out': 'reach me at name [at] example [dot] com',
-};
-Object.keys(BAD).forEach((k) => check(`dropped: ${k}`, builder.dropReason(`Title\n${BAD[k]}`) !== ''));
-const CLEAN = {
-  'a plain note': 'Scout found a tool for ads.',
-  'ISO dates': 'Decided 2026-09-25, updated 2026-10-01 14:32.',
-  'a tweet url with a long id': 'see https://x.com/user/status/2102481601435423209 for details',
-  'FR ids and money': 'FR-026 applies; cap is $25.00 per month.',
-};
-Object.keys(CLEAN).forEach((k) => check(`kept: ${k}`, builder.dropReason(CLEAN[k]) === ''));
-check('the drop pattern is exactly the one specified', String(builder.DROP) === '/' + ['star' + 'link', 'gui' + 'nea', '@', 'lead', 'customer'].join('|') + '/i');
-check('the reason names a category, never a piece of the note', builder.dropReason('secret ' + 'Star' + 'link plan') === 'blocked word or @');
+// ================= 1. the drop filter: planted notes for every reason, and false positives that must be KEPT =================
+const W1 = 'Star' + 'link', W2 = 'Gui' + 'nea', W3 = 'NA' + 'TCA', W4 = 'Space' + 'X';
+const reasonsOf = (f) => builder.dropReason(Object.assign({ title: 'A note', path: 'Ideas/a-note.md', body: '' }, f)).join(',');
+
+const DROPPED = [
+  // [label, fields, expected reasons]
+  ['email in the body', { body: 'write to a.b@example.org today' }, 'email'],
+  ['a business email', { body: 'use support@company.example.com' }, 'email'],
+  ['email in the title', { title: 'Mail me@example.org' }, 'email'],
+  ['email in the path', { path: 'Ideas/me@example.org.md' }, 'email'],
+  ['email in a tag', { tags: ['x@y.zz'] }, 'email'],
+  ['phone, dashes', { body: 'call 737-704-4182 tomorrow' }, 'phone'],
+  ['phone, brackets', { body: 'call (737) 704 4182' }, 'phone'],
+  ['phone, international', { body: 'whatsapp +232 79 121651 now' }, 'phone'],
+  ['phone, +1 with brackets', { body: 'whatsapp +1 (737) 704-4182' }, 'phone'],
+  ['phone, plain digits', { body: 'number 7377044182' }, 'phone'],
+  ['phone, dotted 3.3.4', { body: 'call 737.704.4182' }, 'phone'],
+  ['phone, seven digits', { body: 'ring 5551234 after lunch' }, 'phone'],
+  ['phone, local with brackets', { body: 'the shop (555-1234)' }, 'phone'],
+  ['phone in the title', { title: 'Call 737-704-4182' }, 'phone'],
+  ['blocked word one', { body: 'we looked at ' + W1 + ' kits' }, 'blocked-word'],
+  ['blocked word two, any case', { body: 'market: ' + W2.toUpperCase() + ' is blocked' }, 'blocked-word'],
+  ['blocked word three', { body: 'ask the ' + W3 + ' contact' }, 'blocked-word'],
+  ['blocked word four', { body: 'a ' + W4.toLowerCase() + ' engineer' }, 'blocked-word'],
+  ['blocked word in the title', { title: W1 + ' plan' }, 'blocked-word'],
+  ['blocked word in the path', { path: 'Ideas/' + W2 + '-notes.md' }, 'blocked-word'],
+  ['blocked word in a tag', { tags: [W4] }, 'blocked-word'],
+  ['lead list title', { title: 'Lead list for Freetown' }, 'lead-data'],
+  ['leads batch title', { title: 'SL leads batch 3' }, 'lead-data'],
+  ['leads and a list', { title: 'New leads, ready list' }, 'lead-data'],
+  ['outreach emails sent', { title: 'Outreach emails sent 22 Oct' }, 'lead-data'],
+  ['outreach batch', { title: 'Outreach batch two' }, 'lead-data'],
+  ['hotel batch', { title: 'Hotel batch approved' }, 'lead-data'],
+  ['school batch', { title: 'School batch drafts' }, 'lead-data'],
+  ['quote request', { title: 'Quote request from a buyer' }, 'lead-data'],
+  ['rfq title', { title: 'RFQ for tablets' }, 'lead-data'],
+  ['lead-data path', { path: 'Research/lead-list-2026.md' }, 'lead-data'],
+  ['table with a Name column', { body: '| Name | Status |\n|---|---|\n| X | open |' }, 'lead-data'],
+  ['table with a Business column', { body: '| Business | City |\n| --- | --- |\n| Y | Z |' }, 'lead-data'],
+  ['table with a Contact column', { body: 'intro\n\n| Role | Contact |\n|:--|:--|\n| a | b |' }, 'lead-data'],
+  ['table with a School column', { body: '| School | Year |\n|---|---|\n| a | 1 |' }, 'lead-data'],
+  ['table with a Hotel column', { body: '| Hotel | Rooms |\n|---|---|\n| a | 9 |' }, 'lead-data'],
+  ['table with Business Name header', { body: '| Business name | x |\n|---|---|\n| a | b |' }, 'lead-data'],
+  ['two reasons are both reported', { body: 'mail a@b.cc and call 737-704-4182' }, 'email,phone'],
+];
+DROPPED.forEach(([label, fields, want]) => check(`dropped (${want}): ${label}`, reasonsOf(fields) === want));
+
+const KEPT = [
+  ['a bare @handle', { body: 'follow @creator for tips' }],
+  ['an @ alone', { body: 'the @ symbol is used in mentions, e.g. @' }],
+  ['a handle with a path url', { body: 'see https://x.com/@creator/status/1 for the post' }],
+  ['the word lead', { body: 'a lead developer joined' }],
+  ['lead time', { body: 'supplier lead time is two weeks' }],
+  ['leadership', { body: 'leadership notes for the founders' }],
+  ['customer-facing', { body: 'keep the customer-facing page simple' }],
+  ['the word customer', { body: 'the customer journey map' }],
+  ['a title that only uses lead', { title: 'Lead time of the print run' }],
+  ['an ISO date', { body: 'Decided 2026-10-23, updated 2026-10-01.' }],
+  ['an ISO datetime', { body: 'ran at 2026-10-23T14:00:00Z' }],
+  ['a date in a file name', { path: 'Scout Finds/2026-10-23_find.md' }],
+  ['a compact date', { body: 'build 20261023 shipped' }],
+  ['times', { body: 'at 6:02 PM and 14:32:10' }],
+  ['a PR number', { body: 'merged in PR #67 and #1234' }],
+  ['a version number', { body: 'needs v10.14.6 or 1.2.3' }],
+  ['money', { body: 'cap is $25.00 and $1,234,567 in total' }],
+  ['a year range', { body: 'FY 2025-2026 plan' }],
+  ['a size', { body: 'a 1920x1080 (16:9) screen' }],
+  ['a ticket id', { body: 'see ABC-1234-56789 for details' }],
+  ['digits inside an identifier', { body: 'id abc12345678 is a hash' }],
+  ['a tweet id in a url', { body: 'see https://x.com/user/status/2102481601435423209 for details' }],
+  ['a score', { body: 'Jev 0.82 PASS, round 2 of 3, 12 notes' }],
+  ['a table without a name-like column', { body: '| Tool | Status |\n|---|---|\n| a | open |' }],
+  ['a plain table of numbers', { body: '| Day | Count |\n|---|---|\n| 1 | 10 |' }],
+  ['a title with "list" but no lead', { title: 'Reading list' }],
+  ['outreach with no batch or sent word', { title: 'Outreach plan ideas' }],
+];
+KEPT.forEach(([label, fields]) => check(`kept: ${label}`, reasonsOf(fields) === ''));
+check('a reason names a category, never a piece of the note', reasonsOf({ body: 'secret ' + W1 + ' plan 737-704-4182 a@b.cc' }) === 'blocked-word,email,phone');
 
 // ================= 2. building from a vault with planted files =================
 const vault = fs.mkdtempSync(path.join(os.tmpdir(), 'lavaall-vault-'));
@@ -50,18 +103,28 @@ function put(rel, text) {
   fs.writeFileSync(p, text);
 }
 const fm = (o, body) => '---\n' + Object.keys(o).map((k) => `${k}: ${o[k]}`).join('\n') + '\n---\n' + body;
-put('Ideas/Clean idea.md', fm({ type: 'idea', title: '"Clean idea"', date: '2026-10-01', tags: '[alpha, beta]', status: 'open', source: 'vault', owner: 'growth', level: 'L2' }, 'Plain body. See [[Second idea]].\n'));
+// kept (some use words the old filter dropped)
+put('Ideas/Clean idea.md', fm({ type: 'idea', title: '"Clean idea"', date: '2026-10-01', tags: '[alpha, beta]', status: 'open', source: 'vault', owner: 'growth', level: 'L2' }, 'Plain body. See [[Second idea]]. Follow @someone. A lead developer; customer-facing copy; lead time 2 weeks; PR #67.\n'));
 put('Ideas/Second idea.md', fm({ title: 'Second idea', tags: '\n  - gamma\n  - delta' }, 'x'.repeat(5000)));
-put('Ideas/Bad word.md', fm({ title: 'Bad one' }, 'about ' + 'Star' + 'link'));
-put('Ideas/Bad phone.md', fm({ title: 'Phone' }, 'call 737-704-4182'));
-put('Ideas/Bad at.md', fm({ title: 'At' }, 'ask me@example.com'));
-put('Ideas/old.bak.md', fm({ title: 'Backup' }, 'clean text but a backup'));
-put('Ideas/.hidden.md', fm({ title: 'Hidden' }, 'clean text but hidden'));
-put('Scout Finds/Find one.md', fm({ type: 'scout-find', title: '"A find"', date: '2026-10-05', source: 'x', channel: '"@creator"', url: '"https://x.com/creator/status/2102481601435423209"', status: 'parked', urgent: 'true', jev: '"not run"', tags: '[scout]' }, 'Found something useful.'));
+put('Scout Finds/Find one.md', fm({ type: 'scout-find', title: '"A find"', date: '2026-10-05', source: 'x', channel: '"@creator"', url: '"https://x.com/creator/status/2102481601435423209"', status: 'parked', urgent: 'true', jev: '"not run"', tags: '[scout]' }, 'Found something useful on 2026-10-05.'));
 put('Scout Finds/Find with handle url.md', fm({ type: 'scout-find', title: 'Handle url', date: '2026-10-06', url: '"https://x.com/@creator/status/1"' }, 'Clean text.'));
 put('Research/Note.md', '# Heading title\n\nNo front matter here.\n');
 put('Skills/Skill one.md', fm({ name: 'skill-one', description: '"A skill"' }, 'Use it.'));
 put('Decisions/Dec.md', fm({ id: 'D-1', title: 'Dec', level: 'L3', status: 'open' }, 'Decision text.'));
+// dropped, one per reason
+put('Ideas/Bad blocked.md', fm({ title: 'Bad one' }, 'about ' + W1));
+put('Ideas/Bad phone.md', fm({ title: 'Phone' }, 'call 737-704-4182'));
+put('Ideas/Bad email.md', fm({ title: 'Email' }, 'ask me@example.com'));
+put('Research/Lead list 2026.md', fm({ title: 'A list' }, 'clean body'));
+put('Research/Names table.md', fm({ title: 'Tools' }, '| Name | Use |\n|---|---|\n| a | b |\n'));
+put('Ideas/private-thing.md', fm({ title: 'Private' }, 'clean body but excluded by a glob'));
+put('Research/Secret/anything.md', fm({ title: 'Anything' }, 'clean body but its folder is excluded'));
+put('Ideas/draft-a.md', fm({ title: 'Draft A' }, 'clean body, excluded by **/draft-*.md'));
+put('Skills/_NEVER-LOAD.md', fm({ title: 'Never load' }, 'clean body, but never shipped'));
+put('.os-exclude', '# manual drops, one glob per line\n\nIdeas/private-*\nResearch/Secret/\n**/draft-*.md\n');
+// never read at all
+put('Ideas/old.bak.md', fm({ title: 'Backup' }, 'clean text but a backup'));
+put('Ideas/.hidden.md', fm({ title: 'Hidden' }, 'clean text but hidden'));
 put('Sessions/2026/Session.md', fm({ title: 'Session' }, 'clean session text'));
 put('Jev Scores/Score.md', fm({ title: 'Score' }, 'clean score text'));
 put('Templates/Template.md', fm({ title: 'Template' }, 'clean template text'));
@@ -70,11 +133,16 @@ put('Founder Rules.md', 'top-level file, not in an allowed folder');
 
 const pack = builder.buildPack(vault, { deskIds: ['growth', 'technical'] });
 const titles = pack.notes.map((n) => n.title);
+const reasonFor = (file) => (pack.dropped.find((d) => d.file === file) || { reasons: [] }).reasons.join(',');
 check('only the five allowed folders are read', pack.notes.every((n) => Object.keys(builder.FOLDERS).includes(n.folder)) && !titles.some((t) => /Session|Score|Template|Backup|Hidden|readme/.test(t)));
-check('clean notes are kept (the handle-url scout find is dropped for its @)', ['Clean idea', 'Second idea', 'A find', 'Heading title', 'Skill one', 'Dec'].every((t) => titles.includes(t)) && !titles.includes('Handle url') && pack.notes.length === 6);
-check('the four planted bad notes are dropped, by file name', pack.dropped.length === 4 && ['Ideas/Bad word.md', 'Ideas/Bad phone.md', 'Ideas/Bad at.md', 'Scout Finds/Find with handle url.md'].every((f) => pack.dropped.some((d) => d.file === f)));
-check('dropped entries hold a file name and a category only', pack.dropped.every((d) => Object.keys(d).sort().join() === 'file,reason'));
-check('no dropped content is in the pack', !JSON.stringify(pack).includes('Star' + 'link') && !JSON.stringify(pack).includes('737-704') && !JSON.stringify(pack).includes('me@example.com'));
+check('notes that only use "lead", "customer", an @handle, a date or a PR number are KEPT', ['Clean idea', 'Second idea', 'A find', 'Handle url', 'Heading title', 'Skill one', 'Dec'].every((t) => titles.includes(t)) && pack.notes.length === 7);
+check('a scout find whose url holds an @handle is kept, only the url is left out', pack.notes.find((n) => n.title === 'Handle url').url === undefined);
+check('dropped, with the specific reason for each file', reasonFor('Ideas/Bad blocked.md') === 'blocked-word' && reasonFor('Ideas/Bad phone.md') === 'phone' && reasonFor('Ideas/Bad email.md') === 'email' && reasonFor('Research/Lead list 2026.md') === 'lead-data' && reasonFor('Research/Names table.md') === 'lead-data');
+check('.os-exclude drops by glob: a file pattern, a folder, and **/ patterns', reasonFor('Ideas/private-thing.md') === 'excluded' && reasonFor('Research/Secret/anything.md') === 'excluded' && reasonFor('Ideas/draft-a.md') === 'excluded');
+check('Skills/_NEVER-LOAD.md is never shipped', reasonFor('Skills/_NEVER-LOAD.md') === 'excluded' && !titles.includes('Never load'));
+check('exactly nine dropped, no more', pack.dropped.length === 9);
+check('dropped entries hold a file name and reasons only', pack.dropped.every((d) => Object.keys(d).sort().join() === 'file,reasons' && Array.isArray(d.reasons) && d.reasons.length > 0));
+check('no dropped content is in the pack', !JSON.stringify(pack.notes).includes(W1) && !JSON.stringify(pack.notes).includes('737-704') && !JSON.stringify(pack.notes).includes('me@example.com') && !JSON.stringify(pack.notes).includes('Never load'));
 const one = pack.notes.find((n) => n.title === 'Clean idea');
 check('front matter: tags, status, level, desk (known desks only), dates, type', one.tags.join() === 'alpha,beta' && one.status === 'open' && one.level === 'L2' && one.desk === 'growth' && one.date === '2026-10-01' && one.type === 'idea' && one.folder === 'Ideas');
 const second = pack.notes.find((n) => n.title === 'Second idea');
@@ -84,8 +152,9 @@ check('a [[wikilink]] to a kept note becomes a link by id', one.links.join() ===
 check('a note without front matter takes its heading as the title and has no jev', pack.notes.find((n) => n.title === 'Heading title').jev === 'not run');
 const find = pack.notes.find((n) => n.title === 'A find');
 check('a scout find keeps urgent and its url; the channel handle is never exported', find.urgent === true && /status\/2102481601435423209/.test(find.url) && !('channel' in find) && !JSON.stringify(pack).includes('@creator'));
-check('every pack note passes the feed validator, so a push would be accepted', feeds.validate('notes', pack.notes, { now: Date.now(), deskIds: null }).ok === true);
+check('every pack note passes the feed validator, so a push would be accepted (kept notes may use "lead", "customer", @handle)', feeds.validate('notes', pack.notes, { now: Date.now(), deskIds: null }).ok === true);
 check('the newest note comes first', pack.notes[0].date >= pack.notes[pack.notes.length - 1].date);
+check('globToRegex: * stays in a folder, ** crosses folders, a bare name matches anywhere', builder.globToRegex('Ideas/*.md').test('Ideas/a.md') && !builder.globToRegex('Ideas/*.md').test('Ideas/x/a.md') && builder.globToRegex('**/a.md').test('Ideas/x/a.md') && builder.globToRegex('a.md').test('Ideas/x/a.md') && builder.globToRegex('Research/').test('Research/x/y.md') && !builder.globToRegex('Research/').test('Ideas/Research/y.md'));
 fs.rmSync(vault, { recursive: true, force: true });
 
 // ================= 3. gitignore and git =================
