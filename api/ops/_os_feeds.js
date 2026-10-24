@@ -22,8 +22,9 @@ const MAX_NOTES = 500;
 const NOTE_TYPES = Object.freeze(['idea', 'scout-find', 'decision', 'note']);
 const NOTE_FOLDERS = Object.freeze(['Ideas', 'Scout Finds', 'Research', 'Skills', 'Decisions']);
 const NOTE_ID_RE = /^nt-[0-9a-f]{10}$/;
-// Same words the notes builder drops; the endpoint refuses them too, so a hand-made push cannot slip them in.
-const NOTE_BLOCK = new RegExp(['star' + 'link', 'gui' + 'nea', '@', 'lead', 'customer'].join('|'), 'i');
+// The same detector the notes builder uses (api/ops/_notes_filter.js): the endpoint refuses what the builder drops. It is
+// precise: only emails, phone numbers, four blocked words and lead tables, not the words "lead" or "customer".
+const { dropReasons } = require('./_notes_filter');
 
 function maxBytesFor(feed) { return feed === 'notes' ? NOTES_MAX_BYTES : MAX_BYTES; }
 const MAX_BRIEF = 6000;
@@ -210,7 +211,7 @@ function validateNotes(body, ctx) {
       if (typeof n.url !== 'string' || n.url.length > 500 || !/^https?:\/\/[^\s@]+$/.test(n.url)) return bad(`[${i}].url`);
       row.url = n.url;
     }
-    if (NOTE_BLOCK.test([row.title, row.tags.join(' '), row.source, row.status, row.url || '', row.body].join('\n'))) return bad(`[${i}].body`);
+    if (dropReasons({ title: row.title, tags: row.tags, source: row.source, status: row.status, url: row.url || '', body: row.body }).length) return bad(`[${i}].body`);
     rows.push(row);
   }
   return { ok: true, value: rows };
