@@ -75,9 +75,21 @@ async function run() {
   process.env.BOOKING_WEBHOOK_URL = 'https://example.test/booking';
   process.env.BOOKING_WEBHOOK_SECRET = 'test-secret';
 
-  // availability (GET)
+  // availability (public GET, webhook POST)
   {
-    global.fetch = async (url) => { check('availability GET forwards the date param', String(url).includes('date=2026-09-07')); return { ok: true, status: 200, json: async () => ({ ok: true, slots: [] }) }; };
+    global.fetch = async (url, opts) => {
+      const sent = JSON.parse(opts.body);
+      check('availability POSTs the date in JSON and not the query string',
+        opts.method === 'POST'
+        && !String(url).includes('?')
+        && !String(url).includes('date=')
+        && sent.action === 'availability'
+        && sent.date === '2026-09-07'
+        && !Object.prototype.hasOwnProperty.call(sent, 'secret'));
+      check('availability sends the webhook secret in a header',
+        opts.headers['X-Booking-Webhook-Secret'] === 'test-secret');
+      return { ok: true, status: 200, json: async () => ({ ok: true, slots: [] }) };
+    };
     const req = { method: 'GET', query: { action: 'availability', date: '2026-09-07' } };
     const res = mockRes();
     await scheduleMod(req, res);
@@ -92,18 +104,34 @@ async function run() {
     check('register rejects an invalid reason code (400)', res.statusCode === 400);
   }
 
-  // register: valid payload proxies through with action+secret attached
+  // register: valid payload proxies through with action in the body and the secret in a header
   {
     let sentBody = null;
-    global.fetch = async (url, opts) => { sentBody = JSON.parse(opts.body); return { ok: true, status: 200, json: async () => ({ ok: true, leadId: 'SCH-1', token: 'tok' }) }; };
+    let sentHeaders = null;
+    let sentUrl = '';
+    let sentMethod = '';
+    global.fetch = async (url, opts) => {
+      sentUrl = String(url);
+      sentMethod = opts.method;
+      sentHeaders = opts.headers;
+      sentBody = JSON.parse(opts.body);
+      return { ok: true, status: 200, json: async () => ({ ok: true, leadId: 'SCH-1', token: 'tok' }) };
+    };
     const req = { method: 'POST', headers: { host: 'www.lavaall.com' }, body: {
       action: 'register', firstName: 'Jean', lastName: 'Kamara', email: 'reg-test@example.com', phone: '+232 76 000 000',
       country: 'Sierra Leone', reason: 'sales-quotation', preferredContactMethod: 'email', consent: true, language: 'fr',
     }};
     const res = mockRes();
     await scheduleMod(req, res);
-    check('register succeeds (200) and proxies action=register with the secret attached',
-      res.statusCode === 200 && sentBody.action === 'register' && sentBody.secret === 'test-secret' && sentBody.language === 'fr');
+    check('register succeeds (200) and proxies action=register with the secret in a header',
+      res.statusCode === 200
+      && sentMethod === 'POST'
+      && sentBody.action === 'register'
+      && !Object.prototype.hasOwnProperty.call(sentBody, 'secret')
+      && sentHeaders['X-Booking-Webhook-Secret'] === 'test-secret'
+      && sentBody.language === 'fr'
+      && !sentUrl.includes('reg-test@example.com')
+      && !sentUrl.includes('232'));
   }
 
   // book: rejects malformed date/time
