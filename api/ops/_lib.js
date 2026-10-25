@@ -268,12 +268,18 @@ function cookieSecure(req) {
   return !(host.startsWith('localhost') || host.startsWith('127.0.0.1'));
 }
 
-function buildCookie(name, value, req, maxAgeSec) {
+function buildCookie(name, value, req, maxAgeSec, sameSite) {
+  // Lax is the default because the Google OAuth state cookie and the /os
+  // return cookie are set before the browser leaves for accounts.google.com.
+  // SameSite=Strict is omitted on that cross-site top-level return, which
+  // would fail the state/PKCE check and drop the /os return path. The session
+  // cookie is minted on the callback response, so it can be Strict.
+  const site = sameSite === 'Strict' ? 'Strict' : 'Lax';
   const parts = [
     `${name}=${value}`,
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax',
+    `SameSite=${site}`,
     `Max-Age=${maxAgeSec}`,
   ];
   if (cookieSecure(req)) parts.push('Secure');
@@ -281,7 +287,7 @@ function buildCookie(name, value, req, maxAgeSec) {
 }
 
 function cookieHeader(value, req, maxAgeSec) {
-  return buildCookie(SESSION_COOKIE, value, req, maxAgeSec);
+  return buildCookie(SESSION_COOKIE, value, req, maxAgeSec, 'Strict');
 }
 
 function sessionCookie(token, req) {

@@ -15,6 +15,7 @@ const {
   readStore,
   resolveChatContext,
 } = require('./_store');
+const { fenceUntrustedData, untrustedDataRule } = require('./_untrusted');
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
@@ -93,17 +94,21 @@ function formatContextBlock(context) {
   return lines.join('\n');
 }
 
-function systemPrompt(route, context) {
+function systemPrompt(route) {
   const helpers = Array.isArray(route && route.helperAgents) ? route.helperAgents.join(', ') : 'none';
   return [
     'You are the LAVAALL OS assistant, a helper to lead agent lavaall-ceo.',
     `CEO router: lead=${route && route.leadAgent || CEO_ID} verb=${route && route.verb || ''} risk=${route && route.risk || ''} helpers=${helpers}.`,
-    'Use only the selected goal/task/note records. Do not invent prices, SKUs, legal positions, owners, or completions.',
+    untrustedDataRule(),
+    'Use only the selected goal/task/note records in the untrusted-data block. Do not invent prices, SKUs, legal positions, owners, or completions.',
     'Drafts only. Never send mail, never deploy, never claim a store write happened.',
     'If you propose a store change, append one fenced JSON block: ```LAVAALL_DRAFT\\n{"kind":"add-note","title":"...","body":"..."}\\n```',
     'Allowed draft kinds: save-goal, add-task, add-note, update-task. No send-mail or deploy kinds.',
-    formatContextBlock(context),
   ].join('\n');
+}
+
+function modelUserContent(question, context) {
+  return `${fenceUntrustedData(formatContextBlock(context))}\n\n${question}`;
 }
 
 function extractDrafts(text) {
@@ -143,8 +148,8 @@ async function completeAnthropic({ question, context, route }) {
     body: JSON.stringify({
       model: process.env.OPS_CHAT_ANTHROPIC_MODEL || 'claude-haiku-5-5',
       max_tokens: 600,
-      system: systemPrompt(route, context),
-      messages: [{ role: 'user', content: question }],
+      system: systemPrompt(route),
+      messages: [{ role: 'user', content: modelUserContent(question, context) }],
     }),
   });
   if (!response.ok) return { error: 'helper_failed', status: response.status, message: helperFailedMessage(response.status) };
@@ -167,8 +172,8 @@ async function completeOpenAI({ question, context, route }) {
       model: process.env.OPS_CHAT_OPENAI_MODEL || 'gpt-4o-mini',
       max_tokens: 600,
       messages: [
-        { role: 'system', content: systemPrompt(route, context) },
-        { role: 'user', content: question },
+        { role: 'system', content: systemPrompt(route) },
+        { role: 'user', content: modelUserContent(question, context) },
       ],
     }),
   });
@@ -326,6 +331,7 @@ module.exports = {
   extractDrafts,
   formatContextBlock,
   groundedReply,
+  modelUserContent,
   looksLikeNextStepAsk,
   modelConfigured,
   pinTalkAgent,
