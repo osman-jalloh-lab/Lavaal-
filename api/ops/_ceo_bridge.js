@@ -27,7 +27,14 @@ const {
   wantsJson,
 } = require('./_lib');
 const { readLiveSession } = require('./_signin_hardening');
-const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
+const {
+  formatKitsCountSentence,
+  formatKitsTrustedLine,
+  kitsSummary,
+  notesSelectableForChat,
+  readStore,
+  unfinishedTasks,
+} = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
 const { agentPendingItem } = require('./_untrusted');
@@ -314,6 +321,19 @@ function statusReplyFromContext(context) {
   }
   if (!lines.length) return 'No Goal or open Tasks are loaded right now.';
   return lines.join(' ');
+}
+
+function isKitsCountAsk(text) {
+  const body = normalizeAskText(text).toLowerCase();
+  if (!body) return false;
+  if (/\bhow many (?:kits|kids) are active\b/.test(body)) return true;
+  if (/\bactive kits\b/.test(body)) return true;
+  if (/\bkit count\b/.test(body)) return true;
+  return false;
+}
+
+function kitsCountReply(summary) {
+  return formatKitsCountSentence(summary);
 }
 
 function isPreviousMessageAsk(text) {
@@ -974,27 +994,29 @@ function formatCeoStoreContext(data, options) {
   const includeGoal = mode !== 'phatic' && Boolean(goal);
   const includeTasks = (mode === 'status' || mode === 'default') && tasks.length > 0;
   const includeNotes = mode !== 'phatic' && notes.length > 0;
+  const includeKits = mode === 'status' || mode === 'default' || mode === 'answer_first';
   if (!includeGoal && !includeTasks && !includeNotes) {
     lines.push('None loaded. Do not invent goals, tasks, notes, prices, SKUs, or legal positions.');
-    return lines.join('\n');
+  } else {
+    if (includeGoal) {
+      lines.push(`Goal: ${goal.title}`);
+      if (goal.definitionOfDone) lines.push(`Definition of done: ${goal.definitionOfDone}`);
+      if (goal.nextStep) lines.push(`Next step: ${goal.nextStep}`);
+      if (goal.targetDate) lines.push(`Target date: ${goal.targetDate}`);
+    }
+    if (includeTasks) {
+      tasks.forEach((task) => {
+        lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
+        if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
+      });
+    }
+    if (includeNotes) {
+      notes.forEach((note) => {
+        lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
+      });
+    }
   }
-  if (includeGoal) {
-    lines.push(`Goal: ${goal.title}`);
-    if (goal.definitionOfDone) lines.push(`Definition of done: ${goal.definitionOfDone}`);
-    if (goal.nextStep) lines.push(`Next step: ${goal.nextStep}`);
-    if (goal.targetDate) lines.push(`Target date: ${goal.targetDate}`);
-  }
-  if (includeTasks) {
-    tasks.forEach((task) => {
-      lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
-      if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
-    });
-  }
-  if (includeNotes) {
-    notes.forEach((note) => {
-      lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
-    });
-  }
+  if (includeKits) lines.push(formatKitsTrustedLine(data));
   return lines.join('\n');
 }
 
@@ -1008,9 +1030,10 @@ async function loadCeoTrustedContext(options) {
         ? unfinishedTasks(data || {}).slice(0, 12)
         : [],
       notes: mode === 'phatic' ? [] : notesSelectableForChat(data || {}).slice(0, 8),
+      kitsSummary: kitsSummary(data),
     };
   } catch {
-    return { goal: null, tasks: [], notes: [] };
+    return { goal: null, tasks: [], notes: [], kitsSummary: kitsSummary(null) };
   }
 }
 
@@ -1138,6 +1161,29 @@ async function completeXaiCeoReply({ threadId, correlationId, explicitWake }) {
   const founder = founderByCorrelation(claim.thread, correlationId) || lastFounderMessage(claim.thread);
   const founderText = founder && founder.text ? founder.text : '';
   const mode = classifyCeoAsk(founderText);
+  if (isKitsCountAsk(founderText)) {
+    let summary = null;
+    try {
+      summary = kitsSummary(await readStore());
+    } catch {
+      summary = kitsSummary(null);
+    }
+    const replied = await appendOwnedCeoReply({
+      threadId,
+      correlationId,
+      owner: 'xai_runtime',
+      text: kitsCountReply(summary),
+    });
+    if (replied.error) {
+      return runtimeUnavailableNotice({
+        threadId,
+        correlationId,
+        explicitWake,
+        wakeReason: 'xai_unavailable',
+      });
+    }
+    return Object.assign({}, replied, { usedModel: false, provider: '' });
+  }
   // Pure greetings must not call xAI with Goal + unfinished Tasks injected.
   if (mode === 'phatic') {
     const replied = await appendOwnedCeoReply({
@@ -1489,9 +1535,11 @@ Object.assign(module.exports, {
   handleCeoBridge,
   inspectCeoThread,
   isExplicitWake,
+  isKitsCountAsk,
   isPhaticGreeting,
   isPreviousMessageAsk,
   isStatusAsk,
+  kitsCountReply,
   previousFounderMessage,
   previousMessageReply,
   listPending,

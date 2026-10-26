@@ -6,11 +6,14 @@
 
 const { classify, CEO_ID } = require('../slack/_router/classify');
 const { talkToDesk } = require('./_agent_thread');
+const { isKitsCountAsk, kitsCountReply } = require('./_ceo_bridge');
 const { TALK_AGENT_IDS, normalizeTalkAgentId } = require('./_office');
 const {
   addChatProposals,
   appendChatTurn,
+  formatKitsTrustedLine,
   getSharedChat,
+  kitsSummary,
   notesSelectableForChat,
   readStore,
   resolveChatContext,
@@ -52,6 +55,10 @@ function looksLikeNextStepAsk(text) {
 }
 
 function groundedReply(question, context) {
+  if (isKitsCountAsk(question)) {
+    const summary = context && context.kitsSummary ? context.kitsSummary : kitsSummary(context);
+    return kitsCountReply(summary);
+  }
   if (!looksLikeNextStepAsk(question)) return null;
   if (context && context.goal) {
     if (context.goal.nextStep) {
@@ -75,21 +82,22 @@ function formatContextBlock(context) {
   const lines = ['Selected context (visible to the founder before send):'];
   if (!context || !context.selected) {
     lines.push('None selected.');
-    return lines.join('\n');
+  } else {
+    if (context.goal) {
+      lines.push(`Goal: ${context.goal.title}`);
+      if (context.goal.definitionOfDone) lines.push(`Definition of done: ${context.goal.definitionOfDone}`);
+      if (context.goal.nextStep) lines.push(`Next step: ${context.goal.nextStep}`);
+      if (context.goal.targetDate) lines.push(`Target date: ${context.goal.targetDate}`);
+    }
+    (context.tasks || []).forEach((task) => {
+      lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
+      if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
+    });
+    (context.notes || []).forEach((note) => {
+      lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
+    });
   }
-  if (context.goal) {
-    lines.push(`Goal: ${context.goal.title}`);
-    if (context.goal.definitionOfDone) lines.push(`Definition of done: ${context.goal.definitionOfDone}`);
-    if (context.goal.nextStep) lines.push(`Next step: ${context.goal.nextStep}`);
-    if (context.goal.targetDate) lines.push(`Target date: ${context.goal.targetDate}`);
-  }
-  (context.tasks || []).forEach((task) => {
-    lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
-    if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
-  });
-  (context.notes || []).forEach((note) => {
-    lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
-  });
+  lines.push(formatKitsTrustedLine(context));
   return lines.join('\n');
 }
 
@@ -98,7 +106,7 @@ function systemPrompt(route, context) {
   return [
     'You are the LAVAALL OS assistant, a helper to lead agent lavaall-ceo.',
     `CEO router: lead=${route && route.leadAgent || CEO_ID} verb=${route && route.verb || ''} risk=${route && route.risk || ''} helpers=${helpers}.`,
-    'Use only the selected goal/task/note records. Do not invent prices, SKUs, legal positions, owners, or completions.',
+    'Use only the selected goal/task/note records and the kit count summary (counts only). Do not invent prices, SKUs, legal positions, owners, completions, kit numbers, names, or emails.',
     'Drafts only. Never send mail, never deploy, never claim a store write happened.',
     'If you propose a store change, append one fenced JSON block: ```LAVAALL_DRAFT\\n{"kind":"add-note","title":"...","body":"..."}\\n```',
     'Allowed draft kinds: save-goal, add-task, add-note, update-task. No send-mail or deploy kinds.',
@@ -314,6 +322,7 @@ function selectableContext(storeData) {
     goal: storeData && storeData.goal ? storeData.goal : null,
     tasks: storeData && Array.isArray(storeData.tasks) ? storeData.tasks : [],
     notes: notesSelectableForChat(storeData || {}),
+    kitsSummary: kitsSummary(storeData),
   };
 }
 
