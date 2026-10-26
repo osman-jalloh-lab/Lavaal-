@@ -103,12 +103,83 @@ function agentPendingItem(item) {
   return next;
 }
 
+// Unconfirmed tool/side-effect asks stay in the queue until a founder
+// confirms and the box completes, or the founder declines.
+function isHeldAction(item) {
+  if (!item || item.founderConfirmed === true) return false;
+  const view = agentPendingItem(item);
+  return view.actionRequested === true && view.actionStatus === 'needs_founder_confirm';
+}
+
+const SOURCE_LABELS = Object.freeze({
+  'ops-office': 'Office',
+  'ops-chat': 'Chat',
+  ops_chat: 'Chat',
+  ops_ceo_send: 'CEO Talk',
+  'ceo-assign': 'Assign',
+  'desk-talk': 'Desk Talk',
+  slash_command: 'Slack',
+});
+
+function sourceLabel(source) {
+  const key = normalizeSource(source);
+  if (Object.prototype.hasOwnProperty.call(SOURCE_LABELS, key)) return SOURCE_LABELS[key];
+  return key || 'Unknown';
+}
+
+function summarizeQueuedText(text, max) {
+  const limit = Number.isFinite(max) && max > 8 ? Math.floor(max) : 140;
+  const flat = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!flat) return 'Queued action';
+  if (flat.length <= limit) return flat;
+  return `${flat.slice(0, limit - 1)}…`;
+}
+
+function heldActionView(item, email) {
+  if (!isHeldAction(item)) return null;
+  const who = normalizeEmail(email);
+  if (who && normalizeEmail(item.founderEmail) !== who) return null;
+  return {
+    messageId: cleanLabel(item.messageId, 40),
+    summary: summarizeQueuedText(item.text),
+    sender: cleanLabel(item.sender || item.founderEmail, 120) || 'unknown',
+    source: normalizeSource(item.source) || 'unknown',
+    sourceLabel: sourceLabel(item.source),
+  };
+}
+
+function heldActionsForFounder(items, email) {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => heldActionView(item, email))
+    .filter(Boolean);
+}
+
+// Bearer reply bodies are ids and status only. Callers must not pass text.
+function bearerStatusBody(fields) {
+  const src = fields && typeof fields === 'object' ? fields : {};
+  const body = {
+    ok: true,
+    replay: src.replay === true,
+  };
+  ['threadId', 'messageId', 'correlationId', 'taskId', 'status', 'assignStatus', 'lead'].forEach((key) => {
+    if (typeof src[key] === 'string' && src[key]) body[key] = src[key];
+  });
+  if (typeof src.waiting === 'boolean') body.waiting = src.waiting;
+  return body;
+}
+
 module.exports = {
   FOUNDER_SOURCES,
   UNTRUSTED_BEGIN,
   UNTRUSTED_END,
   agentPendingItem,
   allowsInstruction,
+  bearerStatusBody,
+  heldActionsForFounder,
+  heldActionView,
+  isHeldAction,
   presentQueuedForAgent,
   requestsSideEffect,
+  sourceLabel,
+  summarizeQueuedText,
 };

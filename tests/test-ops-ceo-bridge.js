@@ -228,11 +228,21 @@ async function run() {
         pendingId,
       },
     }), replied);
+    const inspectedReply = await ceo.inspectCeoThread(queued.thread.id);
+    const storedReply = (inspectedReply.thread.messages || []).some((item) => (
+      item.role === 'ceo' && item.text === 'Preview is on track. No deploy.'
+    ));
+    const replyEcho = JSON.stringify(replied.body || {});
     check('CEO reply appends and clears pending',
       replied.statusCode === 200
       && replied.body.ok === true
-      && replied.body.thread.status === 'answered'
-      && replied.body.thread.messages.some((item) => item.role === 'ceo' && item.text === 'Preview is on track. No deploy.'));
+      && replied.body.status === 'answered'
+      && replied.body.threadId === queued.thread.id
+      && replied.body.replay === false
+      && storedReply
+      && !replyEcho.includes('Preview is on track')
+      && !replyEcho.includes('Need a Preview status')
+      && !replied.body.thread);
 
     const after = await ceo.listPending();
     check('pending list is empty after reply',
@@ -246,9 +256,12 @@ async function run() {
         pendingId,
       },
     }), replay);
-    const ceoNotes = (replay.body.thread.messages || []).filter((item) => item.role === 'ceo');
+    const ceoNotes = ((await ceo.inspectCeoThread(queued.thread.id)).thread.messages || []).filter((item) => item.role === 'ceo');
     check('replayed reply does not append again',
-      replay.statusCode === 200 && replay.body.replay === true && ceoNotes.length === 1);
+      replay.statusCode === 200
+      && replay.body.replay === true
+      && ceoNotes.length === 1
+      && !JSON.stringify(replay.body || {}).includes('Preview is on track'));
 
     const visible = mockRes();
     await ops(authed({
@@ -572,13 +585,13 @@ async function run() {
         pendingId: 'corr-xai-1',
       },
     }), bridgeAfter);
+    const inspected = await ceo.inspectCeoThread(first.body.thread.id);
     check('B2 reply is a replay when xAI already owned that founder message',
       bridgeAfter.statusCode === 200
       && bridgeAfter.body.replay === true
-      && bridgeAfter.body.thread.messages.filter((item) => item.role === 'ceo').length === 1
-      && !bridgeAfter.body.thread.messages.some((item) => item.text === 'Second brain must not append.'));
-
-    const inspected = await ceo.inspectCeoThread(first.body.thread.id);
+      && inspected.thread.messages.filter((item) => item.role === 'ceo').length === 1
+      && !inspected.thread.messages.some((item) => item.text === 'Second brain must not append.')
+      && !JSON.stringify(bridgeAfter.body || {}).includes('Second brain'));
     const internalFounder = inspected.thread.messages.find((item) => item.role === 'founder');
     const internalCeo = inspected.thread.messages.find((item) => item.role === 'ceo');
     check('KV provenance records xAI ownership and correlation',
@@ -925,11 +938,13 @@ async function run() {
         pendingId: 'corr-fail-1',
       },
     }), recovered);
+    const recoveredThread = await ceo.inspectCeoThread(failed.body.thread.id);
     check('B2 does not append a second CEO turn after the runtime notice',
       recovered.statusCode === 200
       && recovered.body.replay === true
-      && recovered.body.thread.messages.filter((item) => item.role === 'ceo').length === 1
-      && !recovered.body.thread.messages.some((item) => item.text === 'Bridge recovered the turn.'));
+      && recoveredThread.thread.messages.filter((item) => item.role === 'ceo').length === 1
+      && !recoveredThread.thread.messages.some((item) => item.text === 'Bridge recovered the turn.')
+      && !JSON.stringify(recovered.body || {}).includes('Bridge recovered'));
 
     ceo.resetCeoBridge();
     global.fetch = async (_url, opts) => {

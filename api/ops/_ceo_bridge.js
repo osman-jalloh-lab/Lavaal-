@@ -30,7 +30,7 @@ const { readLiveSession } = require('./_signin_hardening');
 const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
-const { agentPendingItem } = require('./_untrusted');
+const { agentPendingItem, bearerStatusBody, heldActionsForFounder, isHeldAction } = require('./_untrusted');
 const { handleRoutineHealth } = require('./_routine_health');
 
 const CEO_DESK_ID = 'lavaall-ceo';
@@ -599,6 +599,7 @@ function ceoBridgeKind(req) {
   const hay = `${areaKey} ${pathKey}`;
   if (hay.includes('api/ceo-bridge/message')) return 'message';
   if (hay.includes('api/ceo-bridge/pending')) return 'pending';
+  if (hay.includes('api/ceo-bridge/decline')) return 'decline';
   if (hay.includes('api/ceo-bridge/confirm')) return 'confirm';
   if (hay.includes('api/ceo-bridge/reply')) return 'reply';
   if (hay.includes('api/ceo-bridge/thread')) return 'thread';
@@ -715,6 +716,13 @@ async function listPending() {
   });
 }
 
+function pendingKeptAfterReply(list, threadId) {
+  const id = clean(threadId, 40);
+  return (Array.isArray(list) ? list : []).filter((item) => (
+    !item || item.threadId !== id || isHeldAction(item)
+  ));
+}
+
 async function postCeoReply({ threadId, text, pendingId, messageId, correlationId }) {
   return mutate(async () => {
     const id = clean(threadId, 40);
@@ -732,7 +740,7 @@ async function postCeoReply({ threadId, text, pendingId, messageId, correlationI
       || ownedBy === 'xai_runtime'
     ) {
       const open = await readPending();
-      const pending = open.filter((item) => item.threadId !== current.id);
+      const pending = pendingKeptAfterReply(open, current.id);
       if (pending.length !== open.length) await writePending(pending);
       return { ok: true, replay: true, thread: publicThread(current) };
     }
@@ -764,9 +772,15 @@ async function postCeoReply({ threadId, text, pendingId, messageId, correlationI
       answeredIds,
     });
     await writeThread(thread);
-    const pending = (await readPending()).filter((item) => item.threadId !== thread.id);
+    const pending = pendingKeptAfterReply(await readPending(), thread.id);
     await writePending(pending);
-    return { ok: true, replay: false, thread: publicThread(thread) };
+    return {
+      ok: true,
+      replay: false,
+      thread: publicThread(thread),
+      messageId: message.id,
+      correlationId: claimId || '',
+    };
   });
 }
 
@@ -1386,6 +1400,37 @@ async function confirmPendingAction({ messageId, founderEmail }) {
   });
 }
 
+async function declinePendingAction({ messageId, founderEmail }) {
+  const who = normalizeEmail(founderEmail);
+  if (!who || !isAllowlisted(who)) return { error: 'forbidden' };
+  const id = clean(messageId, 40);
+  if (!id) return { error: 'pending_not_found' };
+  return mutate(async () => {
+    const list = await readPending();
+    const item = list.find((row) => row.messageId === id || row.correlationId === id);
+    if (!item) return { error: 'pending_not_found' };
+    const view = agentPendingItem(item);
+    if (!view.actionRequested) return { error: 'no_action' };
+    if (view.instruction !== 'founder') return { error: 'action_forbidden' };
+    const next = list.filter((row) => row.messageId !== item.messageId);
+    await writePending(next);
+    return {
+      ok: true,
+      pending: {
+        messageId: item.messageId,
+        actionStatus: 'declined',
+        mayAct: false,
+      },
+    };
+  });
+}
+
+async function listHeldForFounder(email) {
+  const result = await listPending();
+  if (!result || result.error) return [];
+  return heldActionsForFounder(result.pending, email);
+}
+
 async function handleConfirm(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
   const access = await founderGuard(req);
@@ -1399,6 +1444,21 @@ async function handleConfirm(req, res) {
   });
   if (result.error) return sendBridgeError(req, res, result.error);
   return sendJson(res, 200, { ok: true, replay: Boolean(result.replay), pending: result.pending });
+}
+
+async function handleDecline(req, res) {
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
+  const access = await founderGuard(req);
+  if (!access.session) return sendJson(res, access.status, { error: access.error });
+  if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
+  const body = readBody(req);
+  if (!verifyFounderCsrf(access.session, req, body)) return sendBridgeError(req, res, 'csrf');
+  const result = await declinePendingAction({
+    messageId: body.messageId || body.pendingId || body.correlationId,
+    founderEmail: access.session.email,
+  });
+  if (result.error) return sendBridgeError(req, res, result.error);
+  return sendJson(res, 200, { ok: true, pending: result.pending });
 }
 
 async function handleReply(req, res) {
@@ -1415,12 +1475,14 @@ async function handleReply(req, res) {
     correlationId: body.correlationId,
   });
   if (result.error) return sendBridgeError(req, res, result.error);
-  return sendJson(res, 200, {
-    ok: true,
+  return sendJson(res, 200, bearerStatusBody({
     replay: result.replay,
-    thread: result.thread,
+    threadId: result.thread && result.thread.id,
+    status: result.thread && result.thread.status,
     waiting: threadIsWaiting(result.thread),
-  });
+    messageId: result.messageId || '',
+    correlationId: result.correlationId || '',
+  }));
 }
 
 async function handleCeoBridge(req, res) {
@@ -1435,6 +1497,9 @@ async function handleCeoBridge(req, res) {
       return true;
     case 'confirm':
       await handleConfirm(req, res);
+      return true;
+    case 'decline':
+      await handleDecline(req, res);
       return true;
     case 'reply':
       await handleReply(req, res);
@@ -1494,6 +1559,7 @@ Object.assign(module.exports, {
   isStatusAsk,
   previousFounderMessage,
   previousMessageReply,
+  listHeldForFounder,
   listPending,
   postCeoReply,
   publicThread,

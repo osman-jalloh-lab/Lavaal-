@@ -34,7 +34,7 @@ const {
 } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { classify } = require('../slack/_router/classify');
-const { agentPendingItem } = require('./_untrusted');
+const { agentPendingItem, bearerStatusBody, heldActionsForFounder, isHeldAction } = require('./_untrusted');
 const ceo = require('./_ceo_bridge');
 const desks = require('./_agent_thread');
 
@@ -603,7 +603,14 @@ async function postResearchyReply({ threadId, text, pendingId, messageId, correl
   const replayId = clean(pendingId, 40) || clean(messageId, 40) || clean(correlationId, 40);
   const body = clean(text, 4000);
   if (!body) return { error: 'invalid_message' };
-  const taken = replayId ? await takeResearchyPending(replayId) : { pending: null };
+  const before = await readStore();
+  const existing = replayId
+    ? listResearchyPending(before).find((row) => row.messageId === replayId || row.correlationId === replayId)
+    : null;
+  // An unconfirmed action stays queued so the founder can still Confirm.
+  // A plain question, or a reply after confirm, leaves the queue.
+  const keep = isHeldAction(existing);
+  const taken = keep ? { pending: existing } : (replayId ? await takeResearchyPending(replayId) : { pending: null });
   const storeData = await readStore();
   const pending = taken.pending || null;
   const task = matchAssignTask(storeData, { pending, replayId });
@@ -692,6 +699,7 @@ function ceoAssignKind(req) {
 function researchyWakeKind(req) {
   const hay = hayOf(req);
   if (!hay.includes('desk-talk') || !hay.includes('researchy')) return '';
+  if (hay.includes('/decline') || hay.endsWith('decline')) return 'decline';
   if (hay.includes('/confirm') || hay.endsWith('confirm')) return 'confirm';
   if (hay.includes('/pending') || hay.endsWith('pending')) return 'pending';
   if (hay.includes('/reply') || hay.endsWith('reply')) return 'reply';
@@ -840,6 +848,41 @@ async function confirmResearchyAction({ messageId, founderEmail }) {
   return { ok: true, replay: false, pending: agentPendingItem(patched.pending) };
 }
 
+async function declineResearchyAction({ messageId, founderEmail }) {
+  const who = normalizeEmail(founderEmail);
+  if (!who || !isAllowlisted(who)) return { error: 'forbidden' };
+  const id = clean(messageId, 40);
+  if (!id) return { error: 'pending_not_found' };
+  const storeData = await readStore();
+  const item = listResearchyPending(storeData).find((row) => (
+    row.messageId === id || row.correlationId === id
+  ));
+  if (!item) return { error: 'pending_not_found' };
+  const view = agentPendingItem(item);
+  if (!view.actionRequested) return { error: 'no_action' };
+  if (view.instruction !== 'founder') return { error: 'action_forbidden' };
+  const removed = await takeResearchyPending(id);
+  if (removed.error) return removed;
+  if (!removed.pending) return { error: 'pending_not_found' };
+  return {
+    ok: true,
+    pending: {
+      messageId: item.messageId,
+      actionStatus: 'declined',
+      mayAct: false,
+    },
+  };
+}
+
+async function listHeldResearchyForFounder(email) {
+  try {
+    const storeData = await readStore();
+    return heldActionsForFounder(listResearchyPending(storeData), email);
+  } catch {
+    return [];
+  }
+}
+
 async function handleResearchyConfirm(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
   const access = await founderGuard(req);
@@ -857,6 +900,23 @@ async function handleResearchyConfirm(req, res) {
   return sendJson(res, 200, { ok: true, replay: Boolean(result.replay), pending: result.pending, lead: RESEARCHY_ID });
 }
 
+async function handleResearchyDecline(req, res) {
+  if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
+  const access = await founderGuard(req);
+  if (!access.session) return sendJson(res, access.status, { error: access.error });
+  if (payloadTooLarge(req)) return sendJson(res, 413, { error: 'payload_too_large' });
+  const body = readBody(req);
+  if (!readCsrfToken(csrfFrom(req, body), access.session.email)) {
+    return sendAssignError(req, res, 'csrf');
+  }
+  const result = await declineResearchyAction({
+    messageId: body.messageId || body.pendingId || body.correlationId,
+    founderEmail: access.session.email,
+  });
+  if (result.error) return sendAssignError(req, res, result.error);
+  return sendJson(res, 200, { ok: true, pending: result.pending, lead: RESEARCHY_ID });
+}
+
 async function handleResearchyReply(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' });
   const auth = ceo.verifyBridgeSecret(req);
@@ -871,12 +931,17 @@ async function handleResearchyReply(req, res) {
     correlationId: body.correlationId,
   });
   if (result.error) return sendAssignError(req, res, result.error);
-  return sendJson(res, 200, {
-    ok: true,
+  const ackId = clean(body.pendingId, 40) || clean(body.messageId, 40) || clean(body.correlationId, 40);
+  return sendJson(res, 200, bearerStatusBody({
     replay: result.replay,
-    task: result.task,
+    taskId: result.task && result.task.id,
+    status: result.task && result.task.status,
+    assignStatus: result.task && result.task.assignStatus,
+    threadId: (result.thread && result.thread.id) || clean(body.threadId || body.id, 40),
+    messageId: ackId,
+    correlationId: clean(body.correlationId, 40) || (result.task && result.task.childCorrelationId) || '',
     lead: RESEARCHY_ID,
-  });
+  }));
 }
 
 async function handleCeoAssign(req, res) {
@@ -887,6 +952,10 @@ async function handleCeoAssign(req, res) {
   }
   if (wakeKind === 'confirm') {
     await handleResearchyConfirm(req, res);
+    return true;
+  }
+  if (wakeKind === 'decline') {
+    await handleResearchyDecline(req, res);
     return true;
   }
   if (wakeKind === 'reply') {
@@ -924,6 +993,7 @@ Object.assign(module.exports, {
   formatAssignTitle,
   formatResultsForFounder,
   handleCeoAssign,
+  listHeldResearchyForFounder,
   looksLikeAssign,
   looksLikeExplicitAssignText,
   noteDeskProgress,

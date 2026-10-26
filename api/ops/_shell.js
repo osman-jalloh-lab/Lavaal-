@@ -126,6 +126,13 @@ textarea{min-height:88px;resize:vertical;}
 .talk-actions{display:grid;gap:10px;margin-top:14px;}
 .talk-actions .btn{width:100%;margin-top:0;}
 .btn-assign{background:var(--emerald-wash);color:var(--ink);border:1px solid rgba(16,185,129,.45);}
+.held-ok{margin:0 0 16px;}
+.held-ok h2{font-size:18px;margin-bottom:8px;}
+.held-summary{overflow-wrap:anywhere;font-weight:600;}
+.held-from{color:var(--muted);font-size:13px;overflow-wrap:anywhere;}
+.held-note{color:var(--amber);font-size:13px;margin-top:8px;}
+.held-ok-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.held-ok-actions .btn{width:auto;flex:1 1 8rem;margin-top:0;min-height:44px;}
 .btn-mic{width:auto;min-width:88px;margin-top:0;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);}
 .btn-mic[aria-pressed="true"]{background:#FDE8EA;border-color:rgba(225,29,72,.35);color:#BE123C;}
 #talk-mic-status{margin:8px 0 0;}

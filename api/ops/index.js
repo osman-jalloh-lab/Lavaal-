@@ -26,7 +26,7 @@ const {
   wantsInviteDraft,
 } = require('./_calendar');
 const { describeChatSetup, sendChatTurn } = require('./_chat');
-const { CEO_DESK_ID, getFounderThread, handleCeoBridge } = require('./_ceo_bridge');
+const { CEO_DESK_ID, getFounderThread, handleCeoBridge, listHeldForFounder } = require('./_ceo_bridge');
 const {
   readRoutineHealthView,
   renderRoutineHealthStrip,
@@ -34,7 +34,7 @@ const {
 } = require('./_routine_health');
 const { handleInboxTriage, inboxTriageEnabled, readInboxTriageView, renderInboxTriage } = require('./_inbox_triage');
 const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
-const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
+const { handleCeoAssign, listHeldResearchyForFounder, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
 const {
   confirmInboxSend,
   pasteSnapshot,
@@ -217,6 +217,14 @@ async function renderArea(req, res, session, extra) {
       ? renderSignInHistory({ events: data.signInHistory || [], csrf })
       : '',
   };
+
+  if (area === 'chat' && String(pageOpts.agentId) === CEO_DESK_ID) {
+    pageOpts.heldActions = await listHeldForFounder(session.email);
+  } else if (area === 'chat' && String(pageOpts.agentId) === 'researchy') {
+    pageOpts.heldActions = await listHeldResearchyForFounder(session.email);
+  } else if (area === 'tasks') {
+    pageOpts.heldActions = await listHeldResearchyForFounder(session.email);
+  }
 
   if (area === 'chat' && isTalkAgent(pageOpts.agentId)) {
     if (String(pageOpts.agentId) === CEO_DESK_ID) {
