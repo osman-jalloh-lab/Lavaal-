@@ -1,0 +1,42 @@
+# /ops queue check — wakes the box CEO/Researchy desk only when items wait.
+# OFF until the founder (L4) sets:
+#   - repo variable  OPS_WAKE_SWEEP_ENABLED = true   (job is skipped otherwise; skipped jobs use no minutes)
+#   - repo secret    OPS_WAKE_SWEEP_SECRET            (same value as the Vercel env var)
+# The endpoint returns counts only. It calls the box webhook only when a
+# queue has a waiting item, so empty checks start no Grok Bot run.
+# Host is pinned to production. The secret is sent only in the header.
+name: ops-wake-sweep
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ops-wake-sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    if: ${{ vars.OPS_WAKE_SWEEP_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check /ops queues and wake the box if needed
+        env:
+          SWEEP_SECRET: ${{ secrets.OPS_WAKE_SWEEP_SECRET }}
+        run: |
+          if [ -z "$SWEEP_SECRET" ]; then
+            echo "OPS_WAKE_SWEEP_SECRET not set; nothing to do."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/sweep.json -w '%{http_code}' --max-time 25 \
+            -H "Authorization: Bearer $SWEEP_SECRET" \
+            -H 'Accept: application/json' \
+            'https://www.lavaall.com/ops/api/ceo-bridge/wake-sweep')
+          # Public repo: logs are public, so print the status code only.
+          echo "HTTP $code"
+          rm -f /tmp/sweep.json
+          if [ "$code" != "200" ]; then exit 1; fi

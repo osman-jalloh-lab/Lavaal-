@@ -141,7 +141,7 @@ async function run() {
       && html.indexOf('id="ceo-assign-researchy"') > html.indexOf('ceo-bridge-form')
       && html.includes('/ops/ceo-assign/message')
       && html.includes('"assignUrl":"/ops/ceo-assign/message"')
-      && html.includes('/assets/js/ops-ceo-chat.js?v=send-not-assign')
+      && html.includes('/assets/js/ops-ceo-chat.js?v=send-to-ceo-desk')
       && html.includes('id="talk-mic"'));
 
     const researchy = mockRes();

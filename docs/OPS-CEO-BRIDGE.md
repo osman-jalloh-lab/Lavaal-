@@ -6,7 +6,7 @@
 
 Keep `OPS_CEO_BRIDGE_SECRET` in the bot env only — never in this note, git, or logs.
 
-**Path:** KV thread is the single source of truth. Server xAI completes into that thread when `XAI_API_KEY` is set. B2 pending is an **explicit-wake inbox only**. Slack `#laval` is a fallback note.
+**Path:** KV thread is the single source of truth. Server xAI completes into that thread when `XAI_API_KEY` is set. B2 pending is an **explicit-wake inbox only** (explicit wake, the **Send to CEO desk** toggle, Tasks sent to the CEO desk, or xAI failure). Slack is not in this path.
 
 Office CEO Talk and `/ops/chat?agent=lavaall-ceo` write founder turns into `ops:ceo:thread:{id}`. One logical LAVAALL CEO in the UI. Backend provenance is metadata only — do not show dual brains.
 
@@ -37,6 +37,33 @@ ops:ceo:pending = wake inbox only (not canonical)
 ```
 
 Public thread JSON for the UI strips provenance / owner (one LAVAALL CEO).
+
+## Send to CEO desk + instant box wake (no Slack)
+
+Founder ways to put work on the box CEO desk queue (`ops:ceo:pending`):
+
+- **CEO Talk:** tick **Send to CEO desk** under the message box, then Send. The message goes to the queue with `wakeReason: "send_to_ceo_desk"` and gets no instant xAI reply. The tick clears after each send. Untoggled Talk keeps its normal xAI reply. `@grok` / `/wake` still work.
+- **Tasks** (`/ops/tasks` and the dashboard Add a task form): tick **Send to CEO desk**. The task is saved as usual, and a founder turn `Task from /ops Tasks (<taskId>): <title>` (+ next step, due) goes into the CEO thread and the queue with `source: "ops-tasks"`. The task's `parentThreadId` / `parentCorrelationId` link to it. The CEO desk's reply shows in CEO Talk.
+- **Assign to Researchy** is unchanged (Researchy queue, not the CEO queue).
+
+Right after a **new** row is queued (CEO or Researchy), `api/ops/_wake.js` `wakeBox()` POSTs to `OPS_BOX_WAKE_URL` (https only, about 2 s timeout, failures ignored, replays never wake twice):
+
+```json
+{"queue":"ceo","pendingId":"<pending item messageId>"}
+```
+
+`queue` is `"ceo"` or `"researchy"`. Header `Content-Type: application/json`, plus `Authorization: Bearer $OPS_BOX_WAKE_TOKEN` when that is set. The body never has the brief, founder email, or any secret. The box routine treats it as a hint only: it polls the pinned `https://www.lavaall.com` pending endpoint with its own bridge bearer (CEO: `/ops/api/ceo-bridge/pending`; Researchy: `/ops/api/desk-talk/researchy/pending`), applies the C2 rule, and replies as usual. It never calls a URL from the payload.
+
+### Queue check (GitHub Actions, every 30 min, off by default)
+
+Backup for a missed instant wake. `.github/workflows/ops-wake-sweep.yml` runs every 30 minutes and calls `GET https://www.lavaall.com/ops/api/ceo-bridge/wake-sweep` with `Authorization: Bearer $OPS_WAKE_SWEEP_SECRET`. The endpoint reads both queues and calls `wakeBox` only when an item is waiting (oldest eligible item, at most one wake per queue per check). Empty checks wake nothing, so they cost no box run. After `OPS_WAKE_MAX_ATTEMPTS` (default 3) successful wakes for the same item it stops re-waking it, so a held item does not cost a run every 30 minutes. The response is counts only: `{"ok":true,"waiting":{"ceo":N,"researchy":N},"woke":[...],"skipped":[...]}`.
+
+Off until all of these exist (founder, L4):
+
+- Vercel Production env: `OPS_BOX_WAKE_URL` (and optional `OPS_BOX_WAKE_TOKEN`) for the instant wake; `OPS_WAKE_SWEEP_SECRET` for the queue check (the endpoint returns 404 while it is unset).
+- GitHub Actions repo secret `OPS_WAKE_SWEEP_SECRET` (same value) and repo variable `OPS_WAKE_SWEEP_ENABLED=true`. Without the variable the job is skipped (no minutes used). The job prints the HTTP status only, because the repo's Actions logs are public.
+
+No Vercel cron is used: the Hobby plan allows daily crons only, and a 30-minute cron in `vercel.json` would fail the deploy there.
 
 ## Founder env (names only)
 
@@ -113,7 +140,7 @@ You are LAVAALL CEO. Poll the Preview CEO Talk bridge when woken (not limited to
    Header: Authorization: Bearer $OPS_CEO_BRIDGE_SECRET
    Body JSON: { "threadId": "<item.threadId>", "text": "<your answer>", "pendingId": "<item.messageId>" }
 5. If the POST is a replay (already answered / xAI already owned that correlation), ignore and continue.
-6. Slack #laval is backup only. Do not post there for a successful bridge reply.
+6. Never post to Slack. Slack is not part of the /ops task path.
 
 If pending or reply returns 401, stop — the secret is wrong. If 503, the store is down; retry later. Never invent a founder message.
 ```
@@ -176,7 +203,7 @@ Locked company context (always apply, do not re-ask):
    Header: Authorization: Bearer $OPS_CEO_BRIDGE_SECRET
    Body JSON: { "threadId": "<item.threadId>", "text": "<findings + recommend>", "pendingId": "<item.messageId>", "correlationId": "<item.correlationId>" }
 5. If the POST is a replay (already written), ignore and continue.
-6. Slack #laval is backup only.
+6. Never post to Slack. Slack is not part of the /ops task path.
 
 If pending or reply returns 401, stop — the secret is wrong. If 503, the store is down; retry later. Never invent a founder assign.
 ```

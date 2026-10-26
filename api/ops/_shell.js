@@ -459,6 +459,7 @@ function dashboardSections({ snapshot, returnTo }) {
             <input id="task-title" name="title" required maxlength="160" placeholder="Follow up on SL quote pack"/>
             <label for="task-next">Next step (optional)</label>
             <input id="task-next" name="nextAction" maxlength="200" placeholder="Email Hameed the open items"/>
+            <label class="check" for="task-send-to-desk"><input id="task-send-to-desk" type="checkbox" name="sendToCeoDesk" value="1"/> Send to CEO desk</label>
             <button class="btn" type="submit">Save task</button>
           </form>
         </section>
