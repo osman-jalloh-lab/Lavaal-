@@ -1,0 +1,57 @@
+type	asset_file	catalogue_targets
+category	category-artwork/category-phones.webp	Phones
+category	category-artwork/category-televisions.webp	Televisions
+category	category-artwork/category-monitors.webp	Monitors
+category	category-artwork/category-gaming.webp	Gaming
+category	category-artwork/category-audio.webp	Audio
+category	category-artwork/category-smart-watches.webp	Smart Watches
+category	category-artwork/category-cameras.webp	Cameras
+category	category-artwork/category-printers.webp	Printers
+category	category-artwork/category-accessories.webp	Accessories
+category	category-artwork/category-tablets.webp	Tablets
+product	product-images/iphone-13-family.webp	iPhone 13 mini | iPhone 13 | iPhone 13 Pro | iPhone 13 Pro Max
+product	product-images/iphone-14-family.webp	iPhone 14 | iPhone 14 Plus | iPhone 14 Pro | iPhone 14 Pro Max
+product	product-images/iphone-16-family.webp	iPhone 16 | iPhone 16 Plus | iPhone 16 Pro | iPhone 16 Pro Max
+product	product-images/google-pixel-8.webp	Pixel 8
+product	product-images/tecno-camon-20.webp	Tecno Camon 20
+product	product-images/infinix-note-30.webp	Infinix Note 30
+product	product-images/motorola-moto-g84.webp	Moto G84
+product	product-images/xiaomi-redmi-note-13.webp	Redmi Note 13
+product	product-images/oneplus-12.webp	OnePlus 12
+product	product-images/ipad-air.webp	iPad Air
+product	product-images/ipad-pro.webp	iPad Pro
+product	product-images/macbook-air.webp	MacBook Air
+product	product-images/imac-24.webp	iMac 24
+product	product-images/mac-mini.webp	Mac mini
+product	product-images/acer-aspire.webp	Acer Aspire
+product	product-images/asus-vivobook.webp	ASUS VivoBook
+product	product-images/microsoft-surface-laptop.webp	Surface Laptop
+product	product-images/samsung-uhd-tv.webp	Samsung UHD TV
+product	product-images/sony-bravia-tv.webp	Sony Bravia TV
+product	product-images/tcl-uhd-tv.webp	TCL UHD TV
+product	product-images/vizio-quantum-tv.webp	Vizio Quantum TV
+product	product-images/lg-ultragear-monitor.webp	LG UltraGear
+product	product-images/samsung-odyssey-monitor.webp	Samsung Odyssey
+product	product-images/ubiquiti-unifi-ap.webp	Ubiquiti UniFi AP
+product	product-images/fortigate-firewall.webp	FortiGate Firewall
+product	product-images/lenovo-thinksystem-server.webp	Lenovo ThinkSystem Server
+product	product-images/playstation-5.webp	PS5
+product	product-images/playstation-4.webp	PS4
+product	product-images/xbox-series-x.webp	Xbox Series X
+product	product-images/nintendo-switch.webp	Nintendo Switch
+product	product-images/airpods-pro.webp	AirPods Pro
+product	product-images/jbl-bluetooth-speaker.webp	JBL Bluetooth Speaker
+product	product-images/sony-noise-cancelling-headphones.webp	Sony Noise-Cancelling Headphones
+product	product-images/apple-watch-series-9.webp	Apple Watch Series 9
+product	product-images/apple-watch-ultra-2.webp	Apple Watch Ultra 2
+product	product-images/samsung-galaxy-watch-6.webp	Galaxy Watch 6
+product	product-images/canon-eos-camera.webp	Canon EOS
+product	product-images/sony-alpha-camera.webp	Sony Alpha
+product	product-images/hikvision-cctv.webp	Hikvision CCTV
+product	product-images/chargers-and-charging-cables.webp	Chargers & Charging Cables
+product	product-images/cases-and-screen-protectors.webp	Cases & Screen Protectors
+product	product-images/power-banks.webp	Power Banks
+product	product-images/andeli-20kva-single-phase.webp	Andeli 20KVA single phase
+product	product-images/andeli-20kva-three-phase.webp	Andeli 20KVA 3 phase
+product	product-images/andeli-50kva-three-phase.webp	Andeli 50KVA 3 phase
+

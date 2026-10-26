@@ -194,6 +194,7 @@
       : brand.name + ' ' + model.name;
   }
   function isVerifiedModel(model) { return model && model.listingType === 'verified'; }
+  function isRepresentativeArtwork(model) { return model && model.imageRole === 'representative'; }
   const CATALOG_PRESENTATION = {
     computers: 'enterprise', monitors: 'enterprise', servers: 'enterprise', networking: 'enterprise',
     cables: 'enterprise', switches: 'enterprise', power: 'enterprise', fiber: 'enterprise',
@@ -345,6 +346,9 @@
       requestedModel:      ['Requested family/model', 'Famille/modèle demandé',                        'Famili/modɛl wey aks'],
       verifiedModel:       ['verified model',         'modèle vérifié',                                'vɛrifayd modɛl'],
       verifiedModels:      ['verified models',        'modèles vérifiés',                              'vɛrifayd modɛl dɛm'],
+      representativeNote:  ['Representative sourcing artwork — not verified exact product photography.',
+                            'Visuel d\'approvisionnement representatif — pas une photo produit exacte verifiee.',
+                            'Sosin atwok wey riprizent di lain — not verifayd egzakt produkt foto.'],
       audAll:              ['All',                    'Tout',                                          'Ɔl'],
       audBusiness:         ['Business / B2B',         'Entreprises / B2B',                             'Bisnis / B2B'],
       audConsumer:         ['Retail & End Users',     'Grand public',                                  'Risel & Yuzɛ'],
@@ -553,7 +557,7 @@
     (Array.isArray(model.images) ? model.images : []).forEach(function (image) { add(image, image && image.isMain); });
     add(model.image, !images.length);
     return images.map(function (image, index) {
-      return { ...image, alt: image.alt || (fallbackAlt + ' — image ' + (index + 1)) };
+      return { ...image, alt: image.alt || model.imageAlt || (fallbackAlt + ' — image ' + (index + 1)) };
     });
   }
 
@@ -727,10 +731,12 @@
 
   function modelCardHtml(model, cat, brand, fam) {
     const verified = isVerifiedModel(model);
+    const representative = isRepresentativeArtwork(model);
     // Handwritten records have no source identity/provenance. Do not let an
     // old local image imply that it is exact media for a named SKU.
-    const primary = verified ? primaryProductImage(model, displayName(brand, model)) : null;
-    const media = verified
+    // Pack artwork marked imageRole=representative may render with honest alt text.
+    const primary = (verified || representative) ? primaryProductImage(model, displayName(brand, model)) : null;
+    const media = (verified || representative)
       ? '<div class="catalog-product-media">' + productImageHtml(primary && primary.src, primary ? primary.alt : displayName(brand, model), cat.icon, { explicitFailure: true }) + '</div>'
       : '<div class="catalog-procurement-mark" aria-hidden="true">' + iconSvg(cat.icon) + '</div>';
     const listing = modelListingType(model);
@@ -937,6 +943,7 @@
 
   function openModelQuote(model, cat, brand, fam) {
     const sourcing = !isVerifiedModel(model);
+    const representative = isRepresentativeArtwork(model);
     const theme = applyCatalogPresentation(cat, model, brand);
     currentModelCtx = { model, cat, brand, fam, isSourcing: sourcing, values: {} };
     const modal = document.getElementById('pgal-overlay');
@@ -950,10 +957,10 @@
       : catalogText('verified') + ' · ' + brand.name;
     document.getElementById('pgal-title').textContent = displayName(brand, model);
     document.getElementById('pgal-desc').textContent = sourcing
-      ? [catalogText('sourcingDescription'), catalogText('sourcingNote')].join(' ')
+      ? [catalogText('sourcingDescription'), catalogText('sourcingNote'), representative ? catalogText('representativeNote') : ''].filter(Boolean).join(' ')
       : [model.desc, model.mpn && ('MPN: ' + model.mpn), model.specLine].filter(Boolean).join(' · ');
 
-    renderProductGallery(sourcing ? { primaryImage: null, images: [], image: null } : model, displayName(brand, model), cat.icon);
+    renderProductGallery((sourcing && !representative) ? { primaryImage: null, images: [], image: null } : model, displayName(brand, model), cat.icon);
 
     // hide the old grouped "options" accordion (not used by catalog models)
     const optWrap = document.getElementById('pgal-options');
