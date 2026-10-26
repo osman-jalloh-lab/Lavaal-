@@ -106,12 +106,20 @@ function foundersGroup(html) {
   return end < 0 ? '' : html.slice(start, end);
 }
 
+function isLiveThreadKey(key) {
+  return key === 'lavaall-ops-founders-dm-v1' || key === 'preview:lavaall-ops-founders-dm-v1';
+}
+
 function fakeKv() {
   const kv = {
     list: [],
     hash: {},
     legacy: null,
     calls: [],
+    batches: [],
+    archives: {},
+    sets: {},
+    strings: {},
     blockNextRead: false,
     waiters: [],
   };
@@ -120,23 +128,49 @@ function fakeKv() {
     kv.waiters = [];
     pending.forEach((resolve) => resolve());
   };
+  function archiveList(key) {
+    if (!kv.archives[key]) kv.archives[key] = [];
+    return kv.archives[key];
+  }
   function apply(cmd) {
+    const key = cmd[1];
     if (cmd[0] === 'RPUSH') {
-      for (let i = 2; i < cmd.length; i += 1) kv.list.push(cmd[i]);
-      return { result: kv.list.length };
+      const target = isLiveThreadKey(key) ? kv.list : archiveList(key);
+      for (let i = 2; i < cmd.length; i += 1) target.push(cmd[i]);
+      return { result: target.length };
     }
     if (cmd[0] === 'LTRIM') {
-      const start = Number(cmd[2]);
-      if (start < 0) kv.list = kv.list.slice(start);
+      if (isLiveThreadKey(key)) {
+        const start = Number(cmd[2]);
+        if (start < 0) kv.list = kv.list.slice(start);
+      }
       return { result: 'OK' };
     }
-    if (cmd[0] === 'LRANGE') return { result: kv.list.slice() };
+    if (cmd[0] === 'LRANGE') {
+      const target = isLiveThreadKey(key) ? kv.list : (kv.archives[key] || []);
+      return { result: target.slice() };
+    }
     if (cmd[0] === 'HSET') {
       for (let i = 2; i < cmd.length; i += 2) kv.hash[cmd[i]] = cmd[i + 1];
       return { result: 1 };
     }
     if (cmd[0] === 'HGETALL') return { result: Object.assign({}, kv.hash) };
-    if (cmd[0] === 'GET') return { result: kv.legacy };
+    if (cmd[0] === 'GET') {
+      if (isLiveThreadKey(key)) return { result: kv.legacy };
+      return { result: Object.prototype.hasOwnProperty.call(kv.strings, key) ? kv.strings[key] : null };
+    }
+    if (cmd[0] === 'SET') {
+      kv.strings[key] = cmd[2];
+      return { result: 'OK' };
+    }
+    if (cmd[0] === 'SADD') {
+      if (!kv.sets[key]) kv.sets[key] = [];
+      for (let i = 2; i < cmd.length; i += 1) {
+        if (kv.sets[key].indexOf(cmd[i]) < 0) kv.sets[key].push(cmd[i]);
+      }
+      return { result: 1 };
+    }
+    if (cmd[0] === 'SMEMBERS') return { result: (kv.sets[key] || []).slice() };
     if (cmd[0] === 'RENAME') {
       kv.legacy = null;
       return { result: 'OK' };
@@ -147,14 +181,15 @@ function fakeKv() {
   kv.fetch = async (url, opts) => {
     const parsed = JSON.parse(opts.body);
     const batch = Array.isArray(parsed[0]) ? parsed : [parsed];
+    kv.batches.push(batch.map((cmd) => cmd.slice()));
     const out = [];
     for (const cmd of batch) {
       kv.calls.push(cmd.slice());
-      if (cmd[0] === 'LRANGE' && kv.blockNextRead) {
+      if (cmd[0] === 'LRANGE' && isLiveThreadKey(cmd[1]) && kv.blockNextRead) {
         kv.blockNextRead = false;
         await new Promise((resolve) => { kv.waiters.push(resolve); });
       }
-      if (cmd[0] === 'LRANGE' && kv.legacy) {
+      if (cmd[0] === 'LRANGE' && isLiveThreadKey(cmd[1]) && kv.legacy) {
         return { ok: false, status: 400, json: async () => ({ error: 'WRONGTYPE' }) };
       }
       const result = apply(cmd);
@@ -165,6 +200,22 @@ function fakeKv() {
     return { ok: true, json: async () => out[0] };
   };
   return kv;
+}
+
+function isDocsKey(key) {
+  const value = String(key || '');
+  return value === dm.DOCS_KEY || value.startsWith(`${dm.DOCS_KEY}:`) || value.startsWith(`preview:${dm.DOCS_KEY}`);
+}
+
+function isFoundersKvKey(key) {
+  const value = String(key || '');
+  return value === dm.DM_KEY
+    || value === dm.READ_KEY
+    || value === dm.LEGACY_KEY
+    || value === 'preview:lavaall-ops-founders-dm-v1'
+    || value === 'preview:lavaall-ops-founders-dm-v1:read'
+    || value === 'preview:lavaall-ops-founders-dm-v1:legacy'
+    || isDocsKey(value);
 }
 
 async function run() {
@@ -378,6 +429,19 @@ async function run() {
       && second.body.messages.map((row) => row.text).join('|') === `${PHRASE}|Reply from Hameed`
       && second.body.messages[0].author === 'Osman'
       && second.body.messages[1].author === 'You');
+    const earlyHistory = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      url: '/ops/api/founders-dm?scope=history',
+      query: { area: 'api/founders-dm', scope: 'history' },
+    }), earlyHistory);
+    check('history returns the month and decrypted messages with no email field',
+      earlyHistory.statusCode === 200
+      && earlyHistory.body.ok === true
+      && earlyHistory.body.messages.some((row) => row.text === PHRASE)
+      && earlyHistory.body.messages.some((row) => row.text === 'Reply from Hameed')
+      && earlyHistory.body.messages.every((row) => row.from == null && row.email == null)
+      && /^\d{4}-\d{2}$/.test(earlyHistory.body.month));
 
     const unread = mockRes();
     await ops(authed(OSMAN, {
@@ -487,6 +551,9 @@ async function run() {
       && pageHtml.includes('data-id="')
       && pageHtml.includes('/assets/js/ops-mic.js')
       && !pageHtml.includes(OSMAN)
+      && pageHtml.includes('class="dm-history"')
+      && pageHtml.includes('>History</a>')
+      && pageHtml.includes('href="/ops/founders?view=history"')
       && pageHtml.split('href="/ops/founders"').length === 2);
     check('the thread list is a polite log',
       pageHtml.includes('<ol class="thread dm-thread" id="dm-thread" role="log" aria-live="polite">'));
@@ -677,6 +744,12 @@ async function run() {
     const inbox = mockRes();
     await ops(authed(HAMEED, { json: false, url: '/ops/inbox', query: { area: 'inbox' } }), inbox);
     check('Inbox HTML does not include the private message', !String(inbox.raw).includes(PHRASE));
+    const routines = mockRes();
+    await ops(authed(OSMAN, { json: false, url: '/ops/routines', query: { area: 'routines' } }), routines);
+    check('Routines HTML does not include the private message', !String(routines.raw).includes(PHRASE));
+    const tasks = mockRes();
+    await ops(authed(OSMAN, { json: false, url: '/ops/tasks', query: { area: 'tasks' } }), tasks);
+    check('Assign tasks HTML does not include the private message', !String(tasks.raw).includes(PHRASE));
   }
 
   {
@@ -801,6 +874,28 @@ async function run() {
     const res = mockRes();
     await ops(authed(HAMEED, { json: true }), res);
     const storedFile = fs.readFileSync(file, 'utf8');
+    const docsFile = `${fileBase}.founders-docs.json`;
+    const docsRaw = fs.existsSync(docsFile) ? fs.readFileSync(docsFile, 'utf8') : '';
+    let docsRow = null;
+    try {
+      const docsParsed = JSON.parse(docsRaw);
+      const monthNames = Object.keys(docsParsed.months || {});
+      docsRow = monthNames.length ? docsParsed.months[monthNames[0]][0] : null;
+      check('local archive keeps a migrated encrypted copy and drops non-founders',
+        docsParsed.migrated === true
+        && docsRow
+        && docsRow.from == null
+        && docsRow.text == null
+        && docsRow.createdAt == null
+        && typeof docsRow.month === 'string'
+        && typeof docsRow.enc === 'string'
+        && !docsRaw.includes('kept-founder')
+        && !docsRaw.includes('preview-secret-zz')
+        && !docsRaw.includes('leaked-stranger')
+        && !docsRaw.includes(OUTSIDER));
+    } catch (err) {
+      check('local archive keeps a migrated encrypted copy and drops non-founders', false);
+    }
     check('messages from anyone except the two founders are dropped',
       res.statusCode === 200
       && res.body.messages.some((row) => row.text === 'kept-founder')
@@ -814,6 +909,8 @@ async function run() {
     delete process.env.OPS_STORE_FILE;
     dm.resetFoundersDm();
     fs.rmSync(file, { force: true });
+    fs.rmSync(`${fileBase}.founders-docs.json`, { force: true });
+    fs.rmSync(`${fileBase}.founders-dm.read.json`, { force: true });
   }
 
   {
@@ -829,15 +926,25 @@ async function run() {
       body: { text: 'kv-only-phrase', csrf: lib.createCsrfToken(OSMAN) },
     }), sent);
     const listCalls = kv.calls.filter((cmd) => cmd[0] === 'LRANGE' || cmd[0] === 'HGETALL' || cmd[0] === 'SET' || cmd[0] === 'RPUSH');
+    const sendBatch = kv.batches.find((batch) => batch.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === dm.DM_KEY));
     check('KV appends with RPUSH on the private key and does not SET the office store',
       sent.statusCode === 200
       && kv.calls.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === dm.DM_KEY && !String(cmd[2]).includes('kv-only-phrase'))
       && kv.calls.some((cmd) => cmd[0] === 'LTRIM' && cmd[1] === dm.DM_KEY)
       && kv.calls.some((cmd) => cmd[0] === 'HSET' && cmd[1] === dm.READ_KEY)
-      && !kv.calls.some((cmd) => cmd[0] === 'SET')
-      && kv.calls.every((cmd) => cmd[1] === dm.DM_KEY || cmd[1] === dm.READ_KEY || cmd[1] === `${dm.DM_KEY}:legacy`)
+      && kv.calls.some((cmd) => cmd[0] === 'SET' && cmd[1] === `${dm.DOCS_KEY}:migrated` && cmd[2] === '1')
+      && !kv.calls.some((cmd) => cmd[0] === 'SET' && !String(cmd[1]).endsWith(':migrated'))
+      && kv.calls.every((cmd) => isFoundersKvKey(cmd[1]))
       && !kv.calls.some((cmd) => cmd[1] === 'lavaall-ops-v2')
-      && listCalls.length > 0);
+      && listCalls.length > 0
+      && sendBatch
+      && sendBatch[0][0] === 'RPUSH'
+      && String(sendBatch[0][1]).startsWith(dm.DOCS_KEY)
+      && sendBatch[1][0] === 'SADD'
+      && sendBatch[2][0] === 'RPUSH'
+      && sendBatch[2][1] === dm.DM_KEY
+      && sendBatch[3][0] === 'LTRIM'
+      && sendBatch[3][1] === dm.DM_KEY);
     const beforePoll = kv.calls.length;
     kv.blockNextRead = true;
     const pollRes = mockRes();
@@ -864,7 +971,8 @@ async function run() {
       && kept.body.messages.some((row) => row.text === 'kv-only-phrase')
       && kept.body.messages.some((row) => row.text === 'arrived-during-poll')
       && !afterPoll.some((cmd) => cmd[0] === 'SET')
-      && afterPoll.filter((cmd) => cmd[0] === 'RPUSH').length === 1);
+      && afterPoll.filter((cmd) => cmd[0] === 'RPUSH' && cmd[1] === dm.DM_KEY).length === 1
+      && afterPoll.filter((cmd) => cmd[0] === 'RPUSH' && String(cmd[1]).startsWith(`${dm.DOCS_KEY}:`)).length === 1);
     const readOnlyStart = kv.calls.length;
     const peek = mockRes();
     await ops(authed(OSMAN, { json: true }), peek);
@@ -1381,11 +1489,16 @@ async function run() {
       && !/resend|slack|api\.x\.ai|anthropic/i.test(server));
     const hits = jsFiles(apiDir, []).filter((file) => {
       const text = fs.readFileSync(file, 'utf8');
-      return text.includes("require('./_founders_dm')") || text.includes('lavaall-ops-founders-dm-v1');
+      return text.includes("require('./_founders_dm')")
+        || text.includes('lavaall-ops-founders-dm-v1')
+        || text.includes('lavaall-ops-founders-docs-v1');
     });
+    const isolated = ['_routines.js', '_assign.js', '_chat.js', '_ceo_bridge.js', '_agent_thread.js', '_store.js', '_pages.js'];
     check('only the ops gate and the thread module reference the private store',
       hits.length === 2
-      && hits.every((file) => file.endsWith(`${path.sep}index.js`) || file.endsWith(`${path.sep}_founders_dm.js`)));
+      && hits.every((file) => file.endsWith(`${path.sep}index.js`) || file.endsWith(`${path.sep}_founders_dm.js`))
+      && isolated.every((name) => !fs.readFileSync(path.join(opsDir, name), 'utf8').includes('lavaall-ops-founders-docs-v1'))
+      && isolated.every((name) => !fs.readFileSync(path.join(opsDir, name), 'utf8').includes("require('./_founders_dm')")));
     const env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
     check('.env.example documents the flag as off and does not set it',
       env.includes('FOUNDERS_DM_ENABLED')
@@ -1415,19 +1528,30 @@ async function run() {
       unsetKeys.thread === 'lavaall-ops-founders-dm-v1'
       && unsetKeys.read === 'lavaall-ops-founders-dm-v1:read'
       && unsetKeys.legacy === 'lavaall-ops-founders-dm-v1:legacy'
+      && unsetKeys.docs === 'lavaall-ops-founders-docs-v1'
+      && unsetKeys.months === 'lavaall-ops-founders-docs-v1:months'
+      && unsetKeys.migrated === 'lavaall-ops-founders-docs-v1:migrated'
       && prodKeys.thread === dm.DM_KEY
       && prodKeys.read === dm.READ_KEY
       && prodKeys.legacy === dm.LEGACY_KEY
+      && prodKeys.docs === dm.DOCS_KEY
+      && prodKeys.months === `${dm.DOCS_KEY}:months`
+      && prodKeys.migrated === `${dm.DOCS_KEY}:migrated`
       && prodCase.thread === dm.DM_KEY
       && prodCase.read === dm.READ_KEY
-      && prodCase.legacy === dm.LEGACY_KEY);
+      && prodCase.legacy === dm.LEGACY_KEY
+      && prodCase.docs === dm.DOCS_KEY);
     check('Preview prefixes the thread, read cursor, and legacy blob',
       previewKeys.thread === 'preview:lavaall-ops-founders-dm-v1'
       && previewKeys.read === 'preview:lavaall-ops-founders-dm-v1:read'
       && previewKeys.legacy === 'preview:lavaall-ops-founders-dm-v1:legacy'
+      && previewKeys.docs === 'preview:lavaall-ops-founders-docs-v1'
+      && previewKeys.months === 'preview:lavaall-ops-founders-docs-v1:months'
+      && previewKeys.migrated === 'preview:lavaall-ops-founders-docs-v1:migrated'
       && previewKeys.thread !== dm.DM_KEY
       && previewKeys.read !== dm.READ_KEY
-      && previewKeys.legacy !== dm.LEGACY_KEY);
+      && previewKeys.legacy !== dm.LEGACY_KEY
+      && previewKeys.docs !== dm.DOCS_KEY);
 
     process.env.VERCEL_ENV = 'preview';
     const kv = fakeKv();
@@ -1449,9 +1573,22 @@ async function run() {
       && previewCalls.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1')
       && previewCalls.some((cmd) => cmd[0] === 'LTRIM' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1')
       && previewCalls.some((cmd) => cmd[0] === 'HSET' && cmd[1] === 'preview:lavaall-ops-founders-dm-v1:read')
-      && previewCalls.every((cmd) => cmd[1] === 'preview:lavaall-ops-founders-dm-v1' || cmd[1] === 'preview:lavaall-ops-founders-dm-v1:read')
+      && previewCalls.every((cmd) => cmd[1] === 'preview:lavaall-ops-founders-dm-v1' || cmd[1] === 'preview:lavaall-ops-founders-dm-v1:read' || String(cmd[1]).startsWith('preview:lavaall-ops-founders-docs-v1'))
+      && kv.calls.some((cmd) => cmd[0] === 'RPUSH' && String(cmd[1]).startsWith('preview:lavaall-ops-founders-docs-v1:'))
+      && !kv.calls.some((cmd) => cmd[1] === dm.DOCS_KEY || String(cmd[1]).startsWith(`${dm.DOCS_KEY}:`))
       && !JSON.stringify(kv.calls).includes('preview-isolation-phrase')
       && !kv.calls.some((cmd) => cmd[1] === dm.DM_KEY || cmd[1] === dm.READ_KEY || cmd[1] === dm.LEGACY_KEY));
+    const previewHistory = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      url: '/ops/api/founders-dm?scope=history',
+      query: { area: 'api/founders-dm', scope: 'history' },
+    }), previewHistory);
+    check('Preview history reads the prefixed monthly archive',
+      previewHistory.statusCode === 200
+      && previewHistory.body.messages.some((row) => row.text === 'preview-isolation-phrase')
+      && kv.calls.some((cmd) => cmd[0] === 'LRANGE' && String(cmd[1]).startsWith('preview:lavaall-ops-founders-docs-v1:'))
+      && !kv.calls.some((cmd) => cmd[1] === dm.DOCS_KEY || String(cmd[1]).startsWith(`${dm.DOCS_KEY}:`)));
 
     const legacyKv = fakeKv();
     legacyKv.legacy = JSON.stringify({
@@ -1482,11 +1619,21 @@ async function run() {
       method: 'POST',
       body: { text: 'production-key-phrase', csrf: lib.createCsrfToken(OSMAN) },
     }), prodSent);
+    const prodHistory = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      url: '/ops/api/founders-dm?scope=history',
+      query: { area: 'api/founders-dm', scope: 'history' },
+    }), prodHistory);
     check('Production writes use the unprefixed keys',
+      prodHistory.statusCode === 200
+      && prodHistory.body.messages.some((row) => row.text === 'production-key-phrase')
+      && prodKv.calls.some((cmd) => cmd[0] === 'LRANGE' && String(cmd[1]).startsWith('lavaall-ops-founders-docs-v1:')) &&
       prodSent.statusCode === 200
       && prodKv.calls.some((cmd) => cmd[0] === 'RPUSH' && cmd[1] === 'lavaall-ops-founders-dm-v1')
       && prodKv.calls.some((cmd) => cmd[0] === 'HSET' && cmd[1] === 'lavaall-ops-founders-dm-v1:read')
-      && prodKv.calls.every((cmd) => cmd[1] === dm.DM_KEY || cmd[1] === dm.READ_KEY || cmd[1] === dm.LEGACY_KEY)
+      && prodKv.calls.some((cmd) => cmd[0] === 'RPUSH' && String(cmd[1]).startsWith('lavaall-ops-founders-docs-v1:'))
+      && prodKv.calls.every((cmd) => cmd[1] === dm.DM_KEY || cmd[1] === dm.READ_KEY || cmd[1] === dm.LEGACY_KEY || String(cmd[1]).startsWith('lavaall-ops-founders-docs-v1'))
       && !prodKv.calls.some((cmd) => String(cmd[1]).startsWith('preview:')));
 
     delete process.env.KV_REST_API_URL;
@@ -1494,6 +1641,240 @@ async function run() {
     global.fetch = origFetch;
     dm.resetFoundersDm();
     restoreEnv();
+  }
+
+  {
+    function openArchiveRecord(raw) {
+      const row = JSON.parse(raw);
+      const env = JSON.parse(Buffer.from(row.enc, 'base64').toString('utf8'));
+      const key = Buffer.from(process.env.FOUNDERS_DM_ENC_KEY, 'base64');
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(env.iv, 'base64'));
+      decipher.setAuthTag(Buffer.from(env.tag, 'base64'));
+      decipher.setAAD(Buffer.from(`${row.id}\n${row.month}`, 'utf8'));
+      const plain = JSON.parse(Buffer.concat([
+        decipher.update(Buffer.from(env.ct, 'base64')),
+        decipher.final(),
+      ]).toString('utf8'));
+      return { row, plain };
+    }
+    function archiveRows(store) {
+      return Object.keys(store.archives).reduce((all, key) => all.concat(store.archives[key]), []);
+    }
+    delete process.env.VERCEL_ENV;
+    const kv = fakeKv();
+    process.env.KV_REST_API_URL = 'https://kv.example.test';
+    process.env.KV_REST_API_TOKEN = 'test-token';
+    enable();
+    dm.resetFoundersDm();
+    global.fetch = kv.fetch;
+
+    const loggedOut = mockRes();
+    await ops({
+      method: 'GET',
+      headers: { accept: 'application/json' },
+      query: { area: 'api/founders-dm', scope: 'history' },
+      url: '/ops/api/founders-dm?scope=history',
+    }, loggedOut);
+    const outsider = mockRes();
+    await ops(authed(OUTSIDER, {
+      json: true,
+      url: '/ops/api/founders-dm?scope=history',
+      query: { area: 'api/founders-dm', scope: 'history' },
+    }), outsider);
+    const agent = mockRes();
+    await ops({
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        authorization: 'Bearer simulated-agent-token',
+        cookie: cookieFor(OSMAN),
+      },
+      query: { area: 'api/founders-dm', scope: 'history' },
+      url: '/ops/api/founders-dm?scope=history',
+    }, agent);
+    check('history uses the same founder, session, and agent gates',
+      loggedOut.statusCode === 401
+      && loggedOut.body.error === 'sign_in_required'
+      && !loggedOut.body.messages
+      && outsider.statusCode === 403
+      && outsider.body.error === 'forbidden'
+      && !outsider.body.messages
+      && agent.statusCode === 403
+      && agent.body.error === 'agent_denied'
+      && !agent.body.messages
+      && kv.calls.length === 0);
+
+    const firstText = 'archive-body-one';
+    const lastText = 'archive-body-last';
+    const sent = [];
+    for (let i = 0; i < 401; i += 1) {
+      const text = i === 0 ? firstText : (i === 400 ? lastText : `archive-body-${i}`);
+      const res = mockRes();
+      await ops(authed(i % 2 === 0 ? OSMAN : HAMEED, {
+        json: true,
+        method: 'POST',
+        body: { text, csrf: lib.createCsrfToken(i % 2 === 0 ? OSMAN : HAMEED) },
+      }), res);
+      sent.push(res);
+    }
+    const rows = archiveRows(kv);
+    const opened = rows.map(openArchiveRecord);
+    const month = opened[0] ? opened[0].row.month : '';
+    const live = mockRes();
+    await ops(authed(OSMAN, { json: true }), live);
+    const history = mockRes();
+    await ops(authed(HAMEED, {
+      json: true,
+      url: `/ops/api/founders-dm?scope=history&month=${month}&limit=50`,
+      query: { area: 'api/founders-dm', scope: 'history', month, limit: '50' },
+    }), history);
+    let older = history.body;
+    let guard = 0;
+    while (older && older.prev && guard < 12) {
+      const page = mockRes();
+      await ops(authed(HAMEED, {
+        json: true,
+        url: `/ops/api/founders-dm?scope=history&month=${month}&before=${older.prev}&limit=50`,
+        query: { area: 'api/founders-dm', scope: 'history', month, before: older.prev, limit: '50' },
+      }), page);
+      older = page.body;
+      guard += 1;
+    }
+    const wire = JSON.stringify(rows);
+    check('a send writes the archive before the live list and trims only the live list',
+      sent.every((res) => res.statusCode === 200)
+      && kv.list.length === 400
+      && rows.length === 401
+      && live.statusCode === 200
+      && live.body.messages.length === 400
+      && !live.body.messages.some((row) => row.text === firstText)
+      && live.body.messages.some((row) => row.text === lastText));
+    check('archived records encrypt body, sender, and timestamp',
+      opened.length === 401
+      && opened.every((item) => item.row.from == null
+        && item.row.text == null
+        && item.row.createdAt == null
+        && item.row.id
+        && item.row.month === month
+        && item.plain.text
+        && (item.plain.from === OSMAN || item.plain.from === HAMEED)
+        && Number.isFinite(item.plain.createdAt))
+      && opened.some((item) => item.plain.text === firstText && item.plain.from === OSMAN)
+      && opened.some((item) => item.plain.text === lastText && item.plain.from === OSMAN)
+      && !wire.includes(firstText)
+      && !wire.includes(lastText)
+      && !wire.includes(OSMAN)
+      && !wire.includes(HAMEED)
+      && !wire.includes('"from"')
+      && !wire.includes('"createdAt"'));
+    check('history pages back to the message the live thread dropped',
+      history.statusCode === 200
+      && history.body.messages.some((row) => row.text === lastText)
+      && !history.body.messages.some((row) => row.text === firstText)
+      && history.body.messages.every((row) => row.from == null && row.email == null)
+      && older
+      && older.messages.some((row) => row.text === firstText)
+      && older.prev === '');
+
+    const marker = `${dm.DOCS_KEY}:migrated`;
+    const beforeRetry = rows.length;
+    const rpushBefore = kv.calls.filter((cmd) => cmd[0] === 'RPUSH' && String(cmd[1]).startsWith(`${dm.DOCS_KEY}:`)).length;
+    delete kv.strings[marker];
+    dm.resetFoundersDm();
+    const again = mockRes();
+    await ops(authed(OSMAN, { json: true }), again);
+    const rpushMid = kv.calls.filter((cmd) => cmd[0] === 'RPUSH' && String(cmd[1]).startsWith(`${dm.DOCS_KEY}:`)).length;
+    const third = mockRes();
+    await ops(authed(OSMAN, { json: true }), third);
+    const rpushAfter = kv.calls.filter((cmd) => cmd[0] === 'RPUSH' && String(cmd[1]).startsWith(`${dm.DOCS_KEY}:`)).length;
+    check('migration into an existing archive is idempotent and keeps the live list',
+      again.statusCode === 200
+      && third.statusCode === 200
+      && archiveRows(kv).length === beforeRetry
+      && kv.list.length === 400
+      && rpushMid === rpushBefore
+      && rpushAfter === rpushBefore
+      && !kv.calls.some((cmd) => cmd[0] === 'DEL' && cmd[1] === dm.DM_KEY));
+
+    kv.archives = {};
+    kv.sets = {};
+    delete kv.strings[marker];
+    dm.resetFoundersDm();
+    const copied = mockRes();
+    await ops(authed(HAMEED, { json: true }), copied);
+    const copiedCount = archiveRows(kv).length;
+    const rpushCopied = kv.calls.filter((cmd) => cmd[0] === 'RPUSH' && String(cmd[1]).startsWith(`${dm.DOCS_KEY}:`)).length;
+    const copiedAgain = mockRes();
+    await ops(authed(HAMEED, { json: true }), copiedAgain);
+    check('migration copies the current list once and does not delete it',
+      copied.statusCode === 200
+      && copied.body.messages.length === 400
+      && copiedCount === 400
+      && kv.list.length === 400
+      && !archiveRows(kv).some((raw) => String(raw).includes(firstText))
+      && kv.calls.filter((cmd) => cmd[0] === 'RPUSH' && String(cmd[1]).startsWith(`${dm.DOCS_KEY}:`)).length === rpushCopied
+      && copiedAgain.statusCode === 200
+      && archiveRows(kv).length === 400);
+
+    const historyPage = mockRes();
+    await ops(authed(OSMAN, {
+      json: false,
+      url: `/ops/founders?view=history&month=${month}`,
+      query: { area: 'founders', view: 'history', month },
+    }), historyPage);
+    const historyHtml = String(historyPage.raw);
+    check('the Private page links to a founders-only history view',
+      historyPage.statusCode === 200
+      && historyHtml.includes('<h1>History</h1>')
+      && historyHtml.includes('Kept in the founders archive.')
+      && historyHtml.includes('Not sent to the office or anywhere else.')
+      && historyHtml.includes(lastText)
+      && historyHtml.includes('href="/ops/founders"')
+      && !historyHtml.includes(HAMEED)
+      && !historyHtml.includes('id="dm-form"'));
+
+    const rpushMissing = kv.calls.filter((cmd) => cmd[0] === 'RPUSH').length;
+    delete process.env.FOUNDERS_DM_ENC_KEY;
+    delete process.env.FOUNDERS_DM_ENC_KEY_PREV;
+    const missingHistory = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      url: '/ops/api/founders-dm?scope=history',
+      query: { area: 'api/founders-dm', scope: 'history' },
+    }), missingHistory);
+    const missingSend = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      method: 'POST',
+      body: { text: 'should-not-archive', csrf: lib.createCsrfToken(OSMAN) },
+    }), missingSend);
+    check('a missing key returns 503 for history and writes nothing',
+      missingHistory.statusCode === 503
+      && missingHistory.body.error === 'encryption_not_configured'
+      && missingHistory.body.messages == null
+      && missingSend.statusCode === 503
+      && missingSend.body.error === 'encryption_not_configured'
+      && kv.calls.filter((cmd) => cmd[0] === 'RPUSH').length === rpushMissing
+      && !JSON.stringify(archiveRows(kv)).includes('should-not-archive'));
+    enable();
+
+    disable();
+    const hiddenHistory = mockRes();
+    await ops(authed(OSMAN, {
+      json: true,
+      url: '/ops/api/founders-dm?scope=history',
+      query: { area: 'api/founders-dm', scope: 'history' },
+    }), hiddenHistory);
+    check('history is hidden when the flag is off',
+      hiddenHistory.statusCode === 404
+      && hiddenHistory.body.error === 'not_found'
+      && !JSON.stringify(hiddenHistory.body).includes(lastText));
+    enable();
+
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    global.fetch = origFetch;
+    dm.resetFoundersDm();
   }
 
   check('server logs do not include private message text',
@@ -1509,6 +1890,9 @@ async function run() {
       && !line.includes('preview-isolation-phrase')
       && !line.includes('preview-legacy-phrase')
       && !line.includes('production-key-phrase')
+      && !line.includes('archive-body-one')
+      && !line.includes('archive-body-last')
+      && !line.includes('should-not-archive')
       && !line.includes(ENC_KEY)));
 
   console.log = origLog;
