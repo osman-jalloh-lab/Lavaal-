@@ -10,6 +10,7 @@
 // Short TTL (10 minutes) bounds replay across cold starts.
 
 const crypto = require('crypto');
+const { sharedLimitsEnabled, hit } = require('../_shared_limits');
 const { gmailConfigured, sendGmailMessage } = require('./_gmail');
 
 const ALLOWLIST = Object.freeze([
@@ -303,6 +304,25 @@ function requestOrigin(req) {
   return `${String(proto).split(',')[0].trim()}://${String(host).split(',')[0].trim()}`;
 }
 
+function sameOriginRequest(req) {
+  const site = header(req, 'sec-fetch-site');
+  if (site !== undefined && site !== 'same-origin' && site !== 'none') return false;
+  const origin = header(req, 'origin');
+  if (origin !== undefined) {
+    if (origin === 'null') return false;
+    try {
+      const host = header(req, 'x-forwarded-host') || header(req, 'host');
+      const parsed = new URL(origin);
+      return Boolean(host) && Boolean(parsed.host) && parsed.host === String(host).toLowerCase();
+    } catch {
+      return false;
+    }
+  }
+  // Legacy clients without either header remain allowed. HMAC CSRF token
+  // verification on all main write forms remains the stronger follow-up.
+  return true;
+}
+
 function publicOrigin(req) {
   if (vercelEnv() === 'preview') return requestOrigin(req);
   const configured = process.env.OPS_PUBLIC_URL;
@@ -348,16 +368,29 @@ function clientIp(req) {
 // Sliding window of allowed hits. Omit maxHits for a one-hit lock (legacy email step).
 function rateLimited(key, windowMs, maxHits = 1) {
   const now = Date.now();
+  if (recent.size >= 5000) {
+    for (const [k, timestamps] of recent) {
+      if (timestamps.expires <= now) recent.delete(k);
+    }
+    if (!recent.has(key) && recent.size >= 5000) recent.delete(recent.keys().next().value);
+  }
   const cutoff = now - windowMs;
   const prev = recent.get(key);
   const hits = Array.isArray(prev) ? prev.filter((ts) => ts > cutoff) : [];
+  hits.expires = (hits[hits.length - 1] || now) + windowMs;
   if (hits.length >= maxHits) {
     recent.set(key, hits);
     return true;
   }
   hits.push(now);
+  hits.expires = now + windowMs;
   recent.set(key, hits);
   return false;
+}
+
+async function rateLimitedShared(key, windowMs, maxHits = 1) {
+  if (!sharedLimitsEnabled()) return rateLimited(key, windowMs, maxHits);
+  return (await hit(key, { windowMs, max: maxHits })).limited;
 }
 
 function payloadTooLarge(req) {
@@ -617,6 +650,7 @@ module.exports = {
   publicOrigin,
   queryOf,
   rateLimited,
+  rateLimitedShared,
   readBody,
   readCsrfToken,
   readSession,
@@ -627,6 +661,7 @@ module.exports = {
   resendKeyPrefixOk,
   resendKeyPresent,
   sendMagicLink,
+  sameOriginRequest,
   sessionAudience,
   sessionCookie,
   signToken,

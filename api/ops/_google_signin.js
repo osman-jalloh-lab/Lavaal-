@@ -10,6 +10,7 @@
 // If the consent screen is in Testing, both founder Google accounts must be test users.
 
 const crypto = require('crypto');
+const { once, sharedLimitsEnabled } = require('../_shared_limits');
 const {
   buildCookie,
   header,
@@ -161,13 +162,18 @@ function clearOAuthCookie(req) {
   return buildCookie(OAUTH_COOKIE, '', req, 0);
 }
 
-function consumeOAuthState(state, exp) {
+async function consumeOAuthState(state, exp) {
+  if (sharedLimitsEnabled()) {
+    const ttl = Math.max(1000, exp - Date.now() + 30000);
+    return await once('oauth-state:' + state, ttl);
+  }
   const now = Date.now();
   for (const [key, until] of usedStates) {
     if (until <= now) usedStates.delete(key);
   }
   if (usedStates.has(state)) return false;
   usedStates.set(state, exp);
+  while (usedStates.size > 5000) usedStates.delete(usedStates.keys().next().value);
   return true;
 }
 
