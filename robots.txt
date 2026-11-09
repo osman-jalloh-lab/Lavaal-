@@ -2,6 +2,6 @@
 User-agent: *
 Allow: /
 Disallow: /ops
-Disallow: /os/
+Disallow: /os
 Disallow: /api/
 Sitemap: https://www.lavaall.com/sitemap.xml

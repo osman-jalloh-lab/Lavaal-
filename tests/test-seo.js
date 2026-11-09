@@ -27,7 +27,7 @@ function objects(value) {
 try {
   const robots = read('robots.txt');
   check(/^Sitemap:\s*https:\/\/www\.lavaall\.com\/sitemap\.xml\s*$/m.test(robots), 'robots sitemap');
-  for (const rule of ['User-agent: *', 'Allow: /', 'Disallow: /ops', 'Disallow: /os/', 'Disallow: /api/']) check(robots.split(/\r?\n/).includes(rule), `robots ${rule}`);
+  for (const rule of ['User-agent: *', 'Allow: /', 'Disallow: /ops', 'Disallow: /os', 'Disallow: /api/']) check(robots.split(/\r?\n/).includes(rule), `robots ${rule}`);
   check(/^#.*crawl guidance.*not access control.*sign-in/im.test(robots), 'robots explains access control');
   const sitemap = read('sitemap.xml');
   check(/^\s*<\?xml[^?]*\?>\s*<urlset\s+xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">[\s\S]*<\/urlset>\s*$/.test(sitemap), 'sitemap XML envelope');
@@ -68,6 +68,7 @@ try {
     check(schema.every(obj => Object.keys(obj).every(key => !/^(?:offers|price|aggregateRating|review|availability)$/i.test(key))), `${loc}: no commerce/review schema keys`);
     const pathname = new URL(loc).pathname;
     if (!guidePaths.includes(pathname)) continue;
+    if (['/sierra-leone/computers/', '/sierra-leone/it-procurement/'].includes(pathname)) check(description.length <= 155, `${loc}: description at most 155 characters`);
     check(schema.every(obj => !obj['@type'] || [obj['@type']].flat().every(type => ['Organization', 'WebPage', 'CollectionPage', 'BreadcrumbList', 'ListItem'].includes(type))), `${loc}: permitted guide schema types`);
     check(schema.every(obj => !('address' in obj)), `${loc}: no guide address schema`);
     check(schema.every(obj => !('telephone' in obj) || obj.telephone === '+1-737-704-4182'), `${loc}: only founder-approved telephone (+1-737-704-4182)`);
@@ -84,7 +85,7 @@ try {
       check(fs.existsSync(targetFile) && fs.statSync(targetFile).isFile(), `${loc}: local reference ${ref}`);
     }
     const text = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    const APPROVED_247 = 'We\u2019re reachable 24/7 on WhatsApp and email';
+    const APPROVED_247 = 'We\u0027re reachable 24/7 on WhatsApp and email';
     check(!/\b(?:in stock|since 2018|24\/7|certified|authori[sz]ed (?:dealer|partner|reseller))\b|\b(?:200|500)\+/i.test(text.split(APPROVED_247).join(' ')), `${loc}: no unsupported claims (only founder-approved 24/7 line)`);
     check(!/\$\s*\d|\bLe\s+\d/i.test(text), `${loc}: no currency amounts`);
   }

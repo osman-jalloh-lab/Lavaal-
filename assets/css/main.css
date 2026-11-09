@@ -341,7 +341,7 @@ footer{background:var(--ink);border-top:2px solid rgba(255,255,255,.08);padding:
 .flogo-img{height:44px;width:auto;object-fit:contain;display:block;}
 .fdesc{font-size:14px;color:rgba(255,255,255,.45);line-height:1.75;}
 footer h4{font-family:'Clash Display',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:16px;}
-footer a{display:block;font-size:13px;color:rgba(255,255,255,.4);text-decoration:none;margin-bottom:9px;transition:color .2s;}
+footer a{display:block;font-size:13px;color:rgba(255,255,255,.72);text-decoration:none;margin-bottom:9px;transition:color .2s;}
 footer a:hover{color:var(--sky);}
 .fb{border-top:1px solid rgba(255,255,255,.07);padding-top:26px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:rgba(255,255,255,.3);flex-wrap:wrap;gap:8px;}
 .flegal{display:flex;gap:18px;flex-wrap:wrap;}

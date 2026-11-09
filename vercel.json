@@ -1,41 +1,4 @@
 {
-  "redirects": [
-    {
-      "source": "/sierra-leone",
-      "destination": "/sierra-leone/",
-      "permanent": true
-    },
-    {
-      "source": "/sierra-leone/laptops",
-      "destination": "/sierra-leone/laptops/",
-      "permanent": true
-    },
-    {
-      "source": "/sierra-leone/computers",
-      "destination": "/sierra-leone/computers/",
-      "permanent": true
-    },
-    {
-      "source": "/sierra-leone/networking-equipment",
-      "destination": "/sierra-leone/networking-equipment/",
-      "permanent": true
-    },
-    {
-      "source": "/sierra-leone/it-procurement",
-      "destination": "/sierra-leone/it-procurement/",
-      "permanent": true
-    },
-    {
-      "source": "/sierra-leone/phones",
-      "destination": "/sierra-leone/phones/",
-      "permanent": true
-    },
-    {
-      "source": "/index.html",
-      "destination": "/",
-      "permanent": true
-    }
-  ],
   "functions": {
     "api/ops/index.js": {
       "maxDuration": 30,
@@ -47,8 +10,6 @@
     }
   },
   "headers": [
-    { "source": "/api/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
-    { "source": "/os(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
     {
       "source": "/(.*)",
       "headers": [
