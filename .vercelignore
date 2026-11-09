@@ -1,7 +1,22 @@
-# Keep LAVAALL Web planning docs, the local dev runner and its test off the
-# public site. Everything else deploys as before (no other entries).
+# Keep internal repository files off the public site.
 # The page itself lives in api/web/_site and is only reachable through
 # api/web/index.js, which answers 404 unless the section is switched on.
 docs/web/
 scripts/web/
 tests/test-web.js
+
+/AGENTS.md
+/MAGNUM.md
+/*_REPORT.md
+/PRODUCTION_*.md
+tests/
+scripts/
+netlify/
+/netlify.toml
+/.env.example
+
+# Ops personas are runtime inputs bundled by api/ops/index.js.
+/docs/*
+!/docs/ops/
+/docs/ops/*
+!/docs/ops/souls/
