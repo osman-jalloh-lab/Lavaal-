@@ -227,3 +227,6 @@ Settled by Osman Jalloh. Do not re-ask.
       it, so a pack the feed would refuse is caught on the PC.
     - Still local: nothing is pushed by running the builder, and notes content is never committed.
 
+## 2026-11-08 — Merged Needs You dashboard
+
+27. **Merged Needs You dashboard (/ops, behind OPS_NEEDS_YOU_ENABLED) uses LIGHT Option I by default; this supersedes decision #3 (Jack dark) for this screen only. Live /os theme unchanged until cutover (Stage 4). Decided by Osman, 8 Nov 2026.**
