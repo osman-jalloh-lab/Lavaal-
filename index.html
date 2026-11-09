@@ -490,6 +490,7 @@
 <h3 data-i18n="form.ok.h3">Quote Request Received!</h3>
 <p data-i18n="form.ok.p">We will contact you within 24 hours with pricing and availability.</p>
 </div>
+<noscript><p>Our form needs JavaScript. You can still reach us any time: <a href="mailto:support@lavaall.com?subject=Quote%20request">support@lavaall.com</a> · WhatsApp <a href="https://wa.me/17377044182" target="_blank" rel="noopener noreferrer">+1 (737) 704-4182</a>.</p></noscript>
 <form id="iq-form" novalidate>
 <input type="hidden" name="csrf-token" id="csrf-token" value=""/>
 <input type="text" name="website" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true"/>
@@ -916,21 +917,60 @@ class InquiryFormHandler {
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && (payload.accepted === true || payload.ok === true)) {
         InquiryRateLimiter.recordSubmission();
         this.form.style.display = 'none';
         this.successBox.style.display = 'block';
-      } else {
-        const payload = await response.json().catch(() => ({}));
+      } else if (response.status === 429 || payload.error === 'rate_limited') {
+        this.showDeliveryFallback(payload.message || 'Please wait a moment before submitting again.');
+      } else if (!response.ok && response.status < 500 && payload.error !== 'delivery_failed') {
         const message = (payload.errors && payload.errors.join(' ')) || payload.message || 'Submission failed';
-        throw new Error(message);
+        this.showError(message);
+      } else {
+        this.showDeliveryFallback();
       }
     } catch (error) {
-      console.error('Inquiry form submission error:', error);
-      this.showError(error.message || 'An error occurred. Please try again or email us directly.');
+      this.showDeliveryFallback();
+    } finally {
       this.submitBtn.disabled = false;
       this.submitBtn.textContent = 'Send Inquiry →';
     }
+  }
+
+  showDeliveryFallback(waitMessage) {
+    const existingError = this.form.querySelector('.error-message');
+    if (existingError) existingError.remove();
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message delivery-fallback';
+    errorDiv.setAttribute('role', 'alert');
+    errorDiv.innerHTML = `<strong>We couldn't confirm your request was sent.</strong>
+      <p>Your details are still in the form. Please try again, or contact us directly:</p>
+      <p>Email: <a href="mailto:support@lavaall.com?subject=Quote%20request">support@lavaall.com</a> · WhatsApp: <a href="https://wa.me/17377044182" target="_blank" rel="noopener noreferrer">+1 (737) 704-4182</a></p>
+      <p>If you already got our reply, you can ignore this.</p>`;
+    if (waitMessage) {
+      const waitLine = document.createElement('p');
+      waitLine.textContent = waitMessage;
+      errorDiv.appendChild(waitLine);
+    }
+    this.form.insertBefore(errorDiv, this.form.firstChild);
+    errorDiv.tabIndex = -1;
+    const bringIntoView = () => {
+      // Instant: site sets scroll-behavior:smooth on html, which would leave
+      // the alert off-screen for ~200ms after submit on phone.
+      try { errorDiv.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }); }
+      catch (_) { errorDiv.scrollIntoView(true); }
+      const r = errorDiv.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      if (r.top < 0 || r.bottom > vh) {
+        const y = window.scrollY + r.top - Math.max(16, (vh - r.height) / 2);
+        try { window.scrollTo({ top: Math.max(0, y), behavior: 'instant' }); }
+        catch (_) { window.scrollTo(0, Math.max(0, y)); }
+      }
+    };
+    bringIntoView();
+    errorDiv.focus({ preventScroll: true });
+    requestAnimationFrame(bringIntoView);
   }
 
   showError(message) {
