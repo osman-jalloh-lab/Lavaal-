@@ -27,8 +27,9 @@ function objects(value) {
 try {
   const robots = read('robots.txt');
   check(/^Sitemap:\s*https:\/\/www\.lavaall\.com\/sitemap\.xml\s*$/m.test(robots), 'robots sitemap');
-  for (const rule of ['User-agent: *', 'Allow: /', 'Disallow: /ops', 'Disallow: /os', 'Disallow: /api/']) check(robots.split(/\r?\n/).includes(rule), `robots ${rule}`);
-  check(/^#.*crawl guidance.*not access control.*sign-in/im.test(robots), 'robots explains access control');
+  for (const rule of ['User-agent: *', 'Allow: /']) check(robots.split(/\r?\n/).includes(rule), `robots ${rule}`);
+  for (const internal of ['/ops', '/os', '/api']) check(!robots.includes(internal), `robots does not advertise ${internal}`);
+  check(/^#.*crawl guidance.*not access control/im.test(robots) && /^#.*gated by auth.*not in public static output/im.test(robots), 'robots explains access control');
   const sitemap = read('sitemap.xml');
   check(/^\s*<\?xml[^?]*\?>\s*<urlset\s+xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">[\s\S]*<\/urlset>\s*$/.test(sitemap), 'sitemap XML envelope');
   const entries = [...sitemap.matchAll(/<url>\s*<loc>([^<]+)<\/loc>\s*<lastmod>([^<]+)<\/lastmod>\s*<\/url>/g)];
@@ -92,6 +93,15 @@ try {
   const homeHtml = read('index.html');
   check(!homeHtml.includes('+232-76-658-960'), 'homepage JSON-LD no longer uses superseded +232-76-658-960');
   check(homeHtml.includes('"telephone": "+1-737-704-4182"'), 'homepage JSON-LD uses founder-approved telephone');
+  check(homeHtml.includes('https://wa.me/17377044182'), 'homepage includes approved WhatsApp URL');
+  const homeMarkup = homeHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+  check(/>\s*(?:WhatsApp\s+)?\+1 \(737\) 704-4182\s*<\/a>/i.test(homeMarkup), 'homepage has visible approved phone number');
+  check(tags(homeMarkup, 'a').some(t => t.href === 'tel:+17377044182'), 'homepage has approved phone link');
+  const whatsappControls = [...homeMarkup.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].filter(match => attrs(match[1])['data-i18n-aria'] === 'cs.aria.whatsapp');
+  check(whatsappControls.length === 1, 'homepage WhatsApp social control is one anchor');
+  const whatsapp = attrs(whatsappControls[0][1]);
+  check(whatsapp.href === 'https://wa.me/17377044182' && whatsapp.class === 'social-icon' && whatsapp.target === '_blank' && whatsapp.rel === 'noopener noreferrer' && whatsapp['aria-label'] === 'WhatsApp +1 (737) 704-4182', 'homepage WhatsApp social link attributes');
+  check(!/coming-soon|showComingSoon|cs\.badge/i.test(whatsappControls[0][0]) && !/showComingSoon\(['"]WhatsApp['"]\)/.test(homeHtml), 'homepage WhatsApp social control has no coming-soon behavior or badge');
   check(!/URLSearchParams\(window\.location\.search\)\.get\('sourcing'\)/.test(homeHtml), 'no quote-form changes in this PR');
   const homeLinks = tags(homeHtml, 'a').map(t => t.href);
   for (const guide of guidePaths) check(homeLinks.includes(guide), `homepage links to ${guide}`);
