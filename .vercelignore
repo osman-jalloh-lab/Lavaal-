@@ -1,7 +1,22 @@
-# Keep LAVAALL Web planning docs, the local dev runner and its test off the
-# public site. Everything else deploys as before (no other entries).
-# The page itself lives in api/web/_site and is only reachable through
-# api/web/index.js, which answers 404 unless the section is switched on.
+# Keep internal repo files off the public site (GRC review 2026-11-09, F2).
+# Anything listed here is not uploaded to Vercel, so it returns 404.
+# Patterns start with "/" so they only match at the repo root.
+# The /ops Talk personas live in api/ops/_data/souls (bundled into the /ops
+# function by vercel.json includeFiles; files under api/ are never served
+# as static files).
+#
+# LAVAALL Web planning docs, the local dev runner and its test (unchanged).
 docs/web/
 scripts/web/
 tests/test-web.js
+# Internal docs, design notes, decision logs and OS screenshots.
+/docs/
+# Tests and fixtures.
+/tests/
+# Build, import, QA and Apps Script router source.
+/scripts/
+# Old Netlify config and function (the site runs on Vercel).
+/netlify/
+/netlify.toml
+# Root reports and agent notes (AGENTS.md, MAGNUM.md, *_REPORT.md, audits).
+/*.md

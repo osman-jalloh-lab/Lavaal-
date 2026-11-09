@@ -350,8 +350,20 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
   check('INGEST.md holds no real secret, email, lead name or banned public-copy term', !banned.test(docs.replace(/https?:\/\/\S+/g, '')));
   try {
     const diff = execFileSync('git', ['diff', '--name-only', 'origin/main...HEAD'], { cwd: root, encoding: 'utf8' }) + execFileSync('git', ['diff', '--name-only'], { cwd: root, encoding: 'utf8' });
-    check('vercel.json and the auth code are not changed (the /os guard now has a local-only bypass, covered by test-os-dev-bypass.js)', !/^vercel\.json$|api\/ops\/auth\.js|_google_signin\.js|_signin_hardening\.js|_os_return\.js/m.test(diff));
-  } catch { check('vercel.json and the auth code are not changed (git unavailable, skipped)', true); }
+    check('the auth code is not changed (the /os guard now has a local-only bypass, covered by test-os-dev-bypass.js)', !/api\/ops\/auth\.js|_google_signin\.js|_signin_hardening\.js|_os_return\.js/m.test(diff));
+    // vercel.json may change for unrelated reasons (for example the F2 public-files fix moved the /ops
+    // persona files and updated includeFiles). What this guard protects is routing: the /ops and /os
+    // rewrites must match main, no route may point at the ingest function, and /os gets no functions entry.
+    if (/^vercel\.json$/m.test(diff)) {
+      const mainCfg = JSON.parse(execFileSync('git', ['show', 'origin/main:vercel.json'], { cwd: root, encoding: 'utf8' }));
+      const headCfg = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+      const routing = (cfg) => JSON.stringify((cfg.rewrites || []).filter((r) => /^\/(ops|os)\b/.test(r.source)));
+      check('vercel.json changed, but the /ops and /os rewrites are identical to main', routing(mainCfg) === routing(headCfg));
+      check('vercel.json changed, but nothing routes to the ingest function and /os has no functions entry', !/api\/os\/ingest/.test(JSON.stringify(headCfg.rewrites || [])) && !(headCfg.functions || {})['api/os/index.js']);
+    } else {
+      check('vercel.json is not changed', true);
+    }
+  } catch (e) { check('vercel.json routing and the auth code are not changed (git unavailable, skipped)', true); }
 
   const failedChecks = results.filter((r) => !r.pass);
   results.forEach((r) => console.log(`${r.pass ? 'ok  ' : 'FAIL'} ${r.name}`));

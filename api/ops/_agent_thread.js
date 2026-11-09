@@ -41,7 +41,7 @@ const MAX_ANSWERED = 40;
 const MAX_TEXT = 2000;
 const MARKETS_STUB = 'LAVAALL is a quote-first international product-sourcing marketplace. Category → brand → family → model → variant, then Request Quote. Never imply a live checkout price.';
 
-// Display names only. Talk persona text lives in docs/ops/souls.
+// Display names only. Talk persona text lives in api/ops/_data/souls.
 const DESK_PROMPTS = Object.freeze({
   'lavaall-ceo': { name: 'LAVAALL CEO' },
   sales: { name: 'LAVAALL Sales & Customer Success' },
