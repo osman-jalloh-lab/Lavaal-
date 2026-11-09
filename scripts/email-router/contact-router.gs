@@ -22,6 +22,7 @@
  *    CONTACT_WEBHOOK_SECRET with a long random value. Put the SAME value
  *    into Vercel's CONTACT_WEBHOOK_SECRET env var. This stops randoms who
  *    find the deployed URL from sending mail through your account.
+ *    REQUIRED: without it, doPost refuses every request (ok:false, no send).
  * 5. Make sure the account you deploy as can actually send FROM each of
  *    support@ / sales@ / orders@ / contact@ / info@lavaall.com — either by
  *    deploying separately as each alias's own mailbox, or by adding each
@@ -53,8 +54,13 @@ function doPost(e) {
 
     // Apps Script Web Apps cannot reliably read custom HTTP headers, so
     // api/contact.js sends the shared secret inside the JSON body instead.
-    if (secret && payload.secret !== secret) {
-      return jsonOut({ error: 'forbidden' }, 403);
+    // Fail closed: with no CONTACT_WEBHOOK_SECRET Script Property, refuse every
+    // request (anyone holding the /exec URL could otherwise send mail as us).
+    if (!secret) {
+      return jsonOut({ ok: false, error: 'not_configured' }, 503);
+    }
+    if (typeof payload.secret !== 'string' || payload.secret !== secret) {
+      return jsonOut({ ok: false, error: 'forbidden' }, 403);
     }
 
     var routeTo = String(payload.routeTo || '').trim();
