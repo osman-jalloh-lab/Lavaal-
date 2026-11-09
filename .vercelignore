@@ -9,6 +9,7 @@ tests/test-web.js
 /MAGNUM.md
 /*_REPORT.md
 /PRODUCTION_*.md
+/HANDOFF.md
 tests/
 scripts/
 netlify/
