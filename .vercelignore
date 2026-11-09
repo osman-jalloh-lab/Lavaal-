@@ -10,9 +10,11 @@ tests/test-web.js
 /*_REPORT.md
 /PRODUCTION_*.md
 /HANDOFF.md
-tests/
-scripts/
-netlify/
+/tests/
+/scripts/
+/netlify/
+# Any other root note or report (catch-all; the public pages are .html).
+/*.md
 /netlify.toml
 /.env.example
 

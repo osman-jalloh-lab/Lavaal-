@@ -1,0 +1,4 @@
+Contact: mailto:support@lavaall.com
+Expires: 2027-11-09T06:00:00.000Z
+Preferred-Languages: en
+Canonical: https://www.lavaall.com/.well-known/security.txt

@@ -348,14 +348,15 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
   check('INGEST.md has one curl example per feed, with the secret shown as $TOKEN', feeds.FEEDS.every((f) => docs.includes('curl -sS -X POST https://www.lavaall.com/api/os/ingest/' + f + ' \\')) && (docs.match(/curl -sS -X POST/g) || []).length === 6 && (docs.match(/-H "Authorization: Bearer \$TOKEN"/g) || []).length === 6);
   const banned = new RegExp(['Star' + 'link', 'Gui' + 'nea', '@gmail', '@g\\.', '[A-Za-z0-9_-]{32,}'].join('|'));
   check('INGEST.md holds no real secret, email, lead name or banned public-copy term', !banned.test(docs.replace(/https?:\/\/\S+/g, '')));
+  // Runs on every change, not only ingest changes: see tests/_protected_scope.js for the reviewed allowlist.
   try {
-    const diff = execFileSync('git', ['diff', '--name-only', 'origin/main...HEAD'], { cwd: root, encoding: 'utf8' }) + execFileSync('git', ['diff', '--name-only'], { cwd: root, encoding: 'utf8' });
-    if (/^api\/ops\/_os_(feeds|ingest)\.js$|^api\/os\/ingest\//m.test(diff)) {
-      check('vercel.json and the auth code are not changed (the /os guard now has a local-only bypass, covered by test-os-dev-bypass.js)', !/^vercel\.json$|api\/ops\/auth\.js|_google_signin\.js|_signin_hardening\.js|_os_return\.js/m.test(diff));
-    } else {
-      check('vercel.json/auth scope guard skipped (diff does not touch ingest modules)', true);
-    }
-  } catch { check('vercel.json and the auth code are not changed (git unavailable, skipped)', true); }
+    const scope = require('./_protected_scope').check(root);
+    check('vercel.json and the auth code are unchanged against main, or are exactly the reviewed change (protected scope guard)' + (scope.offenders.length ? ': ' + scope.offenders.join(', ') : ''), scope.offenders.length === 0);
+    check('vercel.json keeps every function, header rule, rewrite and redirect that main has', scope.rulesKept);
+  } catch (err) {
+    if (err && err.code === 'ENOENT' && /git/.test(String(err.path || err.message))) check('vercel.json and the auth code are not changed (git unavailable, skipped)', true);
+    else check('protected scope guard could not run: ' + (err && err.message ? err.message.split('\n')[0] : err), false);
+  }
 
   const failedChecks = results.filter((r) => !r.pass);
   results.forEach((r) => console.log(`${r.pass ? 'ok  ' : 'FAIL'} ${r.name}`));
