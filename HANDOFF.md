@@ -13,7 +13,7 @@
 4. Complete: replaced `test-slack-handlers.js` with `test-ops-classify.js` (pure classify + status only), replaced the deleted bridge test with the existing data-only `agentPendingItem` path, and updated removed-routine expectations. No `api/slack` imports remain in tests. Full suite recorded below.
 5. Complete: updated live-path docs, example environment config, and removed routine status. Historical decisions unchanged; form backend comment only.
 6. Complete: handoff includes inventory, actual tests, security impact, and founder follow-ups.
-7. Local commit prepared in the writable temporary checkout; remote push and draft PR are blocked by session restrictions. No draft PR URL exists yet. See publishing details below.
+7. Complete: pushed `chore/remove-slack` and opened draft PR https://github.com/osman-jalloh-lab/Lavaal-/pull/81 (no merge/deploy).
 
 ## Tests
 
@@ -85,11 +85,8 @@ These founder steps are not performed by this PR. No box-only files or MCP conne
 
 The workspace `.git` is mounted read-only (`git mv` cannot create `.git/index.lock`), and shell Git/`gh` cannot resolve/connect to GitHub. A writable temporary Git checkout at `/tmp/lavaall-remove-slack-publish` is used to stage, verify, and commit the exact repository diff. The authenticated GitHub connector reports account `osman-jalloh-lab`, but its first write (`create_blob`) was refused: "MCP tool call requires approval, but approval policy is never". No remote write succeeded. The workspace files contain the final changes; its read-only Git metadata cannot advance locally.
 
-The local commit is exported as `/tmp/lavaall-remove-slack.patch` and `/tmp/lavaall-remove-slack.bundle`. Draft PR body: `/tmp/lavaall-remove-slack-pr-body.md`. Publish the prepared `chore/remove-slack` commit from a writable/network-enabled checkout as Osman, then run:
-
-```bash
-git push origin chore/remove-slack
-gh pr create --draft --repo osman-jalloh-lab/Lavaal- --base main --head chore/remove-slack --title 'chore: remove Slack integration (keep /ops classifier)' --body-file /tmp/lavaall-remove-slack-pr-body.md
-```
-
-No merge or production setting changes are authorized or performed.
+## Draft PR
+- URL: https://github.com/osman-jalloh-lab/Lavaal-/pull/81
+- Commit: `f732265` on `chore/remove-slack`
+- Re-verified suite: 42/42 files, 2125/2125 checks passed (America/Chicago, 2026-11-09).
+- No merge, deploy, Vercel env changes, or connector disconnect performed.
