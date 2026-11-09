@@ -671,3 +671,12 @@ label .req{color:var(--coral);margin-left:2px;}
   .ct-card{padding:28px 22px;}
   .ct-form-wrap{padding:28px 20px;margin-top:36px;}
 }
+
+/* Crawlable buying guides share the catalogue card language. */
+.seo-cat-links{position:static;inset:auto;z-index:auto;display:block;height:auto;margin-top:28px;padding:24px;background:var(--white);border:2px solid var(--ink);border-radius:18px;backdrop-filter:none;}
+.seo-cat-links h3{font-family:'Clash Display',sans-serif;font-size:20px;margin-bottom:16px;}
+.seo-cat-links>div{display:flex;flex-wrap:wrap;gap:12px 24px;}
+.seo-cat-links a{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:4px;}
+.seo-cat-links a:hover{background:var(--sun);}
+.seo-cat-links a:focus-visible{outline:3px solid var(--ink);outline-offset:4px;border-radius:2px;}
+@media(max-width:600px){.seo-cat-links{padding:20px;}.seo-cat-links>div{flex-direction:column;gap:16px;}}

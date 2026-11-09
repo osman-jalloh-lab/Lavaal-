@@ -1,0 +1,7 @@
+# Crawl guidance only, not access control; /ops is protected by sign-in.
+User-agent: *
+Allow: /
+Disallow: /ops
+Disallow: /os/
+Disallow: /api/
+Sitemap: https://www.lavaall.com/sitemap.xml
