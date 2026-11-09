@@ -304,6 +304,25 @@ function requestOrigin(req) {
   return `${String(proto).split(',')[0].trim()}://${String(host).split(',')[0].trim()}`;
 }
 
+function sameOriginRequest(req) {
+  const site = header(req, 'sec-fetch-site');
+  if (site !== undefined && site !== 'same-origin' && site !== 'none') return false;
+  const origin = header(req, 'origin');
+  if (origin !== undefined) {
+    if (origin === 'null') return false;
+    try {
+      const host = header(req, 'x-forwarded-host') || header(req, 'host');
+      const parsed = new URL(origin);
+      return Boolean(host) && Boolean(parsed.host) && parsed.host === String(host).toLowerCase();
+    } catch {
+      return false;
+    }
+  }
+  // Legacy clients without either header remain allowed. HMAC CSRF token
+  // verification on all main write forms remains the stronger follow-up.
+  return true;
+}
+
 function publicOrigin(req) {
   if (vercelEnv() === 'preview') return requestOrigin(req);
   const configured = process.env.OPS_PUBLIC_URL;
@@ -642,6 +661,7 @@ module.exports = {
   resendKeyPrefixOk,
   resendKeyPresent,
   sendMagicLink,
+  sameOriginRequest,
   sessionAudience,
   sessionCookie,
   signToken,

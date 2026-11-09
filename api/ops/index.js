@@ -74,6 +74,7 @@ const {
   queryOf,
   readBody,
   redirect,
+  sameOriginRequest,
   wantsJson,
 } = require('./_lib');
 const {
@@ -755,6 +756,12 @@ async function opsDispatch(req, res) {
       return wantsJson(req)
         ? json(res, 401, { error: 'sign_in_required' })
         : sendHtml(res, 401, loginPage({ error: 'Sign in required.' }));
+    }
+    if (!sameOriginRequest(req)) {
+      console.log(JSON.stringify({ type: 'OpsCsrf', event: 'rejected' }));
+      return wantsJson(req)
+        ? json(res, 403, { error: 'csrf' })
+        : renderArea(req, res, session, { error: 'Request was rejected. Reload and try again.' });
     }
     return handleWrite(req, res, session);
   }
