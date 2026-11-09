@@ -33,7 +33,7 @@ const {
   updateTask,
 } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
-const { classify } = require('../slack/_router/classify');
+const { classify } = require('./_router/classify');
 const { agentPendingItem } = require('./_untrusted');
 const ceo = require('./_ceo_bridge');
 const desks = require('./_agent_thread');

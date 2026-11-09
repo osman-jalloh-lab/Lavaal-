@@ -4,9 +4,9 @@
 //
 // Why not Auth.js / Clerk: this repo is static HTML + Vercel api/ serverless
 // with no package.json. Introducing Next.js or an Auth.js runtime would be a
-// rewrite. Tokens use the same Node crypto pattern as api/slack/_lib.js.
+// rewrite. Tokens use Node crypto directly.
 //
-// Used-token set is process-local (same limitation as Slack task memory).
+// Used-token set is process-local.
 // Short TTL (10 minutes) bounds replay across cold starts.
 
 const crypto = require('crypto');

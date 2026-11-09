@@ -283,7 +283,6 @@ exports.handler = async (event, context) => {
     // You can integrate with services like:
     // - SendGrid for email
     // - Airtable or Notion for database
-    // - Slack for notifications
     
     // Example: Send to email using Netlify Forms API
     // (You would need to configure this in Netlify dashboard)

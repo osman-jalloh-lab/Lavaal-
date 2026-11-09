@@ -403,7 +403,7 @@
     "name": "LAVAALL Slack task bridge",
     "schedule": "\u2014",
     "owner": "lavaall-ceo",
-    "status": "paused",
+    "status": "removed",
     "lastRunAt": 1790544701000,
     "lastRunStatus": "ok",
     "steps": null

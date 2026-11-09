@@ -1,10 +1,10 @@
 // Ticket 05 — Contextual chat bridge.
-// CEO router (api/slack/_router/classify) stays lead.
+// CEO router (api/ops/_router/classify) stays lead.
 // Anthropic/OpenAI are helpers only when env keys exist. No fake replies.
 // Drafts only: never send mail, deploy, or mutate store without confirm.
 // Underscore prefix: not a Vercel function. No npm.
 
-const { classify, CEO_ID } = require('../slack/_router/classify');
+const { classify, CEO_ID } = require('./_router/classify');
 const { talkToDesk } = require('./_agent_thread');
 const { TALK_AGENT_IDS, normalizeTalkAgentId } = require('./_office');
 const {
@@ -129,7 +129,7 @@ function setupMessage(route) {
 }
 
 function helperFailedMessage(status) {
-  return `The connected helper failed (HTTP ${status || 'unknown'}). Slack remains available as secondary. No invented reply.`;
+  return `The connected helper failed (HTTP ${status || 'unknown'}). Try again in /ops Talk. No invented reply.`;
 }
 
 async function completeAnthropic({ question, context, route }) {

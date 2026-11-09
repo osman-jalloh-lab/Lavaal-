@@ -341,9 +341,11 @@ async function run() {
       && ceo.threadIsWaiting({ status: 'pending', messages: [{ role: 'founder', text: 'Hi' }, { role: 'ceo', text: 'Ok' }] }) === false
       && ceo.threadIsWaiting({ status: 'answered', messages: [{ role: 'ceo', text: 'Ok' }] }) === false);
     const src = fs.readFileSync(path.join(opsDir, '_ceo_bridge.js'), 'utf8');
-    check('bridge uses dedicated KV keys and never posts Slack',
+    check('bridge uses dedicated KV keys, keeps fallback in /ops, and never posts Slack',
       src.includes('ops:ceo:thread:')
       && src.includes('ops:ceo:pending')
+      && ceo.OPS_FALLBACK.includes('/ops Talk')
+      && !/slack/i.test(ceo.OPS_FALLBACK)
       && !src.includes('chat.postMessage')
       && !src.includes('LAVAALL_TASK'));
     check('Hobby function stays underscored',
