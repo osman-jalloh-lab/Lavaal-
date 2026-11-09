@@ -490,6 +490,7 @@
 <h3 data-i18n="form.ok.h3">Quote Request Received!</h3>
 <p data-i18n="form.ok.p">We will contact you within 24 hours with pricing and availability.</p>
 </div>
+<noscript><p>Our form needs JavaScript. You can still reach us any time: <a href="mailto:support@lavaall.com?subject=Quote%20request">support@lavaall.com</a> · WhatsApp <a href="https://wa.me/17377044182" target="_blank" rel="noopener noreferrer">+1 (737) 704-4182</a>.</p></noscript>
 <form id="iq-form" novalidate>
 <input type="hidden" name="csrf-token" id="csrf-token" value=""/>
 <input type="text" name="website" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off" aria-hidden="true"/>
@@ -916,21 +917,36 @@ class InquiryFormHandler {
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && (payload.accepted === true || payload.ok === true)) {
         InquiryRateLimiter.recordSubmission();
         this.form.style.display = 'none';
         this.successBox.style.display = 'block';
-      } else {
-        const payload = await response.json().catch(() => ({}));
+      } else if (!response.ok && response.status < 500 && payload.error !== 'delivery_failed') {
         const message = (payload.errors && payload.errors.join(' ')) || payload.message || 'Submission failed';
-        throw new Error(message);
+        this.showError(message);
+      } else {
+        this.showDeliveryFallback();
       }
     } catch (error) {
-      console.error('Inquiry form submission error:', error);
-      this.showError(error.message || 'An error occurred. Please try again or email us directly.');
+      this.showDeliveryFallback();
+    } finally {
       this.submitBtn.disabled = false;
       this.submitBtn.textContent = 'Send Inquiry →';
     }
+  }
+
+  showDeliveryFallback() {
+    const existingError = this.form.querySelector('.error-message');
+    if (existingError) existingError.remove();
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.setAttribute('role', 'alert');
+    errorDiv.innerHTML = `<strong>We couldn't confirm your request was sent.</strong>
+      <p>Your details are still in the form. Please try again, or contact us directly:</p>
+      <p>Email: <a href="mailto:support@lavaall.com?subject=Quote%20request">support@lavaall.com</a> · WhatsApp: <a href="https://wa.me/17377044182" target="_blank" rel="noopener noreferrer">+1 (737) 704-4182</a></p>
+      <p>If you already got our reply, you can ignore this.</p>`;
+    this.form.insertBefore(errorDiv, this.form.firstChild);
   }
 
   showError(message) {

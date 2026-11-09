@@ -30,7 +30,7 @@ async function run() {
     global.fetch = async (url, opts) => {
       const sent = JSON.parse(opts.body);
       check(`[${type}] routes to an @lavaall.com address`, /@lavaall\.com$/.test(sent.routeTo));
-      return { ok: true, json: async () => ({}) };
+      return { ok: true, json: async () => ({ ok: true }) };
     };
     const req = { method: 'POST', headers: { 'x-forwarded-for': `10.0.0.${Math.random()}` }, body: {
       inquiryType: type, name: 'Jean Kamara', email: 'jean@example.com', phone: '+232 76 000 000',
@@ -44,7 +44,7 @@ async function run() {
 
   // Missing order number on existing-order should be rejected
   {
-    global.fetch = async () => ({ ok: true, json: async () => ({}) });
+    global.fetch = async () => ({ ok: true, json: async () => ({ ok: true }) });
     const req = { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.99' }, body: {
       inquiryType: 'existing-order', name: 'Jean Kamara', email: 'jean@example.com',
       country: 'Sierra Leone', subject: 'Order', message: 'Where is my order', preferredResponse: 'email', consent: true,
@@ -57,7 +57,7 @@ async function run() {
   // Conditional fields actually reach the outgoing message
   {
     let sentMessage = '';
-    global.fetch = async (url, opts) => { sentMessage = JSON.parse(opts.body).message; return { ok: true, json: async () => ({}) }; };
+    global.fetch = async (url, opts) => { sentMessage = JSON.parse(opts.body).message; return { ok: true, json: async () => ({ ok: true }) }; };
     const req = { method: 'POST', headers: { 'x-forwarded-for': '10.0.0.50' }, body: {
       inquiryType: 'sales-quotation', name: 'Jean Kamara', email: 'jean@example.com',
       country: 'Sierra Leone', subject: 'Quote', message: 'Need pricing', preferredResponse: 'phone', consent: true,

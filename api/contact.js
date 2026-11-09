@@ -3,9 +3,7 @@
 // correct department mailbox from the inquiry type, folds whichever
 // conditional fields the customer filled in into the message body, and
 // forwards a single JSON payload to CONTACT_WEBHOOK_URL for delivery (see
-// scripts/email-router/contact-router.gs, unchanged and still the same
-// deployed script -- this file only changes what it's handed, never how
-// contact-router.gs itself works). No npm dependency, no credentials in
+// scripts/email-router/contact-router.gs). No npm dependency, no credentials in
 // client code, never reports "delivered" without a durable handoff.
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,8 +45,7 @@ function json(res, status, body) {
 }
 
 // Folds whichever conditional fields apply for this inquiry type into a
-// readable block appended to the customer's own message. contact-router.gs
-// is never touched -- it just receives a longer, still-plain-text message.
+// readable block appended to the customer's own message for contact-router.gs.
 function buildExtraDetails(type, body) {
   const lines = [];
   const add = (label, val) => { const v = clean(val, 300); if (v) lines.push(`${label}: ${v}`); };
@@ -129,8 +126,13 @@ async function contact(req, res) {
 
   const webhook = process.env.CONTACT_WEBHOOK_URL;
   if (webhook) {
+    let deliveryStatus = null;
+    let j = null;
+    let deliveryOk = false;
+    let deliveryError = null;
     try {
       const delivery = await fetch(webhook, {
+        signal: AbortSignal.timeout(10000),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,11 +145,28 @@ async function contact(req, res) {
           receivedAt: new Date().toISOString(),
         }),
       });
-      if (delivery.ok) return json(res, 202, { accepted: true, routedTo: route.to });
-    } catch {
-      // fall through to delivery_failed below
+      deliveryStatus = delivery.status ?? null;
+      j = await delivery.json();
+      deliveryOk = !!(delivery.ok && j && j.ok === true);
+      // Only known router error keys may reach logs; arbitrary upstream text
+      // can contain customer details (including Apps Script exception text).
+      deliveryError = j && ['forbidden', 'invalid_route', 'server_error'].includes(j.error)
+        ? j.error : (deliveryOk ? null : 'router_rejected');
+    } catch (error) {
+      deliveryError = error.name === 'TimeoutError' || error.name === 'AbortError'
+        ? 'timeout' : (error.name === 'SyntaxError' ? 'non_json' : 'network');
     }
-    return json(res, 502, { error: 'delivery_failed', message: 'We could not deliver your message. Please try again shortly or email us directly.' });
+    console.log(JSON.stringify({ evt: 'contact', status: deliveryStatus, ok: !!(j && j.ok === true), err: deliveryError, type: inquiryType }));
+    if (deliveryOk) return json(res, 202, { accepted: true, routedTo: route.to });
+    return json(res, 502, {
+      error: 'delivery_failed',
+      message: "We couldn't confirm your request was sent. Please try again, or contact us directly.",
+      fallback: {
+        email: 'support@lavaall.com',
+        whatsapp: '+1 (737) 704-4182',
+        whatsappUrl: 'https://wa.me/17377044182',
+      },
+    });
   }
 
   return json(res, 503, {

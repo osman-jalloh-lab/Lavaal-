@@ -82,6 +82,16 @@ function doPost(e) {
       name: 'LAVAALL Website',
     });
 
+    // Self-addressed mail is filed Sent-only; make website leads visible.
+    try {
+      Utilities.sleep(1500);
+      var t = GmailApp.search('in:sent subject:"' + subject.replace(/"/g, '') + '" newer_than:1d', 0, 1)[0];
+      if (t) {
+        t.moveToInbox();
+        t.addLabel(GmailApp.getUserLabelByName('Website Leads') || GmailApp.createLabel('Website Leads'));
+      }
+    } catch (labelErr) { /* delivery already succeeded; never fail the request on labelling */ }
+
     return jsonOut({ ok: true });
   } catch (err) {
     return jsonOut({ error: 'server_error', message: String(err) }, 500);
