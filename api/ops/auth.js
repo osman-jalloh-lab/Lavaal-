@@ -157,7 +157,7 @@ async function handleGoogleCallback(req, res) {
     await noteSignIn(req, 'rejected: unknown', 'rejected');
     return failGoogle(req, res);
   }
-  if (!consumeOAuthState(tx.state, tx.exp)) {
+  if (!(await consumeOAuthState(tx.state, tx.exp))) {
     logGoogle('rejected', 'state');
     await noteSignIn(req, 'rejected: unknown', 'rejected');
     return failGoogle(req, res, 401, true);
