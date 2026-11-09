@@ -15,7 +15,7 @@ function kvMock(calls) {
   const data = new Map();
   return async (url, opts) => {
     calls.push({ url, opts });
-    if (url === 'https://example.com/quote') return { ok: true };
+    if (url === 'https://example.com/quote') return { ok: true, json: async () => ({ ok: true }) };
     const commands = JSON.parse(opts.body);
     return { ok: true, json: async () => commands.map(command => {
       const [op, key, value] = command;
