@@ -77,22 +77,24 @@ function doPost(e) {
     if (payload.preferredCallback) lines.push('Preferred callback date/time: ' + payload.preferredCallback);
     lines.push('', 'Message:', payload.message || '', '', 'Received: ' + (payload.receivedAt || new Date().toISOString()));
 
-    GmailApp.sendEmail(routeTo, subject, lines.join('\n'), {
+    // Draft.send returns the exact sent message; no Sent search/index delay.
+    // Keep send outside the labelling catch: a failed send must fail delivery.
+    var draft = GmailApp.createDraft(routeTo, subject, lines.join('\n'), {
       replyTo: payload.email || undefined,
       name: 'LAVAALL Website',
     });
+    var sentMsg = draft.send();
+    var labeled = false;
 
     // Self-addressed mail is filed Sent-only; make website leads visible.
     try {
-      Utilities.sleep(1500);
-      var t = GmailApp.search('in:sent subject:"' + subject.replace(/"/g, '') + '" newer_than:1d', 0, 1)[0];
-      if (t) {
-        t.moveToInbox();
-        t.addLabel(GmailApp.getUserLabelByName('Website Leads') || GmailApp.createLabel('Website Leads'));
-      }
+      var thread = sentMsg.getThread();
+      thread.moveToInbox();
+      thread.addLabel(GmailApp.getUserLabelByName('Website Leads') || GmailApp.createLabel('Website Leads'));
+      labeled = true;
     } catch (labelErr) { /* delivery already succeeded; never fail the request on labelling */ }
 
-    return jsonOut({ ok: true });
+    return jsonOut({ ok: true, labeled: labeled });
   } catch (err) {
     return jsonOut({ error: 'server_error', message: String(err) }, 500);
   }

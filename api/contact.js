@@ -12,19 +12,19 @@ const MAX_BODY = 14_000;
 const recent = new Map();
 
 // Single source of truth for the 15 inquiry types -> department mailbox,
-// per the routing rules: sales/product/procurement -> sales, support ->
+// per the routing rules: sales/product/procurement -> support (Osman / Alison), support ->
 // support, orders -> orders, partnerships -> contact, general -> info.
 // Keep the <select> in index.html's #inquiry form in sync with these keys.
 const ROUTES = {
-  'sales-quotation':        { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Sales / Quotation]' },
-  'product-availability':   { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Product Availability]' },
-  'equipment-procurement':  { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Equipment Procurement]' },
-  'routers-networking':     { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Routers & Networking]' },
-  'servers-infrastructure': { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Servers & Infrastructure]' },
-  'computers-workstations': { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Computers & Workstations]' },
-  'fiber-optic':            { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Fiber-Optic Products]' },
-  'structured-cabling':     { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Structured Cabling]' },
-  'installation-services':  { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Installation Services]' },
+  'sales-quotation':        { to: 'support@lavaall.com', tag: '[Lavaall Website – Sales / Quotation]' },
+  'product-availability':   { to: 'support@lavaall.com', tag: '[Lavaall Website – Product Availability]' },
+  'equipment-procurement':  { to: 'support@lavaall.com', tag: '[Lavaall Website – Equipment Procurement]' },
+  'routers-networking':     { to: 'support@lavaall.com', tag: '[Lavaall Website – Routers & Networking]' },
+  'servers-infrastructure': { to: 'support@lavaall.com', tag: '[Lavaall Website – Servers & Infrastructure]' },
+  'computers-workstations': { to: 'support@lavaall.com', tag: '[Lavaall Website – Computers & Workstations]' },
+  'fiber-optic':            { to: 'support@lavaall.com', tag: '[Lavaall Website – Fiber-Optic Products]' },
+  'structured-cabling':     { to: 'support@lavaall.com', tag: '[Lavaall Website – Structured Cabling]' },
+  'installation-services':  { to: 'support@lavaall.com', tag: '[Lavaall Website – Installation Services]' },
   'customer-support':       { to: 'support@lavaall.com', tag: '[Lavaall Website – Customer Support]' },
   'technical-support':      { to: 'support@lavaall.com', tag: '[Lavaall Website – Technical Support]' },
   'existing-order':         { to: 'orders@lavaall.com',  tag: '[Lavaall Website – Existing Order]' },
@@ -87,7 +87,7 @@ async function contact(req, res) {
   // Honeypot: real visitors never populate this hidden field.
   if (body.website) return json(res, 200, { accepted: true });
 
-  // Basic per-IP rate limit (in-memory; resets on cold start, same as before).
+  // Per-IP cooldown after confirmed delivery (in-memory; resets on cold start).
   const ip = String(req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
   const now = Date.now();
   const last = recent.get(ip) || 0;
@@ -116,8 +116,6 @@ async function contact(req, res) {
   if (REQUIRES_ORDER_NUMBER.has(inquiryType) && !clean(body.orderNumber)) errors.push('An order or reference number is required for this inquiry type.');
   if (!consent) errors.push('Consent is required.');
   if (errors.length) return json(res, 400, { error: 'invalid_contact_request', errors });
-
-  recent.set(ip, now);
 
   const route = ROUTES[inquiryType];
   const emailSubject = `${route.tag} ${subject}`.slice(0, 180);
@@ -156,8 +154,11 @@ async function contact(req, res) {
       deliveryError = error.name === 'TimeoutError' || error.name === 'AbortError'
         ? 'timeout' : (error.name === 'SyntaxError' ? 'non_json' : 'network');
     }
-    console.log(JSON.stringify({ evt: 'contact', status: deliveryStatus, ok: !!(j && j.ok === true), err: deliveryError, type: inquiryType }));
-    if (deliveryOk) return json(res, 202, { accepted: true, routedTo: route.to });
+    console.log(JSON.stringify({ evt: 'contact', status: deliveryStatus, ok: deliveryOk, err: deliveryError, type: inquiryType }));
+    if (deliveryOk) {
+      recent.set(ip, Date.now());
+      return json(res, 202, { accepted: true, routedTo: route.to });
+    }
     return json(res, 502, {
       error: 'delivery_failed',
       message: "We couldn't confirm your request was sent. Please try again, or contact us directly.",

@@ -34,13 +34,13 @@ const context = {
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../api/contact.js'), 'utf8'), context);
 const contact = context.module.exports;
 let id = 0;
-async function invoke(overrides = {}) {
+async function invoke(overrides = {}, ip = `fixture-${++id}`) {
   const res = {
     status(code) { this.statusCode = code; return this; },
     setHeader() { return this; },
     send(body) { this.body = JSON.parse(body); return this; },
   };
-  await contact({ method: 'POST', headers: { 'x-forwarded-for': `fixture-${++id}` }, body: { ...fixture, ...overrides } }, res);
+  await contact({ method: 'POST', headers: { 'x-forwarded-for': ip }, body: { ...fixture, ...overrides } }, res);
   return res;
 }
 function reply(body, status = 200) {
@@ -59,7 +59,7 @@ async function run() {
   let res = await invoke();
   assert.equal(res.statusCode, 202);
   assert.equal(res.body.accepted, true);
-  assert.equal(res.body.routedTo, 'sales@lavaall.com');
+  assert.equal(res.body.routedTo, 'support@lavaall.com');
   assert.deepEqual(JSON.parse(logs.at(-1)), { evt: 'contact', status: 200, ok: true, err: null, type: fixture.inquiryType });
 
   for (const body of [{ ok: false, error: 'forbidden' }, {}, null, { ok: 'true' }, { ok: false, error: fixture.email }]) {
@@ -68,6 +68,20 @@ async function run() {
   }
   transport = async () => reply({ ok: true }, 500);
   failed(await invoke());
+
+  assert.equal(JSON.parse(logs.at(-1)).ok, false, 'HTTP failure overrides body ok');
+
+  transport = async () => reply({ ok: false });
+  const failureCalls = fetchCalls;
+  failed(await invoke({}, 'retry-failure'));
+  failed(await invoke({}, 'retry-failure'));
+  assert.equal(fetchCalls, failureCalls + 2, 'failed delivery permits immediate retry');
+
+  transport = async () => reply({ ok: true });
+  assert.equal((await invoke({}, 'retry-success')).statusCode, 202);
+  const successCalls = fetchCalls;
+  assert.equal((await invoke({}, 'retry-success')).statusCode, 429);
+  assert.equal(fetchCalls, successCalls, 'successful delivery retains rate limit');
 
   // Response.json throws the native SyntaxError for a non-JSON body.
   transport = async () => new Response('<html>Not JSON</html>', { status: 200 });
