@@ -28,7 +28,7 @@ const {
   payloadTooLarge,
   publicOrigin,
   queryOf,
-  rateLimited,
+  rateLimitedShared,
   readBody,
   readCsrfToken,
   redirect,
@@ -86,7 +86,7 @@ function failGoogle(req, res, status, clearCookie) {
   return redirect(res, `/ops?error=${encodeURIComponent(genericGoogleFailure())}`, cookie);
 }
 
-function handleGoogleStart(req, res) {
+async function handleGoogleStart(req, res) {
   if (looksLikeAgentRequest(req)) {
     return requestFailed(req, res, 403, 'agent_denied', genericGoogleFailure());
   }
@@ -103,7 +103,7 @@ function handleGoogleStart(req, res) {
   }
 
   const ip = clientIp(req);
-  if (rateLimited(`google-start:${ip}`, GOOGLE_AUTH_WINDOW_MS, GOOGLE_AUTH_MAX_HITS)) {
+  if (await rateLimitedShared(`google-start:${ip}`, GOOGLE_AUTH_WINDOW_MS, GOOGLE_AUTH_MAX_HITS)) {
     return requestFailed(req, res, 429, 'rate_limited', genericRateLimitMessage());
   }
 
@@ -137,7 +137,7 @@ async function handleGoogleCallback(req, res) {
   }
 
   const ip = clientIp(req);
-  if (rateLimited(`google-callback:${ip}`, GOOGLE_AUTH_WINDOW_MS, GOOGLE_AUTH_MAX_HITS)) {
+  if (await rateLimitedShared(`google-callback:${ip}`, GOOGLE_AUTH_WINDOW_MS, GOOGLE_AUTH_MAX_HITS)) {
     return requestFailed(req, res, 429, 'rate_limited', genericRateLimitMessage());
   }
 
@@ -226,7 +226,7 @@ async function handleRequest(req, res) {
   }
 
   const ip = clientIp(req);
-  if (rateLimited(`ip:${ip}`, 30_000)) {
+  if (await rateLimitedShared(`ip:${ip}`, 30_000)) {
     return requestFailed(req, res, 429, 'rate_limited', genericRateLimitMessage());
   }
 
@@ -328,7 +328,7 @@ async function handleSignOutAll(req, res) {
       ? json(res, 401, { error: 'sign_in_required' })
       : redirect(res, '/ops?error=' + encodeURIComponent('Sign in required.'));
   }
-  if (rateLimited(`signout-all:${clientIp(req)}`, 30_000)) {
+  if (await rateLimitedShared(`signout-all:${clientIp(req)}`, 30_000)) {
     return requestFailed(req, res, 429, 'rate_limited', genericRateLimitMessage());
   }
   const body = readBody(req);

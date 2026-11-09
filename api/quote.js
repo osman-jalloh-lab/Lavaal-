@@ -1,6 +1,6 @@
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_BODY = 12_000;
-const recent = new Map();
+const { hit } = require('./_shared_limits');
 
 function clean(value, max = 200) {
   return typeof value === 'string' ? value.trim().replace(/[<>"'`]/g, '').slice(0, max) : '';
@@ -13,9 +13,7 @@ async function quote(req, res) {
   if (raw.length > MAX_BODY) return json(res, 413, { error: 'payload_too_large' });
   const body = req.body || {};
   if (body.website) return json(res, 200, { accepted: true });
-  const ip = String(req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
-  const now = Date.now(); const last = recent.get(ip) || 0;
-  if (now - last < 60_000) return json(res, 429, { error: 'rate_limited' });
+  const ip = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
   const requestType = clean(body.requestType, 32);
   const name = clean(body.name, 100), email = clean(body.email, 100), phone = clean(body.phone, 20);
   const company = clean(body.company, 100), country = clean(body.country, 50), message = clean(body.message, 2000);
@@ -25,7 +23,8 @@ async function quote(req, res) {
   if (requestType === 'verified-product') {
     if (!clean(context.productName, 240) || !clean(context.sourceProductId, 64) || !clean(context.mpn, 128) || context.verified !== true) return json(res, 400, { error: 'invalid_verified_context' });
   } else if (!clean(context.category, 80) || !clean(context.requestedModel, 240) || context.sourceProductId || context.mpn || context.gtin) return json(res, 400, { error: 'invalid_sourcing_context' });
-  recent.set(ip, now);
+  const limit = await hit('quote:' + ip, { windowMs: 60_000, max: 1 });
+  if (limit.limited) return json(res, 429, { error: 'rate_limited' });
   const webhook = process.env.QUOTE_WEBHOOK_URL;
   if (webhook) {
     try {
