@@ -26,7 +26,7 @@ const deskIds = K.desks.map((d) => d.id).concat(K.extraDesks.map((d) => d.id));
 // ================= 1. the pack as committed =================
 check('pack loads through require() and is frozen', Object.isFrozen(PACK) && PACK.builtAt === '2026-10-22' && Array.isArray(PACK.decisions) && Array.isArray(PACK.skills));
 check('counts: 52 decisions (22 Open, 30 Closed, 6 with a Jev score)', D.length === 52 && count(D, (r) => r.status === 'Open') === 22 && count(D, (r) => r.status === 'Closed') === 30 && count(D, (r) => r.jev !== null) === 6);
-check('counts: 14 routines (13 active, 1 paused), 54 skills, 30 rules, 6 desks plus Scout', RT.length === 14 && count(RT, (r) => r.status === 'active') === 13 && count(RT, (r) => r.status === 'paused') === 1 && S.length === 54 && R.length === 30 && K.desks.length === 6 && K.extraDesks.length === 1);
+check('counts: 14 routines (13 active, 1 removed), 54 skills, 30 rules, 6 desks plus Scout', RT.length === 14 && count(RT, (r) => r.status === 'active') === 13 && count(RT, (r) => r.status === 'removed') === 1 && RT.find((r) => r.id === 'lavaall-slack-task-bridge').status === 'removed' && S.length === 54 && R.length === 30 && K.desks.length === 6 && K.extraDesks.length === 1);
 check('every id is unique (the stale duplicate decision is gone)', [D, RT, S, R].every((rows) => new Set(rows.map((r) => r.id)).size === rows.length));
 check('D-2026-09-25-38 appears once, as Closed', D.filter((r) => r.id === 'D-2026-09-25-38').length === 1 && D.find((r) => r.id === 'D-2026-09-25-38').status === 'Closed');
 check('the files are pure ASCII JSON (no BOM, no replacement characters)', FILES.every((f) => !/[^\x00-\x7F]/.test(raw[f]) && !raw[f].startsWith('﻿')));
@@ -107,7 +107,7 @@ check('Decisions view: 6 scored (PASS or FLAG), 46 "Jev: not run"', (dec.match(/
 check('Decisions view: 10 cards have no level; 25 show their desk short name and 27 a dash', (dec.match(/class="lv num">—</g) || []).length === 10 && (dec.match(/<span class="dim">—<\/span><\/span>|<span class="dim">—<\/span><span class="pill/g) || []).length === 27 && ['Technical', 'CEO', 'Growth', 'Sales'].map((d) => (dec.match(new RegExp(`</i>${d}</span>`, 'g')) || []).length).join() === '16,5,2,2');
 check('Decisions view: a decision opens from its id', /data-go="decisions\/D-2026-09-25-38"/.test(dec));
 const rtv = html('routines');
-check('Routines view: 14 rows, 13 active and 1 paused', (rtv.match(/<tbody>[\s\S]*<\/tbody>/)[0].match(/<tr class="row"/g) || []).length === 14 && (rtv.match(/pill pass">active/g) || []).length === 13 && (rtv.match(/pill flag">paused/g) || []).length === 1);
+check('Routines view: 14 rows, 13 active and 1 removed', (rtv.match(/<tbody>[\s\S]*<\/tbody>/)[0].match(/<tr class="row"/g) || []).length === 14 && (rtv.match(/pill pass">active/g) || []).length === 13 && (rtv.match(/pill flag">removed/g) || []).length === 1);
 check('Routines view: schedules and desks are shown', /Weekdays 8:07 AM CT/.test(rtv) && /Tue-Sat 12:00 AM CT/.test(rtv) && (rtv.match(/data-go="desks\/lavaall-ceo">CEO</g) || []).length === 10 && (rtv.match(/data-go="desks\/scout">Scout</g) || []).length === 3);
 check('Routines view: last run and health are dashes without a health record', /there is none yet\./.test(rtv) && !/helper failed|skipped/.test(rtv));
 const dkv = html('desks');

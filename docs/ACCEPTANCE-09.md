@@ -59,8 +59,8 @@ Ticket 09 also requires **founder L3 approve before production deploy**. That ga
 | `node tests/test-ops-routines.js` | 19/19 |
 | `node tests/test-ops-kits.js` | 44/44 |
 | `node tests/test-inquiry-and-schedule.js` | 60/60 |
-| `node tests/test-slack-handlers.js` | 111/111 |
-| **Total** | **422/422** |
+| `node tests/test-ops-classify.js` | Replaces the retired Slack suite (historical: 111/111); current result in `HANDOFF.md` |
+| **Historical total** | **422/422** (includes the retired Slack suite; current full-suite results are in `HANDOFF.md`) |
 
 GitHub checks on PR #12 at this writing: Vercel Preview Comments success; Netlify header/redirect rules success. Netlify does **not** run Vercel `/api/ops` functions — use Vercel Preview for `/ops`.
 
@@ -110,7 +110,7 @@ Secrets were not read or committed.
 - Workspace admin allows the Google OAuth app; then smoke one non-customer confirm-send and one shared-calendar create.
 - Founder L3 decide whether `/ops` may go to production (still **no** after this ticket).
 - Ticket/track: image-pack PR #11 stays separate.
-- Slack remains secondary until chat is proven in daily use (spec).
+- Slack integration removed; use `/ops` Talk and Assign.
 
 ---
 

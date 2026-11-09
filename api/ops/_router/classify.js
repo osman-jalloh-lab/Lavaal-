@@ -1,5 +1,5 @@
-// Pure classifier for Slack Command Center tasks.
-// classify({ text, source }) → routing decision. No I/O, no Slack calls.
+// Pure LAVAALL /ops task classifier.
+// classify({ text, source }) → routing decision. No I/O.
 const AGENT_REGISTRY = require('./agent-registry.json');
 const SKILL_REGISTRY = require('./skill-registry.json');
 

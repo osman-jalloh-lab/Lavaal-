@@ -1,7 +1,7 @@
 // Ticket 08 — Saved routines. Manual run only. Drafts only. No mail. No schedules.
 // Reuses ticket 05 helper path. Underscore prefix: not a Vercel function. No npm.
 
-const { classify, CEO_ID } = require('../slack/_router/classify');
+const { classify, CEO_ID } = require('./_router/classify');
 const {
   completeWithModel,
   describeChatSetup,
@@ -88,7 +88,7 @@ async function runRoutine(id, { selection, createdBy } = {}) {
   try {
     model = await completeWithModel({ question: routine.prompt, context, route });
   } catch {
-    model = { error: 'helper_failed', message: 'The connected helper failed (HTTP network). Slack remains available as secondary. No invented reply.' };
+    model = { error: 'helper_failed', message: 'The connected helper failed (HTTP network). Try the routine again in /ops. No invented reply.' };
   }
   if (model.error) {
     const message = model.message || setupMessage(route);

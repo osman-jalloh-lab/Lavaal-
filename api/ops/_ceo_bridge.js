@@ -44,7 +44,7 @@ const MAX_MESSAGES = 40;
 const MAX_PENDING = 40;
 const MAX_ANSWERED = 40;
 const MAX_TEXT = 2000;
-const SLACK_FALLBACK = 'If this bridge is down, Slack #laval is the backup — not the usual path.';
+const OPS_FALLBACK = 'If this bridge is down, try again in /ops Talk in a moment.';
 const WAITING_COPY = 'Waiting on CEO…';
 const RUNTIME_UNAVAILABLE_COPY = "Couldn't reach the CEO runtime just now — try again in a moment.";
 // Casual openers must not pull Goal + unfinished Tasks into the model turn.
@@ -1472,7 +1472,7 @@ Object.assign(module.exports, {
   PHATIC_GREETING_COPY,
   PROVENANCE,
   RESPONSE_OWNERS,
-  SLACK_FALLBACK,
+  OPS_FALLBACK,
   THREAD_KEY_PREFIX,
   WAITING_COPY,
   RUNTIME_UNAVAILABLE_COPY,

@@ -1,4 +1,4 @@
-// Task lifecycle for the LAVAALL Slack Command Center router.
+// Pure task lifecycle helpers for the LAVAALL /ops router.
 const STATUSES = Object.freeze({
   RECEIVED: 'RECEIVED',
   CLASSIFIED: 'CLASSIFIED',

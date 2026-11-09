@@ -33,6 +33,8 @@ The session must be a valid `/ops` cookie (`lavaall_ops`) whose email is one of 
 | Founder session, flag on, key missing or not 32 bytes | 503 `encryption_not_configured`. Nothing is written. |
 | Founder session, flag on, key valid | Read and send |
 
+The Slack app integration was removed. Slack signature headers remain denied as defense against agent spoofing.
+
 POST also needs the same CSRF token the other `/ops` forms use. There is no bearer-secret path and no agent poller.
 
 ## API routes

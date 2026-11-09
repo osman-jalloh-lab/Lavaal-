@@ -1,10 +1,10 @@
-// Queued text for box agents (CEO pending, Assign/desk wake, Slack handoff).
+// Queued text for box agents (CEO pending, Assign/desk wake).
 // The bytes are data. Only an allowlisted founder session can originate an
 // instruction, and a tool or side-effect still needs a second founder confirm
-// in /ops. Slack and other inbound sources stay data only. No npm. No secrets.
+// in /ops. Other inbound sources stay data only. No npm. No secrets.
 
 const { isAllowlisted, normalizeEmail } = require('./_lib');
-const { classify } = require('../slack/_router/classify');
+const { classify } = require('./_router/classify');
 
 const UNTRUSTED_BEGIN = '<<<UNTRUSTED-CONTENT>>>';
 const UNTRUSTED_END = '<<<END-UNTRUSTED-CONTENT>>>';
@@ -19,7 +19,7 @@ const FOUNDER_SOURCES = new Set([
   'desk-talk',
 ]);
 
-// L3/L4 from the Slack risk ladder, plus tool words the ladder files under L2.
+// L3/L4 from the /ops risk ladder, plus tool words the ladder files under L2.
 const TOOL_ACTION_RE = /\b(git\s+push|git\s+commit|force-push|shell|bash|exec|sudo|curl|wget|ssh|vercel|npm\s+publish|gh\s+(?:pr|release|secret)|gmail|post\s+to\s+slack)\b/i;
 
 const HEADER_LINE_RE = /^(source|sender|founderAuthenticated|instruction|actionStatus|mayAct):/i;
