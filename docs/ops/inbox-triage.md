@@ -34,11 +34,11 @@ Without KV it falls back to `$OPS_STORE_FILE.inbox-triage.json` locally, or memo
   "mailbox": "support@lavaall.com",
   "items": [
     {
-      "id": "1a0e728d16db5c7f",
-      "threadId": "1a0e728d16db5c7f",
+      "id": "f1c7000000000001",
+      "threadId": "f1c7000000000001",
       "receivedAt": "2026-09-28T08:36:41Z",
-      "from": "Austin Foster <austin@nexusnode.co.uk>",
-      "subject": "RFQ – NETGEAR APS1000W-100NES | Qty 10",
+      "from": "Test Buyer <test.buyer@example.com>",
+      "subject": "RFQ – Example Access Point EX-1000 | Qty 10",
       "unread": true,
       "flag": "Real",
       "urgency": "Urgent",
