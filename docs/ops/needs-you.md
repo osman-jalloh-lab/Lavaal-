@@ -13,3 +13,7 @@ For authenticated founders outside production, `?mock=empty` and `?mock=error` s
 Later stages will connect and verify live data and actions before the Stage 4 cutover. Stage 1 does not implement those stages or change the live `/os` theme.
 
 Nothing needs JavaScript in Stage 1. Navigation, the inbox and all forms are server-rendered HTML and work with JavaScript disabled.
+
+The phone menu uses native `details`/`summary`, with no JavaScript.
+Both logos use the existing `/images/logo.webp|png` assets.
+Clash Display loads through the Fontshare API under the ITF Free Font License; it is not self-hosted because the FFL forbids making font files available via publicly accessible repositories.
