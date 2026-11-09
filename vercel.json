@@ -2,7 +2,7 @@
   "functions": {
     "api/ops/index.js": {
       "maxDuration": 30,
-      "includeFiles": "docs/ops/souls/**"
+      "includeFiles": "api/ops/_data/souls/**"
     },
     "api/web/index.js": {
       "maxDuration": 10,

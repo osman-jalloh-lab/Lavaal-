@@ -556,10 +556,10 @@ async function run() {
     check('Preview ops function bundles the SOUL files',
       vercel.functions
       && vercel.functions['api/ops/index.js']
-      && vercel.functions['api/ops/index.js'].includeFiles === 'docs/ops/souls/**'
+      && vercel.functions['api/ops/index.js'].includeFiles === 'api/ops/_data/souls/**'
       && souls.SOUL_IDS.join(',') === DESK_IDS.join(',')
-      && DESK_IDS.every((id) => fs.existsSync(path.join(__dirname, `../docs/ops/souls/SOUL_${id}.md`)))
-      && fs.existsSync(path.join(__dirname, '../docs/ops/souls/_SHARED_CONTEXT.md')));
+      && DESK_IDS.every((id) => fs.existsSync(path.join(__dirname, `../api/ops/_data/souls/SOUL_${id}.md`)))
+      && fs.existsSync(path.join(__dirname, '../api/ops/_data/souls/_SHARED_CONTEXT.md')));
     const note = fs.readFileSync(path.join(__dirname, '../docs/OPS-CEO-BRIDGE.md'), 'utf8');
     check('docs list per-desk smoke for all six Talk agents',
       note.includes('Talk-ALL')

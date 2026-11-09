@@ -1,4 +1,4 @@
-// Talk persona source of truth: docs/ops/souls.
+// Talk persona source of truth: api/ops/_data/souls (moved from docs/ops/souls so it is not served as a public static file).
 // Every desk loads _SHARED_CONTEXT.md first, then SOUL_<id>.md.
 // Literal readFileSync paths so the server function tracer ships the files.
 // vercel.json includeFiles is the Preview bundle backup. No npm. No secrets.
@@ -26,23 +26,23 @@ function readCached(key, filePath) {
 }
 
 function sharedContext() {
-  return readCached('shared', path.join(__dirname, '../../docs/ops/souls/_SHARED_CONTEXT.md'));
+  return readCached('shared', path.join(__dirname, '_data/souls/_SHARED_CONTEXT.md'));
 }
 
 function deskSoul(agentId) {
   switch (agentId) {
     case 'lavaall-ceo':
-      return readCached('lavaall-ceo', path.join(__dirname, '../../docs/ops/souls/SOUL_lavaall-ceo.md'));
+      return readCached('lavaall-ceo', path.join(__dirname, '_data/souls/SOUL_lavaall-ceo.md'));
     case 'sales':
-      return readCached('sales', path.join(__dirname, '../../docs/ops/souls/SOUL_sales.md'));
+      return readCached('sales', path.join(__dirname, '_data/souls/SOUL_sales.md'));
     case 'technical':
-      return readCached('technical', path.join(__dirname, '../../docs/ops/souls/SOUL_technical.md'));
+      return readCached('technical', path.join(__dirname, '_data/souls/SOUL_technical.md'));
     case 'growth':
-      return readCached('growth', path.join(__dirname, '../../docs/ops/souls/SOUL_growth.md'));
+      return readCached('growth', path.join(__dirname, '_data/souls/SOUL_growth.md'));
     case 'lifecycle':
-      return readCached('lifecycle', path.join(__dirname, '../../docs/ops/souls/SOUL_lifecycle.md'));
+      return readCached('lifecycle', path.join(__dirname, '_data/souls/SOUL_lifecycle.md'));
     case 'researchy':
-      return readCached('researchy', path.join(__dirname, '../../docs/ops/souls/SOUL_researchy.md'));
+      return readCached('researchy', path.join(__dirname, '_data/souls/SOUL_researchy.md'));
     default: {
       const unknown = agentId;
       void unknown;

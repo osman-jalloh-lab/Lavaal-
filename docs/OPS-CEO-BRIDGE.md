@@ -143,7 +143,7 @@ HTTP:
 
 ### Researchy Grok Bot routine prompt
 
-**Audience:** Researchy Grok Bot / poll dual-run only. Not Talk UI. Not `docs/ops/souls/SOUL_researchy.md`. Founders at `/ops/chat/researchy` get sourcing voice only: Found, then recommend. Do not paste this poll recipe back into the Talk system prompt.
+**Audience:** Researchy Grok Bot / poll dual-run only. Not Talk UI. Not `api/ops/_data/souls/SOUL_researchy.md`. Founders at `/ops/chat/researchy` get sourcing voice only: Found, then recommend. Do not paste this poll recipe back into the Talk system prompt.
 
 This is the production wake recipe that used to live in the Researchy Talk SOUL. The bot polls Assign here. Talk does not.
 
