@@ -148,7 +148,7 @@ async function contact(req, res) {
       deliveryOk = !!(delivery.ok && j && j.ok === true);
       // Only known router error keys may reach logs; arbitrary upstream text
       // can contain customer details (including Apps Script exception text).
-      deliveryError = j && ['forbidden', 'invalid_route', 'server_error'].includes(j.error)
+      deliveryError = j && ['forbidden', 'invalid_route', 'server_error', 'internal_error', 'not_configured'].includes(j.error)
         ? j.error : (deliveryOk ? null : 'router_rejected');
     } catch (error) {
       deliveryError = error.name === 'TimeoutError' || error.name === 'AbortError'
