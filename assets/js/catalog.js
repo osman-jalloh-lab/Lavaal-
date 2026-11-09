@@ -289,7 +289,7 @@
   }
   function catalogLangIdx() {
     const l = document.documentElement.lang;
-    return l === 'fr' ? 1 : l === 'kr' ? 2 : 0;
+    return l === 'fr' ? 1 : (l === 'kr' || l === 'kri') ? 2 : 0;
   }
   function catalogSearchCategory(cat) {
     const labels = {
