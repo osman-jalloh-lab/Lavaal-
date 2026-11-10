@@ -22,7 +22,7 @@ const {
   redirect,
   wantsJson,
 } = require('./_lib');
-const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
+const { formatKitsTrustedLine, kitsSummary, notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
 const { normalizeTalkAgentId, officeAgentById } = require('./_office');
@@ -349,21 +349,22 @@ function formatStoreContext(data) {
   const notes = data && Array.isArray(data.notes) ? data.notes : [];
   if (!goal && !tasks.length && !notes.length) {
     lines.push('None loaded. Do not invent goals, tasks, notes, prices, SKUs, or legal positions.');
-    return lines.join('\n');
+  } else {
+    if (goal) {
+      lines.push(`Goal: ${goal.title}`);
+      if (goal.definitionOfDone) lines.push(`Definition of done: ${goal.definitionOfDone}`);
+      if (goal.nextStep) lines.push(`Next step: ${goal.nextStep}`);
+      if (goal.targetDate) lines.push(`Target date: ${goal.targetDate}`);
+    }
+    tasks.forEach((task) => {
+      lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
+      if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
+    });
+    notes.forEach((note) => {
+      lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
+    });
   }
-  if (goal) {
-    lines.push(`Goal: ${goal.title}`);
-    if (goal.definitionOfDone) lines.push(`Definition of done: ${goal.definitionOfDone}`);
-    if (goal.nextStep) lines.push(`Next step: ${goal.nextStep}`);
-    if (goal.targetDate) lines.push(`Target date: ${goal.targetDate}`);
-  }
-  tasks.forEach((task) => {
-    lines.push(`Task: ${task.title} (${task.status || 'todo'})`);
-    if (task.nextAction) lines.push(`Task next action: ${task.nextAction}`);
-  });
-  notes.forEach((note) => {
-    lines.push(`Note: ${note.title}${note.body ? ` — ${note.body}` : ''}`);
-  });
+  lines.push(formatKitsTrustedLine(data));
   return lines.join('\n');
 }
 
@@ -374,9 +375,10 @@ async function loadTrustedContext() {
       goal: data && data.goal ? data.goal : null,
       tasks: unfinishedTasks(data || {}).slice(0, 12),
       notes: notesSelectableForChat(data || {}).slice(0, 8),
+      kitsSummary: kitsSummary(data),
     };
   } catch {
-    return { goal: null, tasks: [], notes: [] };
+    return { goal: null, tasks: [], notes: [], kitsSummary: kitsSummary(null) };
   }
 }
 
@@ -681,6 +683,23 @@ async function completeXaiDeskReply({ agentId, threadId, correlationId, maxToken
   }
   const founder = founderByCorrelation(claim.thread, correlationId);
   const founderText = founder && founder.text ? founder.text : '';
+  if (ceoBridge.isKitsCountAsk(founderText)) {
+    let summary = null;
+    try {
+      summary = kitsSummary(await readStore());
+    } catch {
+      summary = kitsSummary(null);
+    }
+    const replied = await appendOwnedReply({
+      agentId,
+      threadId,
+      correlationId,
+      owner: 'xai_runtime',
+      text: ceoBridge.kitsCountReply(summary),
+    });
+    if (replied.error) return runtimeUnavailableDeskNotice({ agentId, threadId, correlationId });
+    return Object.assign({}, replied, { usedModel: false, provider: '' });
+  }
   if (isDeskGreeting(founderText)) {
     const replied = await appendOwnedReply({
       agentId,

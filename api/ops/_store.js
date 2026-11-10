@@ -363,6 +363,7 @@ function resolveChatContext(storeData, selection) {
     goal,
     tasks,
     notes,
+    kitsSummary: kitsSummary(data),
     selected: Boolean(goal || tasks.length || notes.length),
     summary: parts.length ? parts.join(' · ') : 'No records selected',
   };
@@ -679,6 +680,98 @@ function normalizeKitsMeta(row) {
 function lastKitsSync(storeData) {
   const meta = storeData && storeData.kitsMeta ? storeData.kitsMeta : null;
   return meta && meta.syncedAt ? meta.syncedAt : 0;
+}
+
+function emptyKitStatusCounts() {
+  const byStatus = {};
+  KIT_STATUSES.forEach((status) => {
+    byStatus[status] = 0;
+  });
+  return byStatus;
+}
+
+function kitsSummary(storeData) {
+  const data = storeData && typeof storeData === 'object' ? storeData : null;
+  const kits = data && Array.isArray(data.kits) ? data.kits : [];
+  const meta = data && data.kitsMeta && typeof data.kitsMeta === 'object' ? data.kitsMeta : null;
+  const byStatus = emptyKitStatusCounts();
+  kits.forEach((kit) => {
+    const status = normalizeKitStatus(kit && kit.status);
+    byStatus[status] += 1;
+  });
+  const syncedAt = meta && Number.isFinite(meta.syncedAt) && meta.syncedAt > 0 ? meta.syncedAt : null;
+  return {
+    active: byStatus.Active,
+    total: kits.length,
+    byStatus,
+    lastSyncedAt: syncedAt,
+    loaded: kits.length > 0 || Boolean(meta),
+  };
+}
+
+function formatKitsSyncedLabel(ms) {
+  const date = new Date(ms);
+  if (!Number.isFinite(ms) || Number.isNaN(date.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).formatToParts(date);
+  const pick = (type) => {
+    const part = parts.find((item) => item.type === type);
+    return part ? part.value : '';
+  };
+  const month = pick('month').padStart(2, '0');
+  const day = pick('day').padStart(2, '0');
+  const minute = pick('minute').padStart(2, '0');
+  const hour = String(Number(pick('hour')));
+  const period = pick('dayPeriod').replace(/\./g, '').toUpperCase();
+  return `${pick('year')}-${month}-${day} ${hour}:${minute} ${period} CT`;
+}
+
+function isKitsSummary(value) {
+  return Boolean(
+    value
+    && typeof value.loaded === 'boolean'
+    && value.byStatus
+    && typeof value.byStatus === 'object'
+    && typeof value.active === 'number'
+    && typeof value.total === 'number'
+    && !Array.isArray(value.kits)
+  );
+}
+
+function trustedKitsSummary(value) {
+  if (value && isKitsSummary(value.kitsSummary)) return value.kitsSummary;
+  if (isKitsSummary(value)) return value;
+  return kitsSummary(value);
+}
+
+function formatKitsTrustedLine(value) {
+  const summary = trustedKitsSummary(value);
+  if (!summary.loaded) {
+    return 'Kits: the kit count is not loaded yet and needs a founder Refresh on the Kits page.';
+  }
+  const synced = summary.lastSyncedAt
+    ? ` (last synced ${formatKitsSyncedLabel(summary.lastSyncedAt)})`
+    : '';
+  return `Kits: ${summary.active} active of ${summary.total} total${synced}.`;
+}
+
+function formatKitsCountSentence(value) {
+  const summary = trustedKitsSummary(value);
+  if (!summary.loaded) {
+    return 'The kit count is not loaded yet and needs a founder Refresh on the Kits page.';
+  }
+  const synced = summary.lastSyncedAt
+    ? ` (last synced ${formatKitsSyncedLabel(summary.lastSyncedAt)})`
+    : '';
+  const noun = summary.active === 1 ? 'kit is' : 'kits are';
+  return `${summary.active} ${noun} active of ${summary.total} total${synced}.`;
 }
 
 async function applyKitsSync({ rows, syncedBy, now }) {
@@ -1702,6 +1795,9 @@ module.exports = {
   recordRoutineRun,
   isDurable,
   kvConfigured,
+  formatKitsCountSentence,
+  formatKitsTrustedLine,
+  kitsSummary,
   lastKitsSync,
   listIssues,
   listKits,
