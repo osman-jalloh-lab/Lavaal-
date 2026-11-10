@@ -20,6 +20,7 @@ const {
   assignStatusLabel,
   ownerAgentLabel,
   statusLabel,
+  TASK_RUN_LABELS,
 } = require('./_store');
 const { buildMapGraph } = require('./_map');
 const { SHEET_WRITE_BANNER } = require('./_kits');
@@ -138,9 +139,26 @@ function tasksPage({ email, store, snapshot, notice, error }) {
                 ${option('done', 'Done', task.status === 'done')}
               </select>
             </label>
+            <label>
+              Assignee
+              <select name="assignee">
+                ${option('me', 'Me', task.assignee !== 'ceo')}
+                ${option('ceo', 'CEO desk', task.assignee === 'ceo')}
+              </select>
+            </label>
             <label>Next action <input name="nextAction" maxlength="200" value="${escapeHtml(task.nextAction)}"/></label>
             <button class="btn btn-sm" type="submit">Update ${escapeHtml(statusLabel(task.status))}</button>
           </form>
+          <div class="task-run">
+            ${task.runState ? `<p class="task-run-state" data-run-state="${escapeHtml(task.runState)}">CEO desk: <strong>${escapeHtml(TASK_RUN_LABELS[task.runState] || task.runState)}</strong>${task.requestedAt ? ` · requested ${escapeHtml(new Date(task.requestedAt).toISOString().slice(0, 16).replace('T', ' '))} UTC` : ''}</p>` : ''}
+            ${task.runNotes ? `<details open><summary>Result / notes</summary><p>${escapeHtml(task.runNotes)}</p></details>` : ''}
+            ${task.status !== 'done' && task.runState !== 'queued' && task.runState !== 'working' ? `<form method="POST" action="/ops/tasks">
+              <input type="hidden" name="action" value="request-task"/>
+              <input type="hidden" name="id" value="${escapeHtml(task.id)}"/>
+              <input type="hidden" name="returnTo" value="/ops/tasks"/>
+              <button class="btn btn-sm" type="submit">Do task</button>
+            </form>` : ''}
+          </div>
         </li>`).join('')
     : '';
 
@@ -175,6 +193,12 @@ function tasksPage({ email, store, snapshot, notice, error }) {
           <input id="task-due" name="due" type="date"/>
           <label for="task-project">Folder (optional)</label>
           <select id="task-project" name="projectId">${projectOptions}</select>
+          <label for="task-assignee">Assignee</label>
+          <select id="task-assignee" name="assignee">
+            ${option('me', 'Me', true)}
+            ${option('ceo', 'CEO desk', false)}
+          </select>
+          <p class="muted">CEO desk tasks are picked up on the next CEO check. "Do task" queues it now. The desk drafts only — nothing is sent, posted, or bought without you.</p>
           <button class="btn" type="submit">Save task</button>
         </form>
       </section>
