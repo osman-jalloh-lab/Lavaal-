@@ -3,6 +3,7 @@
 
 const { kitsDeniedPage, loginPage } = require('./_html');
 const { NAV, dashboardPage, runWithShellRequest } = require('./_shell');
+const { needsYouEnabled, renderNeedsYou, handleMockAction, isMockAction } = require('./_needs_you');
 const { foundersNavFor, handleFoundersDm } = require('./_founders_dm');
 const { calendarPage, chatPage, inboxPage, issuesPage, kitsPage, mapPage, memoryPage, profilePage, routinesPage, tasksPage } = require('./_pages');
 const { isTalkAgent, normalizeTalkAgentId, officePage } = require('./_office');
@@ -191,6 +192,7 @@ async function withRoutineHealth(pageOpts) {
 
 async function renderArea(req, res, session, extra) {
   const area = resolveArea(req);
+  if (area === 'dashboard' && (req.method === 'GET' || req.method === 'HEAD') && needsYouEnabled()) return renderNeedsYou(req, res, session, extra);
   const search = firstQuery(queryOf(req), 'q') || '';
   const data = await payload(session, area, search);
   if (area === 'dashboard' && signInHardeningEnabled()) {
@@ -414,6 +416,9 @@ async function finishWrite(req, res, session, body, result, notice) {
 }
 
 async function handleWrite(req, res, session) {
+  if (needsYouEnabled() && isMockAction(readBody(req).action)) {
+    return handleMockAction(req, res, session, readBody(req));
+  }
   if (payloadTooLarge(req)) {
     return wantsJson(req)
       ? json(res, 413, { error: 'payload_too_large' })
@@ -799,7 +804,11 @@ function skipFoundersNav(req) {
 
 async function ops(req, res) {
   let privateNav = null;
-  if (!skipFoundersNav(req)) {
+  // The synthetic screen has no live private-message badge or client scripts.
+  const mockScreen = needsYouEnabled()
+    && ((resolveArea(req) === 'dashboard' && (req.method === 'GET' || req.method === 'HEAD'))
+      || (req.method === 'POST' && isMockAction(readBody(req).action)));
+  if (!mockScreen && !skipFoundersNav(req)) {
     try {
       privateNav = await foundersNavFor(req);
     } catch {
