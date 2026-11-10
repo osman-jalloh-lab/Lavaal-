@@ -1,8 +1,23 @@
 // Tests for the new (v2) pure-logic additions: sanitizeForSheet, lang(),
 // and internal consistency of the reason/department/email-string maps.
 const fs = require('fs');
+const vm = require('vm');
 const src = fs.readFileSync(require('path').join(__dirname, 'booking-router.gs'), 'utf8');
-eval(src);
+const sandbox = { console };
+vm.runInNewContext(src, sandbox, { filename: 'booking-router.gs' });
+const {
+  sanitizeForSheet,
+  lang,
+  EMAIL_STRINGS,
+  TIMEZONE,
+  REASON_DEPARTMENT,
+  DEPARTMENT_INBOX,
+  ALL_REQUESTS_HEADERS,
+  SCHEDULING_HEADERS,
+  SHEET_DEFS,
+  resolveBookingCalendarId,
+  combinedNotificationStatus,
+} = sandbox;
 
 const results = [];
 function check(name, cond) { results.push({ name, pass: !!cond }); }
@@ -88,6 +103,10 @@ check('phone-only bookings still skip Meet creation',
   src.indexOf("var wantsMeet = method === 'email';") !== -1 &&
   src.indexOf('? createMeetEvent(') !== -1 &&
   src.indexOf(': createPlainEvent(') !== -1);
+check('doPost reads X-Booking-Webhook-Secret before the legacy body field',
+  src.indexOf('x-booking-webhook-secret') !== -1 &&
+  src.indexOf('function headerSecret') !== -1 &&
+  src.indexOf('payload.secret !== secret') === -1);
 
 let failed = 0;
 for (const r of results) {

@@ -67,6 +67,13 @@ function cookieFrom(res) {
   return String(first).split(';')[0];
 }
 
+function sessionCookieLine(res) {
+  const raw = res.headers['Set-Cookie'];
+  const list = Array.isArray(raw) ? raw : [raw];
+  const row = list.find((item) => String(item || '').startsWith('lavaall_ops='));
+  return String(row || '');
+}
+
 function extractLoginUrl(text) {
   const match = String(text || '').match(/https?:\/\/\S+/);
   return match ? match[0] : '';
@@ -386,7 +393,7 @@ async function run() {
     }, res);
     sessionCookie = cookieFrom(res);
     check('valid magic link creates a session for the allowlisted email', res.statusCode === 200 && res.body && res.body.ok === true && res.body.email === ALLOWED.toLowerCase());
-    check('session cookie is HttpOnly SameSite=Lax', /HttpOnly/i.test(res.headers['Set-Cookie']) && /SameSite=Lax/i.test(res.headers['Set-Cookie']));
+    check('session cookie is HttpOnly SameSite=Strict', /HttpOnly/i.test(res.headers['Set-Cookie']) && /SameSite=Strict/i.test(res.headers['Set-Cookie']) && !/SameSite=Lax/i.test(res.headers['Set-Cookie']));
   }
 
   {
@@ -910,10 +917,11 @@ async function run() {
       && happy.res.body.ok === true
       && happy.res.body.via === 'google'
       && happy.res.body.email === ALLOWED.toLowerCase()
-      && /lavaall_ops=/.test(String(happy.res.headers['Set-Cookie']))
-      && /HttpOnly/i.test(String(happy.res.headers['Set-Cookie']))
-      && /SameSite=Lax/i.test(String(happy.res.headers['Set-Cookie']))
-      && /Secure/i.test(String(happy.res.headers['Set-Cookie'])));
+      && /lavaall_ops=/.test(sessionCookieLine(happy.res))
+      && /HttpOnly/i.test(sessionCookieLine(happy.res))
+      && /SameSite=Strict/i.test(sessionCookieLine(happy.res))
+      && !/SameSite=Lax/i.test(sessionCookieLine(happy.res))
+      && /Secure/i.test(sessionCookieLine(happy.res)));
     check('code exchange does not request Gmail scopes or return the access token',
       Boolean(tokenPost)
       && tokenPost.body.includes('grant_type=authorization_code')

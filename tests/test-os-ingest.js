@@ -350,7 +350,7 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
   check('INGEST.md holds no real secret, email, lead name or banned public-copy term', !banned.test(docs.replace(/https?:\/\/\S+/g, '')));
   try {
     const diff = execFileSync('git', ['diff', '--name-only', 'origin/main...HEAD'], { cwd: root, encoding: 'utf8' }) + execFileSync('git', ['diff', '--name-only'], { cwd: root, encoding: 'utf8' });
-    check('vercel.json and the auth code are not changed (the /os guard now has a local-only bypass, covered by test-os-dev-bypass.js)', !/^vercel\.json$|api\/ops\/auth\.js|_google_signin\.js|_signin_hardening\.js|_os_return\.js/m.test(diff));
+    check('ops auth code is not changed (the /os guard bypass stays covered by test-os-dev-bypass.js)', !/api\/ops\/auth\.js|_google_signin\.js|_signin_hardening\.js|_os_return\.js/m.test(diff));
   } catch { check('vercel.json and the auth code are not changed (git unavailable, skipped)', true); }
 
   const failedChecks = results.filter((r) => !r.pass);

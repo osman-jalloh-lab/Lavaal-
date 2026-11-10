@@ -343,6 +343,20 @@ async function run() {
   const hdr = vercel.headers.find((h) => h.source === '/web/(.*)');
   const globalIdx = vercel.headers.findIndex((h) => h.source === '/(.*)');
   check('vercel.json allows same-origin framing under /web/ after the site-wide DENY', hdr && hdr.headers.some((h) => h.key === 'X-Frame-Options' && h.value === 'SAMEORIGIN') && vercel.headers.indexOf(hdr) > globalIdx);
+  const globalHeaders = vercel.headers.find((h) => h.source === '/(.*)');
+  const csp = globalHeaders && globalHeaders.headers.find((h) => h.key === 'Content-Security-Policy');
+  check('site-wide CSP keeps public scripts, styles, fonts, images, and frames',
+    csp
+    && csp.value.includes("script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com")
+    && csp.value.includes("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com")
+    && csp.value.includes('https://fonts.gstatic.com')
+    && csp.value.includes('https://images.unsplash.com')
+    && csp.value.includes('https://i.ytimg.com')
+    && csp.value.includes('https://www.youtube.com')
+    && csp.value.includes('https://www.youtube-nocookie.com')
+    && csp.value.includes("form-action 'self' https://accounts.google.com"));
+  check('deprecated X-XSS-Protection header is removed',
+    globalHeaders && !globalHeaders.headers.some((h) => h.key === 'X-XSS-Protection'));
   const fnCount = walk(path.join(root, 'api')).filter((f) => f.endsWith('.js') && !rel(f).split('/').some((s) => s.startsWith('_')) && !path.relative(path.join(root, 'api'), f).split(path.sep).some((s) => s.startsWith('_'))).length;
   check(`serverless function count stays within Hobby's 12 (${fnCount})`, fnCount <= 12);
   check('index.html nav links to /web/ (LAVAALL Web entry point)', /<a href="\/web\/">LAVAALL Web<\/a>/.test(fs.readFileSync(path.join(root, 'index.html'), 'utf8')));

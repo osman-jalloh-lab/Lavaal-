@@ -11,25 +11,28 @@
  * itself asks for.
  *
  * ENDPOINTS
- * GET  ?action=availability&date=YYYY-MM-DD
+ * POST { action:'availability', date } plus header X-Booking-Webhook-Secret
  *     Real open slots for that date (business hours, existing events, lead
- *     time, and booking window all enforced) -- unchanged from the first
- *     version of this file, still covered by the same unit tests.
+ *     time, and booking window all enforced). The Vercel proxy always POSTs.
+ *     GET ?action=availability remains for an older caller.
  * GET  ?action=lookup&token=...&leadId=...
  *     Returns the lead's own registration info (name, reason, call method,
  *     language) so a customer following the emailed backup link doesn't
  *     have to retype anything. Never returns the spreadsheet ID, calendar
- *     ID, or any other lead's data.
- * POST { action:'register', secret, ... }
+ *     ID, or any other lead's data. Lookup does not use the webhook secret.
+ * POST { action:'register', ... } plus header X-Booking-Webhook-Secret
  *     Step 1. Validates + sanitizes, writes a "Registration Received" row,
  *     emails the internal team, emails the customer a backup booking link,
  *     and returns a token immediately -- the front end does NOT need to
  *     wait for that email before opening Step 2.
- * POST { action:'book', secret, leadId, token, date, time, ... }
+ * POST { action:'book', leadId, token, date, time, ... } plus the same header
  *     Step 2. Validates the token against the lead, locks, re-checks the
  *     slot is still free, creates the Calendar event (with a Google Meet
  *     link if requested), UPDATES the same lead row to "Scheduled" rather
  *     than creating a new one, and sends the real confirmation emails.
+ * The shared secret is the X-Booking-Webhook-Secret header, not a JSON field
+ * and not a query parameter. A legacy JSON "secret" field is still accepted
+ * so a caller that has not switched yet is not locked out.
  *
  * ONE-TIME SETUP
  * 1. New Apps Script project ("LAVAALL Booking Scheduler"), paste this file.
@@ -145,6 +148,30 @@ function doGet(e) {
   }
 }
 
+function headerSecret(e) {
+  // Apps Script web apps do not currently expose request headers on `e`.
+  // Read them when a runtime provides e.headers (or a proxy copies them).
+  try {
+    var headers = e && e.headers;
+    if (!headers) return '';
+    var keys = Object.keys(headers);
+    for (var i = 0; i < keys.length; i++) {
+      if (String(keys[i]).toLowerCase() === 'x-booking-webhook-secret') {
+        return String(headers[keys[i]] || '');
+      }
+    }
+  } catch (err) {
+    return '';
+  }
+  return '';
+}
+
+function providedWebhookSecret(e, payload) {
+  var fromHeader = headerSecret(e);
+  if (fromHeader) return fromHeader;
+  return payload && payload.secret ? String(payload.secret) : '';
+}
+
 function doPost(e) {
   var payload;
   try {
@@ -154,8 +181,15 @@ function doPost(e) {
   }
   try {
     var secret = PropertiesService.getScriptProperties().getProperty('BOOKING_WEBHOOK_SECRET');
-    if (secret && payload.secret !== secret) return jsonOut({ error: 'forbidden' }, 403);
+    var provided = providedWebhookSecret(e, payload);
+    if (payload) delete payload.secret;
+    if (secret && provided !== secret) return jsonOut({ error: 'forbidden' }, 403);
 
+    if (payload.action === 'availability') {
+      var dateStr = String(payload.date || '').trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return jsonOut({ error: 'invalid_date' }, 400);
+      return jsonOut({ ok: true, date: dateStr, timezone: TIMEZONE, slots: getAvailableSlots(dateStr) });
+    }
     if (payload.action === 'register') return handleRegister(payload);
     if (payload.action === 'book') return handleBook(payload);
     return jsonOut({ error: 'unknown_action' }, 400);

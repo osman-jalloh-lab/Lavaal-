@@ -18,6 +18,7 @@ const { savePendingBooking } = require('./ops/_store');
 const { recordPublicBooking } = require('./ops/_booking');
 
 const MAX_BODY = 8_000;
+const BOOKING_SECRET_HEADER = 'X-Booking-Webhook-Secret';
 const recentByEmail = new Map(); // mirrors contact.js's per-IP map, keyed by email/phone here
 
 const REASONS = [
@@ -42,26 +43,24 @@ function rateLimited(key, windowMs = 30_000) {
   recentByEmail.set(key, now);
   return false;
 }
-async function callBackend(action, params, isPost) {
+async function callBackend(action, params) {
   const base = process.env.BOOKING_WEBHOOK_URL;
   if (!base) return { ok: false, status: 503, body: { error: 'scheduling_not_configured', message: 'Scheduling is not configured yet. Please email us directly or use Send an Inquiry.' } };
 
+  const headers = { 'Content-Type': 'application/json' };
+  const secret = process.env.BOOKING_WEBHOOK_SECRET;
+  if (typeof secret === 'string' && secret) headers[BOOKING_SECRET_HEADER] = secret;
+  const body = Object.assign({}, params, { action });
+  delete body.secret;
+
   try {
-    let response;
-    if (isPost) {
-      response = await fetch(base, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...params, action, secret: process.env.BOOKING_WEBHOOK_SECRET || undefined }),
-      });
-    } else {
-      const url = new URL(base);
-      url.searchParams.set('action', action);
-      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-      response = await fetch(url.toString());
-    }
-    const body = await response.json();
-    return { ok: response.ok, status: response.status, body };
+    const response = await fetch(base, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json();
+    return { ok: response.ok, status: response.status, body: payload };
   } catch {
     return { ok: false, status: 502, body: { error: 'delivery_failed', message: 'We could not reach the scheduler. Please try again shortly.' } };
   }
@@ -73,7 +72,7 @@ async function schedule(req, res) {
   if (action === 'availability') {
     const date = clean(req.query.date, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json(res, 400, { error: 'invalid_date' });
-    const result = await callBackend('availability', { date }, false);
+    const result = await callBackend('availability', { date });
     return json(res, result.status, result.body);
   }
 
@@ -158,7 +157,7 @@ async function schedule(req, res) {
       customerTimezone: clean(body.customerTimezone, 60),
       sourcePage: clean(body.sourcePage, 200) || 'lavaall.com',
       bookingBaseUrl: `https://${req.headers.host || 'www.lavaall.com'}/schedule`,
-    }, true);
+    });
     if (result.ok && result.body && result.body.ok && result.body.leadId) {
       try {
         await savePendingBooking({
@@ -191,7 +190,7 @@ async function schedule(req, res) {
       return json(res, 429, { error: 'rate_limited', message: 'Please wait a moment before trying again.' });
     }
 
-    const result = await callBackend('book', { leadId, token, date, time }, true);
+    const result = await callBackend('book', { leadId, token, date, time });
     if (result.ok && result.body && result.body.ok) {
       try {
         const mirrored = await recordPublicBooking({

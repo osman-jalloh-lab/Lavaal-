@@ -25,6 +25,7 @@ const {
 const { notesSelectableForChat, readStore, unfinishedTasks } = require('./_store');
 const { completeXai, xaiConfigured } = require('./_xai');
 const { talkSystemPrompt } = require('./_souls');
+const { fenceUntrustedData, untrustedDataRule } = require('./_untrusted');
 const { normalizeTalkAgentId, officeAgentById } = require('./_office');
 const ceoBridge = require('./_ceo_bridge');
 const assign = require('./_assign');
@@ -343,7 +344,7 @@ async function mutate(work) {
 }
 
 function formatStoreContext(data) {
-  const lines = ['Trusted LAVAALL OS records (KV). Use only these facts:'];
+  const lines = ['Saved LAVAALL OS records. Facts only:'];
   const goal = data && data.goal ? data.goal : null;
   const tasks = data && Array.isArray(data.tasks) ? data.tasks : [];
   const notes = data && Array.isArray(data.notes) ? data.notes : [];
@@ -380,10 +381,14 @@ async function loadTrustedContext() {
   }
 }
 
-function deskSystemPrompt(agentId, context) {
+function deskSystemPrompt(agentId) {
   const id = normalizeAgentId(agentId);
   const personaId = DESK_PROMPTS[id] ? id : 'sales';
-  return talkSystemPrompt(personaId, formatStoreContext(context));
+  return talkSystemPrompt(personaId, untrustedDataRule());
+}
+
+function deskStoreMessage(context) {
+  return fenceUntrustedData(formatStoreContext(context));
 }
 
 function deskMessagesForXai(thread) {
@@ -695,8 +700,8 @@ async function completeXaiDeskReply({ agentId, threadId, correlationId, maxToken
   try {
     const context = await loadTrustedContext();
     const result = await completeXai({
-      system: deskSystemPrompt(agentId, context),
-      messages: deskMessagesForXai(claim.thread),
+      system: deskSystemPrompt(agentId),
+      messages: [{ role: 'user', content: deskStoreMessage(context) }].concat(deskMessagesForXai(claim.thread)),
       maxTokens: Number.isFinite(maxTokens) ? maxTokens : undefined,
       timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : undefined,
     });
@@ -964,6 +969,7 @@ Object.assign(module.exports, {
   PROVENANCE,
   THREAD_KEY_PREFIX,
   deskName,
+  deskStoreMessage,
   deskSystemPrompt,
   deskTalkKind,
   getFounderDeskThread,

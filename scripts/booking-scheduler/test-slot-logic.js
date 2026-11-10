@@ -1,18 +1,17 @@
 // Pure-logic smoke test for booking-router.gs, stubbing out the Google
 // services it depends on so we can exercise the slot math in plain node.
 const fs = require('fs');
-let src = fs.readFileSync(process.argv[2] || require('path').join(__dirname, 'booking-router.gs'), 'utf8');
+const vm = require('vm');
+const src = fs.readFileSync(process.argv[2] || require('path').join(__dirname, 'booking-router.gs'), 'utf8');
 
-// Strip the doGet/doPost/getCalendar functions that touch real Google
-// services -- we're only testing the pure date/slot math below.
-const globalStubs = `
-global.Utilities = { formatDate: (date, tz, pattern) => {
-  // Minimal stand-in: we only use this for human-readable display, not logic.
-  return date.toISOString();
-}};
-`;
-eval(globalStubs);
-eval(src);
+const sandbox = {
+  console,
+  Utilities: {
+    formatDate: (date) => date.toISOString(),
+  },
+};
+vm.runInNewContext(src, sandbox, { filename: 'booking-router.gs' });
+const { isWithinBusinessHours, parseSlot, overlapsAny, isFutureSlot } = sandbox;
 
 const results = [];
 function check(name, cond) { results.push({ name, pass: !!cond }); }
