@@ -350,7 +350,24 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
   check('INGEST.md holds no real secret, email, lead name or banned public-copy term', !banned.test(docs.replace(/https?:\/\/\S+/g, '')));
   try {
     const diff = execFileSync('git', ['diff', '--name-only', 'origin/main...HEAD'], { cwd: root, encoding: 'utf8' }) + execFileSync('git', ['diff', '--name-only'], { cwd: root, encoding: 'utf8' });
-    check('vercel.json and the auth code are not changed (the /os guard now has a local-only bypass, covered by test-os-dev-bypass.js)', !/^vercel\.json$|api\/ops\/auth\.js|_google_signin\.js|_signin_hardening\.js|_os_return\.js/m.test(diff));
+    const names = diff.split(/\n/).filter(Boolean);
+    check('auth code is not changed (the /os guard now has a local-only bypass, covered by test-os-dev-bypass.js)', !names.some((name) => /api\/ops\/auth\.js|_google_signin\.js|_signin_hardening\.js|_os_return\.js/.test(name)));
+    let osRoutesIntact = true;
+    if (names.includes('vercel.json')) {
+      const current = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+      const base = JSON.parse(execFileSync('git', ['show', 'origin/main:vercel.json'], { cwd: root, encoding: 'utf8' }));
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      const pick = (cfg, pred) => (cfg.headers || []).filter(pred);
+      osRoutesIntact = same(current.functions, base.functions)
+        && same(current.rewrites, base.rewrites)
+        && same(pick(current, (h) => /^\/os/.test(h.source)), pick(base, (h) => /^\/os/.test(h.source)))
+        && same(pick(current, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'), pick(base, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'))
+        && same(pick(current, (h) => h.source === '/(.*)'), pick(base, (h) => h.source === '/(.*)'));
+      const rootHeader = (current.headers || []).find((h) => h.source === '/');
+      const policy = rootHeader && (rootHeader.headers || []).find((h) => h.key === 'Permissions-Policy');
+      osRoutesIntact = osRoutesIntact && !!policy && policy.value === 'camera=(), microphone=(self), geolocation=()';
+    }
+    check('/os, /ops and /web vercel routes stay unchanged; homepage may only add a scoped same-origin microphone policy', osRoutesIntact);
   } catch { check('vercel.json and the auth code are not changed (git unavailable, skipped)', true); }
 
   const failedChecks = results.filter((r) => !r.pass);

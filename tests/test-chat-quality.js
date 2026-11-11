@@ -192,6 +192,9 @@ async function main() {
     const example = fs.readFileSync(path.join(directory, 'env.example'), 'utf8');
     assert.match(example, /^CHAT_ENABLED=false$/m);
     assert.match(example, /^CHAT_VOICE_ENABLED=false$/m);
+    assert.match(example, /^CHAT_BROWSER_VOICE_ENABLED=false$/m);
+    assert.equal(config.voiceEnabled, false);
+    assert.equal(config.browserVoiceEnabled, false);
     const embed = fs.readFileSync(path.join(directory, 'embed-template.html'), 'utf8');
     assert.match(embed, /<template[\s\S]*<elevenlabs-convai[\s\S]*<script[\s\S]*<\/template>/);
     const withoutTemplate = embed.replace(/<template[\s\S]*?<\/template>/g, '');

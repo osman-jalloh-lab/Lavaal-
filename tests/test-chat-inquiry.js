@@ -13,7 +13,7 @@ const options=()=>({store:memoryStore(),now:()=>clock,salt:'TEST ONLY salt',bill
 async function prepared(s,ip='TEST ONLY IP') {const a=await s.start(ip),d=await s.draft(a.sessionId,fields,'test_event');const r=await s.review(a.sessionId,a.proof,a.csrf,d.draftId);return {...a,...r};}
 const send=(s,a,changes={})=>{a={...a,...changes};return s.confirm(a.sessionId,a.proof,a.csrf,a.draftId,a.token,a.idempotencyKey);};
 async function main(){
- check('default flags always off',()=>assert.deepEqual([publicConfig().CHAT_ENABLED,publicConfig().CHAT_VOICE_ENABLED],[false,false]));
+ check('default flags always off',()=>assert.deepEqual([publicConfig().CHAT_ENABLED,publicConfig().CHAT_VOICE_ENABLED,publicConfig().CHAT_BROWSER_VOICE_ENABLED],[false,false,false]));
  check('all existing fields offered',()=>assert.equal(FIELDS.length,19));
  check('name phone minimum; optional email remains optional',()=>assert.equal(normalize(fields).email,''));
  for(const x of [{...fields,phone:'abc'},{...fields,name:''},{...fields,email:'bad'},{...fields,routeTo:'bad'},{...fields,inquiryType:'invented'},{...fields,country:'invented'}]) check('invalid or arbitrary fields denied',()=>assert.throws(()=>normalize(x)));

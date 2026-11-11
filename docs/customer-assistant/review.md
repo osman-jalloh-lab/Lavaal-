@@ -24,12 +24,12 @@ Security sweep categories inspected:
 | Secrets | No real environment file was opened. Draft-tool and browser proofs stay separate; no credential or raw inquiry logging. Explicit changed-file secret scan results are in test-results.md. |
 | Injection | Intake fields/enums and request action keys are allowlisted. Text messages and summaries use textContent. No eval, model-supplied endpoint, recipient, HTML or executable tool response is accepted. |
 | Authentication | Timing-safe draft credential comparison; provider can draft only. Browser Origin, HttpOnly/SameSite cookie proof, CSRF, immutable-digest consent, expiry and atomic one-use submission remain separate. Input formats are validated before key lookup. |
-| Configuration | Exported handler is disabled; mock factory is test-only. Origins fail closed on invalid configuration. No new vendor CSP or microphone permission. Public agent/session enforcement is unverified and blocks A2. |
+| Configuration | Exported handler is disabled; mock factory is test-only. Origins fail closed on invalid configuration. No vendor CSP exception. Exact `/` now allows same-origin microphone in vercel.json so optional default-off browser speech can request the mic after a tap; `/web`, `/ops` and `/os` are unchanged. The UI still does not request the mic unless `CHAT_BROWSER_VOICE_ENABLED` is on and the visitor taps. Public agent/session enforcement is unverified and blocks A2. |
 | Dependencies | No framework, package manifest, installed package or new runtime dependency. Browser uses existing fonts and same-origin local CSS only after local eligibility. Official vendor script is inert review material. |
 | AI | Only an injected synthetic text-turn adapter exists. No second model or paid call. Customer configuration is draft-only with no internal tools. Prompt policy is defense in depth, not an authorization mechanism. Real vendor policy/language behavior is untested. |
 | Data | HMAC IP counters, bounded session/draft/consent TTL, isolated mock records, at-most-one transport attempt and conservative mock reservations. No production KV connection. Real TTL deletion, provider retention/deletion and all-in accounting are A2 blockers. |
 
-Mobile device security testing: N/A for this code-only mocked checkpoint. Real device layout, browser compatibility, accessibility assistive technology, vendor behavior, live language switching and privacy approval are **NOT TESTED**. No voice acceptance is claimed.
+Mobile device security testing: N/A for this code-only mocked checkpoint. Real device layout, browser compatibility, accessibility assistive technology, vendor behavior, live language switching, real Web Speech recognition/TTS, and privacy approval are **NOT TESTED**. No ElevenLabs voice acceptance is claimed. Browser speech coverage is mocked only.
 
 ## Remaining gates
 

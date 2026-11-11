@@ -22,6 +22,7 @@ function publicConfig() {
   return {
     CHAT_ENABLED: false,
     CHAT_VOICE_ENABLED: false,
+    CHAT_BROWSER_VOICE_ENABLED: false,
     agentId: 'UNCONFIGURED',
     reason: 'a1_unverified_controls',
   };

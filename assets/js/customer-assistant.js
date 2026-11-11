@@ -1,4 +1,5 @@
-/* A1: local TEST ONLY UI. No vendor script, credentials, network or voice path. */
+/* A1: local TEST ONLY UI. No vendor script or credentials. Optional browser speech
+ * is default-off and tap-only; browser vendors may process audio on their servers. */
 (function (root) {
   'use strict';
   var fields = ['inquiryType','name','phone','email','country','company','subject','message','preferredResponse','productOrService','model','quantity','budget','deliveryLocation','timeline','orderNumber','issueDescription','installationType','projectDescription'];
@@ -68,6 +69,91 @@
       };
     });
   }
+  function speechLocale(lang) {
+    // UI languages are en, fr and pt. Portuguese copy is European, so pt defaults to pt-PT.
+    // Explicit BCP-47 aliases keep a later pt-BR override from needing a rewrite.
+    return {
+      en:'en-US', 'en-US':'en-US',
+      fr:'fr-FR', 'fr-FR':'fr-FR',
+      pt:'pt-PT', 'pt-PT':'pt-PT', 'pt-BR':'pt-BR'
+    }[lang] || null;
+  }
+  function browserVoiceSupported(browser) {
+    browser = browser || {};
+    return {
+      recognition: typeof browser.SpeechRecognition === 'function' || typeof browser.webkitSpeechRecognition === 'function',
+      synthesis: !!(browser.speechSynthesis && typeof browser.speechSynthesis.speak === 'function' &&
+        typeof browser.speechSynthesis.cancel === 'function' && typeof browser.SpeechSynthesisUtterance === 'function')
+    };
+  }
+  function browserVoiceEnabled(config, location) {
+    return eligible(config, location) && config.CHAT_BROWSER_VOICE_ENABLED === true;
+  }
+  function speechVoice(voices, lang) {
+    var locale = speechLocale(lang);
+    if (!locale) return null;
+    voices = Array.prototype.slice.call(voices || []);
+    function matching(tag) {
+      return voices.find(function (voice) { return String(voice.lang).toLowerCase() === tag.toLowerCase(); });
+    }
+    return matching(locale) || (locale === 'pt-PT' && matching('pt-BR')) || (locale === 'pt-BR' && matching('pt-PT')) || null;
+  }
+  // Small adapter so a later self-hosted TTS can replace speechSynthesis without rewriting the UI.
+  // This default only wraps the browser API. It must not fetch remote audio or load a model.
+  function createBrowserTtsAdapter(browser) {
+    browser = browser || {};
+    var synthesis = browser.speechSynthesis;
+    var supported = !!(synthesis && typeof synthesis.speak === 'function' &&
+      typeof synthesis.cancel === 'function' && typeof browser.SpeechSynthesisUtterance === 'function');
+    return {
+      supported: supported,
+      getVoices: function () {
+        return supported && typeof synthesis.getVoices === 'function' ? (synthesis.getVoices() || []) : [];
+      },
+      speak: function (text, options) {
+        options = options || {};
+        if (!supported) return null;
+        this.cancel();
+        var utterance = new browser.SpeechSynthesisUtterance(text);
+        if (options.voice) utterance.voice = options.voice;
+        utterance.lang = (options.voice && options.voice.lang) || options.lang || '';
+        if (options.onend) utterance.onend = options.onend;
+        if (options.onerror) utterance.onerror = options.onerror;
+        synthesis.speak(utterance);
+        return utterance;
+      },
+      cancel: function () {
+        if (!supported) return;
+        try { synthesis.cancel(); } catch (_) { /* Text remains usable. */ }
+      }
+    };
+  }
+  var voiceCopy = {
+    en: {
+      mic:'Use microphone', stop:'Stop microphone', speaker:'Read replies aloud',
+      hint:'Optional browser speech, not ElevenLabs voice. Tap Mic to dictate, then review the text and tap Ask. Your browser vendor may process speech on its servers; Chrome sends audio to Google. You can keep using text.',
+      ready:'Microphone is off. Text input is always available.', listening:'Listening… Tap Stop microphone to cancel.',
+      inserted:'Dictation added. Review the text and tap Ask to send.', unavailable:'Speech recognition is unavailable in this browser. Please type your message.',
+      denied:'Microphone permission was denied. Please type your message.', failed:'Speech recognition could not start or finish. Please type your message.',
+      noSpeaker:'Reading aloud is unavailable. Replies remain available as text.', speechFailed:'Reading aloud failed. Please read the text reply.'
+    },
+    fr: {
+      mic:'Utiliser le microphone', stop:'Arrêter le microphone', speaker:'Lire les réponses à voix haute',
+      hint:'Parole du navigateur facultative, sans voix ElevenLabs. Touchez le micro pour dicter, puis vérifiez le texte et appuyez sur Demander. Le fournisseur du navigateur peut traiter la parole sur ses serveurs ; Chrome envoie l’audio à Google. Vous pouvez continuer par écrit.',
+      ready:'Le microphone est éteint. La saisie de texte reste disponible.', listening:'Écoute en cours… Touchez Arrêter le microphone pour annuler.',
+      inserted:'Dictée ajoutée. Vérifiez le texte et appuyez sur Demander pour envoyer.', unavailable:'La reconnaissance vocale est indisponible dans ce navigateur. Saisissez votre message.',
+      denied:'L’accès au microphone a été refusé. Saisissez votre message.', failed:'La reconnaissance vocale n’a pas pu démarrer ou se terminer. Saisissez votre message.',
+      noSpeaker:'La lecture vocale est indisponible. Les réponses restent accessibles par écrit.', speechFailed:'La lecture vocale a échoué. Lisez la réponse écrite.'
+    },
+    pt: {
+      mic:'Usar microfone', stop:'Parar microfone', speaker:'Ler respostas em voz alta',
+      hint:'Voz opcional do navegador, sem voz ElevenLabs. Toque no microfone para ditar, depois reveja o texto e toque em Perguntar. O fornecedor do navegador pode processar a fala nos seus servidores; o Chrome envia o áudio ao Google. Pode continuar por texto.',
+      ready:'O microfone está desligado. Pode sempre escrever.', listening:'A ouvir… Toque em Parar microfone para cancelar.',
+      inserted:'Ditado adicionado. Reveja o texto e toque em Perguntar para enviar.', unavailable:'O reconhecimento de voz está indisponível neste navegador. Escreva a sua mensagem.',
+      denied:'A permissão do microfone foi recusada. Escreva a sua mensagem.', failed:'O reconhecimento de voz não conseguiu iniciar ou terminar. Escreva a sua mensagem.',
+      noSpeaker:'A leitura em voz alta está indisponível. As respostas continuam disponíveis por texto.', speechFailed:'A leitura em voz alta falhou. Leia a resposta escrita.'
+    }
+  };
   function validatePartialDraft(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new Error('invalid_draft');
     var enums = {
@@ -131,6 +217,134 @@
     composer.appendChild(composerLabel);
     composer.appendChild(ask);
     panel.appendChild(composer);
+    var voiceOn = browserVoiceEnabled(config, location), supported, mic, speaker, voiceHint, voiceStatus;
+    var recognition = null, speaking = false, voiceState = 'ready', utterance = null;
+    function renderVoice() {
+      if (!voiceOn) return;
+      var v = voiceCopy[lang];
+      mic.textContent = recognition ? v.stop : v.mic;
+      mic.setAttribute('aria-label', mic.textContent);
+      mic.setAttribute('aria-pressed', String(!!recognition));
+      mic.disabled = !supported.recognition || busy;
+      speaker.textContent = v.speaker;
+      speaker.setAttribute('aria-label', v.speaker);
+      speaker.setAttribute('aria-pressed', String(speaking));
+      speaker.disabled = !supported.synthesis;
+      voiceHint.textContent = v.hint;
+      voiceStatus.textContent = v[supported.recognition ? voiceState : 'unavailable'] + (supported.synthesis ? '' : ' ' + v.noSpeaker);
+    }
+    function cancelSpeech() {
+      if (!tts || !tts.supported) return;
+      utterance = null;
+      tts.cancel();
+    }
+    function stopRecognition() {
+      if (!recognition) return;
+      var active = recognition;
+      recognition = null; // Ignore late results/errors from a cancelled session.
+      try { active.abort(); } catch (_) { /* Already stopped. */ }
+      voiceState = 'ready';
+      renderVoice();
+    }
+    function speakReply(text) {
+      if (!speaking || !tts || !tts.supported) return;
+      try {
+        var chosen = speechVoice(tts.getVoices(), lang);
+        var next = tts.speak(text, {
+          lang: chosen ? chosen.lang : speechLocale(lang),
+          voice: chosen,
+          onerror: function () {
+            if (utterance !== next) return;
+            utterance = null;
+            voiceState = 'speechFailed';
+            renderVoice();
+          },
+          onend: function () { if (utterance === next) utterance = null; }
+        });
+        utterance = next;
+      } catch (_) {
+        voiceState = 'speechFailed';
+        renderVoice();
+      }
+    }
+    var tts = null;
+    if (voiceOn) {
+      supported = browserVoiceSupported(root);
+      tts = createBrowserTtsAdapter(root);
+      mic = createElement('button');
+      mic.type = 'button';
+      mic.className = 'customer-assistant-mic';
+      speaker = createElement('button');
+      speaker.type = 'button';
+      speaker.className = 'customer-assistant-speaker';
+      voiceHint = createElement('p');
+      voiceHint.className = 'customer-assistant-voice-hint';
+      voiceStatus = createElement('p');
+      voiceStatus.className = 'customer-assistant-voice-status';
+      voiceStatus.setAttribute('role', 'status');
+      composer.appendChild(mic);
+      composer.appendChild(speaker);
+      composer.appendChild(voiceHint);
+      composer.appendChild(voiceStatus);
+      mic.addEventListener('click', function () {
+        if (busy || !supported.recognition) return;
+        if (recognition) { stopRecognition(); return; }
+        cancelSpeech();
+        try {
+          // Only this explicit tap constructs recognition or requests permission.
+          var Recognition = typeof root.SpeechRecognition === 'function' ? root.SpeechRecognition : root.webkitSpeechRecognition;
+          var active = new Recognition(), consumed = {};
+          recognition = active;
+          active.lang = speechLocale(lang);
+          active.continuous = false;
+          active.interimResults = false;
+          active.onresult = function (event) {
+            if (recognition !== active) return;
+            var parts = [];
+            for (var i = event.resultIndex || 0; i < event.results.length; i++) {
+              var result = event.results[i];
+              if (result.isFinal && !consumed[i] && result[0] && typeof result[0].transcript === 'string') {
+                consumed[i] = true;
+                parts.push(result[0].transcript);
+              }
+            }
+            var transcript = parts.join(' ').trim();
+            if (!transcript) return;
+            var existing = composerInput.value;
+            composerInput.value = (existing + (existing && !/\s$/.test(existing) ? ' ' : '') + transcript).slice(0, 2000);
+            invalidateReview();
+            voiceState = 'inserted';
+            renderVoice();
+            // Dictation only edits the composer. Never call transport or submit.
+          };
+          active.onerror = function (event) {
+            if (recognition !== active) return;
+            stopRecognition();
+            voiceState = event.error === 'not-allowed' || event.error === 'service-not-allowed' ? 'denied' : 'failed';
+            renderVoice();
+          };
+          active.onend = function () {
+            if (recognition !== active) return;
+            recognition = null;
+            if (voiceState === 'listening') voiceState = 'ready';
+            renderVoice();
+          };
+          voiceState = 'listening';
+          renderVoice();
+          active.start();
+        } catch (_) {
+          stopRecognition();
+          voiceState = 'failed';
+          renderVoice();
+        }
+      });
+      speaker.addEventListener('click', function () {
+        if (!supported.synthesis) return;
+        speaking = !speaking; // Opt in for subsequent replies; never speak on mount/toggle.
+        if (!speaking) cancelSpeech();
+        renderVoice();
+      });
+    }
     var form = createElement('form'), inputs = {}, fieldLabels = {};
     var corrections = createElement('details'), correctionsTitle = createElement('summary');
     corrections.className = 'customer-assistant-fields';
@@ -177,6 +391,7 @@
     panel.appendChild(privacy);
     function renderLanguage() {
       var c = copy[lang];
+      renderVoice();
       var chrome = {
         en:['Your message','Ask assistant','Review or correct inquiry details','Privacy notice'], fr:['Votre message','Demander à l’assistant','Vérifier ou modifier les coordonnées','Confidentialité'], pt:['A sua mensagem','Perguntar ao assistente','Rever ou corrigir os dados do pedido','Privacidade']
       }[lang];
@@ -222,10 +437,12 @@
     async function sendTextTurn(text) {
       text = String(text || '').trim();
       if (!text || busy || text.length>2000) return;
+      stopRecognition();
       invalidateReview();
       status.textContent = '';
       var current = generation;
       busy = true;
+      renderVoice();
       ask.disabled = true;
       review.disabled = true;
       log.appendChild(createElement('p', text));
@@ -234,7 +451,8 @@
           text:text, fields:currentFields()
         });
         if (current !== generation) return;
-        log.appendChild(createElement('p', result && typeof result.text === 'string' ? result.text.slice(0, 4000) : copy[lang].answer));
+        var replyText = result && typeof result.text === 'string' ? result.text.slice(0, 4000) : copy[lang].answer;
+        log.appendChild(createElement('p', replyText));
         if (result && result.fields !== undefined) {
           var updates = validatePartialDraft(result.fields);
           Object.keys(updates).forEach(function (key) { inputs[key].value = updates[key]; });
@@ -246,12 +464,14 @@
         details.hidden = false;
         composerInput.value = '';
         composerInput.focus();
+        speakReply(replyText);
       }
       catch (_) {
         status.textContent = copy[lang].disabled;
       }
       finally {
         busy = false;
+        renderVoice();
         ask.disabled = false;
         review.disabled = false;
       }
@@ -269,7 +489,10 @@
       if (event.target && typeof event.target.focus === 'function') event.target.focus();
     }, true);
     languages.addEventListener('change', function () {
-      lang = languages.value;
+      stopRecognition();
+      cancelSpeech();
+      voiceState = 'ready';
+      lang = copy[languages.value] ? languages.value : 'en';
       invalidateReview();
       renderLanguage();
     });
@@ -281,10 +504,12 @@
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       if (busy) return;
+      stopRecognition();
       invalidateReview();
       status.textContent = '';
       var current = generation;
       busy = true;
+      renderVoice();
       review.disabled = true;
       try {
         var draft = {};
@@ -323,14 +548,17 @@
       }
       finally {
         busy = false;
+        renderVoice();
         review.disabled = false;
       }
     });
     send.addEventListener('click', async function () {
       if (busy || !proof) return;
+      stopRecognition();
       var consent = proof;
       proof = null;
       busy = true;
+      renderVoice();
       send.disabled = true;
       review.disabled = true;
       try {
@@ -342,6 +570,7 @@
       }
       finally{
         busy = false;
+        renderVoice();
         review.disabled = false;
       }
     });
@@ -350,7 +579,9 @@
     return panel;
   }
   var api = {
-    eligible:eligible, summary:summary, copy:copy, fields:fields, scaffold:scaffold, validatePartialDraft:validatePartialDraft, mount:mount
+    eligible:eligible, summary:summary, copy:copy, fields:fields, scaffold:scaffold, validatePartialDraft:validatePartialDraft, mount:mount,
+    speechLocale:speechLocale, speechVoice:speechVoice, browserVoiceSupported:browserVoiceSupported, browserVoiceEnabled:browserVoiceEnabled,
+    createBrowserTtsAdapter:createBrowserTtsAdapter
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else if (root.document) mount(root.document, root.location, root.LAVAALL_ASSISTANT_LOCAL_TEST);

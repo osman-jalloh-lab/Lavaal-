@@ -43,6 +43,15 @@
       block-all-mixed-content;
     """
 
+# Homepage only: allow same-origin microphone for optional browser speech after a
+# visitor tap. This static header cannot be feature-flagged. Do not loosen /* or
+# /web, /ops, /os. The UI still does not request the mic unless the chat and
+# CHAT_BROWSER_VOICE_ENABLED flags are on.
+[[headers]]
+  for = "/"
+  [headers.values]
+    Permissions-Policy = "geolocation=(), microphone=(self), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+
 # ==============================================================================
 # STATIC ASSET CACHING (Performance + Security)
 # ==============================================================================

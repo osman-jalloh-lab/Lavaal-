@@ -22,6 +22,12 @@
       ]
     },
     {
+      "source": "/",
+      "headers": [
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(self), geolocation=()" }
+      ]
+    },
+    {
       "source": "/ops(.*)",
       "headers": [
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(self), geolocation=()" }

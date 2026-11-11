@@ -36,6 +36,13 @@
 .customer-assistant li button { background: white; text-align: left; }
 .customer-assistant-log { max-height: 300px; overflow-y: auto; padding: 12px; background: white; border: 2px solid var(--assistant-ink); border-radius: 12px; }
 .customer-assistant-fields { margin: 16px 0; }
+.customer-assistant-composer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.customer-assistant-composer > label { flex-basis: 100%; }
+.customer-assistant-composer > button { min-width: 44px; max-width: 100%; }
+.customer-assistant-composer .customer-assistant-mic,
+.customer-assistant-composer .customer-assistant-speaker { background: white; }
+.customer-assistant-composer button[aria-pressed="true"] { background: var(--assistant-sky); }
+.customer-assistant-voice-hint, .customer-assistant-voice-status { flex-basis: 100%; margin: 4px 0; }
 .customer-assistant dt { font-weight: bold; margin-top: 12px; }
 .customer-assistant dd { margin: 4px 0; white-space: pre-wrap; }
 @media (max-width: 360px) { .customer-assistant { padding: 12px; } }

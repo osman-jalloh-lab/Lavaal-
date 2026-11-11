@@ -40,5 +40,7 @@
     "placement": "LAVAALL surrounding interface",
     "vendorWidgetMaximum": 3
   },
-  "draftToolScope": "authenticated server-to-server draft only; opaque session link; browser review and Send are separate"
+  "draftToolScope": "authenticated server-to-server draft only; opaque session link; browser review and Send are separate",
+  "browserVoiceEnabled": false,
+  "browserVoice": "optional Web Speech API behind CHAT_BROWSER_VOICE_ENABLED; default off; tap-only; not an ElevenLabs voice plan"
 }

@@ -1,19 +1,23 @@
-# A1 test evidence — latest SPEC / QUALITY revision
+# A1 test evidence — browser voice increment
 
-All test submissions and transport responses were synthetic. No live ElevenLabs session, webhook, email, WhatsApp or paid model API was called. Public vendor documentation was read without starting a session. No real environment file was opened.
+All test submissions, speech recognition and TTS results were synthetic. No live ElevenLabs session, webhook, email, WhatsApp, paid model API, or real microphone/speaker was used. No real environment file was opened. No ElevenLabs agent was created.
 
 ## Actual latest verification
 
-Executed in this subprocess after the SPEC / QUALITY code changes:
+Executed after adding the default-off browser Web Speech option (Osman approved 10 November 2026, 9:39 PM America/Chicago):
 
-- `node tests/run-safe-suite.js`: **TOTAL 45; PASS 45; FAIL 0**. Every `tests/test-*.js` file ran separately, including all 42 original files and three chat files.
-- `test-chat-inquiry.js`: **46/46 named checks passed** (additional assertions are not separately counted).
-- `test-chat-frontend.js`: **68 assertions passed**, using a mock DOM and injected local text-turn/review/confirmation adapter.
-- `test-chat-quality.js`: **11/11 named tests passed**, including rollback, serialization, reference isolation, malformed inputs/origins, inert artifacts and unchanged public phone-only rejection.
-- `node --check`: **10/10 changed JavaScript files passed**, plus Apps Script source checked through stdin: **1/1 passed**.
+- `node tests/run-safe-suite.js`: **TOTAL 46; PASS 46; FAIL 0**. Every `tests/test-*.js` file ran separately, including the previous 45 files and new `test-chat-browser-voice.js`.
+- `test-chat-browser-voice.js`: **264 assertions passed**, using a mock DOM and injected SpeechRecognition / speechSynthesis stubs. Coverage includes feature detection, flag-off and `CHAT_VOICE_ENABLED`-only (no mic UI), language mapping (`en-US`, `fr-FR`, `pt-PT` with `pt-BR` alias), no auto-send, permission/start failures leaving text usable, opt-in TTS, the `createBrowserTtsAdapter` interface with no network, and homepage-only microphone Permissions-Policy on `/` with `/web`, `/ops` and `/os` left unchanged.
+- `test-chat-inquiry.js`: **46/46 named checks passed**, including default-off `CHAT_ENABLED`, `CHAT_VOICE_ENABLED` and `CHAT_BROWSER_VOICE_ENABLED`.
+- `test-chat-frontend.js`: **68 assertions passed**; existing composer/consent DOM selectors remain valid.
+- `test-chat-quality.js`: **11/11 named tests passed**, including the new `CHAT_BROWSER_VOICE_ENABLED=false` env.example and agent-config assertions.
+- `node --check`: **6/6 changed JavaScript files passed** (`assets/js/customer-assistant.js`, `api/chat-inquiry.js`, `tests/test-chat-browser-voice.js`, `tests/test-chat-inquiry.js`, `tests/test-chat-quality.js`, `tests/test-os-ingest.js`).
 - `git diff --check`: **exit 0**.
-- `gitleaks dir --redact --no-banner`: **exit 0, no leaks**, on an explicit temporary copy of the **22 reviewable changed files** listed below. The scanner used a minimal environment. No `.env` or credential files were copied or opened.
-- Protected `api/contact.js`: unchanged versus `48102ac`. Current and baseline Git blob hashes both **2d7d775b92b57c651bfeaa0deea607bf65019001**. Its new mocked regression test rejects phone-only input with HTTP 400, requires email, and observes zero transport calls.
+- `gitleaks dir --redact --no-banner`: **exit 0, no leaks**, on an explicit temporary copy of the reviewable changed files listed below. The scanner used a normal PATH only. No `.env` or credential files were copied or opened.
+- Protected `api/contact.js`: unchanged versus `48102ac` and versus A1 head `51492607`. Current and baseline Git blob hashes both **2d7d775b92b57c651bfeaa0deea607bf65019001**.
+- `tests/test-os-ingest.js` was updated only so the existing vercel.json guard still passes: it now allows an exact `/` `microphone=(self)` Permissions-Policy while asserting `/os`, `/ops`, `/web`, global `/(.*)`, functions and rewrites stay unchanged. This is not an unrelated baseline fix.
+
+The prior 45-file A1 result is superseded by this 46-file sweep. The same 42 original baseline files still pass. The full-suite runner still supplies only PATH, TZ, NODE_ENV and SAFE_TEST_NETWORK; it does not inherit provider/mail/ops credentials or NODE_OPTIONS, and it does not load `.env`.
 
 The full-suite runner supplies only PATH, TZ, NODE_ENV and SAFE_TEST_NETWORK to each child; it does not inherit provider/mail/ops credentials or NODE_OPTIONS. A preload blocks real non-loopback fetch/http/https/net/tls connections while tests may inject synthetic mocks. Each file has a 120-second timeout. The runner does not load `.env`.
 
@@ -76,9 +80,9 @@ See [review.md](review.md) for all seven categories: secrets, injection, authent
 
 ## NOT TESTED / blockers
 
-Real vendor behavior, authenticated vendor session linking, prevention of public-agent bypass, text-only dashboard verification, live language switching and language quality, actual all-in vendor spending/hard limits, dedicated durable storage, actual TTL deletion, vendor retention/deletion, privacy approval, screen readers, real 320px browser/device layout and mobile Safari/Android acceptance are **NOT TESTED**. Voice is excluded. No claim of real device or vendor acceptance follows from mock success.
+Real vendor behavior, authenticated vendor session linking, prevention of public-agent bypass, text-only dashboard verification, live language switching and language quality, actual all-in vendor spending/hard limits, dedicated durable storage, actual TTL deletion, vendor retention/deletion, privacy approval, screen readers, real 320px browser/device layout and mobile Safari/Android acceptance are **NOT TESTED**. Browser Web Speech was exercised only through Node mocks. Real Chrome, Edge, Firefox and Safari (desktop and mobile) recognition/TTS, microphone permission prompts, vendor audio processing, and HTTPS behavior are **NOT TESTED**. Expected real-browser limitations, untested here: Firefox generally lacks SpeechRecognition; iOS Safari recognition is limited or inconsistent; Chrome/Edge desktop and Android Chrome are the usual working path; Chrome may send audio to Google; recognition typically needs a user gesture and may end after a pause; `speechSynthesis` voices and quality vary by device. No ElevenLabs voice acceptance is claimed. No claim of real device or vendor acceptance follows from mock success.
 
-A2 and A3 gates, unmerged #74/#75 conflicts and rollback are in A1.md. No commit, push, PR creation, deployment, account changes, environment changes or activation occurred in this subprocess. The coordinator owns the founder-authorized feature-branch/draft-PR workflow.
+A2 and A3 gates, unmerged #74/#75 conflicts and rollback are in A1.md. The privacy.html browser-speech wording is still draft and requires Osman's approval; the effective date is unchanged. No production deployment, account changes, environment/secret changes, paid calls or ElevenLabs agent creation occurred in this increment.
 
 ## Explicit changed-file scan manifest
 
@@ -104,3 +108,23 @@ A2 and A3 gates, unmerged #74/#75 conflicts and rollback are in A1.md. No commit
 - `tests/test-chat-frontend.js`
 - `tests/test-chat-inquiry.js`
 - `tests/test-chat-quality.js`
+
+## Browser-voice increment changed-file scan manifest
+
+- `api/chat-inquiry.js`
+- `assets/css/customer-assistant.css`
+- `assets/js/customer-assistant.js`
+- `docs/customer-assistant/A1.md`
+- `docs/customer-assistant/agent-config.json`
+- `docs/customer-assistant/agent-policy.md`
+- `docs/customer-assistant/embed-template.html`
+- `docs/customer-assistant/env.example`
+- `docs/customer-assistant/review.md`
+- `docs/customer-assistant/test-results.md`
+- `netlify.toml`
+- `privacy.html`
+- `tests/test-chat-browser-voice.js`
+- `tests/test-chat-inquiry.js`
+- `tests/test-chat-quality.js`
+- `tests/test-os-ingest.js`
+- `vercel.json`
