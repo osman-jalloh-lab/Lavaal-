@@ -23,7 +23,7 @@ The full-suite runner supplies only PATH, TZ, NODE_ENV and SAFE_TEST_NETWORK to 
 
 ## Baseline comparison
 
-Before chat test additions, the observed baseline was **TOTAL 42; PASS 42; FAIL 0**. No preexisting failures were observed. The latest 45-file sweep includes those same 42 baseline files; no unrelated baseline test was repaired. Earlier 44-file results are superseded by the latest 45-file result above.
+Before chat test additions, the observed baseline was **TOTAL 42; PASS 42; FAIL 0**. No preexisting failures were observed. The latest 46-file sweep includes those same 42 baseline files plus four chat files; no unrelated baseline test was repaired, except the scoped `test-os-ingest.js` vercel.json guard described above (111/111). Earlier 44-file and 45-file results are superseded by the latest 46-file result above.
 
 Actual baseline files:
 
