@@ -1,0 +1,44 @@
+{
+  "artifact": "review-only A1 configuration; not vendor API schema",
+  "name": "LAVAALL Assistant",
+  "agentId": "REPLACE_ONLY_AFTER_A2_APPROVAL",
+  "enabled": false,
+  "site": "technology",
+  "mountPath": "/",
+  "textOnly": true,
+  "voiceEnabled": false,
+  "languages": [
+    "en",
+    "fr",
+    "pt"
+  ],
+  "languageSwitchingAcceptance": "untested on real vendor",
+  "krio": "best-effort text with English fallback; never Haitian Creole",
+  "firstMessages": {
+    "en": "I'm LAVAALL Assistant, an AI assistant. I can help with Technology questions or prepare an inquiry for your review.",
+    "fr": "Je suis LAVAALL Assistant, un assistant IA. Je peux répondre aux questions sur la technologie ou préparer une demande à vérifier.",
+    "pt": "Sou LAVAALL Assistant, um assistente de IA. Posso ajudar com perguntas sobre tecnologia ou preparar um pedido para a sua revisão."
+  },
+  "policyFile": "agent-policy.md",
+  "knowledgeFile": "kb-technology.md",
+  "allowedTools": [
+    "draft_inquiry"
+  ],
+  "browserConsentTools": [],
+  "privilegedTools": [],
+  "externalActivation": "blocked: no dedicated durable provider, enforceable vendor sessions or verified all-in hard billing controls",
+  "humanContacts": {
+    "email": "support@lavaall.com",
+    "whatsapp": "+1 (737) 704-4182",
+    "botConnectionPermitted": false
+  },
+  "embedReference": "embed-template.html (inert review only; never injected)",
+  "dashboardTextOnlyVerification": "required before A2; widget default may be voice-only",
+  "vendorSessionAuthentication": "unresolved: public widget authentication-disabled model versus authenticated signed session; no billing guarantee",
+  "suggestedQuestions": {
+    "count": 10,
+    "placement": "LAVAALL surrounding interface",
+    "vendorWidgetMaximum": 3
+  },
+  "draftToolScope": "authenticated server-to-server draft only; opaque session link; browser review and Send are separate"
+}

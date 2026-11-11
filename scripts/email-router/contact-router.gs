@@ -77,10 +77,10 @@ function doPost(e) {
     if (payload.preferredCallback) lines.push('Preferred callback date/time: ' + payload.preferredCallback);
     lines.push('', 'Message:', payload.message || '', '', 'Received: ' + (payload.receivedAt || new Date().toISOString()));
 
-    GmailApp.sendEmail(routeTo, subject, lines.join('\n'), {
-      replyTo: payload.email || undefined,
-      name: 'LAVAALL Website',
-    });
+    var mailOptions = { name: 'LAVAALL Website' };
+    // Phone-only chat inquiries must not invent or set an empty Reply-To.
+    if (payload.email) mailOptions.replyTo = payload.email;
+    GmailApp.sendEmail(routeTo, subject, lines.join('\n'), mailOptions);
 
     return jsonOut({ ok: true });
   } catch (err) {
