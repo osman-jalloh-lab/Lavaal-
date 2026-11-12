@@ -6,7 +6,7 @@ const ACTION_FIELDS = Object.freeze({
   draft: ['sessionId', 'fields', 'eventId'],
   review: ['sessionId', 'csrf', 'draftId'],
   confirm: ['sessionId', 'csrf', 'draftId', 'token', 'idempotencyKey'],
-  turn: ['sessionId', 'csrf', 'eventId'],
+  turn: ['sessionId', 'csrf', 'eventId', 'text'],
 });
 const OPAQUE_FIELDS = ['sessionId', 'draftId', 'token', 'csrf', 'idempotencyKey'];
 const isOpaque = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -17,15 +17,22 @@ function reply(res, status, body) {
   return res.status(status).send(JSON.stringify(body));
 }
 
-// No production adapters in A1. Env assertions cannot verify vendor enforcement.
-function publicConfig() {
-  return {
-    CHAT_ENABLED: false,
-    CHAT_VOICE_ENABLED: false,
-    CHAT_BROWSER_VOICE_ENABLED: false,
-    agentId: 'UNCONFIGURED',
-    reason: 'a1_unverified_controls',
-  };
+function settings(options = {}) {
+  const env = options.env || process.env;
+  const runtime = options.runtime || env.VERCEL_ENV;
+  const production = runtime === 'production' || process.env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'production';
+  const preview = runtime === 'preview' || env.VERCEL_ENV === 'preview';
+  const salt = options.salt || env.CHAT_IP_HASH_SALT;
+  const configuredStore = options.store ? typeof options.store.transaction === 'function' : (env.KV_REST_API_URL && env.KV_REST_API_TOKEN);
+  const enabled = !production && preview && (options.CHAT_ENABLED === true || env.CHAT_ENABLED === 'true') &&
+    Boolean(options.deepseekApiKey || env.DEEPSEEK_API_KEY) && typeof salt === 'string' && salt.length >= 8 && salt.length <= 256 && Boolean(configuredStore);
+  return { env, runtime, production, preview, salt, enabled };
+}
+function publicConfig(options = {}) {
+  const config = settings(options);
+  return { CHAT_ENABLED: Boolean(config.enabled), CHAT_VOICE_ENABLED: false,
+    CHAT_BROWSER_VOICE_ENABLED: false, environment: config.preview && !config.production ? 'preview' : (config.production ? 'production' : 'disabled'),
+    name: 'LAVAALL Assistant' };
 }
 
 function validOrigin(value, localTests) {
@@ -42,18 +49,32 @@ function validOrigin(value, localTests) {
 }
 
 function createHandler(options = {}) {
-  const { store, vendorSecret, runtime, transport } = options;
+  const config = settings(options);
+  const { env, runtime, salt } = config;
+  const { vendorSecret, transport } = options;
   const localTests = runtime === 'test' && options.localTests === true;
-  const trustedOrigins = options.trustedOrigins || [];
-  const validOrigins = Array.isArray(trustedOrigins) && trustedOrigins.length > 0 &&
-    trustedOrigins.every(origin => validOrigin(origin, localTests));
-  const enabled = options.CHAT_ENABLED === true && runtime === 'test' &&
-    store?.kind === 'mock' && typeof transport === 'function' && validOrigins;
-  const service = enabled ? createService(options) : null;
+  const trustedOrigins = [...(options.trustedOrigins || []), ...(env.CHAT_TRUSTED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean)];
+  if (config.preview) for (const host of [env.VERCEL_URL, env.VERCEL_BRANCH_URL]) {
+    if (host && validOrigin('https://' + host, false)) trustedOrigins.push('https://' + host);
+  }
+  const validOrigins = trustedOrigins.length > 0 && trustedOrigins.every(origin => validOrigin(origin, localTests));
+  const testEnabled = options.CHAT_ENABLED === true && runtime === 'test' &&
+    options.store?.kind === 'mock' && typeof transport === 'function' && validOrigins;
+  const enabled = !config.production && validOrigins && (testEnabled || config.enabled);
+  let store = options.store;
+  if (enabled && !store) store = require('./_chat/store').kvStore({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN });
+  const chat = options.chat || (enabled && config.preview ? args => require('./_chat/llm-gateway').chat({ ...args, env }) : undefined);
+  const service = enabled ? createService({ ...options, store, salt, chat }) : null;
+  const exposed = { ...publicConfig(options), CHAT_ENABLED: Boolean(enabled) };
 
   return async function handler(req, res) {
-    if (!enabled) return reply(res, 503, { ...publicConfig(), error: 'chat_disabled' });
+    if (process.env.VERCEL_ENV === 'production') return reply(res, 503, { ...exposed, CHAT_ENABLED: false, environment: 'production', error: 'chat_disabled' });
+    if (!enabled) return reply(res, 503, { ...exposed, error: 'chat_disabled' });
     try {
+      if (req.query?.action === 'config' && ['GET', 'POST'].includes(req.method)) {
+        // Public flags only; no secrets. Session and turns still require Origin.
+        return reply(res, 200, exposed);
+      }
       if (req.method !== 'POST') return reply(res, 405, { error: 'method_not_allowed' });
       const headers = req.headers || {};
       if (!/^application\/json(?:\s*;|$)/i.test(headers['content-type'] || '')) {
@@ -72,6 +93,7 @@ function createHandler(options = {}) {
       if (typeof action !== 'string' || !Object.hasOwn(ACTION_FIELDS, action)) {
         return reply(res, 400, { error: 'invalid_request' });
       }
+      if (config.preview && ['draft', 'review', 'confirm'].includes(action) && env.CHAT_INQUIRY_DELIVERY !== 'true') return reply(res, 503, { error: 'delivery_disabled' });
       const allowed = ACTION_FIELDS[action];
       if (Object.keys(body).some(key => !allowed.includes(key))) {
         return reply(res, 400, { error: 'invalid_request' });
@@ -85,6 +107,7 @@ function createHandler(options = {}) {
       if (OPAQUE_FIELDS.some(key => allowed.includes(key) && !isOpaque(body[key]))) {
         return reply(res, 400, { error: 'invalid_request' });
       }
+      if (action === 'turn' && config.preview && (typeof body.text !== 'string' || !body.text.trim() || body.text.length > 2000)) return reply(res, 400, { error: 'invalid_request' });
       if (action === 'draft') {
         return reply(res, 200, await service.draft(body.sessionId, body.fields, body.eventId));
       }
@@ -111,14 +134,14 @@ function createHandler(options = {}) {
       } else if (action === 'confirm') {
         result = await service.confirm(body.sessionId, proof, body.csrf, body.draftId, body.token, body.idempotencyKey);
       } else if (action === 'turn') {
-        // Reservation is server configured, never model supplied; still mock only.
-        result = await service.turn(body.sessionId, proof, body.eventId, options.turnReservationCents, body.csrf);
+        // Text turns compute their reservation on the server before vendor I/O.
+        result = await service.turn(body.sessionId, proof, body.eventId, options.turnReservationCents, body.csrf, body.text);
       }
       return reply(res, 200, result);
     } catch (error) {
-      const codes = ['quota', 'cost_cap', 'billing_unverified', 'session', 'csrf', 'draft', 'consent', 'event', 'replay', 'fields'];
+      const codes = ['quota', 'cost_cap', 'billing_unverified', 'session', 'csrf', 'draft', 'consent', 'event', 'replay', 'fields', 'store_unavailable', 'turn_pending'];
       const code = codes.includes(error.code) ? error.code : 'invalid_request';
-      return reply(res, code === 'quota' || code === 'cost_cap' ? 429 : 400, { error: code });
+      return reply(res, code === 'store_unavailable' ? 503 : code === 'quota' || code === 'cost_cap' ? 429 : 400, { error: code });
     }
   };
 }

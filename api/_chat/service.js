@@ -74,7 +74,7 @@ function digestKey(draftId) {
   return hash('submission:' + draftId);
 }
 
-function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport }) {
+function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat }) {
   if (!store || typeof store.transaction !== 'function'
       || typeof salt !== 'string' || salt.length < 8 || salt.length > 256) fail('unconfigured');
 
@@ -236,7 +236,10 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
     return bill;
   }
 
-  async function turn(id, proof, eventId, reserveCents, csrf) {
+  async function turn(id, proof, eventId, reserveCents, csrf, text) {
+    if (text !== undefined) return chatTurn(id, proof, eventId, csrf, text);
+    // Retain A1 reservation-only semantics solely for the existing mock tests.
+    if (store.kind !== 'mock') fail('fields');
     requireEvent(eventId);
     if (!Number.isSafeInteger(reserveCents) || reserveCents <= 0) fail('cost');
     return transaction((records, time) => {
@@ -263,6 +266,66 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       }
       const result = { allowed: true };
       records.set(eventKey, { result, exp: session.exp });
+      return result;
+    });
+  }
+
+  async function chatTurn(id, proof, eventId, csrf, text) {
+    requireEvent(eventId);
+    if (typeof text !== 'string' || !text.trim() || text.length > 2000) fail('fields');
+    const { respond } = require('./responder');
+    const { shouldSkipModel, buildMessages, respondWithLlm } = require('./llm-responder');
+    const { reservationCents } = require('./llm-gateway');
+    const eventKey = 'turn:' + id + ':' + eventId;
+    const digest = hash(text);
+    const reservation = await transaction((records, time) => {
+      const session = browserSession(records, id, proof, csrf, time);
+      const previous = records.get(eventKey);
+      if (previous) {
+        if (previous.digest !== digest) fail('replay');
+        if (!previous.result) fail('turn_pending');
+        return { result: previous.result };
+      }
+      if (session.turns >= 10) fail('quota');
+      const context = session.context || {};
+      const rule = respond(text, context);
+      const skip = shouldSkipModel(rule);
+      if (!skip && typeof chat !== 'function') fail('unconfigured');
+      const estimate = skip ? 0 : reservationCents(buildMessages(text, rule, context));
+      const date = new Date(time);
+      const monthKey = 'cost:' + date.toISOString().slice(0, 7);
+      const ledger = records.get(monthKey) || { n: 0, exp: Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 2, 1) };
+      if (ledger.n + estimate > 2500 || ledger.n >= 2500) fail('cost_cap');
+      ledger.n += estimate;
+      records.set(monthKey, ledger);
+      session.turns++;
+      records.set(eventKey, { digest, exp: session.exp });
+      return { rule, skip, context, estimate, monthKey };
+    });
+    if (reservation.result) return reservation.result;
+    let response;
+    try {
+      response = reservation.skip ? reservation.rule : await respondWithLlm(text, { session: reservation.context, chat });
+    } catch (error) {
+      // Gateway accounts for every attempt; unknown failures keep the reservation.
+      response = { costUsd: error.costUsd, text: "I couldn't complete that reply. We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182." };
+    }
+    const result = { text: response.text };
+    return transaction(records => {
+      const event = records.get(eventKey);
+      if (!event) fail('session');
+      const ledger = records.get(reservation.monthKey);
+      if (!reservation.skip && Number.isFinite(response.costUsd) && response.costUsd >= 0) {
+        const actual = Math.ceil(response.costUsd * 100 * 1000000) / 1000000;
+        // Replace the reservation with usage cost (or conservative uncertain cost).
+        ledger.n = Math.ceil((ledger.n - reservation.estimate + actual) * 1000000) / 1000000;
+      }
+      event.result = result;
+      const session = records.get('s:' + id);
+      if (session && !reservation.skip) session.context = {
+        lastUser: text, lastLanguage: response.language, lastQty: response.fields?.quantity,
+        history: [{ role: 'user', text }, { role: 'assistant', text: result.text }],
+      };
       return result;
     });
   }

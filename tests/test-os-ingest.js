@@ -358,7 +358,13 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
       const base = JSON.parse(execFileSync('git', ['show', 'origin/main:vercel.json'], { cwd: root, encoding: 'utf8' }));
       const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
       const pick = (cfg, pred) => (cfg.headers || []).filter(pred);
-      osRoutesIntact = same(current.functions, base.functions)
+      const currentFunctions = { ...(current.functions || {}) };
+      const chatFn = currentFunctions['api/chat-inquiry.js'];
+      delete currentFunctions['api/chat-inquiry.js'];
+      osRoutesIntact = same(currentFunctions, base.functions)
+        && !!chatFn && chatFn.maxDuration === 20
+        && typeof chatFn.includeFiles === 'string'
+        && chatFn.includeFiles.includes('assets/js/catalog-data.js')
         && same(current.rewrites, base.rewrites)
         && same(pick(current, (h) => /^\/os/.test(h.source)), pick(base, (h) => /^\/os/.test(h.source)))
         && same(pick(current, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'), pick(base, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'))

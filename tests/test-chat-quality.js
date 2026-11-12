@@ -190,9 +190,11 @@ async function main() {
     assert.deepEqual(config.allowedTools, ['draft_inquiry']);
     assert.deepEqual(config.privilegedTools, []);
     const example = fs.readFileSync(path.join(directory, 'env.example'), 'utf8');
-    assert.match(example, /^CHAT_ENABLED=false$/m);
-    assert.match(example, /^CHAT_VOICE_ENABLED=false$/m);
-    assert.match(example, /^CHAT_BROWSER_VOICE_ENABLED=false$/m);
+    assert.match(example, /defaults off/i);
+    for (const name of ['CHAT_ENABLED', 'CHAT_VOICE_ENABLED', 'CHAT_BROWSER_VOICE_ENABLED', 'CHAT_INQUIRY_DELIVERY', 'DEEPSEEK_API_KEY', 'AI_GATEWAY_API_KEY', 'KV_REST_API_URL', 'KV_REST_API_TOKEN']) {
+      assert(example.split(/\r?\n/).includes(name));
+    }
+    assert(example.split(/\r?\n/).filter(line => line && !line.startsWith('#')).every(line => /^[A-Z][A-Z0-9_]*$/.test(line)));
     assert.equal(config.voiceEnabled, false);
     assert.equal(config.browserVoiceEnabled, false);
     const embed = fs.readFileSync(path.join(directory, 'embed-template.html'), 'utf8');

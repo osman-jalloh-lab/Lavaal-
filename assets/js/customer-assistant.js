@@ -1,4 +1,4 @@
-/* A1: local TEST ONLY UI. No vendor script or credentials. Optional browser speech
+/* Preview text chat and local TEST ONLY UI. No vendor script or credentials. Optional browser speech
  * is default-off and tap-only; browser vendors may process audio on their servers. */
 (function (root) {
   'use strict';
@@ -55,6 +55,9 @@
   });
   function eligible(config, location) {
     var loopback = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
+    if (config && config.CHAT_ENABLED === true && config.localTestStub !== true &&
+        config.environment === 'preview' && location.pathname === '/' &&
+        typeof config.transport === 'function') return true;
     return !!(
       config && config.CHAT_ENABLED === true && config.localTestStub === true &&
       config.environment === 'test' && location.pathname === '/' && loopback &&
@@ -87,7 +90,8 @@
     };
   }
   function browserVoiceEnabled(config, location) {
-    return eligible(config, location) && config.CHAT_BROWSER_VOICE_ENABLED === true;
+    return eligible(config, location) && config.localTestStub === true &&
+      config.environment === 'test' && config.CHAT_BROWSER_VOICE_ENABLED === true;
   }
   function speechVoice(voices, lang) {
     var locale = speechLocale(lang);
@@ -404,7 +408,11 @@
       fields.forEach(function (key, index) {
         fieldLabels[key].textContent = labels[lang][index] + (key === 'name' || key === 'phone' ? ' *' : '');
       });
-      first.textContent = c.first;
+      first.textContent = config.localTestStub === true ? c.first : {
+        en: "I'm LAVAALL Assistant, an AI assistant. I can help with Technology questions or prepare an inquiry for your review.",
+        fr: 'Je suis LAVAALL Assistant, un assistant IA. Je peux répondre aux questions sur la technologie ou préparer une demande à vérifier.',
+        pt: 'Sou LAVAALL Assistant, um assistente de IA. Posso ajudar com perguntas sobre tecnologia ou preparar um pedido para a sua revisão.'
+      }[lang];
       notice.textContent = c.notice;
       review.textContent = c.review;
       send.textContent = c.send;
@@ -451,6 +459,7 @@
           text:text, fields:currentFields()
         });
         if (current !== generation) return;
+        if ((!result || typeof result.text !== 'string') && config.localTestStub !== true) throw new Error('reply_unavailable');
         var replyText = result && typeof result.text === 'string' ? result.text.slice(0, 4000) : copy[lang].answer;
         log.appendChild(createElement('p', replyText));
         if (result && result.fields !== undefined) {
@@ -574,15 +583,58 @@
         review.disabled = false;
       }
     });
+    if (config.localTestStub !== true) {
+      // Preview is text-only; inquiry delivery needs a separate explicit server opt-in.
+      form.hidden = true;
+      edit.hidden = true;
+      send.hidden = true;
+      summaryPrivacy.hidden = true;
+    }
     renderLanguage();
     doc.body.appendChild(panel);
     return panel;
   }
+  function createPreviewTransport(fetcher, browserCrypto) {
+    var sessionPromise;
+    async function post(action, body) {
+      var response = await fetcher('/api/chat-inquiry?action=' + action, {
+        method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
+      var result = await response.json();
+      if (!response.ok) throw new Error('chat_unavailable');
+      return result;
+    }
+    return async function (action, payload) {
+      if (action !== 'turn') throw new Error('text_only');
+      if (!sessionPromise) sessionPromise = post('session', {});
+      var session = await sessionPromise;
+      if (!session || typeof session.sessionId !== 'string' || typeof session.csrf !== 'string') throw new Error('session_unavailable');
+      if (!browserCrypto || typeof browserCrypto.getRandomValues !== 'function') throw new Error('random_unavailable');
+      var bytes = browserCrypto.getRandomValues(new Uint8Array(32));
+      var eventId = Array.prototype.map.call(bytes, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      return post('turn', {sessionId:session.sessionId, csrf:session.csrf, eventId:eventId, text:payload.text});
+    };
+  }
+  async function boot(browser) {
+    if (browser.LAVAALL_ASSISTANT_LOCAL_TEST) return mount(browser.document, browser.location, browser.LAVAALL_ASSISTANT_LOCAL_TEST);
+    if (browser.location.pathname !== '/' || typeof browser.fetch !== 'function') return null;
+    try {
+      var response = await browser.fetch('/api/chat-inquiry?action=config', {method:'GET', credentials:'include', cache:'no-store'});
+      if (!response.ok) return null;
+      var config = await response.json();
+      if (!config || config.CHAT_ENABLED !== true || config.environment !== 'preview') return null;
+      config.localTestStub = false;
+      config.CHAT_BROWSER_VOICE_ENABLED = false;
+      config.transport = createPreviewTransport(browser.fetch.bind(browser), browser.crypto);
+      return mount(browser.document, browser.location, config);
+    } catch (_) { return null; }
+  }
   var api = {
     eligible:eligible, summary:summary, copy:copy, fields:fields, scaffold:scaffold, validatePartialDraft:validatePartialDraft, mount:mount,
     speechLocale:speechLocale, speechVoice:speechVoice, browserVoiceSupported:browserVoiceSupported, browserVoiceEnabled:browserVoiceEnabled,
-    createBrowserTtsAdapter:createBrowserTtsAdapter
+    createBrowserTtsAdapter:createBrowserTtsAdapter, createPreviewTransport:createPreviewTransport, boot:boot
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  else if (root.document) mount(root.document, root.location, root.LAVAALL_ASSISTANT_LOCAL_TEST);
+  else if (root.document) boot(root);
 })(typeof window !== 'undefined' ? window : globalThis);
