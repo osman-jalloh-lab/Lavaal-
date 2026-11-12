@@ -64,7 +64,7 @@ function createHandler(options = {}) {
   let store = options.store;
   if (enabled && !store) store = require('./_chat/store').kvStore({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN });
   const chat = options.chat || (enabled && config.preview ? args => require('./_chat/llm-gateway').chat({ ...args, env }) : undefined);
-  const service = enabled ? createService({ ...options, store, salt, chat }) : null;
+  const service = enabled ? createService({ ...options, store, salt, chat, previewDebug: config.preview && !config.production }) : null;
   const exposed = { ...publicConfig(options), CHAT_ENABLED: Boolean(enabled) };
 
   return async function handler(req, res) {

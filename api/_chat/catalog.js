@@ -205,6 +205,7 @@ function loadCatalog() {
 
 function stems(token) {
   const values = new Set([token]);
+  if (/^\d{2,5}s$/.test(token)) values.add(token.slice(0, -1));
   if (token.endsWith('ies') && token.length > 4) values.add(token.slice(0, -3) + 'y');
   if (token.endsWith('es') && token.length > 5) values.add(token.slice(0, -2));
   if (token.endsWith('s') && !token.endsWith('ss') && token.length > 3) values.add(token.slice(0, -1));
@@ -231,7 +232,7 @@ function tokensOf(query) {
 }
 
 function modelNumbers(query) {
-  const text = normalize(query).replace(/\b24\s+7\b/g, ' ');
+  const text = normalize(query).replace(/\b(\d{2,5})s\b/g, '$1').replace(/\b24\s+7\b/g, ' ');
   return (text.match(/\b\d{2,5}\b/g) || []).filter(num => {
     if (Number(num) < 10) return false;
     const asQty = new RegExp('\\b' + num + '\\s+(' + [...UNIT_WORDS].join('|') + ')\\b');
@@ -352,9 +353,26 @@ function searchCatalog(query, options = {}) {
   if (!tokens.length && !numbers.length) return { matches: [], tokens, total: catalog.products.length };
   const limit = options.limit || 8;
   const phrase = normalize(query);
+  // Only recognize named generations that exist in the catalogue. A number
+  // elsewhere in a full sentence (such as a quantity) is not a generation.
+  const namedGenerations = new Set();
+  for (const product of catalog.products) {
+    const identity = normalize(product.name + ' ' + (product.family || ''));
+    for (const match of identity.matchAll(/\b([a-z][a-z0-9]*)\s+(\d{2,5})\b/g)) {
+      if (new RegExp('\\b' + match[1] + '\\s+' + match[2] + 's?\\b').test(phrase)) {
+        namedGenerations.add(match[1] + ' ' + match[2]);
+      }
+    }
+  }
+  function matchesGeneration(product) {
+    if (!namedGenerations.size) return true;
+    const identity = normalize(product.name + ' ' + (product.family || ''));
+    return [...namedGenerations].some(generation => containsPhrase(identity, generation));
+  }
   const brandsInQueryEarly = queryBrandTokens(tokens, catalog);
   let scored = [];
   for (const product of catalog.products) {
+    if (!matchesGeneration(product)) continue;
     let score = 0;
     let strong = 0;
     for (const token of tokens) {
@@ -469,7 +487,7 @@ function searchCatalog(query, options = {}) {
   const families = new Set(matches.map(item => item.family).filter(Boolean));
   if (families.size && families.size <= 3) {
     const extras = catalog.products.filter(item =>
-      families.has(item.family) && !matches.some(existing => existing.id === item.id)
+      matchesGeneration(item) && families.has(item.family) && !matches.some(existing => existing.id === item.id)
     );
     if (extras.length) matches = matches.concat(extras);
   }

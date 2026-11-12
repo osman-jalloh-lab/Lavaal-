@@ -74,7 +74,7 @@ function digestKey(draftId) {
   return hash('submission:' + draftId);
 }
 
-function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat }) {
+function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false }) {
   if (!store || typeof store.transaction !== 'function'
       || typeof salt !== 'string' || salt.length < 8 || salt.length > 256) fail('unconfigured');
 
@@ -311,6 +311,11 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       response = { costUsd: error.costUsd, text: "I couldn't complete that reply. We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182." };
     }
     const result = { text: response.text };
+    if (previewDebug && process.env.VERCEL_ENV !== 'production') result.debug = {
+      model: ['deepseek-flash', 'openai/gpt-4o-mini'].includes(response.llmModel) ? response.llmModel : null,
+      provider: ['deepseek', 'gateway'].includes(response.llmProvider) ? response.llmProvider : null,
+      skipped: reservation.skip || response.llmSkipped || null,
+    };
     return transaction(records => {
       const event = records.get(eventKey);
       if (!event) fail('session');

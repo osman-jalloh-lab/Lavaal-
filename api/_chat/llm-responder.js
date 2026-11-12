@@ -1,6 +1,6 @@
 'use strict';
 
-const { respond, REACHABILITY, EMAIL, WHATSAPP, FIRST } = require('./responder');
+const { respond, REACHABILITY, EMAIL, WHATSAPP, FIRST, isFollowUp } = require('./responder');
 const { chat, SpendCapError } = require('./llm-gateway');
 
 const PRICE_RE = /(?:[$£€]\s?\d|\b(?:USD|EUR|GBP)\s*\d|\d[\d,.]*\s*(?:USD|EUR|GBP|dollars?|euros?|pounds?)\b|\bLe\s+\d|\bcosts?\s+\d|\bpriced?\s+at\b|\bdiscount of\b|\d\s*%\s*(?:off|discount)|\b% off\b)/i;
@@ -46,7 +46,7 @@ const PHRASES = {
     kr: 'A de ya fɔ ɛp wit LAVAALL Technology — ɛkwipmɛnt, instaleshɔn, ɔ rɛkwɛst fɔ di tim — nɔt dat tɔpik.',
   },
   shortly: {
-    en: 'You can speak to a person using our WhatsApp or email contacts.',
+    en: 'Thanks, someone from our team will reach out to you shortly.',
     fr: "Vous pouvez parler à une personne via nos contacts WhatsApp ou e-mail.",
     pt: 'Pode falar com uma pessoa pelos nossos contactos WhatsApp ou e-mail.',
     kr: 'Yu kin tɔk to wan pɔsin na wi WhatsApp ɔ ɛmail.',
@@ -93,6 +93,7 @@ function intentFrom(rule) {
   if (events.includes('refused-injection')) return 'refuse-injection';
   if (events.some(event => String(event).startsWith('blocked-sensitive'))) return 'block-sensitive';
   if (events.includes('redirected-offtopic')) return 'off-topic';
+  if (events.includes('installation-service')) return 'installation-service';
   if (events.includes('not-in-catalog')) return 'not-in-catalog';
   if ((events.includes('hours') || /not staffed continuously|n'est pas présente en continu|não está presente de forma contínua|nɔ de ɔl tɛm/i.test(rule.text || '')) && !(rule.matchCount > 0)) {
     return events.includes('tag-osman-handoff') ? 'hours-and-agent' : 'hours';
@@ -304,7 +305,7 @@ function buildMessages(visitorText, rule, session) {
     .map(item => item.trim())
     .filter(Boolean);
   const must = requiredSentences(rule);
-  const history = ((session && session.history) || []).slice(-6);
+  const history = isFollowUp(visitorText) ? ((session && session.history) || []).slice(-6) : [];
 
   const system = [
     'You are LAVAALL Assistant, a text-only Technology assistant for LAVAALL.',
@@ -337,6 +338,7 @@ function buildMessages(visitorText, rule, session) {
     (rule.fields && rule.fields.fullName && rule.fields.phone)
       ? 'Visitor already gave this name and phone for the request form: ' + rule.fields.fullName + ', ' + rule.fields.phone
       : '',
+    intent === 'installation-service' ? 'Approved service facts: ' + rule.text + ' Do not list products. Offer a request; do not promise scheduling.' : '',
     intent === 'off-topic' ? 'Do not answer the off-topic request.' : '',
     (rule.handoff && rule.handoff.tagOsman) ? 'The visitor asked for a person. Do not mention any internal tag.' : '',
   ].filter(Boolean).join('\n');
@@ -390,6 +392,7 @@ async function respondWithLlm(text, options = {}) {
     rawModelText: completion.content,
     llmSkipped: null,
     llmModel: completion.model || model,
+    llmProvider: completion.provider || options.provider || 'deepseek',
     repairs: enforced.repairs,
     usage: completion.usage,
     costUsd: completion.costUsd,

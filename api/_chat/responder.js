@@ -44,7 +44,7 @@ const SENSITIVE = [
 ];
 
 const PRICE_ASK = /\b(price|prices|pricing|cost|costs|how much|Combien|c'est combien| coute|co[uû]te|pre[cç]o|preco|quanto custa|cheapest|discount|offre|descuento|prayz|special offer|prix)\b/i;
-const AGENT_ASK = /\b(speak to (an? )?agent|talk to (a )?person|human|someone from (the|your) team|real person|call me|falar com uma pessoa|falar com algu[eé]m|parler (?:[àa] )?un(e)? (agent|personne|humain)|t[oɔ]k to wan p[oɔ]sin)\b/i;
+const AGENT_ASK = /\b(speak to (an? )?agent|(?:speak|talk) to (a )?person|person on (the|your) team|human|someone from (the|your) team|real person|call me|falar com uma pessoa|falar com algu[eé]m|parler (?:[àa] )?un(e)? (agent|personne|humain)|t[oɔ]k to wan p[oɔ]sin)\b/i;
 const HOURS_ASK = /\b(hours|opening hours|when are you open|are you open|horaires|heure[s]? d'ouverture|horario|horário|24\/7|reachable)\b/i;
 const BULK_ASK = /\b(bulk|wholesale|gros|en gros|volume|school|ecole|école|escola|office|bureau|empresa|company|deployment|50 |100 |twenty |cinquante |cento )\b/i;
 const OFFTOPIC_HINTS = /\b(weather|poem|po[eè]me|poema|election|politics|recipe|football|soccer|joke|horoscope|movie)\b/i;
@@ -396,9 +396,9 @@ function searchMaybeMulti(text, options) {
 function respond(text, session = {}) {
   const rawInput = String(text || '').trim();
   const input = resolveQuery(rawInput, session);
-  const lang = detectLanguage(rawInput) !== 'en'
-    ? detectLanguage(rawInput)
-    : (isFollowUp(rawInput) && session.lastLanguage) || detectLanguage(session.lastUser ? session.lastUser + ' ' + rawInput : rawInput);
+  const detectedLanguage = detectLanguage(rawInput);
+  const lang = detectedLanguage === 'en' && isFollowUp(rawInput) && session.lastLanguage
+    ? session.lastLanguage : detectedLanguage;
   const partQtys = productParts(input).length >= 2
     ? productParts(input).map(part => extractQuantity(part)).filter(value => value != null)
     : [];
@@ -455,6 +455,19 @@ function respond(text, session = {}) {
     return { text: `${line} ${offer(lang, wantsAgent)}`, language: lang, events: ['identified-assistant'], fields: {}, handoff: wantsAgent ? { tagOsman: true } : undefined };
   }
 
+  if (/\b(install(?:ation|ations|ing)?|installe[rz]?|installer|installations?|deployment|deploy|deploiement|instalacao|instalar)\b/i.test(foldedText(rawInput))) {
+    const line = {
+      en: 'LAVAALL supplies and installs equipment. Public coverage pages describe Sierra Leone, Guinea, and Guinea-Bissau. Delivery and installation depend on the location and must be confirmed by the team; I cannot promise scheduling.',
+      fr: "LAVAALL fournit et installe des équipements. Les pages publiques de couverture décrivent la Sierra Leone, la Guinée et la Guinée-Bissau. La livraison et l’installation dépendent du lieu et doivent être confirmées par l’équipe ; je ne peux pas promettre de date.",
+      pt: 'A LAVAALL fornece e instala equipamentos. As páginas públicas de cobertura descrevem Serra Leoa, Guiné e Guiné-Bissau. A entrega e a instalação dependem do local e devem ser confirmadas pela equipa; não posso prometer agendamento.',
+      kr: 'LAVAALL de supply ɛn install ɛkwipmɛnt. Di pɔblik coverage pej dɛn diskrayb Sierra Leone, Guinea ɛn Guinea-Bissau. Delivery ɛn installation dipɛnd pan di ples; di tim mɔs kɔnfam. A nɔ ebul prɔmis tɛm.',
+    }[lang];
+    return { text: `${line} ${offer(lang, wantsAgent)}`, language: lang,
+      events: ['installation-service', ...(wantsAgent ? ['tag-osman-handoff'] : [])],
+      fields: draftFields(rawInput, qty, [], 'installation-services', identity),
+      handoff: wantsAgent ? { tagOsman: true } : undefined };
+  }
+
   const catalogPreview = searchMaybeMulti(input, { limit: 8 });
   const productIntent = TECH_HINTS.test(input) || (catalogPreview.matches.length > 0 && (qty || priceAsk || /\b(iphone|laptop|server|router|dell|hp|cisco|macbook)\b/i.test(input)));
   if (wantsAgent && !productIntent && !priceAsk) {
@@ -465,7 +478,7 @@ function respond(text, session = {}) {
       pt: 'Pode falar com uma pessoa pelos nossos contactos WhatsApp ou e-mail.',
       kr: 'Yu kin tɔk to wan pɔsin na wi WhatsApp ɔ ɛmail.',
     }[lang];
-    return { text: `${line} ${contacts()}`, language: lang, events, fields: {}, handoff: { tagOsman: true } };
+    return { text: `${line} ${offer(lang, true)}`, language: lang, events, fields: {}, handoff: { tagOsman: true } };
   }
 
   if (hours && !priceAsk && !TECH_HINTS.test(input) && !TECH_HINTS.test(rawInput) && !searchMaybeMulti(String(input).replace(/24\s*\/\s*7/ig, " ").replace(/\b24\s+7\b/g, " ")).matches.length) {
