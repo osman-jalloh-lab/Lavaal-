@@ -109,7 +109,7 @@ function requiredSentences(rule) {
   const lines = [];
   if (intent === 'off-topic') lines.push(PHRASES.offTopic[lang]);
   if (intent === 'not-in-catalog') lines.push(PHRASES.notListed[lang]);
-  if (intent === 'in-catalog' || (rule.matchCount > 0)) lines.push(PHRASES.noConfirm[lang]);
+  if ((intent === 'in-catalog' || (rule.matchCount > 0)) && !(rule.events || []).includes('product-guide') && !(rule.events || []).includes('contact-info')) lines.push(PHRASES.noConfirm[lang]);
   if (/cannot give prices|ne peux pas indiquer de prix|não posso indicar preços|nɔ ebul gi prayz/i.test(rule.text || '')) {
     lines.push(PHRASES.noPrice[lang]);
   }
@@ -353,7 +353,9 @@ function shouldSkipModel(rule) {
   const events = rule.events || [];
   if (events.includes('refused-injection')) return 'refused-injection';
   if (events.some(event => String(event).startsWith('blocked-sensitive'))) return 'blocked-sensitive';
-  return null;
+  const canned = ['contact-info', 'product-guide', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'tag-osman-handoff'];
+  const hit = events.find(event => canned.includes(event));
+  return hit || null;
 }
 
 async function respondWithLlm(text, options = {}) {

@@ -112,10 +112,12 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   const starters = byClass(panel, 'customer-assistant-starters');
   const starterButtons = descendants(starters).filter(child=>child.tag === 'button');
   assert.deepEqual(starterButtons.map(child=>child.textContent), ['Phones & laptops', 'Starlink & internet', 'Installation', 'Request a quote', 'Talk to someone']);
-  assert.equal(byClass(panel, 'customer-assistant-fields').hidden, true);
-  assert.equal(panel.children.filter(child=>child.tag === 'form')[1].hidden, true);
-  assert.equal(panel.children.find(child=>child.tag === 'dl').hidden, true);
+  assert.equal(descendants(panel).some(child=>child.className === 'customer-assistant-fields' && !child.hidden), false);
+  assert.equal(panel.children.filter(child=>child.tag === 'dl').length, 0);
   const suggestions = byClass(panel, 'customer-assistant-suggestions');
+  input.value = 'do';
+  input.events.input();
+  assert.equal(suggestions.hidden, true, 'typeahead waits for 3+ characters');
   for (const query of ['phone', 'iphone']) {
     input.value = query;
     input.events.input();
@@ -123,7 +125,7 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
     assert.match(suggestions.textContent, /iPhone 16/);
     for (const intent of ['See options', 'Request a quote', 'Contact support']) assert.ok(suggestions.textContent.includes(intent));
     assert.equal(calls.length, 0, 'typeahead does not send a request');
-    assert.doesNotMatch(suggestions.textContent, /iPhone 17|iPhone 18/);
+    assert.doesNotMatch(suggestions.textContent, /iPhone 17|iPhone 18|Nintendo|transformer|DOL/i);
   }
   await input.events.keydown({key:'Escape', preventDefault(){}});
   assert.equal(suggestions.hidden, true);
@@ -141,13 +143,18 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   assert.match(status.textContent, /typing|thinking|loading/i);
   await composer.events.submit({preventDefault(){}});
   assert.equal(calls.length, 1, 'busy composer does not send another turn');
-  resolveTurn({text:'Here are catalogue options.'});
+  resolveTurn({text:'Here are catalogue options.', chips:['Request a quote', 'Talk to someone']});
   await pending;
   assert.equal(ask.disabled, false);
   assert.match(log.textContent, /Here are catalogue options/);
+  assert.equal(starters.children.length, 0, 'starter chips hide after the first message');
   const followups = byClass(panel, 'customer-assistant-followups');
   assert.ok(followups.children.length >= 2 && followups.children.length <= 3);
-  assert.equal(panel.children.find(child=>child.tag === 'dl').hidden, true);
+  const beforeHelp = calls.length;
+  input.value = 'Ask assistant';
+  await composer.events.submit({preventDefault(){}});
+  assert.equal(calls.length, beforeHelp, 'Ask assistant does not start a product search');
+  assert.match(log.textContent, /Sure, what can I help with/);
   const quotePending = starterButtons[3].events.click();
   resolveTurn({text:'I can help with a quote.'});
   await quotePending;
@@ -166,7 +173,7 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   await composer.events.submit({preventDefault(){}});
   assert.equal(calls.length, count, 'confirmation does not enable Preview inquiry delivery');
   assert.ok(calls.every(call=>call.action === 'turn'));
-  assert.equal(byClass(panel, 'customer-assistant-fields').hidden, true);
+  assert.doesNotMatch(log.textContent, /Inquiry type|Your budget|Skipped/);
   const handoffPending = starterButtons[4].events.click();
   assert.match(calls.at(-1).payload.text, /speak to a person/i);
   resolveTurn({text:'Thanks, someone from our team will reach out to you shortly.'});

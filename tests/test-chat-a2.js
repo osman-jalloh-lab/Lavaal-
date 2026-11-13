@@ -132,7 +132,12 @@ async function main() {
   assert.equal(browserSession.code, 200);
   const cookie = browserSession.headers['Set-Cookie'].split(';')[0];
   const visitor = browserSession.body;
-  const realTurn = await request(preview, 'turn', 'https://a2-branch.vercel.app', { ...visitor, eventId: 'real_turn', text: 'iPhone 16' }, 'POST', { cookie });
+  const guidedTurn = await request(preview, 'turn', 'https://a2-branch.vercel.app', { ...visitor, eventId: 'guided_turn', text: 'iPhone 16' }, 'POST', { cookie });
+  assert.equal(guidedTurn.code, 200);
+  assert.match(guidedTurn.body.text, /iPhone 16/);
+  assert.doesNotMatch(guidedTurn.body.text, /A catalogue listing is not a stock or price confirmation/);
+  assert.deepEqual(guidedTurn.body.debug, { model: null, provider: null, skipped: 'product-guide' });
+  const realTurn = await request(preview, 'turn', 'https://a2-branch.vercel.app', { ...visitor, eventId: 'real_turn', text: 'What laptops are listed in the Technology catalogue?' }, 'POST', { cookie });
   assert.equal(realTurn.code, 200);
   assert.equal(typeof realTurn.body.text, 'string');
   assert.deepEqual(realTurn.body.debug, { model: 'deepseek-flash', provider: 'deepseek', skipped: null });
@@ -148,7 +153,7 @@ async function main() {
     assert.equal(Object.hasOwn(productionTurn.body, 'debug'), false);
   }
   await previewOptions.store.transaction(records => records.set('cost:' + new Date().toISOString().slice(0, 7), { n: 2500, exp: Date.now() + 60000 }));
-  const capReply = await request(preview, 'turn', 'https://a2-branch.vercel.app', { ...visitor, eventId: 'http_cap', text: 'iPhone 16' }, 'POST', { cookie });
+  const capReply = await request(preview, 'turn', 'https://a2-branch.vercel.app', { ...visitor, eventId: 'http_cap', text: 'What laptops are listed in the Technology catalogue?' }, 'POST', { cookie });
   assert.equal(capReply.code, 429);
   assert.equal(capReply.body.error, 'cost_cap');
   assert.equal((await request(preview, 'confirm', 'https://a2-preview.vercel.app')).body.error, 'delivery_disabled');

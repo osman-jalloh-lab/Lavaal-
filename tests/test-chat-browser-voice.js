@@ -76,8 +76,8 @@ function harness(options = {}) {
     mic: child('customer-assistant-mic'), speaker: child('customer-assistant-speaker'),
     hint: child('customer-assistant-voice-hint'), status: child('customer-assistant-voice-status'),
     input: composer && composer.children[0].children[1],
-    send: panel && panel.children.filter(node => node.tag === 'button')[1],
-    review: panel && panel.children.filter(node => node.tag === 'form')[1],
+    send: null,
+    review: null,
     languages: panel && panel.children.find(node => node.tag === 'label').children[0],
     counts: () => ({ starts, aborts, cancels })
   };
@@ -140,7 +140,7 @@ const submit = { preventDefault() {} };
     assert.equal(item.api.browserVoiceEnabled(item.config, location), false);
     assert.equal(item.recognition.length, 0);
   }
-  assert.equal(h.panel.children.filter(node => node.tag === 'button').length, 2);
+  assert.equal(h.panel.children.filter(node => node.tag === 'button').length, 0);
   assert.equal(h.input.tag, 'textarea');
   assert.equal(h.input.maxLength, 2000);
   assert.equal(h.mic.type, 'button');
@@ -150,7 +150,7 @@ const submit = { preventDefault() {} };
   assert.ok(h.speaker.getAttribute('aria-label') || h.speaker.textContent);
   assert.match(h.hint.textContent, /Google/);
   assert.match(h.hint.textContent, /browser|vendor/i);
-  assert.equal(h.send.disabled, true);
+  assert.equal(h.panel.children.filter(node => node.tag === 'form').length, 1);
   h.input.value = 'TEST ONLY typed';
   await h.mic.events.click();
   assert.equal(h.recognition.length, 1);
@@ -160,9 +160,6 @@ const submit = { preventDefault() {} };
   assert.equal(h.input.value, 'TEST ONLY typed');
   result(h.recognition[0], 'TEST ONLY dictated');
   assert.equal(h.input.value, 'TEST ONLY typed TEST ONLY dictated');
-  assert.equal(h.calls.length, 0);
-  assert.equal(h.send.disabled, true);
-  await h.send.events.click();
   assert.equal(h.calls.length, 0);
   h.recognition[0].onend();
   await h.mic.events.click();
@@ -175,17 +172,8 @@ const submit = { preventDefault() {} };
   assert.equal(h.calls.length, 1);
   assert.equal(h.calls[0].action, 'turn');
   assert.equal(h.spoken.length, 0);
-  assert.equal(h.send.disabled, true);
-  await h.review.events.submit(submit);
-  assert.equal(h.send.disabled, false);
-  await h.mic.events.click();
-  const latest = h.recognition[h.recognition.length - 1];
-  // A fresh dictation after review must invalidate consent without sending.
-  result(latest, 'TEST ONLY changed draft');
-  assert.equal(h.send.disabled, true);
-  assert.deepEqual(h.calls.map(call => call.action), ['turn', 'review']);
-  await h.send.events.click();
-  assert.deepEqual(h.calls.map(call => call.action), ['turn', 'review']);
+  assert.deepEqual(h.calls.map(call => call.action), ['turn']);
+  assert.equal(h.panel.children.filter(node => node.tag === 'form').length, 1);
 
   for (const failure of [{ recognition: false }, { startFails: true }, { error: 'not-allowed' }, { error: 'service-not-allowed' }]) {
     const item = harness(failure);
@@ -205,7 +193,6 @@ const submit = { preventDefault() {} };
     assert.equal(item.calls.length, 1);
     assert.equal(item.calls[0].action, 'turn');
     assert.equal(item.calls[0].payload.text, 'TEST ONLY fallback text');
-    assert.equal(item.send.disabled, true);
   }
 
   for (const [language, locale] of [['en', 'en-US'], ['fr', 'fr-FR'], ['pt', 'pt-PT']]) {

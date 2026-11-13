@@ -311,6 +311,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       response = { costUsd: error.costUsd, text: "I couldn't complete that reply. We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182." };
     }
     const result = { text: response.text };
+    if (Array.isArray(response.chips) && response.chips.length) result.chips = response.chips.slice(0, 6);
     if (previewDebug && process.env.VERCEL_ENV !== 'production') result.debug = {
       model: ['deepseek-flash', 'openai/gpt-4o-mini'].includes(response.llmModel) ? response.llmModel : null,
       provider: ['deepseek', 'gateway'].includes(response.llmProvider) ? response.llmProvider : null,
@@ -327,10 +328,19 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       }
       event.result = result;
       const session = records.get('s:' + id);
-      if (session && !reservation.skip) session.context = {
-        lastUser: text, lastLanguage: response.language, lastQty: response.fields?.quantity,
-        history: [{ role: 'user', text }, { role: 'assistant', text: result.text }],
-      };
+      if (session) {
+        const model = response.lastModel && { name: response.lastModel.name, options: response.lastModel.options || [], family: response.lastModel.family, id: response.lastModel.id };
+        session.context = {
+          lastUser: text,
+          lastLanguage: response.language,
+          lastQty: response.fields && response.fields.quantity,
+          lastProducts: Array.isArray(response.lastProducts) ? response.lastProducts : (session.context && session.context.lastProducts) || [],
+          lastFamily: response.lastFamily || (session.context && session.context.lastFamily) || null,
+          lastModel: model || (response.awaiting === null ? null : (session.context && session.context.lastModel) || null),
+          awaiting: response.awaiting || null,
+          history: [{ role: 'user', text }, { role: 'assistant', text: result.text }],
+        };
+      }
       return result;
     });
   }

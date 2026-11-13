@@ -1,6 +1,7 @@
 'use strict';
 
 const { loadCatalog, searchCatalog, normalize } = require('./catalog');
+const { guidedReply } = require('./conversation');
 
 const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
 const EMAIL = 'support@lavaall.com';
@@ -440,6 +441,12 @@ function respond(text, session = {}) {
     return { text: `${line} ${contacts()}`, language: lang, events: ['blocked-sensitive:' + sensitive], fields: {} };
   }
 
+  const guided = guidedReply(rawInput, session, lang, { priceAsk, wantsAgent });
+  if (guided) {
+    guided.language = lang;
+    return guided;
+  }
+
   if (OFFTOPIC_HINTS.test(input) && !TECH_HINTS.test(input) && !wantsAgent && !hours) {
     const line = {
       en: "I'm here to help with LAVAALL Technology — hardware, installation, or a request for the team — not with that topic.",
@@ -473,12 +480,12 @@ function respond(text, session = {}) {
   if (wantsAgent && !productIntent && !priceAsk) {
     events.push('tag-osman-handoff');
     const line = {
-      en: 'You can speak to a person using our WhatsApp or email contacts.',
-      fr: "Vous pouvez parler à une personne via nos contacts WhatsApp ou e-mail.",
-      pt: 'Pode falar com uma pessoa pelos nossos contactos WhatsApp ou e-mail.',
-      kr: 'Yu kin tɔk to wan pɔsin na wi WhatsApp ɔ ɛmail.',
+      en: 'Thanks, someone from our team will reach out to you shortly. What is the best WhatsApp number or email to reach you?',
+      fr: "Merci, quelqu'un de l'équipe vous recontactera sous peu. Quel est le meilleur WhatsApp ou e-mail pour vous joindre ?",
+      pt: 'Obrigado, alguém da equipa entrará em contacto consigo em breve. Qual é o melhor WhatsApp ou e-mail para o contactarmos?',
+      kr: 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn. Wetin na di bɛst WhatsApp ɔ ɛmail fɔ rich yu?',
     }[lang];
-    return { text: `${line} ${offer(lang, true)}`, language: lang, events, fields: {}, handoff: { tagOsman: true } };
+    return { text: line, language: lang, events, fields: {}, chips: [], handoff: { tagOsman: true } };
   }
 
   if (hours && !priceAsk && !TECH_HINTS.test(input) && !TECH_HINTS.test(rawInput) && !searchMaybeMulti(String(input).replace(/24\s*\/\s*7/ig, " ").replace(/\b24\s+7\b/g, " ")).matches.length) {

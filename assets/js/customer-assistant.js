@@ -240,7 +240,7 @@
     followups.className = 'customer-assistant-followups';
     panel.appendChild(followups);
     panel.appendChild(composer);
-    var intake = null, intakeDraft = {};
+    var intake = null, intakeDraft = {}, started = false, lastChips = null;
     var starterMessages = [
       'What phones and laptops are in the Technology catalogue?',
       'Tell me about Starlink and internet options.',
@@ -249,6 +249,14 @@
       'I want to speak to a person on your team, please.'
     ];
     var nextMessages = ['Show me other models.', starterMessages[3], starterMessages[4]];
+    function nameMatchesQuery(name, query) {
+      var lower = String(name).toLowerCase();
+      if (lower.indexOf(query) === -1) return false;
+      var tokens = lower.split(/[^a-z0-9]+/).filter(Boolean);
+      return tokens.some(function (token) {
+        return token === query || token.indexOf(query) === 0 || (query.length >= 3 && token.indexOf(query) !== -1);
+      });
+    }
     function hideSuggestions() {
       suggestions.hidden = true;
       composerInput.setAttribute('aria-expanded', 'false');
@@ -256,7 +264,7 @@
     function renderSuggestions() {
       suggestions.textContent = '';
       var query = composerInput.value.trim().toLowerCase();
-      if (!query || busy || intake) { hideSuggestions(); return; }
+      if (!query || query.length < 3 || busy || intake) { hideSuggestions(); return; }
       // CATALOG is a top-level lexical binding on the homepage, not necessarily window.CATALOG.
       var catalog = typeof CATALOG !== 'undefined' ? CATALOG : (config.catalog || root.CATALOG || []);
       var matches = [], seen = {};
@@ -267,7 +275,7 @@
           var name = typeof item.name === 'string' ? item.name : '';
           var haystack = (context + ' ' + name).toLowerCase();
           if (!item.brands && !item.families && !item.models && name &&
-              name.toLowerCase().indexOf(query) !== -1 && !seen[name]) {
+              nameMatchesQuery(name, query) && !seen[name]) {
             seen[name] = true;
             matches.push(name);
           }
@@ -318,10 +326,14 @@
         });
         return;
       }
-      ['See other models', 'Request a quote', 'Talk to someone'].forEach(function (label, index) {
+      var labels = (lastChips && lastChips.length) ? lastChips.slice(0, 5) : ['See other models', 'Request a quote', 'Talk to someone'];
+      labels.forEach(function (label) {
         var button = createElement('button', label);
         button.type = 'button';
-        button.addEventListener('click', function () { return sendTextTurn(nextMessages[index]); });
+        button.addEventListener('click', function () {
+          var canned = { 'See other models': nextMessages[0], 'Request a quote': nextMessages[1], 'Talk to someone': nextMessages[2] };
+          return sendTextTurn(canned[label] || label);
+        });
         followups.appendChild(button);
       });
     }
@@ -484,13 +496,13 @@
     edit.type = 'button';
     send.disabled = true;
     form.appendChild(review);
-    panel.appendChild(form);
+    form.hidden = true;
+    corrections.hidden = true;
     var details = createElement('dl');
     details.hidden = true;
-    panel.appendChild(details);
     var summaryPrivacy = createElement('a','Privacy notice'); summaryPrivacy.href = '/privacy.html'; panel.appendChild(summaryPrivacy);
-    panel.appendChild(edit);
-    panel.appendChild(send);
+    edit.hidden = true;
+    send.hidden = true;
     panel.appendChild(status);
     var reachability = createElement('p', "We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182");
     reachability.className = 'customer-assistant-reachability';
@@ -519,15 +531,17 @@
       send.textContent = c.send;
       edit.textContent = c.edit;
       questions.textContent = '';
-      c.questions.forEach(function (q, index) {
-        var item = createElement('li'), suggestion = createElement('button', q);
-        suggestion.type = 'button';
-        suggestion.addEventListener('click', function () {
-          return sendTextTurn(starterMessages[index]);
+      if (!started) {
+        c.questions.forEach(function (q, index) {
+          var item = createElement('li'), suggestion = createElement('button', q);
+          suggestion.type = 'button';
+          suggestion.addEventListener('click', function () {
+            return sendTextTurn(starterMessages[index]);
+          });
+          item.appendChild(suggestion);
+          questions.appendChild(item);
         });
-        item.appendChild(suggestion);
-        questions.appendChild(item);
-      });
+      }
     }
     function invalidateReview() {
       generation++;
@@ -550,7 +564,14 @@
       invalidateReview();
       status.textContent = '';
       hideSuggestions();
-      questions.hidden = true;
+      started = true;
+      questions.textContent = '';
+      if (/^(ask assistant|demander à l['’]assistant|perguntar ao assistente)$/i.test(text)) {
+        log.appendChild(createElement('p', 'Sure, what can I help with?'));
+        composerInput.value = '';
+        composerInput.focus();
+        return;
+      }
       if (intake) {
         var visitorBubble = createElement('p', text);
         visitorBubble.className = 'customer-assistant-user';
@@ -580,7 +601,7 @@
         }
         return;
       }
-      var wantsIntake = /quote|quotation|speak.*(?:person|team)|talk.*(?:someone|person)|contact support|human/i.test(text);
+      var wantsIntake = /\b(request a quote|start a quote|i want to request a quote|speak to a person|talk to someone|i want to speak to a person)\b/i.test(text);
       var current = generation;
       busy = true;
       renderVoice();
@@ -600,29 +621,18 @@
         var replyText = result && typeof result.text === 'string' ? result.text.slice(0, 4000) : copy[lang].answer;
         // Standing contacts belong in the footer. Preserve the exact handoff policy line.
         replyText = replyText
-          .replace(/We're reachable 24\/7 on WhatsApp and email: support@lavaall\.com or WhatsApp \+1 \(737\) 704-4182\.?/g, '')
           .replace(/Would you like to speak to a person, or send an email request\? Your name and a valid phone number are enough; other fields are optional\. Nothing is sent until you review the summary and click Send\./g, '')
+          .replace(/A catalogue listing is not a stock or price confirmation\./g, '')
+          .replace(/[ \t]{2,}/g, ' ')
           .trim();
-        if (/^I do not see that exact item in the public Technology catalogue/.test(replyText)) {
-          var handoffLine = replyText.indexOf('Thanks, someone from our team will reach out to you shortly.') !== -1;
-          replyText = 'I do not see that exact item in the public Technology catalogue. The team can help with a sourcing request.';
-          if (handoffLine) replyText += ' Thanks, someone from our team will reach out to you shortly.';
-        }
+        if (!replyText) replyText = 'You can reach us at support@lavaall.com or WhatsApp +1 (737) 704-4182. How can I help?';
         log.appendChild(createElement('p', replyText));
+        lastChips = Array.isArray(result.chips) ? result.chips : null;
         renderFollowups();
         if (wantsIntake) {
           intake = 'name';
           intakeReply('What is your name?');
         }
-        if (result && result.fields !== undefined) {
-          var updates = validatePartialDraft(result.fields);
-          Object.keys(updates).forEach(function (key) { inputs[key].value = updates[key]; });
-        }
-        summary(currentFields(), lang).forEach(function (row) {
-          details.appendChild(createElement('dt', labels[lang][fields.indexOf(row.field)]));
-          details.appendChild(createElement('dd', row.value));
-        });
-        details.hidden = true;
         status.textContent = '';
         composerInput.value = '';
         composerInput.focus();
