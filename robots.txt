@@ -1,0 +1,6 @@
+# Crawl guidance only — not access control.
+User-agent: *
+Allow: /
+Disallow: /ops
+Disallow: /api
+Sitemap: https://www.lavaall.com/sitemap.xml
