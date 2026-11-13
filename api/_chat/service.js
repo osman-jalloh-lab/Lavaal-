@@ -74,9 +74,13 @@ function digestKey(draftId) {
   return hash('submission:' + draftId);
 }
 
-function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false }) {
+function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false, previewLimits = false }) {
   if (!store || typeof store.transaction !== 'function'
       || typeof salt !== 'string' || salt.length < 8 || salt.length > 256) fail('unconfigured');
+
+  const hourMax = previewLimits ? 20 : 3;
+  const dayMax = previewLimits ? 30 : 6;
+  const turnMax = previewLimits ? 20 : 10;
 
   function transaction(operation) {
     return store.transaction(records => {
@@ -118,8 +122,8 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       const ipHash = crypto.createHmac('sha256', salt).update(ip).digest('hex');
       const hour = Math.floor(time / HOUR);
       const day = Math.floor(time / DAY);
-      increment(records, 'h:' + ipHash + hour, 3, (hour + 1) * HOUR);
-      increment(records, 'd:' + ipHash + day, 6, (day + 1) * DAY);
+      increment(records, 'h:' + ipHash + hour, hourMax, (hour + 1) * HOUR);
+      increment(records, 'd:' + ipHash + day, dayMax, (day + 1) * DAY);
       const id = token();
       const proof = token();
       const csrf = token();
@@ -246,7 +250,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       const session = browserSession(records, id, proof, csrf, time);
       const eventKey = 'turn:' + id + ':' + eventId;
       if (records.has(eventKey)) return records.get(eventKey).result;
-      if (session.turns >= 10) fail('quota');
+      if (session.turns >= turnMax) fail('quota');
       const bill = verifiedBill(time);
       const monthKey = 'cost:' + bill.month;
       const date = new Date(time);
@@ -286,7 +290,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
         if (!previous.result) fail('turn_pending');
         return { result: previous.result };
       }
-      if (session.turns >= 10) fail('quota');
+      if (session.turns >= turnMax) fail('quota');
       const context = session.context || {};
       const rule = respond(text, context);
       const skip = shouldSkipModel(rule);

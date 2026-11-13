@@ -12,7 +12,7 @@
       edit: 'Edit inquiry',
       unknown: 'Delivery is uncertain. Do not send again; contact the team.',
       accepted: 'Your request was accepted. Someone from the team will reach out.',
-      disabled: 'Submission unavailable. Contact the team.',
+      disabled: 'I could not complete that just now. Email support@lavaall.com or WhatsApp +1 (737) 704-4182.',
       answer: 'Local test response: the team can confirm your Technology request. I cannot access internal systems or confirm stock, dates or pricing.',
       language: 'Language',
       notice: 'Language switching is unverified until tested in vendor Preview. Krio text is best-effort.',
@@ -26,7 +26,7 @@
       edit: 'Modifier la demande',
       unknown: 'La livraison est incertaine. Ne renvoyez pas la demande ; contactez l’équipe.',
       accepted: 'Votre demande a été acceptée. Un membre de l’équipe vous contactera.',
-      disabled: 'Envoi indisponible. Contactez l’équipe.',
+      disabled: 'Je n’ai pas pu terminer cette réponse. Écrivez à support@lavaall.com ou WhatsApp +1 (737) 704-4182.',
       answer: 'Réponse de test locale : l’équipe peut vérifier votre demande Technology. Aucun accès aux systèmes internes ; aucun engagement sur les stocks, dates ou tarifs.',
       language: 'Langue',
       notice: 'Le changement de langue reste à vérifier en Preview du fournisseur. Le krio écrit est proposé au mieux.',
@@ -40,7 +40,7 @@
       edit: 'Editar pedido',
       unknown: 'A entrega é incerta. Não envie novamente; contacte a equipa.',
       accepted: 'O seu pedido foi aceite. Alguém da equipa entrará em contacto.',
-      disabled: 'Envio indisponível. Contacte a equipa.',
+      disabled: 'Não consegui concluir essa resposta. Email support@lavaall.com ou WhatsApp +1 (737) 704-4182.',
       answer: 'Resposta de teste local: a equipa pode verificar o seu pedido Technology. Sem acesso a sistemas internos nem confirmação de stock, datas ou preços.',
       language: 'Idioma',
       notice: 'A mudança de idioma aguarda testes no Preview do fornecedor. Texto em krio é uma tentativa sem garantia.',
@@ -638,8 +638,12 @@
         composerInput.focus();
         speakReply(replyText);
       }
-      catch (_) {
-        status.textContent = copy[lang].disabled;
+      catch (error) {
+        var unavailable = (error && (error.code === 'quota' || error.code === 'cost_cap'))
+          ? 'This chat is temporarily busy. Please try again shortly, or email support@lavaall.com or WhatsApp +1 (737) 704-4182.'
+          : (copy[lang] && copy[lang].disabled) || 'I could not complete that just now. Email support@lavaall.com or WhatsApp +1 (737) 704-4182.';
+        log.appendChild(createElement('p', unavailable));
+        status.textContent = unavailable;
         renderFollowups();
       }
       finally {
@@ -766,13 +770,23 @@
         method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
         body:JSON.stringify(body)
       });
-      var result = await response.json();
-      if (!response.ok) throw new Error('chat_unavailable');
+      var result = {};
+      try { result = await response.json(); } catch (_) { result = {}; }
+      if (!response.ok) {
+        var failure = new Error((result && result.error) || 'chat_unavailable');
+        failure.code = result && result.error;
+        throw failure;
+      }
       return result;
     }
     return async function (action, payload) {
       if (action !== 'turn') throw new Error('text_only');
-      if (!sessionPromise) sessionPromise = post('session', {});
+      if (!sessionPromise) {
+        sessionPromise = post('session', {}).catch(function (error) {
+          sessionPromise = null;
+          throw error;
+        });
+      }
       var session = await sessionPromise;
       if (!session || typeof session.sessionId !== 'string' || typeof session.csrf !== 'string') throw new Error('session_unavailable');
       if (!browserCrypto || typeof browserCrypto.getRandomValues !== 'function') throw new Error('random_unavailable');

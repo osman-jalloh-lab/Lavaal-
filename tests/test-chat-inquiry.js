@@ -45,6 +45,13 @@ async function main(){
  check('atomic shared hourly IP cap across instances',()=>assert.equal(many.filter(x=>x.status==='fulfilled').length,3));
  clock+=3600001;for(let i=0;i<3;i++)await instances[i%2].start('TEST ONLY shared');clock+=3600001;
  await rejects('daily IP ceiling six',()=>instances[0].start('TEST ONLY shared'),'quota');
+ o=options();o.previewLimits=true;const previewStarts=createService(o);
+ for(let i=0;i<7;i++)await previewStarts.start('TEST ONLY preview quota');
+ check('preview allows more than six sessions per day',()=>assert.ok(true));
+ const previewTurns=createService({...options(),previewLimits:true,chat:async()=>({text:'TEST ONLY reply',costUsd:0})});
+ a=await previewTurns.start('TEST ONLY preview turns');
+ for(let i=0;i<11;i++)await previewTurns.turn(a.sessionId,a.proof,'pturn'+i,undefined,a.csrf,'Tell me about iPhone 16');
+ check('preview allows more than ten turns',()=>assert.ok(true));
  s=createService(options());a=await s.start('TEST ONLY turns');
  for(let i=0;i<10;i++)await s.turn(a.sessionId,a.proof,'turn'+i,1,a.csrf);
  assert.equal((await s.turn(a.sessionId,a.proof,'turn0',1,a.csrf)).allowed,true);

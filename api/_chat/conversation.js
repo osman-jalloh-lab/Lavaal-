@@ -6,6 +6,7 @@ const WHATSAPP = '+1 (737) 704-4182';
 
 const CONTACT_ASK = /\b(how (?:can|do) i contact|contact (?:this |a |the )?(?:person|someone|you|the team|support)|how (?:can|do) i reach|reach (?:you|the team|a person|someone)|your (?:email|whatsapp|contact)|whatsapp number|support@lavaall)\b/i;
 const HAVE_ASK = /\b(do you (?:have|carry|sell|stock)|have you got|is there (?:an? |any )?|are there |in (?:the|your) catalogu?e)\b/i;
+const WANT_ASK = /\b(?:i\s+)?(?:want|need|would like|wanna|looking for|looking to buy|need to (?:get|buy)|want to (?:get|buy|order))|i['’]d like|get me\b/i;
 const HELP_ASK = /^(ask assistant|demander à l['’]assistant|perguntar ao assistente|help|hello|hi|hey)\s*[?.!]*$/i;
 const PRICE_ASK = /\b(price|prices|pricing|cost|costs|how much|Combien|c'est combien|coute|co[uû]te|pre[cç]o|preco|quanto custa|cheapest|discount|offre|prayz|prix)\b/i;
 const DELIVERY_ASK = /\b(deliver(?:y|ies)?|ship(?:ping)?|livr(?:er|aison)|entrega|sierra leone|guinea[- ]bissau|liberia|\bSL\b|\bGN\b|\bLR\b|\bGW\b)\b/i;
@@ -42,7 +43,7 @@ function listWords(items) {
 }
 
 function familySearch(query) {
-  const result = searchCatalog(query, { limit: 8 });
+  const result = searchCatalog(query, { limit: 24 });
   return (result.all && result.all.length ? result.all : result.matches) || [];
 }
 
@@ -102,6 +103,37 @@ function result(text, events, extra) {
   }, extra);
 }
 
+
+function productQuery(text) {
+  return String(text || '')
+    .replace(/^(do you (?:have|carry|sell|stock)|have you got|is there (?:an? |any )?|are there |(?:i\s+)?(?:want|need|would like|wanna|looking for|looking to buy|need to (?:get|buy)|want to (?:get|buy|order))|i['’]d like|get me)\s+/i, '')
+    .replace(/^(an?|the|some)\s+/i, '')
+    .replace(/\?+$/, '')
+    .replace(/\s+in (?:the|your) (?:technology )?catalogu?e\??$/i, '')
+    .trim();
+}
+
+function familyName(query) {
+  const match = String(query || '').trim().match(/^(?:apple\s+)?(iphone|ipad|macbook|galaxy)s?$/i);
+  return match ? match[1] : null;
+}
+
+function shortVariant(name, family) {
+  return String(name || '').replace(new RegExp('^(?:apple\\s+)?' + family + '\\s+', 'i'), '').trim() || name;
+}
+
+function sortVariants(labels) {
+  const rank = { '': 0, mini: 1, plus: 2, air: 3, pro: 4, 'pro max': 5 };
+  return labels.slice().sort((left, right) => {
+    const a = Number((String(left).match(/(\d+)/) || [])[1] || 0);
+    const b = Number((String(right).match(/(\d+)/) || [])[1] || 0);
+    if (a !== b) return b - a;
+    const va = String(left).replace(/^\d+\s*/i, '').toLowerCase();
+    const vb = String(right).replace(/^\d+\s*/i, '').toLowerCase();
+    return (Object.hasOwn(rank, va) ? rank[va] : 9) - (Object.hasOwn(rank, vb) ? rank[vb] : 9);
+  });
+}
+
 function productsForQuery(query, products) {
   const asked = String(query || '').trim();
   const iphone = asked.match(/iphone\s+(1[0-9])/i);
@@ -113,12 +145,21 @@ function productsForQuery(query, products) {
 }
 
 function availabilityReply(query, products) {
-  products = productsForQuery(query, products);
+  const label = productQuery(query) || uniqueNames(products)[0];
+  products = productsForQuery(label, products);
   const names = uniqueNames(products);
-  const label = query.replace(/^(do you (?:have|carry|sell|stock)|have you got|is there (?:an? |any )?|are there )\s+/i, '')
-    .replace(/\?+$/, '')
-    .replace(/\s+in (?:the|your) (?:technology )?catalogu?e\??$/i, '')
-    .trim() || names[0];
+  const family = familyName(label);
+  if (family && names.length) {
+    const variants = sortVariants(names.map(name => shortVariant(name, family)));
+    const shown = variants.slice(0, 8);
+    const list = shown.join(', ') + (variants.length > shown.length ? '...' : '');
+    const plural = family.toLowerCase() === 'iphone' ? 'iPhones' : family + 's';
+    return result(
+      'Yes, we have ' + plural + ' in our catalogue: ' + list + '. Which model are you looking for?',
+      ['product-guide'],
+      { chips: names.slice(0, 5), awaiting: 'model', lastFamily: names[0], lastProducts: products, matchCount: products.length }
+    );
+  }
   if (!names.length) {
     const closest = uniqueNames(closestFamily(label)).slice(0, 4);
     const extra = closest.length
@@ -222,11 +263,11 @@ function guidedReply(rawInput, session, lang, flags) {
     }
   }
 
-  if (HAVE_ASK.test(text) || /^\s*(?:the )?((?:apple )?iphone(?:\s+1[1-6])?(?:\s+(?:pro max|pro|plus|max|mini))?)\s*\??\s*$/i.test(text)) {
-    const query = text.replace(/^(do you (?:have|carry|sell|stock)|have you got|is there (?:an? |any )?|are there )\s+/i, '')
-      .replace(/\?+$/, '')
-      .replace(/\s+in (?:the|your) (?:technology )?catalogu?e\??$/i, '')
-      .trim();
+  const skipWant = /\b(speak to|talk to|request a quote|start a quote)\b/i.test(text);
+  const wantQuery = productQuery(text);
+  const wantProduct = !skipWant && WANT_ASK.test(text) && wantQuery.length > 0 && wantQuery.length <= 48 && !/\b(what models|listed in|how many)\b/i.test(text);
+  if (HAVE_ASK.test(text) || wantProduct || /^\s*(?:the )?((?:apple )?iphone(?:\s+1[1-6])?(?:\s+(?:pro max|pro|plus|max|mini))?)\s*\??\s*$/i.test(text)) {
+    const query = wantQuery;
     if (query && !/\bstarlink\b/i.test(query)) {
       return availabilityReply(query, familySearch(query));
     }

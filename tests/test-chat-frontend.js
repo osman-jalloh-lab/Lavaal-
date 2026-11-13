@@ -179,6 +179,23 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   resolveTurn({text:'Thanks, someone from our team will reach out to you shortly.'});
   await handoffPending;
   assert.match(log.textContent, /Thanks, someone from our team will reach out to you shortly\./);
+  const failDoc = {createElement:tag=>new Element(tag), body:new Element('body')};
+  const failPanel = ui.mount(failDoc, local, {
+    ...enabled,
+    transport: async()=>{ const error = new Error('quota'); error.code = 'quota'; throw error; }
+  });
+  const failLog = byClass(failPanel, 'customer-assistant-log');
+  const failComposer = byClass(failPanel, 'customer-assistant-composer');
+  const failInput = descendants(failComposer).find(child=>child.tag === 'textarea');
+  failInput.value = 'I want an iPhone';
+  await failComposer.events.submit({preventDefault(){}});
+  assert.match(failLog.textContent, /I want an iPhone/);
+  assert.match(failLog.textContent, /support@lavaall\.com/);
+  assert.match(failLog.textContent, /\+1 \(737\) 704-4182/);
+  assert.doesNotMatch(failLog.textContent, /Submission unavailable/);
+  const failStatus = byClass(failPanel, 'customer-assistant-status');
+  assert.doesNotMatch(failStatus.textContent, /Submission unavailable/);
+
   const css = fs.readFileSync(require.resolve('../assets/css/customer-assistant.css'),'utf8');
   assert.match(css, /min-height: 44px/);
   assert.match(css, /:focus-visible/);

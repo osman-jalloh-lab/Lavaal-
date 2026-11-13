@@ -41,6 +41,16 @@ assert.match(missing.text, /I don't see the iPhone 17 in our catalogue/);
 assert.match(missing.text, /closest/i);
 assert.doesNotMatch(missing.text, /iPhone 17 Pro/);
 
+
+const want = respond('I want an iPhone');
+assert.equal(shouldSkipModel(want), 'product-guide');
+assert.match(want.text, /Yes, we have iPhones in our catalogue:/);
+assert.match(want.text, /15/);
+assert.match(want.text, /16/);
+assert.match(want.text, /Which model are you looking for\?/);
+assert.doesNotMatch(want.text, /A catalogue listing is not a stock or price confirmation|epson|printer/i);
+assert.ok((want.chips || []).length >= 3);
+
 const help = respond('Ask assistant');
 assert.equal(help.text, 'Sure, what can I help with?');
 
