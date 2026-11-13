@@ -38,6 +38,29 @@ function run() {
     gmailComposeHref('sales@lavaall.com', 'Quote', 'Hello').startsWith('https://mail.google.com/mail/?view=cm&fs=1&to=sales%40lavaall.com'));
 
   const index = read('index.html');
+  const organization = JSON.parse(index.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  const contact = organization.contactPoint.find(point => point.contactType === 'customer support');
+  check('Organization publishes the US support telephone and email',
+    contact.telephone === '+1-737-704-4182' && contact.email === 'support@lavaall.com');
+  check('support card and footer show the clickable US number',
+    (index.match(/href="tel:\+17377044182">\+1 \(737\) 704-4182<\/a>/g) || []).length === 2);
+  const whatsapp = index.match(/<a[^>]+data-i18n-aria="cs.aria.whatsapp"[^>]*>[\s\S]*?<\/a>/);
+  check('WhatsApp is an accessible external link without Coming Soon behavior',
+    whatsapp && whatsapp[0].includes('href="https://wa.me/17377044182"')
+    && whatsapp[0].includes('target="_blank" rel="noopener noreferrer"')
+    && whatsapp[0].includes('aria-label="WhatsApp +1 (737) 704-4182"')
+    && !/coming-soon|cs-badge|onclick|Coming Soon/i.test(whatsapp[0]));
+  check('all three WhatsApp translations publish the public number',
+    (index.match(/'cs.aria.whatsapp':'WhatsApp \+1 \(737\) 704-4182'/g) || []).length === 3);
+  check('robots contains only the approved directives', read('robots.txt') ===
+    'User-agent: *\nAllow: /\nDisallow: /ops\nDisallow: /api\nSitemap: https://www.lavaall.com/sitemap.xml\n');
+  const sitemap = read('sitemap.xml');
+  const expectedPaths = ['', 'web/', 'privacy.html', 'terms.html', 'web/work/',
+    'web/showcase/pour-play/', 'web/showcase/salone-artists/', 'web/showcase/terra/', 'web/showcase/triple-t/'];
+  const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
+  check('sitemap declares sitemap 0.9 and exactly the approved public URLs',
+    sitemap.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+    && JSON.stringify(locations) === JSON.stringify(expectedPaths.map(p => 'https://www.lavaall.com/' + p)));
   const catalog = read('assets/js/catalog.js');
   const privacy = read('privacy.html');
   const terms = read('terms.html');
