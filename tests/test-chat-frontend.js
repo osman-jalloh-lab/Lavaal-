@@ -49,7 +49,7 @@ assert.equal(ui.eligible({
   ...enabled, CHAT_VOICE_ENABLED:true, CHAT_ENABLED:false
 }, local), false);
 for (const language of ['en','fr','pt']) {
-  assert.equal(ui.copy[language].questions.length, 10);
+  assert.equal(ui.copy[language].questions.length, 5);
   assert.match(ui.copy[language].first, /AI|IA/);
   assert.doesNotMatch(JSON.stringify(ui.copy[language]), /\$|free|shortly|24 hours|200\+|500\+/i);
 }
@@ -78,139 +78,131 @@ vm.runInNewContext(fs.readFileSync(require.resolve('../assets/js/customer-assist
 assert.equal(touches, 0);
 class Element {
   constructor(tag) {
-    this.tag = tag;
-    this.children = [];
-    this.events = {};
-    this.value = '';
-    this.disabled = false;
+    this.tag = tag; this.children = []; this.events = {}; this.value = '';
+    this.disabled = false; this.hidden = false; this.style = {};
+    this.classList = {add: (...names)=>{this.className = [...new Set((this.className || '').split(' ').concat(names))].join(' ');}, remove: (...names)=>{this.className = (this.className || '').split(' ').filter(name=>!names.includes(name)).join(' ');}, contains: name=>(this.className || '').split(' ').includes(name)};
   }
-  set textContent(v) {
-    this.text = v;
-    this.children = [];
-  }
-  get textContent() {
-    return this.text || '';
-  }
-  appendChild(n) {
-    this.children.push(n);
-    return n;
-  }
-  setAttribute() {}
-  addEventListener(k, f) {
-    this.events[k] = f;
-  }
-  focus() {
-    this.focused = true;
-  }
+  set textContent(value) { this.text = value; this.children = []; }
+  get textContent() { return (this.text || '') + this.children.map(child=>child.textContent).join(''); }
+  appendChild(child) { this.children.push(child); return child; }
+  setAttribute(name, value) { this[name] = value; }
+  addEventListener(name, listener) { this.events[name] = listener; }
+  focus() { this.focused = true; }
+  querySelector(selector) { return descendants(this).find(child=>selector[0] === '.' ? (child.className || '').split(' ').includes(selector.slice(1)) : child.tag === selector) || null; }
 }
+function descendants(node) { return node.children.flatMap(child=>[child, ...descendants(child)]); }
+function byClass(node, name) { const result = node.querySelector('.' + name); assert.ok(result, name); return result; }
 (async()=>{
-  const doc = {
-    createElement:tag=>new Element(tag), body:new Element('body')
-  };
-  let sends = 0, calls = [], turnTexts = [], invalidTurn = false;
+  const doc = {createElement:tag=>new Element(tag), body:new Element('body')};
+  const calls = [];
+  let resolveTurn;
   const panel = ui.mount(doc, local, {
-    ...enabled, transport:async(action, payload)=>{
-      calls.push(action);
-      if (action === 'turn') turnTexts.push(payload.text);
-      if (action === 'review')return {
-        token:'a'.repeat(64), draftId:'b'.repeat(64), csrf:'c'.repeat(64), sessionId:'d'.repeat(64), idempotencyKey:'e'.repeat(64), summary:{
-          ...payload.fields, name:'<script>TEST ONLY</script>'
-        }
-      };
-      if (action === 'turn') return {
-        text:'TEST ONLY mock answer', fields:invalidTurn ? {
-          name:'MUST NOT APPLY', country:'invented'
-        }
-        : {
-          name:'TEST ONLY corrected', phone:'+12025550100'
-        }
-      };
-      sends++;
-      assert.equal(payload.sessionId,'d'.repeat(64));
-      assert.equal(payload.idempotencyKey,'e'.repeat(64));
-      return {
-        status:'uncertain'
-      };
+    ...enabled,
+    catalog: [{name:'Phones', brands:[{name:'Apple', families:[{name:'iPhone', models:[{name:'iPhone 16'}, {name:'iPhone 16 Pro'}]}]}]}],
+    transport: async(action, payload)=>{
+      calls.push({action, payload});
+      return await new Promise(resolve=>{ resolveTurn = resolve; });
     }
   });
-  const forms = panel.children.filter(x=>x.tag === 'form');
-  const composer = forms[0], form = forms[1];
-  const buttons = panel.children.filter(x=>x.tag === 'button');
-  const edit = buttons[0], send = buttons[1];
-  assert.equal(send.disabled, true);
-  const chip = panel.children.find(x=>x.tag === 'ul').children[0].children[0];
-  await chip.events.click();
-  assert.equal(turnTexts[0], chip.textContent);
-  const correction = form.children.find(x=>x.tag === 'details');
-  assert.equal(correction.children.length, 20);
-  assert.equal(correction.children[2].children[1].value,'TEST ONLY corrected');
-  assert.equal(correction.children.some(x=>x.name === 'routeTo'), false);
-  const log = panel.children.find(x=>x.tag === 'div');
-  assert.match(log.children[0].textContent, /AI/);
-  assert.equal(log.children[2].textContent,'TEST ONLY mock answer');
-  const composerInput = composer.children[0].children[1];
-  composerInput.value = 'TEST ONLY typed message';
-  await composer.events.submit({
-    preventDefault() {}
-  });
-  assert.deepEqual(calls, ['turn','turn']);
-  assert.equal(turnTexts[1], 'TEST ONLY typed message');
-  composerInput.value = 'TEST ONLY Enter';
-  await composerInput.events.keydown({
-    key:'Enter', preventDefault() {}
-  });
-  assert.deepEqual(calls, ['turn','turn','turn']);
-  assert.equal(composerInput.focused, true);
-  invalidTurn = true;
-  composerInput.value = 'TEST ONLY invalid draft';
-  await composer.events.submit({
-    preventDefault() {}
-  });
-  assert.equal(correction.children[2].children[1].value,'TEST ONLY corrected');
-  assert.equal(send.disabled, true);
-  invalidTurn = false;
-  calls = [];
-  await form.events.submit({
-    preventDefault() {}
-  });
-  assert.deepEqual(calls, ['review']);
-  assert.equal(sends, 0);
-  const details = panel.children.find(x=>x.tag === 'dl');
-  assert.equal(details.hidden, false);
-  assert.equal(send.disabled, false);
-  assert.equal(details.children.length, 38);
-  assert.equal(details.children[3].textContent,'<script>TEST ONLY</script>');
-  form.events.input();
-  assert.equal(send.disabled, true);
-  await send.events.click();
-  assert.equal(sends, 0);
-  await form.events.submit({
-    preventDefault() {}
-  });
-  await Promise.all([send.events.click(), send.events.click()]);
-  assert.equal(sends, 1);
-  await send.events.click();
-  assert.equal(sends, 1);
-  const status = panel.children.find(x=>x.tag === 'p' && /uncertain/.test(x.textContent));
-  assert.ok(status);
-  edit.events.click();
-  assert.equal(send.disabled, true);
-  assert.equal(correction.open, true);
-  correction.open = false;
-  form.events.invalid({
-    target:composerInput
-  });
-  assert.equal(correction.open, true);
+  const root = byClass(doc.body, 'customer-assistant-root');
+  const launcher = byClass(root, 'customer-assistant-launcher');
+  assert.ok(root.children.includes(panel));
+  assert.equal(panel.hidden, true);
+  launcher.events.click();
+  assert.equal(panel.hidden, false);
+  const log = byClass(panel, 'customer-assistant-log');
+  const composer = byClass(panel, 'customer-assistant-composer');
+  const input = descendants(composer).find(child=>child.tag === 'textarea');
+  const ask = descendants(composer).find(child=>child.tag === 'button');
+  assert.equal(input.focused, true);
+  const starters = byClass(panel, 'customer-assistant-starters');
+  const starterButtons = descendants(starters).filter(child=>child.tag === 'button');
+  assert.deepEqual(starterButtons.map(child=>child.textContent), ['Phones & laptops', 'Starlink & internet', 'Installation', 'Request a quote', 'Talk to someone']);
+  assert.equal(byClass(panel, 'customer-assistant-fields').hidden, true);
+  assert.equal(panel.children.filter(child=>child.tag === 'form')[1].hidden, true);
+  assert.equal(panel.children.find(child=>child.tag === 'dl').hidden, true);
+  const suggestions = byClass(panel, 'customer-assistant-suggestions');
+  for (const query of ['phone', 'iphone']) {
+    input.value = query;
+    input.events.input();
+    assert.equal(suggestions.hidden, false);
+    assert.match(suggestions.textContent, /iPhone 16/);
+    for (const intent of ['See options', 'Request a quote', 'Contact support']) assert.ok(suggestions.textContent.includes(intent));
+    assert.equal(calls.length, 0, 'typeahead does not send a request');
+    assert.doesNotMatch(suggestions.textContent, /iPhone 17|iPhone 18/);
+  }
+  await input.events.keydown({key:'Escape', preventDefault(){}});
+  assert.equal(suggestions.hidden, true);
+  input.value = '';
+  input.events.input();
+  assert.equal(suggestions.hidden, true);
+  const pending = starterButtons[0].events.click();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].action, 'turn');
+  assert.match(calls[0].payload.text, /phones|laptops/i);
+  assert.notEqual(calls[0].payload.text, starterButtons[0].textContent);
+  assert.equal(ask.disabled, true);
+  const status = byClass(panel, 'customer-assistant-status');
+  assert.equal(status['aria-live'], 'polite');
+  assert.match(status.textContent, /typing|thinking|loading/i);
+  await composer.events.submit({preventDefault(){}});
+  assert.equal(calls.length, 1, 'busy composer does not send another turn');
+  resolveTurn({text:'Here are catalogue options.'});
+  await pending;
+  assert.equal(ask.disabled, false);
+  assert.match(log.textContent, /Here are catalogue options/);
+  const followups = byClass(panel, 'customer-assistant-followups');
+  assert.ok(followups.children.length >= 2 && followups.children.length <= 3);
+  assert.equal(panel.children.find(child=>child.tag === 'dl').hidden, true);
+  const transcript = log.textContent;
+  const controls = descendants(panel).filter(child=>child.tag === 'button');
+  const minimise = controls.find(child=>/minimi[sz]e/i.test(child['aria-label'] || child.textContent));
+  const close = controls.find(child=>/close/i.test(child['aria-label'] || child.textContent));
+  assert.ok(minimise); assert.ok(close);
+  minimise.events.click();
+  assert.equal(panel.hidden, true);
+  assert.equal(launcher.hidden, false);
+  launcher.events.click();
+  assert.equal(log.textContent, transcript);
+  close.events.click();
+  assert.equal(panel.hidden, true);
+  assert.equal(launcher.hidden, false);
+  launcher.events.click();
+  const quotePending = starterButtons[3].events.click();
+  resolveTurn({text:'I can help with a quote.'});
+  await quotePending;
+  assert.match(log.children.at(-1).textContent, /name/i);
+  assert.doesNotMatch(log.children.at(-1).textContent, /phone|email|country/i);
+  const count = calls.length;
+  input.value = 'TEST ONLY Visitor';
+  await composer.events.submit({preventDefault(){}});
+  assert.match(log.children.at(-1).textContent, /phone/i);
+  assert.equal(calls.length, count, 'name is gathered locally without inquiry delivery');
+  input.value = '+12025550100';
+  await composer.events.submit({preventDefault(){}});
+  assert.equal(calls.length, count, 'phone is gathered locally without inquiry delivery');
+  assert.match(log.children.at(-1).textContent, /confirm/i);
+  input.value = 'Yes, confirm';
+  await composer.events.submit({preventDefault(){}});
+  assert.equal(calls.length, count, 'confirmation does not enable Preview inquiry delivery');
+  assert.ok(calls.every(call=>call.action === 'turn'));
+  assert.equal(byClass(panel, 'customer-assistant-fields').hidden, true);
+  const handoffPending = starterButtons[4].events.click();
+  assert.match(calls.at(-1).payload.text, /speak to a person/i);
+  resolveTurn({text:'Thanks, someone from our team will reach out to you shortly.'});
+  await handoffPending;
+  assert.match(log.textContent, /Thanks, someone from our team will reach out to you shortly\./);
   const css = fs.readFileSync(require.resolve('../assets/css/customer-assistant.css'),'utf8');
-  assert.match(css, /min-height: 44px/);
+  assert.match(css, /min-height:\s*44px/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /#00C2FF/);
-  assert.match(css, /@media \(max-width: 360px\)/);
-  assert.match(css, /min\(100% - 24px, 640px\)/);
+  assert.match(css, /Clash Display/);
+  assert.match(css, /Bricolage Grotesque/);
+  assert.match(css, /customer-assistant-launcher[^}]*position:\s*fixed/s);
+  assert.match(css, /\.customer-assistant\s*\{[^}]*position:\s*fixed/s);
+  assert.match(css, /@media\s*\(max-width:\s*640px\)/);
   assert.equal(doc.body.children[0].href,'/assets/css/customer-assistant.css');
-  assert.equal(panel.children.filter(x=>x.tag === 'a').some(x=>x.href === '/privacy.html'), true);
-  console.log(`PASS chat frontend: ${assertions} assertions; local mock conversation, draft validation, consent, default-off and CSS structural checks`);
-})().catch (e=>{
-  console.error(e);
-  process.exitCode = 1;
-});
+  assert.ok(descendants(panel).some(child=>child.tag === 'a' && child.href === '/privacy.html'));
+  assert.match(panel.textContent, /We're reachable 24\/7 on WhatsApp and email/);
+  console.log(`PASS chat frontend: ${assertions} assertions; launcher, typeahead, follow-ups, conversational intake, loading, safety and brand checks`);
+})().catch(error=>{ console.error(error); process.exitCode = 1; });

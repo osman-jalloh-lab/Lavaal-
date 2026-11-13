@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const ui = require('../assets/js/customer-assistant');
 
 class Element {
-  constructor(tag) { this.tag = tag; this.children = []; this.value = ''; this.events = {}; }
+  constructor(tag) { this.tag = tag; this.children = []; this.value = ''; this.events = {}; this.hidden = false; this.style = {}; }
   appendChild(child) { this.children.push(child); return child; }
   setAttribute(name, value) { this[name] = value; }
   addEventListener(name, listener) { this.events[name] = listener; }
@@ -43,7 +43,14 @@ async function main() {
   assert.equal(calls[0].options.credentials, 'include');
   assert.equal(calls[0].options.method, 'GET');
   const log = panel.children.find(child=>child.className === 'customer-assistant-log');
-  assert.match(log.children[0].textContent, /I'm LAVAALL Assistant/);
+  assert.equal(log.children[0].textContent, "Hi, I'm the LAVAALL Assistant. What do you need today?");
+  assert.equal(panel.hidden, true);
+  const wrapper = instance.document.body.children.find(child=>child.className === 'customer-assistant-root');
+  assert.ok(wrapper);
+  const launcher = wrapper.children.find(child=>child.className === 'customer-assistant-launcher');
+  assert.ok(launcher);
+  launcher.events.click();
+  assert.equal(panel.hidden, false);
   assert.doesNotMatch(log.children[0].textContent, /TEST ONLY/);
   const composer = panel.children.find(child=>child.className === 'customer-assistant-composer');
   assert.equal(composer.children.some(child=>child.className === 'customer-assistant-mic'), false);

@@ -16,7 +16,7 @@
       answer: 'Local test response: the team can confirm your Technology request. I cannot access internal systems or confirm stock, dates or pricing.',
       language: 'Language',
       notice: 'Language switching is unverified until tested in vendor Preview. Krio text is best-effort.',
-      questions: ['What does LAVAALL supply?','Do you install equipment?','Where do you operate?','Can the team confirm delivery to my location?','Do you handle wholesale and retail requests?','Can I ask about refurbished computers?','How do I request a quote?','Can the team confirm product availability?','How do I get help with an existing order?','How can I contact a person?']
+      questions: ['Phones & laptops', 'Starlink & internet', 'Installation', 'Request a quote', 'Talk to someone']
     },
     fr: {
       first: 'Je suis LAVAALL Assistant, un assistant IA. Ceci est une démonstration locale TEST ONLY.',
@@ -30,7 +30,7 @@
       answer: 'Réponse de test locale : l’équipe peut vérifier votre demande Technology. Aucun accès aux systèmes internes ; aucun engagement sur les stocks, dates ou tarifs.',
       language: 'Langue',
       notice: 'Le changement de langue reste à vérifier en Preview du fournisseur. Le krio écrit est proposé au mieux.',
-      questions: ['Que fournit LAVAALL ?','Installez-vous les équipements ?','Où intervenez-vous ?','L’équipe peut-elle confirmer la livraison à mon adresse ?','Acceptez-vous les demandes en gros et au détail ?','Puis-je demander des ordinateurs reconditionnés ?','Comment demander un devis ?','L’équipe peut-elle confirmer la disponibilité ?','Comment obtenir de l’aide pour une commande ?','Comment contacter une personne ?']
+      questions: ['Téléphones et ordinateurs', 'Starlink et internet', 'Installation', 'Demander un devis', 'Parler à quelqu’un']
     },
     pt: {
       first: 'Sou LAVAALL Assistant, um assistente de IA. Esta é uma demonstração local TEST ONLY.',
@@ -44,7 +44,7 @@
       answer: 'Resposta de teste local: a equipa pode verificar o seu pedido Technology. Sem acesso a sistemas internos nem confirmação de stock, datas ou preços.',
       language: 'Idioma',
       notice: 'A mudança de idioma aguarda testes no Preview do fornecedor. Texto em krio é uma tentativa sem garantia.',
-      questions: ['O que fornece a LAVAALL?','Instalam equipamentos?','Onde operam?','A equipa pode confirmar entrega na minha localização?','Aceitam pedidos por grosso e a retalho?','Posso perguntar por computadores recondicionados?','Como pedir um orçamento?','A equipa pode confirmar disponibilidade?','Como obter ajuda com uma encomenda?','Como contactar uma pessoa?']
+      questions: ['Telefones e computadores', 'Starlink e internet', 'Instalação', 'Pedir orçamento', 'Falar com alguém']
     }
   };
   var labels = {
@@ -186,9 +186,51 @@
       if (text !== undefined) n.textContent = text;
       return n;
     }
-    panel.appendChild(createElement('h2','LAVAALL Assistant'));
+    var wrapper = createElement('div');
+    wrapper.className = 'customer-assistant-root';
+    var launcher = createElement('button', 'Chat');
+    launcher.setAttribute('aria-label', 'Chat with LAVAALL Assistant');
+    launcher.type = 'button';
+    launcher.className = 'customer-assistant-launcher';
+    launcher.setAttribute('aria-expanded', 'false');
+    launcher.setAttribute('aria-controls', 'lavaall-assistant-panel');
+    panel.id = 'lavaall-assistant-panel';
+    panel.hidden = true;
+    var header = createElement('header');
+    header.className = 'customer-assistant-header';
+    header.appendChild(createElement('h2','LAVAALL Assistant'));
+    var controls = createElement('div');
+    controls.className = 'customer-assistant-controls';
+    var minimise = createElement('button', '−'), close = createElement('button', '×');
+    minimise.type = close.type = 'button';
+    minimise.setAttribute('aria-label', 'Minimise assistant');
+    close.setAttribute('aria-label', 'Close assistant');
+    controls.appendChild(minimise);
+    controls.appendChild(close);
+    header.appendChild(controls);
+    panel.appendChild(header);
+    function hidePanel() {
+      stopRecognition();
+      cancelSpeech();
+      panel.hidden = true;
+      launcher.hidden = false;
+      launcher.setAttribute('aria-expanded', 'false');
+      launcher.focus();
+    }
+    launcher.addEventListener('click', function () {
+      panel.hidden = false;
+      launcher.hidden = true;
+      launcher.setAttribute('aria-expanded', 'true');
+      composerInput.focus();
+    });
+    minimise.addEventListener('click', hidePanel);
+    close.addEventListener('click', hidePanel);
     var first = createElement('p'), notice = createElement('p'), status = createElement('p');
     status.setAttribute('role','status');
+    status.setAttribute('aria-live','polite');
+    status.className = 'customer-assistant-status customer-assistant-loading';
+    first.className = 'customer-assistant-greeting';
+    notice.hidden = true;
     var log = createElement('div');
     log.className = 'customer-assistant-log';
     log.setAttribute('role','log');
@@ -198,6 +240,7 @@
     panel.appendChild(log);
     panel.appendChild(notice);
     var languageLabel = createElement('label');
+    languageLabel.className = 'customer-assistant-language';
     var languages = createElement('select');
     languages.setAttribute('aria-label','Language / Langue / Idioma');
     ['en','fr','pt'].forEach(function (l) {
@@ -209,6 +252,7 @@
     languageLabel.appendChild(languages);
     panel.appendChild(languageLabel);
     var questions = createElement('ul');
+    questions.className = 'customer-assistant-starters';
     panel.appendChild(questions);
     var composer = createElement('form');
     composer.className = 'customer-assistant-composer';
@@ -220,7 +264,104 @@
     ask.type = 'submit';
     composer.appendChild(composerLabel);
     composer.appendChild(ask);
+    var suggestions = createElement('div');
+    suggestions.className = 'customer-assistant-suggestions customer-assistant-typeahead';
+    suggestions.setAttribute('role', 'listbox');
+    suggestions.setAttribute('aria-label', 'Suggested products and next steps');
+    suggestions.id = 'lavaall-assistant-suggestions';
+    suggestions.hidden = true;
+    composerInput.setAttribute('aria-controls', suggestions.id);
+    composerInput.setAttribute('aria-autocomplete', 'list');
+    composerInput.setAttribute('aria-expanded', 'false');
+    composer.appendChild(suggestions);
+    var followups = createElement('div');
+    followups.className = 'customer-assistant-followups';
+    panel.appendChild(followups);
     panel.appendChild(composer);
+    var intake = null, intakeDraft = {};
+    var starterMessages = [
+      'What phones and laptops are in the Technology catalogue?',
+      'Tell me about Starlink and internet options.',
+      'Do you install equipment in Sierra Leone?',
+      'I want to request a quote.',
+      'I want to speak to a person on your team, please.'
+    ];
+    var nextMessages = ['Show me other models.', starterMessages[3], starterMessages[4]];
+    function hideSuggestions() {
+      suggestions.hidden = true;
+      composerInput.setAttribute('aria-expanded', 'false');
+    }
+    function renderSuggestions() {
+      suggestions.textContent = '';
+      var query = composerInput.value.trim().toLowerCase();
+      if (!query || busy || intake) { hideSuggestions(); return; }
+      // CATALOG is a top-level lexical binding on the homepage, not necessarily window.CATALOG.
+      var catalog = typeof CATALOG !== 'undefined' ? CATALOG : (config.catalog || root.CATALOG || []);
+      var matches = [], seen = {};
+      function visit(items, context) {
+        if (!Array.isArray(items)) return;
+        items.forEach(function (item) {
+          if (!item || typeof item !== 'object') return;
+          var name = typeof item.name === 'string' ? item.name : '';
+          var haystack = (context + ' ' + name).toLowerCase();
+          if (!item.brands && !item.families && !item.models && name &&
+              haystack.indexOf(query) !== -1 && !seen[name] && matches.length < 5) {
+            seen[name] = true;
+            matches.push(name);
+          }
+          ['brands','families','models'].forEach(function (key) { visit(item[key], haystack); });
+        });
+      }
+      visit(Array.isArray(catalog) ? catalog : catalog.categories, '');
+      function option(label, message, fill) {
+        var button = createElement('button', label);
+        button.type = 'button';
+        button.setAttribute('role', 'option');
+        button.addEventListener('click', function () {
+          hideSuggestions();
+          if (fill) { composerInput.value = message; composerInput.focus(); }
+          else return sendTextTurn(message);
+        });
+        suggestions.appendChild(button);
+      }
+      matches.forEach(function (name) { option(name, 'Tell me about ' + name, true); });
+      ['See options','Request a quote','Contact support'].forEach(function (label, index) {
+        option(label, [starterMessages[0], starterMessages[3], starterMessages[4]][index], false);
+      });
+      suggestions.hidden = false;
+      composerInput.setAttribute('aria-expanded', 'true');
+    }
+    composerInput.addEventListener('input', renderSuggestions);
+    function renderFollowups() {
+      followups.textContent = '';
+      if (intake) {
+        ['Start over', 'Cancel request'].forEach(function (label, index) {
+          var button = createElement('button', label);
+          button.type = 'button';
+          button.addEventListener('click', function () {
+            if (busy) return;
+            intakeDraft = {};
+            intake = index === 0 ? 'name' : null;
+            intakeReply(index === 0 ? 'What is your name?' : 'Request cancelled. What else can I help with?');
+          });
+          followups.appendChild(button);
+        });
+        return;
+      }
+      ['See other models', 'Request a quote', 'Talk to someone'].forEach(function (label, index) {
+        var button = createElement('button', label);
+        button.type = 'button';
+        button.addEventListener('click', function () { return sendTextTurn(nextMessages[index]); });
+        followups.appendChild(button);
+      });
+    }
+    function intakeReply(text) {
+      log.appendChild(createElement('p', text));
+      composerInput.value = '';
+      composerInput.focus();
+      renderFollowups();
+      log.scrollTop = log.scrollHeight;
+    }
     var voiceOn = browserVoiceEnabled(config, location), supported, mic, speaker, voiceHint, voiceStatus;
     var recognition = null, speaking = false, voiceState = 'ready', utterance = null;
     function renderVoice() {
@@ -381,18 +522,13 @@
     panel.appendChild(edit);
     panel.appendChild(send);
     panel.appendChild(status);
-    panel.appendChild(createElement('p',"We're reachable 24/7 on WhatsApp and email"));
-    panel.appendChild(createElement('p','Messages are accepted anytime; the team is not staffed continuously.'));
-    var email = createElement('a','support@lavaall.com');
-    email.href = 'mailto:support@lavaall.com';
-    panel.appendChild(email);
-    var whatsapp = createElement('a',' WhatsApp +1 (737) 704-4182');
-    whatsapp.href = 'https://wa.me/17377044182';
-    whatsapp.rel = 'noopener noreferrer';
-    panel.appendChild(whatsapp);
+    var footer = createElement('footer');
+    footer.className = 'customer-assistant-footer';
+    footer.appendChild(createElement('p', "We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182"));
     var privacy = createElement('a','Privacy notice');
     privacy.href = '/privacy.html';
-    panel.appendChild(privacy);
+    footer.appendChild(privacy);
+    panel.appendChild(footer);
     function renderLanguage() {
       var c = copy[lang];
       renderVoice();
@@ -409,7 +545,7 @@
         fieldLabels[key].textContent = labels[lang][index] + (key === 'name' || key === 'phone' ? ' *' : '');
       });
       first.textContent = config.localTestStub === true ? c.first : {
-        en: "I'm LAVAALL Assistant, an AI assistant. I can help with Technology questions or prepare an inquiry for your review.",
+        en: "Hi, I'm the LAVAALL Assistant. What do you need today?",
         fr: 'Je suis LAVAALL Assistant, un assistant IA. Je peux répondre aux questions sur la technologie ou préparer une demande à vérifier.',
         pt: 'Sou LAVAALL Assistant, um assistente de IA. Posso ajudar com perguntas sobre tecnologia ou preparar um pedido para a sua revisão.'
       }[lang];
@@ -418,11 +554,11 @@
       send.textContent = c.send;
       edit.textContent = c.edit;
       questions.textContent = '';
-      c.questions.forEach(function (q) {
+      c.questions.forEach(function (q, index) {
         var item = createElement('li'), suggestion = createElement('button', q);
         suggestion.type = 'button';
         suggestion.addEventListener('click', function () {
-          return sendTextTurn(q);
+          return sendTextTurn(starterMessages[index]);
         });
         item.appendChild(suggestion);
         questions.appendChild(item);
@@ -448,12 +584,48 @@
       stopRecognition();
       invalidateReview();
       status.textContent = '';
+      hideSuggestions();
+      questions.hidden = true;
+      if (intake) {
+        var visitorBubble = createElement('p', text);
+        visitorBubble.className = 'customer-assistant-user';
+        log.appendChild(visitorBubble);
+        if (intake === 'name') {
+          if (text.length > 300) { intakeReply('Please use a name under 300 characters.'); return; }
+          intakeDraft.name = text;
+          intake = 'phone';
+          intakeReply('What phone number should the team use?');
+        } else if (intake === 'phone') {
+          if (!/^[+()0-9 .-]{7,40}$/.test(text) || text.replace(/\D/g, '').length < 7) {
+            intakeReply('Please enter a phone number including the country code.'); return;
+          }
+          intakeDraft.phone = text;
+          intake = 'confirm';
+          intakeReply('Please confirm: ' + intakeDraft.name + ', ' + intakeDraft.phone + '. Reply Confirm or Cancel. Preview inquiry delivery is off.');
+        } else if (/^(confirm|yes|yes,? confirm)[.!]?$/i.test(text)) {
+          intake = null;
+          intakeReply('Details confirmed for this conversation. Preview inquiry delivery is off; please contact the team using the details below.');
+          intakeDraft = {};
+        } else if (/^(cancel|no)$/i.test(text)) {
+          intake = null;
+          intakeDraft = {};
+          intakeReply('Request cancelled. What else can I help with?');
+        } else {
+          intakeReply('Reply Confirm to keep these details in this conversation, or Cancel.');
+        }
+        return;
+      }
+      var wantsIntake = /quote|quotation|speak.*(?:person|team)|talk.*(?:someone|person)|contact support|human/i.test(text);
       var current = generation;
       busy = true;
       renderVoice();
       ask.disabled = true;
+      status.textContent = 'LAVAALL Assistant is typing…';
+      composer.setAttribute('aria-busy', 'true');
       review.disabled = true;
-      log.appendChild(createElement('p', text));
+      var visitorBubble = createElement('p', text);
+      visitorBubble.className = 'customer-assistant-user';
+      log.appendChild(visitorBubble);
       try {
         var result = await config.transport('turn', {
           text:text, fields:currentFields()
@@ -461,7 +633,22 @@
         if (current !== generation) return;
         if ((!result || typeof result.text !== 'string') && config.localTestStub !== true) throw new Error('reply_unavailable');
         var replyText = result && typeof result.text === 'string' ? result.text.slice(0, 4000) : copy[lang].answer;
+        // Standing contacts belong in the footer. Preserve the exact handoff policy line.
+        replyText = replyText
+          .replace(/We're reachable 24\/7 on WhatsApp and email: support@lavaall\.com or WhatsApp \+1 \(737\) 704-4182\.?/g, '')
+          .replace(/Would you like to speak to a person, or send an email request\? Your name and a valid phone number are enough; other fields are optional\. Nothing is sent until you review the summary and click Send\./g, '')
+          .trim();
+        if (/^I do not see that exact item in the public Technology catalogue/.test(replyText)) {
+          var handoffLine = replyText.indexOf('Thanks, someone from our team will reach out to you shortly.') !== -1;
+          replyText = 'I do not see that exact item in the public Technology catalogue. The team can help with a sourcing request.';
+          if (handoffLine) replyText += ' Thanks, someone from our team will reach out to you shortly.';
+        }
         log.appendChild(createElement('p', replyText));
+        renderFollowups();
+        if (wantsIntake) {
+          intake = 'name';
+          intakeReply('What is your name?');
+        }
         if (result && result.fields !== undefined) {
           var updates = validatePartialDraft(result.fields);
           Object.keys(updates).forEach(function (key) { inputs[key].value = updates[key]; });
@@ -470,22 +657,27 @@
           details.appendChild(createElement('dt', labels[lang][fields.indexOf(row.field)]));
           details.appendChild(createElement('dd', row.value));
         });
-        details.hidden = false;
+        details.hidden = true;
+        status.textContent = '';
         composerInput.value = '';
         composerInput.focus();
         speakReply(replyText);
       }
       catch (_) {
         status.textContent = copy[lang].disabled;
+        renderFollowups();
       }
       finally {
         busy = false;
+        composer.setAttribute('aria-busy', 'false');
+        log.scrollTop = log.scrollHeight;
         renderVoice();
         ask.disabled = false;
         review.disabled = false;
       }
     }
     composerInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { hideSuggestions(); return; }
       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {event.preventDefault(); return sendTextTurn(composerInput.value);}
     });
     composer.addEventListener('submit', function (event) {
@@ -583,15 +775,16 @@
         review.disabled = false;
       }
     });
-    if (config.localTestStub !== true) {
-      // Preview is text-only; inquiry delivery needs a separate explicit server opt-in.
-      form.hidden = true;
-      edit.hidden = true;
-      send.hidden = true;
-      summaryPrivacy.hidden = true;
-    }
+    // Keep the legacy local review adapter private; the widget is conversational and text-only.
+    form.hidden = true;
+    corrections.hidden = true;
+    edit.hidden = true;
+    send.hidden = true;
+    summaryPrivacy.hidden = true;
     renderLanguage();
-    doc.body.appendChild(panel);
+    wrapper.appendChild(launcher);
+    wrapper.appendChild(panel);
+    doc.body.appendChild(wrapper);
     return panel;
   }
   function createPreviewTransport(fetcher, browserCrypto) {
