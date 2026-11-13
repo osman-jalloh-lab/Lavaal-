@@ -1,105 +1,48 @@
-/* Preview widget. Layout and brand follow MAGNUM §3 and UX-REDESIGN.md. */
-.customer-assistant-root {
+/* Local test UI only. Brand reference: MAGNUM §3 and existing homepage forms. */
+.customer-assistant {
   --assistant-ink: #0A0A14;
   --assistant-sun: #FFE03D;
   --assistant-sky: #00C2FF;
-  --assistant-lime: #00F5A0;
-  --assistant-coral: #FF5C5C;
-  --assistant-offwhite: #F4F9FF;
-  color: var(--assistant-ink);
-  font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 14px;
-  line-height: 1.45;
-}
-.customer-assistant-root *,
-.customer-assistant-root *::before,
-.customer-assistant-root *::after { box-sizing: border-box; }
-.customer-assistant-root [hidden] { display: none !important; }
-.customer-assistant-launcher {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 10000;
-  width: 64px;
-  min-height: 64px;
-  border: 2px solid var(--assistant-ink);
-  border-radius: 22px;
-  background: var(--assistant-sky);
-  color: var(--assistant-ink);
-  box-shadow: 4px 4px 0 var(--assistant-ink);
-  font: 700 14px 'Bricolage Grotesque', sans-serif;
-  cursor: pointer;
-}
-.customer-assistant {
-  position: fixed;
-  right: 24px;
-  bottom: 100px;
-  z-index: 10001;
-  display: flex;
-  flex-direction: column;
-  width: 400px;
-  max-width: calc(100vw - 32px);
-  height: 560px;
-  max-height: calc(100dvh - 124px);
-  margin: 0;
-  padding: 16px;
-  overflow: hidden;
-  overflow-wrap: anywhere;
+  box-sizing: border-box;
+  width: min(100% - 24px, 640px);
+  margin: 24px auto;
+  padding: 20px;
   border: 2px solid var(--assistant-ink);
   border-radius: 18px;
-  background: var(--assistant-offwhite);
-  box-shadow: 6px 6px 0 var(--assistant-ink);
+  color: var(--assistant-ink);
+  background: #F4F9FF;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  overflow-wrap: anywhere;
 }
-.customer-assistant-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; padding-bottom: 10px; border-bottom: 3px solid var(--assistant-sky); }
-.customer-assistant h2 { margin: 0; font: 600 20px/1.15 'Clash Display', sans-serif; text-wrap: balance; }
-.customer-assistant-controls { display: flex; gap: 4px; }
-.customer-assistant-controls button { width: 44px; padding: 0; background: white; font-size: 20px; }
-.customer-assistant p { margin: 8px 0; }
+.customer-assistant *, .customer-assistant *::before, .customer-assistant *::after { box-sizing: border-box; }
+.customer-assistant h2 { border-bottom: 4px solid var(--assistant-sky); padding-bottom: 12px; font-family: 'Clash Display', sans-serif; margin: 0 0 16px; }
+.customer-assistant p { line-height: 1.5; }
 .customer-assistant label, .customer-assistant label span { display: block; }
+.customer-assistant label { margin: 12px 0; }
 .customer-assistant input, .customer-assistant textarea, .customer-assistant select {
   width: 100%; max-width: 100%; min-width: 0; min-height: 44px;
-  padding: 10px; font: inherit; border: 2px solid var(--assistant-ink); border-radius: 10px; background: white; color: inherit;
+  padding: 10px; font: inherit; border: 2px solid var(--assistant-ink); border-radius: 8px; background: white; color: inherit;
 }
-.customer-assistant-language { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
-.customer-assistant-language select { width: auto; margin-left: auto; padding: 6px 8px; }
-.customer-assistant textarea { resize: none; max-height: 100px; }
-.customer-assistant button, .customer-assistant a, .customer-assistant summary { min-height: 44px; padding: 10px 12px; font: inherit; cursor: pointer; }
+.customer-assistant textarea { resize: vertical; }
+.customer-assistant button, .customer-assistant a, .customer-assistant summary {
+  min-height: 44px; padding: 10px 12px; font: inherit; cursor: pointer;
+}
 .customer-assistant button { border: 2px solid var(--assistant-ink); border-radius: 10px; color: inherit; background: var(--assistant-sun); }
 .customer-assistant button:disabled { opacity: .6; cursor: default; }
-.customer-assistant a { display: inline-flex; align-items: center; color: inherit; text-decoration: underline; }
-.customer-assistant-root :focus-visible { outline: 3px solid #0A0A14; outline-offset: 3px; }
-.customer-assistant ul { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 8px 0; }
+.customer-assistant a { display: block; color: inherit; text-decoration: underline; }
+.customer-assistant :focus-visible { outline: 3px solid #0A0A14; outline-offset: 3px; }
+.customer-assistant ul { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; }
 .customer-assistant li { max-width: 100%; }
 .customer-assistant li button { background: white; text-align: left; }
-.customer-assistant-starters button, .customer-assistant-followups button { padding: 8px 10px; font-size: 13px; }
-.customer-assistant-log { flex: 1 1 auto; min-height: 60px; overflow-y: auto; overscroll-behavior: contain; padding: 4px 4px 4px 0; }
-.customer-assistant-log > p { width: fit-content; max-width: 94%; padding: 10px 12px; border: 1px solid var(--assistant-ink); border-radius: 12px 12px 12px 2px; background: white; white-space: pre-wrap; }
-.customer-assistant-log > p[data-role="user"], .customer-assistant-log > .customer-assistant-user { margin-left: auto; background: var(--assistant-sky); border-radius: 12px 12px 2px 12px; }
-.customer-assistant-fields { display: none; }
-.customer-assistant-composer { flex-shrink: 0; position: relative; display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 8px; }
-.customer-assistant-composer > label { flex: 1 1 200px; min-width: 0; }
-.customer-assistant-composer > label > span { margin-bottom: 4px; }
+.customer-assistant-log { max-height: 300px; overflow-y: auto; padding: 12px; background: white; border: 2px solid var(--assistant-ink); border-radius: 12px; }
+.customer-assistant-fields { margin: 16px 0; }
+.customer-assistant-composer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.customer-assistant-composer > label { flex-basis: 100%; }
 .customer-assistant-composer > button { min-width: 44px; max-width: 100%; }
-.customer-assistant-followups { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; flex-shrink: 0; }
-.customer-assistant-followups:empty { display: none; }
-.customer-assistant-typeahead { position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 2; width: 100%; max-height: min(220px, 40dvh); overflow-y: auto; border: 2px solid var(--assistant-ink); border-radius: 10px; background: white; }
-.customer-assistant .customer-assistant-typeahead { display: block; margin: 0; }
-.customer-assistant-typeahead button { display: block; width: 100%; border: 0; border-bottom: 1px solid #d4dce5; border-radius: 0; background: white; text-align: left; }
-.customer-assistant-typeahead button:hover { background: var(--assistant-offwhite); }
-.customer-assistant-loading { flex-shrink: 0; margin: 4px 0; font-size: 13px; }
-.customer-assistant-footer { flex-shrink: 0; padding-top: 8px; margin-top: 10px; border-top: 1px solid var(--assistant-ink); font-size: 11px; line-height: 1.4; }
-.customer-assistant-footer p { margin: 0; }
-.customer-assistant-footer a { padding: 6px 0; }
 .customer-assistant-composer .customer-assistant-mic,
 .customer-assistant-composer .customer-assistant-speaker { background: white; }
 .customer-assistant-composer button[aria-pressed="true"] { background: var(--assistant-sky); }
 .customer-assistant-voice-hint, .customer-assistant-voice-status { flex-basis: 100%; margin: 4px 0; }
-@media (max-width: 640px) {
-  .customer-assistant-launcher { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); }
-  .customer-assistant { inset: 0; width: 100%; max-width: none; height: 100dvh; max-height: none; border-radius: 0; padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); box-shadow: none; }
-}
-@media (max-width: 360px) {
-  .customer-assistant { padding: 12px; }
-  .customer-assistant h2 { font-size: 18px; }
-  .customer-assistant-composer > label { flex-basis: 160px; }
-}
+.customer-assistant dt { font-weight: bold; margin-top: 12px; }
+.customer-assistant dd { margin: 4px 0; white-space: pre-wrap; }
+@media (max-width: 360px) { .customer-assistant { padding: 12px; } }

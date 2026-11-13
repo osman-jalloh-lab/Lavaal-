@@ -186,45 +186,7 @@
       if (text !== undefined) n.textContent = text;
       return n;
     }
-    var wrapper = createElement('div');
-    wrapper.className = 'customer-assistant-root';
-    var launcher = createElement('button', 'Chat');
-    launcher.setAttribute('aria-label', 'Chat with LAVAALL Assistant');
-    launcher.type = 'button';
-    launcher.className = 'customer-assistant-launcher';
-    launcher.setAttribute('aria-expanded', 'false');
-    launcher.setAttribute('aria-controls', 'lavaall-assistant-panel');
-    panel.id = 'lavaall-assistant-panel';
-    panel.hidden = true;
-    var header = createElement('header');
-    header.className = 'customer-assistant-header';
-    header.appendChild(createElement('h2','LAVAALL Assistant'));
-    var controls = createElement('div');
-    controls.className = 'customer-assistant-controls';
-    var minimise = createElement('button', '−'), close = createElement('button', '×');
-    minimise.type = close.type = 'button';
-    minimise.setAttribute('aria-label', 'Minimise assistant');
-    close.setAttribute('aria-label', 'Close assistant');
-    controls.appendChild(minimise);
-    controls.appendChild(close);
-    header.appendChild(controls);
-    panel.appendChild(header);
-    function hidePanel() {
-      stopRecognition();
-      cancelSpeech();
-      panel.hidden = true;
-      launcher.hidden = false;
-      launcher.setAttribute('aria-expanded', 'false');
-      launcher.focus();
-    }
-    launcher.addEventListener('click', function () {
-      panel.hidden = false;
-      launcher.hidden = true;
-      launcher.setAttribute('aria-expanded', 'true');
-      composerInput.focus();
-    });
-    minimise.addEventListener('click', hidePanel);
-    close.addEventListener('click', hidePanel);
+    panel.appendChild(createElement('h2','LAVAALL Assistant'));
     var first = createElement('p'), notice = createElement('p'), status = createElement('p');
     status.setAttribute('role','status');
     status.setAttribute('aria-live','polite');
@@ -305,7 +267,7 @@
           var name = typeof item.name === 'string' ? item.name : '';
           var haystack = (context + ' ' + name).toLowerCase();
           if (!item.brands && !item.families && !item.models && name &&
-              haystack.indexOf(query) !== -1 && !seen[name] && matches.length < 5) {
+              haystack.indexOf(query) !== -1 && !seen[name]) {
             seen[name] = true;
             matches.push(name);
           }
@@ -313,6 +275,14 @@
         });
       }
       visit(Array.isArray(catalog) ? catalog : catalog.categories, '');
+      matches.sort(function (a, b) {
+        function generation(name) {
+          var found = String(name).match(/(\d{2,5})(?!.*\d)/);
+          return found ? Number(found[1]) : 0;
+        }
+        return generation(b) - generation(a) || a.localeCompare(b);
+      });
+      matches = matches.slice(0, 5);
       function option(label, message, fill) {
         var button = createElement('button', label);
         button.type = 'button';
@@ -522,13 +492,9 @@
     panel.appendChild(edit);
     panel.appendChild(send);
     panel.appendChild(status);
-    var footer = createElement('footer');
-    footer.className = 'customer-assistant-footer';
-    footer.appendChild(createElement('p', "We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182"));
-    var privacy = createElement('a','Privacy notice');
-    privacy.href = '/privacy.html';
-    footer.appendChild(privacy);
-    panel.appendChild(footer);
+    var reachability = createElement('p', "We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182");
+    reachability.className = 'customer-assistant-reachability';
+    panel.appendChild(reachability);
     function renderLanguage() {
       var c = copy[lang];
       renderVoice();
@@ -539,7 +505,6 @@
       composerInput.setAttribute('aria-label', chrome[0]);
       ask.textContent = chrome[1];
       correctionsTitle.textContent = chrome[2];
-      privacy.textContent = chrome[3];
       summaryPrivacy.textContent = chrome[3];
       fields.forEach(function (key, index) {
         fieldLabels[key].textContent = labels[lang][index] + (key === 'name' || key === 'phone' ? ' *' : '');
@@ -780,11 +745,8 @@
     corrections.hidden = true;
     edit.hidden = true;
     send.hidden = true;
-    summaryPrivacy.hidden = true;
     renderLanguage();
-    wrapper.appendChild(launcher);
-    wrapper.appendChild(panel);
-    doc.body.appendChild(wrapper);
+    doc.body.appendChild(panel);
     return panel;
   }
   function createPreviewTransport(fetcher, browserCrypto) {

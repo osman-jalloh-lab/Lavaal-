@@ -44,14 +44,8 @@ async function main() {
   assert.equal(calls[0].options.method, 'GET');
   const log = panel.children.find(child=>child.className === 'customer-assistant-log');
   assert.equal(log.children[0].textContent, "Hi, I'm the LAVAALL Assistant. What do you need today?");
-  assert.equal(panel.hidden, true);
-  const wrapper = instance.document.body.children.find(child=>child.className === 'customer-assistant-root');
-  assert.ok(wrapper);
-  const launcher = wrapper.children.find(child=>child.className === 'customer-assistant-launcher');
-  assert.ok(launcher);
-  launcher.events.click();
-  assert.equal(panel.hidden, false);
   assert.doesNotMatch(log.children[0].textContent, /TEST ONLY/);
+  assert.equal(instance.document.body.children.includes(panel), true);
   const composer = panel.children.find(child=>child.className === 'customer-assistant-composer');
   assert.equal(composer.children.some(child=>child.className === 'customer-assistant-mic'), false);
 
