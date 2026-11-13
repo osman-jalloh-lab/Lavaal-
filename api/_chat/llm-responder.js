@@ -154,9 +154,16 @@ function stripViolations(text) {
   out = out.replace(/guaranteed (stock|availability)|ready to ship/gi, 'not a stock confirmation');
   if (out !== beforeStock) repairs.push('softened-stock-claims');
 
+  const sla = 'Someone from our team will get back to you within 24 hours.';
+  const slaSlots = [];
+  out = out.replace(/Someone from our team will get back to you within 24 hours\./g, (match) => {
+    slaSlots.push(match);
+    return '\u0000SLA' + (slaSlots.length - 1) + '\u0000';
+  });
   const beforeDeadline = out;
   out = out.replace(/within 24 hours|in \d+\s*(?:minutes?|hours?|days?)|same[- ]day (?:delivery|response)|callback in[^.]*[.]?/gi, '');
   if (out !== beforeDeadline) repairs.push('removed-deadline-promises');
+  out = out.replace(/\u0000SLA(\d+)\u0000/g, (_, index) => slaSlots[Number(index)] || sla);
 
   out = out.replace(/[ \t]{2,}/g, ' ').replace(/ \./g, '.').trim();
   if (HAITIAN_RE.test(out)) repairs.push('flagged-haitian-creole');
@@ -290,9 +297,18 @@ function postEnforce(modelText, rule) {
     text = text.replace(/\bin stock\b/gi, 'listed in the catalogue');
     repairs.push('final-stock-soften');
   }
-  if (DEADLINE_RE.test(text)) {
+  if (DEADLINE_RE.test(text) && !/Someone from our team will get back to you within 24 hours\./.test(text)) {
     text = text.replace(/within 24 hours|in \d+\s*(?:minutes?|hours?|days?)/gi, '');
     repairs.push('final-deadline-strip');
+  } else if (DEADLINE_RE.test(text)) {
+    const kept = [];
+    text = text.replace(/Someone from our team will get back to you within 24 hours\./g, (match) => {
+      kept.push(match);
+      return '\u0000SLA' + (kept.length - 1) + '\u0000';
+    });
+    text = text.replace(/within 24 hours|in \d+\s*(?:minutes?|hours?|days?)/gi, '');
+    text = text.replace(/\u0000SLA(\d+)\u0000/g, (_, index) => kept[Number(index)] || 'Someone from our team will get back to you within 24 hours.');
+    repairs.push('final-deadline-strip-kept-sla');
   }
   return { text: text.replace(/[ \t]{2,}/g, ' ').trim(), repairs };
 }
@@ -353,7 +369,7 @@ function shouldSkipModel(rule) {
   const events = rule.events || [];
   if (events.includes('refused-injection')) return 'refused-injection';
   if (events.some(event => String(event).startsWith('blocked-sensitive'))) return 'blocked-sensitive';
-  const canned = ['contact-info', 'product-guide', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'tag-osman-handoff'];
+  const canned = ['contact-info', 'product-guide', 'category-guide', 'service-help', 'form-intake', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'tag-osman-handoff'];
   const hit = events.find(event => canned.includes(event));
   return hit || null;
 }

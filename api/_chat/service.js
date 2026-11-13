@@ -316,6 +316,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
     }
     const result = { text: response.text };
     if (Array.isArray(response.chips) && response.chips.length) result.chips = response.chips.slice(0, 6);
+    if (response.reset) result.reset = true;
     if (previewDebug && process.env.VERCEL_ENV !== 'production') result.debug = {
       model: ['deepseek-flash', 'openai/gpt-4o-mini'].includes(response.llmModel) ? response.llmModel : null,
       provider: ['deepseek', 'gateway'].includes(response.llmProvider) ? response.llmProvider : null,
@@ -338,10 +339,12 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
           lastUser: text,
           lastLanguage: response.language,
           lastQty: response.fields && response.fields.quantity,
-          lastProducts: Array.isArray(response.lastProducts) ? response.lastProducts : (session.context && session.context.lastProducts) || [],
-          lastFamily: response.lastFamily || (session.context && session.context.lastFamily) || null,
-          lastModel: model || (response.awaiting === null ? null : (session.context && session.context.lastModel) || null),
+          lastProducts: Array.isArray(response.lastProducts) ? response.lastProducts : (!response.reset && session.context && session.context.lastProducts) || [],
+          lastFamily: response.lastFamily || (!response.reset && session.context && session.context.lastFamily) || null,
+          lastModel: model || (response.awaiting === null ? null : (!response.reset && session.context && session.context.lastModel) || null),
           awaiting: response.awaiting || null,
+          lastTopic: response.lastTopic || null,
+          formDraft: response.formDraft || null,
           history: [{ role: 'user', text }, { role: 'assistant', text: result.text }],
         };
       }

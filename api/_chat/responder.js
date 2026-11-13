@@ -1,7 +1,7 @@
 'use strict';
 
 const { loadCatalog, searchCatalog, normalize } = require('./catalog');
-const { guidedReply } = require('./conversation');
+const { guidedReply, shouldResetContext, topicOf } = require('./conversation');
 
 const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
 const EMAIL = 'support@lavaall.com';
@@ -394,17 +394,26 @@ function searchMaybeMulti(text, options) {
   };
 }
 
+function attachTopic(reply, rawInput, session, reset) {
+  if (!reply || typeof reply !== 'object') return reply;
+  if (reset) reply.reset = true;
+  if (!reply.lastTopic) reply.lastTopic = topicOf(rawInput, session || {});
+  return reply;
+}
+
 function respond(text, session = {}) {
   const rawInput = String(text || '').trim();
-  const input = resolveQuery(rawInput, session);
+  const reset = shouldResetContext(rawInput, session);
+  const context = reset ? {} : session;
+  const input = resolveQuery(rawInput, context);
   const detectedLanguage = detectLanguage(rawInput);
-  const lang = detectedLanguage === 'en' && isFollowUp(rawInput) && session.lastLanguage
-    ? session.lastLanguage : detectedLanguage;
+  const lang = detectedLanguage === 'en' && isFollowUp(rawInput) && context.lastLanguage
+    ? context.lastLanguage : detectedLanguage;
   const partQtys = productParts(input).length >= 2
     ? productParts(input).map(part => extractQuantity(part)).filter(value => value != null)
     : [];
   let qty = partQtys.length > 1 ? partQtys : extractQuantity(input);
-  if ((qty == null || (Array.isArray(qty) && !qty.length)) && isFollowUp(rawInput) && session.lastQty) qty = session.lastQty;
+  if ((qty == null || (Array.isArray(qty) && !qty.length)) && isFollowUp(rawInput) && context.lastQty) qty = context.lastQty;
   const identity = extractIdentity(rawInput);
   const sensitive = detectSensitive(rawInput);
   const priceAsk = PRICE_ASK.test(input) || PRICE_ASK.test(rawInput);
@@ -417,7 +426,7 @@ function respond(text, session = {}) {
   const events = [];
 
   if (!rawInput) {
-    return { text: FIRST[lang] || FIRST.en, language: lang, events, fields: {} };
+    return attachTopic({ text: FIRST[lang] || FIRST.en, language: lang, events, fields: {} }, rawInput, context, reset);
   }
 
   if (isInjection(rawInput)) {
@@ -427,7 +436,7 @@ function respond(text, session = {}) {
       pt: 'Não posso alterar as minhas instruções, partilhar políticas privadas, segredos ou ferramentas internas, nem indicar preços. Sou LAVAALL Assistant e só posso ajudar com Tecnologia ou preparar um pedido.',
       kr: "A nɔ ebul chenj mi ruls, shɛ prayvet pɔlisi, sikrɛt, ɔ intanal tul, ɔ gi prayz. A na LAVAALL Assistant; a kin ɛp wit Technology kwɛstyɔn ɔ priper rɛkwɛst.",
     }[lang];
-    return { text: `${refusal} ${offer(lang, false)}`, language: lang, events: ['refused-injection'], fields: {} };
+    return attachTopic({ text: `${refusal} ${offer(lang, false)}`, language: lang, events: ['refused-injection'], fields: {} }, rawInput, context, reset);
   }
 
   if (sensitive) {
@@ -438,13 +447,13 @@ function respond(text, session = {}) {
       kr: "Duya, nɔ shɛ pemɛnt kad, paspɔt, nashɔnal ID, paswɔd, ɔ ɔda sɛnsitiv dɔkyumɛnt ya. A nɔ go stɔ ɔ ripit dɛn. Ném ɛn valid fon nɔmba nɔmɔ fɔ sɛn rɛkwɛst; ɔda fil dɛn ɔpshɔnal.",
     }[lang];
     // Never echo the raw sensitive payload back.
-    return { text: `${line} ${contacts()}`, language: lang, events: ['blocked-sensitive:' + sensitive], fields: {} };
+    return attachTopic({ text: `${line} ${contacts()}`, language: lang, events: ['blocked-sensitive:' + sensitive], fields: {} }, rawInput, context, reset);
   }
 
-  const guided = guidedReply(rawInput, session, lang, { priceAsk, wantsAgent });
+  const guided = guidedReply(rawInput, context, lang, { priceAsk, wantsAgent });
   if (guided) {
     guided.language = lang;
-    return guided;
+    return attachTopic(guided, rawInput, context, reset);
   }
 
   if (OFFTOPIC_HINTS.test(input) && !TECH_HINTS.test(input) && !wantsAgent && !hours) {
@@ -454,12 +463,12 @@ function respond(text, session = {}) {
       pt: 'Estou aqui para a LAVAALL Technology — equipamento, instalação ou um pedido para a equipa — e não para esse tema.',
       kr: 'A de ya fɔ ɛp wit LAVAALL Technology — ɛkwipmɛnt, instaleshɔn, ɔ rɛkwɛst fɔ di tim — nɔt dat tɔpik.',
     }[lang];
-    return { text: `${line} ${offer(lang, false)}`, language: lang, events: ['redirected-offtopic'], fields: {} };
+    return attachTopic({ text: `${line} ${offer(lang, false)}`, language: lang, events: ['redirected-offtopic'], fields: {} }, rawInput, context, reset);
   }
 
   if (botAsk && !TECH_HINTS.test(rawInput) && !TECH_HINTS.test(input) && !priceAsk) {
     const line = FIRST[lang] || FIRST.en;
-    return { text: `${line} ${offer(lang, wantsAgent)}`, language: lang, events: ['identified-assistant'], fields: {}, handoff: wantsAgent ? { tagOsman: true } : undefined };
+    return attachTopic({ text: `${line} ${offer(lang, wantsAgent)}`, language: lang, events: ['identified-assistant'], fields: {}, handoff: wantsAgent ? { tagOsman: true } : undefined }, rawInput, context, reset);
   }
 
   if (/\b(install(?:ation|ations|ing)?|installe[rz]?|installer|installations?|deployment|deploy|deploiement|instalacao|instalar)\b/i.test(foldedText(rawInput))) {
@@ -469,10 +478,10 @@ function respond(text, session = {}) {
       pt: 'A LAVAALL fornece e instala equipamentos. As páginas públicas de cobertura descrevem Serra Leoa, Guiné e Guiné-Bissau. A entrega e a instalação dependem do local e devem ser confirmadas pela equipa; não posso prometer agendamento.',
       kr: 'LAVAALL de supply ɛn install ɛkwipmɛnt. Di pɔblik coverage pej dɛn diskrayb Sierra Leone, Guinea ɛn Guinea-Bissau. Delivery ɛn installation dipɛnd pan di ples; di tim mɔs kɔnfam. A nɔ ebul prɔmis tɛm.',
     }[lang];
-    return { text: `${line} ${offer(lang, wantsAgent)}`, language: lang,
+    return attachTopic({ text: `${line} ${offer(lang, wantsAgent)}`, language: lang,
       events: ['installation-service', ...(wantsAgent ? ['tag-osman-handoff'] : [])],
       fields: draftFields(rawInput, qty, [], 'installation-services', identity),
-      handoff: wantsAgent ? { tagOsman: true } : undefined };
+      handoff: wantsAgent ? { tagOsman: true } : undefined }, rawInput, context, reset);
   }
 
   const catalogPreview = searchMaybeMulti(input, { limit: 8 });
@@ -485,7 +494,7 @@ function respond(text, session = {}) {
       pt: 'Obrigado, alguém da equipa entrará em contacto consigo em breve. Qual é o melhor WhatsApp ou e-mail para o contactarmos?',
       kr: 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn. Wetin na di bɛst WhatsApp ɔ ɛmail fɔ rich yu?',
     }[lang];
-    return { text: line, language: lang, events, fields: {}, chips: [], handoff: { tagOsman: true } };
+    return attachTopic({ text: line, language: lang, events, fields: {}, chips: [], handoff: { tagOsman: true } }, rawInput, context, reset);
   }
 
   if (hours && !priceAsk && !TECH_HINTS.test(input) && !TECH_HINTS.test(rawInput) && !searchMaybeMulti(String(input).replace(/24\s*\/\s*7/ig, " ").replace(/\b24\s+7\b/g, " ")).matches.length) {
@@ -495,19 +504,19 @@ function respond(text, session = {}) {
       pt: 'As mensagens são aceites a qualquer hora, mas a equipa não está presente de forma contínua. Alguém entrará em contacto após um pedido enviado com sucesso; não posso prometer um prazo.',
       kr: 'Wi accɛpt mɛsej ɛni tɛm, bɔt di tim nɔ de ɔl tɛm. Sɔmbɔdi go rich yu afta rɛkwɛst sɛn; a nɔ ebul prɔmis tɛm.',
     }[lang];
-    return { text: `${line} ${offer(lang, wantsAgent)}`, language: lang, events: wantsAgent ? ['tag-osman-handoff'] : ['hours'], fields: {}, handoff: wantsAgent ? { tagOsman: true } : undefined };
+    return attachTopic({ text: `${line} ${offer(lang, wantsAgent)}`, language: lang, events: wantsAgent ? ['tag-osman-handoff'] : ['hours'], fields: {}, handoff: wantsAgent ? { tagOsman: true } : undefined }, rawInput, context, reset);
   }
 
 
   // French/Portuguese "moto(s)" means motorcycle, not Motorola, unless a phone is named.
   const motorcycle = /\bmotos?\b/i.test(rawInput) && !/\b(motorola|phone|smartphone|g84|stylus)\b/i.test(rawInput);
   if (motorcycle) {
-    return {
+    return attachTopic({
       text: replyNotListed(lang, input, qty),
       language: lang,
       events: ['not-in-catalog'],
       fields: draftFields(input, qty, [], 'general-inquiry'),
-    };
+    }, rawInput, context, reset);
   }
 
   loadCatalog();
@@ -541,7 +550,7 @@ function respond(text, session = {}) {
     }
     const listed = listModels(result.all, 8);
     const naming = shortCatalogNames((result.all && result.all.length) ? result.all : result.matches, 5);
-    return {
+    return attachTopic({
       text: textOut,
       language: lang,
       events,
@@ -551,13 +560,13 @@ function respond(text, session = {}) {
       matchCount: result.all.length,
       resolvedQuery: input,
       handoff: wantsAgent ? { tagOsman: true } : undefined,
-    };
+    }, rawInput, context, reset);
   }
 
   const lookingForThing = (Array.isArray(qty) ? qty.length : qty) || /\b(iphone|ipad|tesla|drone|moto|motos|motorcycle|laptop|server|router|starlink|ps5|tractor|trator|ticket|v[eé]lo|gopro|john deere)\b/i.test(input + " " + rawInput)
     || /\b(cherche|procuro|looking for|need|want to buy|vendez-vous)\b/i.test(input);
   if (lookingForThing || priceAsk) {
-    return {
+    return attachTopic({
       text: (priceAsk
         ? ({
           en: 'I cannot give prices, estimates, or discounts in this chat. ',
@@ -569,7 +578,7 @@ function respond(text, session = {}) {
       language: lang,
       events: ['not-in-catalog'],
       fields: draftFields(input, qty, [], priceAsk ? 'sales-quotation' : 'general-inquiry'),
-    };
+    }, rawInput, context, reset);
   }
 
   const fallback = {
@@ -578,7 +587,7 @@ function respond(text, session = {}) {
     pt: `Posso ajudar com perguntas de Tecnologia, indicar o que está no catálogo, ou preparar um pedido. ${offer(lang, false)}`,
     kr: `A kin ɛp wit Technology kwɛstyɔn, sho wetin de na katalog, ɔ priper rɛkwɛst. ${offer(lang, false)}`,
   }[lang];
-  return { text: fallback, language: lang, events, fields: {} };
+  return attachTopic({ text: fallback, language: lang, events, fields: {} }, rawInput, context, reset);
 }
 
 module.exports = { respond, REACHABILITY, EMAIL, WHATSAPP, FIRST, detectLanguage, extractQuantity, resolveQuery, isFollowUp, extractIdentity, productParts };

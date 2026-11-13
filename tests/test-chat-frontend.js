@@ -82,9 +82,12 @@ class Element {
     this.disabled = false; this.hidden = false; this.style = {};
     this.classList = {add: (...names)=>{this.className = [...new Set((this.className || '').split(' ').concat(names))].join(' ');}, remove: (...names)=>{this.className = (this.className || '').split(' ').filter(name=>!names.includes(name)).join(' ');}, contains: name=>(this.className || '').split(' ').includes(name)};
   }
-  set textContent(value) { this.text = value; this.children = []; }
+  set textContent(value) { this.text = value; this._innerHTML = undefined; this.children = []; }
   get textContent() { return (this.text || '') + this.children.map(child=>child.textContent).join(''); }
+  set innerHTML(value) { this._innerHTML = String(value); this.text = String(value).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ''); this.children = []; }
+  get innerHTML() { return this._innerHTML || this.text || ''; }
   appendChild(child) { this.children.push(child); return child; }
+  removeChild(child) { this.children = this.children.filter(node => node !== child); return child; }
   setAttribute(name, value) { this[name] = value; }
   addEventListener(name, listener) { this.events[name] = listener; }
   focus() { this.focused = true; }
@@ -195,6 +198,37 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   assert.doesNotMatch(failLog.textContent, /Submission unavailable/);
   const failStatus = byClass(failPanel, 'customer-assistant-status');
   assert.doesNotMatch(failStatus.textContent, /Submission unavailable/);
+
+  assert.equal(ui.formatAssistantHtml('Yes, we have **phones**. <script>x</script>'), 'Yes, we have <strong>phones</strong>. &lt;script&gt;x&lt;/script&gt;');
+  assert.equal(ui.formatAssistantHtml('Use the [request form](#signup).'), 'Use the <a href="#signup">request form</a>.');
+  assert.equal(ui.plainReplyText('Yes, we have **phones**.\n\nUse the [request form](#signup).'), 'Yes, we have phones. Use the request form.');
+
+  const resetDoc = {createElement:tag=>new Element(tag), body:new Element('body')};
+  const resetTurns = [];
+  const resetPanel = ui.mount(resetDoc, local, {
+    ...enabled,
+    transport: async(action, payload)=>{
+      resetTurns.push(payload.text);
+      if (payload.text.includes('wholesale')) return {text:'We handle **wholesale** requests. Email **support@lavaall.com**.'};
+      return {text:'Yes, our team can **confirm product availability**.', reset:true};
+    }
+  });
+  const resetLog = byClass(resetPanel, 'customer-assistant-log');
+  const resetComposer = byClass(resetPanel, 'customer-assistant-composer');
+  const resetInput = descendants(resetComposer).find(child=>child.tag === 'textarea');
+  const greeting = resetLog.children[0];
+  resetInput.value = 'How do you handle wholesale requests?';
+  await resetComposer.events.submit({preventDefault(){}});
+  assert.match(resetLog.textContent, /wholesale/);
+  assert.match(resetLog.children.at(-1).innerHTML, /<strong>wholesale<\/strong>/);
+  const before = resetLog.children.length;
+  resetInput.value = 'Can the team confirm product availability?';
+  await resetComposer.events.submit({preventDefault(){}});
+  assert.equal(resetLog.children[0], greeting, 'topic reset keeps the greeting');
+  assert.ok(resetLog.children.length < before + 1, 'topic reset clears earlier turns');
+  assert.doesNotMatch(resetLog.textContent, /wholesale/);
+  assert.match(resetLog.textContent, /confirm product availability/);
+  assert.match(resetLog.children.at(-1).innerHTML, /<strong>confirm product availability<\/strong>/);
 
   const css = fs.readFileSync(require.resolve('../assets/css/customer-assistant.css'),'utf8');
   assert.match(css, /min-height: 44px/);

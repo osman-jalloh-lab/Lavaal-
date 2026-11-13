@@ -53,6 +53,25 @@
   var scaffold = Object.freeze({
     provider:'ElevenLabs', agentId:'NOT_CONFIGURED', textOnly:true, enabled:false, enforcementVerified:false
   });
+  function formatAssistantHtml(text) {
+    var escaped = String(text == null ? '' : text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    escaped = escaped.replace(/\[([^\]]+)\]\(#signup\)/g, '<a href="#signup">$1</a>');
+    escaped = escaped.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+    return escaped;
+  }
+  function plainReplyText(text) {
+    return String(text == null ? '' : text)
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\[([^\]]+)\]\(#signup\)/g, '$1')
+      .replace(/\n+/g, ' ')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+  }
   function eligible(config, location) {
     var loopback = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
     if (config && config.CHAT_ENABLED === true && config.localTestStub !== true &&
@@ -185,6 +204,20 @@
       var n = doc.createElement(tag);
       if (text !== undefined) n.textContent = text;
       return n;
+    }
+    function appendAssistant(text) {
+      var n = createElement('p');
+      n.innerHTML = formatAssistantHtml(text);
+      log.appendChild(n);
+      return n;
+    }
+    function clearEarlierTurns(keep) {
+      var nodes = [];
+      var i;
+      for (i = 0; i < log.children.length; i++) nodes.push(log.children[i]);
+      for (i = 0; i < nodes.length; i++) {
+        if (keep.indexOf(nodes[i]) === -1) log.removeChild(nodes[i]);
+      }
     }
     panel.appendChild(createElement('h2','LAVAALL Assistant'));
     var first = createElement('p'), notice = createElement('p'), status = createElement('p');
@@ -338,7 +371,7 @@
       });
     }
     function intakeReply(text) {
-      log.appendChild(createElement('p', text));
+      appendAssistant(text);
       composerInput.value = '';
       composerInput.focus();
       renderFollowups();
@@ -567,10 +600,14 @@
       started = true;
       questions.textContent = '';
       if (/^(ask assistant|demander à l['’]assistant|perguntar ao assistente)$/i.test(text)) {
-        log.appendChild(createElement('p', 'Sure, what can I help with?'));
+        appendAssistant('Sure, what can I help with?');
         composerInput.value = '';
         composerInput.focus();
         return;
+      }
+      if (intake && /^(how |can |could |do you |what |where |when |why )/i.test(text) && text.length > 20) {
+        intake = null;
+        intakeDraft = {};
       }
       if (intake) {
         var visitorBubble = createElement('p', text);
@@ -626,7 +663,8 @@
           .replace(/[ \t]{2,}/g, ' ')
           .trim();
         if (!replyText) replyText = 'You can reach us at support@lavaall.com or WhatsApp +1 (737) 704-4182. How can I help?';
-        log.appendChild(createElement('p', replyText));
+        if (result && result.reset) clearEarlierTurns([first, visitorBubble]);
+        appendAssistant(replyText);
         lastChips = Array.isArray(result.chips) ? result.chips : null;
         renderFollowups();
         if (wantsIntake) {
@@ -636,7 +674,7 @@
         status.textContent = '';
         composerInput.value = '';
         composerInput.focus();
-        speakReply(replyText);
+        speakReply(plainReplyText(replyText));
       }
       catch (error) {
         var unavailable = (error && (error.code === 'quota' || error.code === 'cost_cap'))
@@ -811,6 +849,7 @@
   }
   var api = {
     eligible:eligible, summary:summary, copy:copy, fields:fields, scaffold:scaffold, validatePartialDraft:validatePartialDraft, mount:mount,
+    formatAssistantHtml:formatAssistantHtml, plainReplyText:plainReplyText,
     speechLocale:speechLocale, speechVoice:speechVoice, browserVoiceSupported:browserVoiceSupported, browserVoiceEnabled:browserVoiceEnabled,
     createBrowserTtsAdapter:createBrowserTtsAdapter, createPreviewTransport:createPreviewTransport, boot:boot
   };

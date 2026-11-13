@@ -1,6 +1,6 @@
 'use strict';
 
-const { searchCatalog } = require('./catalog');
+const { searchCatalog, loadCatalog } = require('./catalog');
 const EMAIL = 'support@lavaall.com';
 const WHATSAPP = '+1 (737) 704-4182';
 
@@ -161,6 +161,9 @@ function availabilityReply(query, products) {
     );
   }
   if (!names.length) {
+    if (!familyName(label) && !/\b(iphone|ipad|macbook|galaxy)\b/i.test(label)) {
+      return sourceReply(label);
+    }
     const closest = uniqueNames(closestFamily(label)).slice(0, 4);
     const extra = closest.length
       ? ' The closest we have is the ' + listWords(closest) + '. Would you like to look at that?'
@@ -203,6 +206,337 @@ function colorReply(product, asked) {
   );
 }
 
+
+const SERVICE_SLA = 'Someone from our team will get back to you within 24 hours.';
+const FORM_LINK = '[request form](#signup)';
+const FORM_START = /^(yes|yeah|yep|ok|okay|sure|please)[.!]?\s*$|^fill out a (quick )?form$|^i (can |will |want to )?fill( out)?( this| the| a)? form\b|^help me fill\b|^start (the |a )?form\b/i;
+const FORM_CONTACT = /^(?:(?:my\s+)?(?:phone|whatsapp|email|e-mail)(?:\s+(?:is|number))?\s*[:\-]?\s*)?(.+)$/i;
+
+const SERVICE_INTENTS = [
+  { topic: 'service-order', re: /\b(existing order|help with (an? )?(existing )?order|order (help|support|status|issue|problem|number)|track (my |an )?order)\b/i, lead: 'I can help with an **existing order**.' },
+  { topic: 'service-wholesale', re: /\b(wholesale(?:s)? request|wholesale requests|handle wholesale|wholesale inquir|(?:^|\bhow do (?:you|we) handle\b).*wholesale|bulk request)\b|\bwholesale\b/i, lead: 'We handle **wholesale** and bulk requests through our team.' },
+  { topic: 'service-availability', re: /\b((?:can|could|will) the team confirm (?:product )?availability|confirm (?:product )?availability|how do (?:you|i|we) (?:confirm|check) (?:product )?availability)\b/i, lead: 'Yes, our team can **confirm product availability** with your request. I cannot confirm stock here.' },
+];
+
+const CATEGORY_DEFS = [
+  { label: 'phones', pattern: /^(phones?|smartphones?)$/i, match: product => product.categoryId === 'phones' },
+  { label: 'chargers', pattern: /^(chargers?|charging cables?)$/i, match: product => product.categoryId === 'accessories' && /charg/i.test((product.name || '') + ' ' + (product.family || '')) },
+  { label: 'laptops', pattern: /^(laptops?|notebooks?)$/i, match: product => product.categoryId === 'computers' && /laptop|notebook|macbook|elitebook|probook|thinkpad|latitude|ideapad|yoga|zbook|vivobook|aspire|xps|surface/i.test((product.name || '') + ' ' + (product.family || '') + ' ' + (product.category || '')) },
+  { label: 'computers', pattern: /^(computers?|desktops?|pcs?|workstations?)$/i, match: product => product.categoryId === 'computers' },
+  { label: 'tablets', pattern: /^(tablets?)$/i, match: product => product.categoryId === 'tablets' },
+  { label: 'monitors', pattern: /^(monitors?|screens?)$/i, match: product => product.categoryId === 'monitors' },
+  { label: 'printers', pattern: /^(printers?)$/i, match: product => product.categoryId === 'printers' },
+  { label: 'TVs', pattern: /^(tvs?|televisions?)$/i, match: product => product.categoryId === 'tvs' },
+  { label: 'servers', pattern: /^(servers?)$/i, match: product => product.categoryId === 'servers' },
+];
+
+function joinBlocks(parts) {
+  return parts.filter(Boolean).join('\n\n');
+}
+
+function serviceContacts(offerForm) {
+  const line = 'Email **' + EMAIL + '** or WhatsApp **' + WHATSAPP + '**' + (offerForm ? ', or I can help you fill out a quick form.' : '.');
+  return joinBlocks([line, 'You can also use the ' + FORM_LINK + ' on this page.', SERVICE_SLA]);
+}
+
+function serviceReply(intent) {
+  return result(joinBlocks([intent.lead, serviceContacts(true)]), ['service-help'], {
+    chips: ['Fill out a form', 'Talk to someone'],
+    awaiting: 'form-offer',
+    lastTopic: intent.topic,
+  });
+}
+
+function sourceReply(label) {
+  const shown = label ? '**' + label + '**' : 'that';
+  return result(
+    joinBlocks([
+      "I don't see " + shown + ' in our catalogue. We can source it, let us check.',
+      serviceContacts(true),
+    ]),
+    ['service-help', 'not-in-catalog', 'source-offer'],
+    { chips: ['Fill out a form', 'Talk to someone'], awaiting: 'form-offer', lastTopic: 'service-source' }
+  );
+}
+
+function looksLikeProductLookup(text) {
+  const query = productQuery(text);
+  if (!query) return false;
+  if (familyName(query)) return true;
+  if (/\b(iphone|ipad|macbook|galaxy|pixel|starlink)\s+\w+/i.test(query)) return true;
+  if (HAVE_ASK.test(text) && familyName(query)) return true;
+  return false;
+}
+
+function serviceIntent(text) {
+  const raw = String(text || '').trim();
+  if (looksLikeProductLookup(raw) && !SERVICE_INTENTS[2].re.test(raw)) return null;
+  // A named product plus wholesale (e.g. 50 iPhones wholesale) stays a product ask.
+  if (/\bwholesale\b/i.test(raw) && (HAVE_ASK.test(raw) || WANT_ASK.test(raw) || familyName(productQuery(raw)))) return null;
+  for (const intent of SERVICE_INTENTS) {
+    if (intent.re.test(raw)) return intent;
+  }
+  return null;
+}
+
+function categoryToken(text) {
+  let query = productQuery(text);
+  query = query.replace(/^(please|just)\s+/i, '').replace(/\s+(please|now|today)\s*[?.!]*$/i, '').replace(/[?.!]+$/, '').trim();
+  return query;
+}
+
+function categoryDef(text) {
+  const token = categoryToken(text);
+  if (!token || token.split(/\s+/).length > 3) return null;
+  return CATEGORY_DEFS.find(entry => entry.pattern.test(token)) || null;
+}
+
+function productsForDef(entry) {
+  return (loadCatalog().products || []).filter(entry.match);
+}
+
+function brandTypeLabel(brand, items) {
+  if (/^apple$/i.test(brand) && items.length && items.every(item => /iphone/i.test(item.name) || /iphone/i.test(item.family || ''))) {
+    return 'iPhone';
+  }
+  return brand;
+}
+
+function categoryChips(products) {
+  const groups = new Map();
+  for (const product of products || []) {
+    const brand = product.brand || '';
+    if (!brand || /^various$/i.test(brand)) continue;
+    const label = brandTypeLabel(brand, [product]);
+    if (!groups.has(label)) groups.set(label, { count: 0, first: product });
+    groups.get(label).count++;
+  }
+  const brands = [...groups.entries()].sort((a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0])).map(([label]) => label);
+  if (brands.length) return brands.slice(0, 6);
+  const types = uniqueNames(products);
+  return types.slice(0, 6);
+}
+
+function matchChip(text, products) {
+  const raw = String(text || '').trim();
+  if (!raw || !products || !products.length) return [];
+  if (/^iphone$/i.test(raw)) return products.filter(item => /iphone/i.test(item.name) || /iphone/i.test(item.family || '') || /^apple$/i.test(item.brand || ''));
+  const brand = products.filter(item => (item.brand || '').toLowerCase() === raw.toLowerCase() || brandTypeLabel(item.brand, [item]).toLowerCase() === raw.toLowerCase());
+  if (brand.length) return brand;
+  const named = products.filter(item => item.name.toLowerCase() === raw.toLowerCase() || (item.family || '').toLowerCase() === raw.toLowerCase());
+  if (named.length) return named;
+  const partial = products.filter(item => item.name.toLowerCase().includes(raw.toLowerCase()) || (item.family || '').toLowerCase().includes(raw.toLowerCase()));
+  return partial.length && partial.length < products.length ? partial : [];
+}
+
+function categoryReply(entry, products) {
+  if (!products.length) return sourceReply(entry.label);
+  const chips = categoryChips(products);
+  const types = uniqueNames(products);
+  const askBrand = chips.length && chips.every(label => products.some(item => (item.brand && item.brand.toLowerCase() === label.toLowerCase()) || brandTypeLabel(item.brand, [item]) === label));
+  if (askBrand && !chips.every(label => types.includes(label))) {
+    return result(
+      'Yes, we have **' + entry.label + '**. Which brand?',
+      ['category-guide', 'product-guide'],
+      { chips: chips.slice(0, 6), awaiting: 'brand', lastFamily: entry.label, lastProducts: products, lastTopic: 'product:' + entry.label, matchCount: products.length }
+    );
+  }
+  const listed = types.slice(0, 6).map(name => '**' + name + '**').join(', ');
+  return result(
+    'Yes, we have **' + entry.label + '**. We list ' + listed + '. What type are you looking for?',
+    ['category-guide', 'product-guide'],
+    { chips: (chips.length ? chips : types).slice(0, 6), awaiting: 'type', lastFamily: entry.label, lastProducts: products, lastTopic: 'product:' + entry.label, matchCount: products.length }
+  );
+}
+
+function selectedItemsReply(label, products, session) {
+  const names = uniqueNames(products);
+  if (!names.length) return sourceReply(label);
+  if (names.length === 1) {
+    const product = products[0];
+    const colors = productColors(product);
+    if (colors.length) {
+      return result(
+        'Yes, we have the **' + names[0] + '**. What color are you looking for?',
+        ['category-guide', 'product-guide'],
+        { chips: colors.slice(0, 5), awaiting: 'color', lastModel: product, lastProducts: products, lastFamily: session.lastFamily || label, lastTopic: session.lastTopic, matchCount: 1 }
+      );
+    }
+    return result(
+      'Yes, we have **' + names[0] + '** in our catalogue. Our team will confirm stock with your quote.',
+      ['category-guide', 'product-guide'],
+      { chips: ['Request a quote', 'Talk to someone'], awaiting: null, lastModel: product, lastProducts: products, lastFamily: session.lastFamily || label, lastTopic: session.lastTopic, matchCount: 1 }
+    );
+  }
+  return result(
+    'Yes, we have **' + label + '** in our catalogue: ' + names.slice(0, 8).join(', ') + '. Which model are you looking for?',
+    ['category-guide', 'product-guide'],
+    { chips: names.slice(0, 5), awaiting: 'model', lastProducts: products, lastFamily: label, lastTopic: session.lastTopic || ('product:' + label), matchCount: products.length }
+  );
+}
+
+function isEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function isPhone(value) {
+  const raw = String(value || '').trim();
+  return /^[+()0-9 .\-]{7,40}$/.test(raw) && raw.replace(/\D/g, '').length >= 7;
+}
+
+function formDraft(session) {
+  return Object.assign({ name: '', contact: '', need: '' }, session.formDraft || {});
+}
+
+function formReply(text, draft, awaiting, events) {
+  return result(text, events || ['form-intake', 'service-help'], {
+    chips: ['Start over', 'Cancel request'],
+    awaiting,
+    formDraft: draft,
+    lastTopic: 'form-intake',
+  });
+}
+
+function startForm(session) {
+  return formReply('Sure, I can help you fill out a quick form. What is your **name**?', { name: '', contact: '', need: '', topic: session.lastTopic || '' }, 'form-name');
+}
+
+function guidedForm(text, session) {
+  const raw = String(text || '').trim();
+  const awaiting = session.awaiting;
+  if (String(awaiting || '').startsWith('form-') && /^(cancel|cancel request)$/i.test(raw)) {
+    return result('Request cancelled. What else can I help with?', ['form-intake'], {
+      chips: ['Request a quote', 'Talk to someone'], awaiting: null, formDraft: null, lastTopic: null,
+    });
+  }
+  if (String(awaiting || '').startsWith('form-') && awaiting !== 'form-offer' && /^start over$/i.test(raw)) {
+    return startForm(session);
+  }
+  if (awaiting === 'form-offer') {
+    if (FORM_START.test(raw) || /^fill out a form$/i.test(raw)) return startForm(session);
+    return null;
+  }
+  if (awaiting === 'form-name') {
+    if (raw.length < 2 || raw.length > 100) return formReply('Please enter a name under 100 characters.', formDraft(session), 'form-name');
+    const draft = Object.assign(formDraft(session), { name: raw });
+    return formReply('Thanks, **' + draft.name + '**. What **phone**, WhatsApp, or **email** should the team use?', draft, 'form-contact');
+  }
+  if (awaiting === 'form-contact') {
+    const value = raw.replace(/^(?:my\s+)?(?:phone|whatsapp|email|e-mail)(?:\s+(?:is|number))?\s*[:\-]?\s*/i, '').trim();
+    if (!isEmail(value) && !isPhone(value)) {
+      return formReply('Please enter a **phone**, WhatsApp number, or **email**.', formDraft(session), 'form-contact');
+    }
+    const draft = Object.assign(formDraft(session), { contact: value });
+    return formReply('What do you need help with?', draft, 'form-need');
+  }
+  if (awaiting === 'form-need') {
+    if (raw.length < 2) return formReply('Please tell me briefly what you need help with.', formDraft(session), 'form-need');
+    const draft = Object.assign(formDraft(session), { need: raw.slice(0, 2000) });
+    const textOut = joinBlocks([
+      'Thanks, **' + draft.name + '**. I have your request for the team.',
+      'Please also send it to **' + EMAIL + '** or WhatsApp **' + WHATSAPP + '**, or use the ' + FORM_LINK + ' on this page.',
+      SERVICE_SLA,
+    ]);
+    return result(textOut, ['form-intake', 'service-help', 'form-complete'], {
+      chips: ['Talk to someone'],
+      awaiting: null,
+      formDraft: draft,
+      lastTopic: 'form-complete',
+    });
+  }
+  return null;
+}
+
+function isNewQuestion(text) {
+  const raw = String(text || '').trim();
+  if (serviceIntent(raw) || CONTACT_ASK.test(raw) || HELP_ASK.test(raw)) return true;
+  if (HAVE_ASK.test(raw) || (WANT_ASK.test(raw) && categoryToken(raw).length > 0)) return true;
+  if (categoryDef(raw) && /^(do you|can you|how |what |where |when |i want|i need)/i.test(raw)) return true;
+  return /^(how |can |could |do you |what |where |when |why )/i.test(raw) && raw.length > 20;
+}
+
+function isSlotFill(text, session) {
+  if (!session || !session.awaiting) return false;
+  const raw = String(text || '').trim();
+  if (!raw) return false;
+  if (String(session.awaiting).startsWith('form-') && session.awaiting !== 'form-offer') return true;
+  if (CONTACT_ASK.test(raw) || serviceIntent(raw)) return false;
+  if (isNewQuestion(raw) && session.awaiting === 'form-offer') return false;
+  if (isNewQuestion(raw) && !String(session.awaiting).startsWith('form-')) {
+    // A short brand/model/color answer is not a new question.
+    if (['brand', 'type', 'model', 'color'].includes(session.awaiting) && raw.length <= 48 && !/[?]/.test(raw) && !HAVE_ASK.test(raw) && !WANT_ASK.test(raw) && !serviceIntent(raw)) {
+      return true;
+    }
+    return false;
+  }
+  if (session.awaiting === 'form-offer') return FORM_START.test(raw) || /^fill out a form$/i.test(raw);
+  if (String(session.awaiting).startsWith('form-')) return true;
+  if (['brand', 'type', 'model', 'color'].includes(session.awaiting)) {
+    if (HAVE_ASK.test(raw) || (WANT_ASK.test(raw) && categoryToken(raw) && !pickModel(raw, session.lastProducts || []) && !matchChip(raw, session.lastProducts || []).length)) return false;
+    if (categoryDef(raw) && topicOf(raw, {}) !== (session.lastTopic || '')) return false;
+    return true;
+  }
+  return false;
+}
+
+function topicOf(text, session) {
+  const raw = String(text || '').trim();
+  if (session && session.awaiting && isSlotFill(raw, session)) return session.lastTopic || 'followup';
+  if (CONTACT_ASK.test(raw)) return 'contact';
+  if (HELP_ASK.test(raw)) return 'help';
+  const intent = serviceIntent(raw);
+  if (intent) return intent.topic;
+  const entry = categoryDef(raw);
+  if (entry) return 'product:' + entry.label;
+  const query = productQuery(raw);
+  const family = familyName(query);
+  if (HAVE_ASK.test(raw) || WANT_ASK.test(raw) || family || /^\s*(?:the )?((?:apple )?iphone(?:\s+1[1-6])?(?:\s+(?:pro max|pro|plus|max|mini))?)\s*\??\s*$/i.test(raw)) {
+    return 'product:' + (family ? family.toLowerCase() : (query || raw).toLowerCase().replace(/\s+/g, ' ').slice(0, 48));
+  }
+  if (PRICE_ASK.test(raw)) return 'faq-price';
+  if (PAY_ASK.test(raw) || LEGAL_ASK.test(raw)) return 'faq-pay';
+  if (TIMELINE_ASK.test(raw)) return 'faq-timeline';
+  if (DELIVERY_ASK.test(raw)) return 'faq-delivery';
+  if (SCHOOL_ASK.test(raw)) return 'faq-school';
+  if (TRUST_ASK.test(raw)) return 'faq-trust';
+  if (WEBSITE_ASK.test(raw)) return 'faq-website';
+  return 'general:' + raw.toLowerCase().slice(0, 48);
+}
+
+function shouldResetContext(text, session) {
+  if (!session || !(session.lastTopic || session.awaiting || (session.lastProducts || []).length || session.lastModel)) return false;
+  if (isSlotFill(text, session)) return false;
+  const next = topicOf(text, {});
+  const prev = session.lastTopic;
+  if (!next || !prev) return Boolean(prev && next && next !== prev);
+  return next !== prev;
+}
+
+function guidedCategory(text, session) {
+  const awaiting = session && session.awaiting;
+  if ((awaiting === 'brand' || awaiting === 'type') && (session.lastProducts || []).length) {
+    const matched = matchChip(text, session.lastProducts);
+    if (matched.length) return selectedItemsReply(categoryToken(text) || uniqueNames(matched)[0], matched, session);
+    const picked = pickModel(text, session.lastProducts);
+    if (picked) return selectedItemsReply(picked.name, [picked], session);
+  }
+  const entry = categoryDef(text);
+  if (!entry) return null;
+  return categoryReply(entry, productsForDef(entry));
+}
+
+function genericSourceAsk(text) {
+  const raw = String(text || '').trim();
+  if (!raw || raw.length > 48) return false;
+  if (serviceIntent(raw) || CONTACT_ASK.test(raw) || HELP_ASK.test(raw) || PRICE_ASK.test(raw)) return false;
+  if (/\b(starlink|install(?:ation)?|invoice|refund)\b/i.test(raw)) return false;
+  if (categoryDef(raw) || familyName(productQuery(raw))) return false;
+  const query = categoryToken(raw);
+  if (!query || query.split(/\s+/).length > 3) return false;
+  if (HAVE_ASK.test(raw) || WANT_ASK.test(raw) || /^\s*[a-z][a-z0-9 \-]{1,30}\s*[?.!]?\s*$/i.test(raw)) return true;
+  return false;
+}
+
 function guidedReply(rawInput, session, lang, flags) {
   flags = flags || {};
   const text = String(rawInput || '').trim();
@@ -220,6 +554,15 @@ function guidedReply(rawInput, session, lang, flags) {
       { chips: ['Talk to someone', 'Request a quote'] }
     );
   }
+
+  const form = guidedForm(text, session);
+  if (form) return form;
+
+  const intent = serviceIntent(text);
+  if (intent) return serviceReply(intent);
+
+  const category = guidedCategory(text, session);
+  if (category) return category;
 
   if (session.awaiting === 'color' && session.lastModel && session.lastModel.name && !HAVE_ASK.test(text) && !CONTACT_ASK.test(text)) {
     if (/\b(quote|talk to someone|speak to a person|price)\b/i.test(text)) return null;
@@ -335,9 +678,16 @@ function guidedReply(rawInput, session, lang, flags) {
     );
   }
 
+  if (!session.awaiting && genericSourceAsk(text)) {
+    const looked = familySearch(categoryToken(text));
+    const useful = (looked || []).filter(item => !/cases|protector/i.test((item.name || '') + ' ' + (item.family || '') + ' ' + (item.categoryId || '')));
+    if (!useful.length) return sourceReply(categoryToken(text));
+  }
+
   return null;
 }
 
 module.exports = {
   guidedReply, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK,
+  shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START,
 };

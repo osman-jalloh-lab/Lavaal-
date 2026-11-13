@@ -20,8 +20,11 @@ class Element {
     this.value = '';
     this.disabled = false;
   }
-  set textContent(value) { this.text = value; this.children = []; }
+  set textContent(value) { this.text = value; this._innerHTML = undefined; this.children = []; }
   get textContent() { return this.text || ''; }
+  set innerHTML(value) { this._innerHTML = String(value); this.text = String(value).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ''); this.children = []; }
+  get innerHTML() { return this._innerHTML || this.text || ''; }
+  removeChild(child) { this.children = this.children.filter(node => node !== child); return child; }
   appendChild(node) { this.children.push(node); return node; }
   setAttribute(name, value) { this.attributes[name] = String(value); }
   getAttribute(name) { return this.attributes[name]; }
