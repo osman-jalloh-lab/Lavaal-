@@ -1,3 +1,4 @@
+# Crawl guidance only — not access control.
 User-agent: *
 Allow: /
 Disallow: /ops

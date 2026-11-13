@@ -53,14 +53,16 @@ function run() {
   check('all three WhatsApp translations publish the public number',
     (index.match(/'cs.aria.whatsapp':'WhatsApp \+1 \(737\) 704-4182'/g) || []).length === 3);
   check('robots contains only the approved directives', read('robots.txt') ===
-    'User-agent: *\nAllow: /\nDisallow: /ops\nDisallow: /api\nSitemap: https://www.lavaall.com/sitemap.xml\n');
+    '# Crawl guidance only — not access control.\nUser-agent: *\nAllow: /\nDisallow: /ops\nDisallow: /api\nSitemap: https://www.lavaall.com/sitemap.xml\n');
   const sitemap = read('sitemap.xml');
-  const expectedPaths = ['', 'web/', 'privacy.html', 'terms.html', 'web/work/',
-    'web/showcase/pour-play/', 'web/showcase/salone-artists/', 'web/showcase/terra/', 'web/showcase/triple-t/'];
+  // Live, indexable pages only: /web/* is noindex and /sierra-leone/ guides are unpublished.
+  const expectedPaths = ['', 'privacy.html', 'terms.html'];
   const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
   check('sitemap declares sitemap 0.9 and exactly the approved public URLs',
     sitemap.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
-    && JSON.stringify(locations) === JSON.stringify(expectedPaths.map(p => 'https://www.lavaall.com/' + p)));
+    && JSON.stringify(locations) === JSON.stringify(expectedPaths.map(p => 'https://www.lavaall.com/' + p))
+    && (sitemap.match(/<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/g) || []).length === 3
+    && !/\/web\/|noindex|sierra-leone/.test(sitemap));
   const catalog = read('assets/js/catalog.js');
   const privacy = read('privacy.html');
   const terms = read('terms.html');
