@@ -267,7 +267,7 @@
           var name = typeof item.name === 'string' ? item.name : '';
           var haystack = (context + ' ' + name).toLowerCase();
           if (!item.brands && !item.families && !item.models && name &&
-              haystack.indexOf(query) !== -1 && !seen[name]) {
+              name.toLowerCase().indexOf(query) !== -1 && !seen[name]) {
             seen[name] = true;
             matches.push(name);
           }
