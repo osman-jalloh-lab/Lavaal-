@@ -198,6 +198,21 @@ function normalizeInput(value) {
   }).replace(/\s+/g, ' ').trim();
 }
 
+// Commercial details are slots, never model identifiers (including ranges).
+function purchaseDetails(value) {
+  const text = normalizeInput(value);
+  const purpose = (text.match(/\b(?:for|fo)\s+(?:our |the |a |di )?(teachers?|students?|schools?|classrooms?|offices?|staff|business|pikin(?: dem)?)\b/) || [])[1] || '';
+  const condition = (text.match(/\b(used|refurbished|refurb|second[ -]hand|new)\b/) || [])[1] || '';
+  const count = text.match(/\b(\d{1,4})(?:\s*[-–]\s*|\s+to\s+)(\d{1,4})\s+(?:(?:used|refurbished|refurb|new)\s+)?(?:[a-z]+\s+)?(laptops?|notebooks?|computers?|desktops?|workstations?|pcs|macs?|windows(?: computers?)?|linux(?: computers?)?|phones?|tablets?|monitors?|printers?|routers?|servers?)\b/)
+    || text.match(/\b(\d{1,4})\s+(?:(?:used|refurbished|refurb|new)\s+)?(?:[a-z]+\s+)?(laptops?|notebooks?|computers?|desktops?|workstations?|pcs|macs?|windows(?: computers?)?|linux(?: computers?)?|phones?|tablets?|monitors?|printers?|routers?|servers?)\b/);
+  const quantity = count ? count.length === 4 ? count[1] + '–' + count[2] : count[1] : '';
+  const query = text.replace(/\b(?:for|fo)\s+(?:our |the |a |di )?(?:teachers?|students?|schools?|classrooms?|offices?|staff|business|pikin(?: dem)?)\b/g, ' ')
+    .replace(/\b(?:used|refurbished|refurb|second[ -]hand|new|bulk|wholesale)\b/g, ' ')
+    .replace(count ? new RegExp('\\b' + count[1] + (count.length === 4 ? '(?:\\s*[-–]\\s*|\\s+to\\s+)' + count[2] : '') + '\\b') : /$^/, ' ')
+    .replace(/\s+/g, ' ').trim();
+  return { quantity, condition, purpose, query };
+}
+
 function normalize(value) {
   return normalizeInput(value)
     .toLowerCase()
@@ -378,6 +393,7 @@ function productHasBrand(product, brands) {
 
 function searchCatalog(query, options = {}) {
   const catalog = loadCatalog();
+  query = purchaseDetails(query).query;
   const tokens = tokensOf(query);
   const identityWords = tokens.filter(token => !/^(pro|max|mini|plus|standard|office|home|business|wireless|bluetooth|smart|blue|black|white|red|green|silver|gold)$/.test(token));
   const numbers = identityWords.length ? modelNumbers(query) : [];
@@ -457,7 +473,7 @@ function searchCatalog(query, options = {}) {
       && item.categoryId !== 'audio'
       && !/cases|protector|accessor/i.test(String(item.categoryId || '') + ' ' + String(item.category || '') + ' ' + String(item.name || ''))
     );
-    if (filtered.length) matches = filtered;
+    matches = filtered;
   }
 
   // Brand awareness: if the query names a catalogue brand, keep that brand.
@@ -546,5 +562,5 @@ function categoryCounts() {
 }
 
 module.exports = {
-  loadCatalog, searchCatalog, findByName, normalizeInput, normalize, tokensOf, expandToken, levenshtein, isTransposition, categoryCounts, ROOT,
+  loadCatalog, searchCatalog, findByName, normalizeInput, purchaseDetails, normalize, tokensOf, expandToken, levenshtein, isTransposition, categoryCounts, ROOT,
 };

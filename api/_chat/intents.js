@@ -32,12 +32,14 @@ function specialIntent(text, lang, session = {}) {
   const place = city && ({ conakry: 'Conakry', freetown: 'Freetown', monrovia: 'Monrovia', bo: 'Bo', kenema: 'Kenema' })[city[1]];
   if (place && /\b(?:are you in|you.*based|una dae|where|whr|location|office|situe|etes.*a|vous.*a|bureau)\b/.test(raw)) return answer('LAVAALL serves Sierra Leone, Guinea, Liberia and Guinea-Bissau. Our team confirms pickup and delivery details; which item do you need?', 'LAVAALL dessert la Sierra Leone, la Guinée, le Liberia et la Guinée-Bissau. Notre équipe confirme les modalités de retrait et de livraison ; quel article vous faut-il ?', 'LAVAALL de serve Sierra Leone, Guinea, Liberia ɛn Guinea-Bissau. Wi tim go kɔnfam pickup ɛn delivery details; wetin yu nid?', 'faq-delivery', { slots: { ...session.slots, deliveryCity: place, deliveryCountry: ({ Conakry: 'Guinea', Freetown: 'Sierra Leone', Monrovia: 'Liberia', Bo: 'Sierra Leone', Kenema: 'Sierra Leone' })[place] } });
   if (place && /\b(?:deliver|delivery|delivr|ship|livraison|livrer|combien|price|cost|pay|how much)\b/.test(raw)) return answer('Yes, we deliver to ' + place + '. Delivery price and timing are confirmed with your quote. Which item do you need?', 'Oui, nous livrons à ' + place + '. Le prix et le délai de livraison sont confirmés avec votre devis. Quel article vous faut-il ?', 'Wi kin deliver na ' + place + '. Wi tim go kɔnfam delivery prayz ɛn tɛm wit yu quote. Wetin yu nid?', 'faq-delivery', { slots: { ...session.slots, deliveryCity: place, deliveryCountry: ({ Conakry: 'Guinea', Freetown: 'Sierra Leone', Monrovia: 'Liberia', Bo: 'Sierra Leone', Kenema: 'Sierra Leone' })[place] } });
-  if (lang === 'fr' && /\b(?:ordinateurs?|portables?|telephones?)\b/.test(raw)) {
+  const commercial = require('./catalog').purchaseDetails(raw);
+  const detailedPurchase = commercial.quantity && (commercial.condition || commercial.purpose || Number(commercial.quantity) >= 10 || commercial.quantity.includes('–'));
+  if (!detailedPurchase && lang === 'fr' && /\b(?:ordinateurs?|portables?|telephones?)\b/.test(raw)) {
     const qty = (raw.match(/\b\d{1,4}\b/) || [])[0];
     const computers = /\bordinateurs?\b/.test(raw);
     return reply(computers ? "D'accord" + (qty ? ', ' + qty + ' ordinateurs' : '') + '. Portables ou de bureau ?' : 'Nous pouvons vous aider à choisir ' + (qty ? qty + ' appareils' : 'un appareil') + '. Quelle marque souhaitez-vous ?', 'fr', 'product-guide', { fields: qty ? { quantity: qty } : {}, slots: { ...session.slots, ...(qty ? { quantity: qty } : {}) }, chips: computers ? ['Portables', 'Ordinateurs de bureau'] : ['Apple', 'Samsung'] });
   }
-  if (lang === 'kr' && /\b(?:laptops?|computers?|kompyuta|computa|phones?|fone|phon)\b/.test(raw)) {
+  if (!detailedPurchase && lang === 'kr' && /\b(?:laptops?|computers?|kompyuta|computa|phones?|fone|phon)\b/.test(raw)) {
     const qty = (raw.match(/\b\d{1,4}\b/) || [])[0];
     return reply('Wi kin ɛp source ' + (qty ? qty + ' ' : '') + (/phone|fone|phon/.test(raw) ? 'phone' : 'computer') + '. Which brand yu want?', 'kr', 'product-guide', { fields: qty ? { quantity: qty } : {}, slots: { ...session.slots, ...(qty ? { quantity: qty } : {}) }, chips: ['Apple', 'Dell', 'Samsung'] });
   }

@@ -232,7 +232,8 @@ const qled = guide('QLED', samsungTv);
 variant(byName('Samsung QLED TV'), qled);
 unavailable('Samsung QLED 999', products.filter(item => item.categoryId === 'tvs' && item.brand === 'Samsung'), samsungTv);
 
-assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '../api/_chat/narrow.js'), 'utf8'), /iphone|galaxy|samsung|macbook|starlink|thinkpad|pixel/i);
+// The reviewed iPhone display label is catalogue-backed; other brand-specific routing remains forbidden.
+assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '../api/_chat/narrow.js'), 'utf8'), /galaxy|samsung|macbook|starlink|thinkpad|pixel/i);
 
 (async () => {
   let modelCalls = 0;

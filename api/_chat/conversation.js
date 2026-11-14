@@ -1,6 +1,6 @@
 'use strict';
 
-const { searchCatalog, loadCatalog, normalizeInput } = require('./catalog');
+const { searchCatalog, loadCatalog, normalizeInput, purchaseDetails } = require('./catalog');
 const narrow = require('./narrow');
 const EMAIL = 'support@lavaall.com';
 const WHATSAPP = '+1 (737) 704-4182';
@@ -78,6 +78,7 @@ function result(text, events, extra) {
 function productQuery(text) {
   return String(text || '')
     .replace(/^(do you (?:have|carry|sell|stock)|have you got|is there (?:an? |any )?|are there |(?:i\s+)?(?:want|need|would like|wanna|looking for|looking to buy|need to (?:get|buy)|want to (?:get|buy|order))|i['’]d like|get me)\s+/i, '')
+    .replace(/^(?:(?:can|could|do)\s+)?(?:(?:you|una)\s+)?(?:have|get|sell|stock)\s+/i, '')
     .replace(/^(?:can you |could you )?(?:show|list)(?: me)?\s+/i, '')
     .replace(/^(an?|the|some)\s+/i, '')
     .replace(/\s+(?:models?\s+)?please$/i, '')
@@ -189,6 +190,7 @@ function correctionValue(text) {
   const raw = String(text || '').trim().replace(/[.!?]+$/, '');
   let match = raw.match(/^(?:naw|nah|no)[, ]+\s*(?:i mean\s+)?(.+)$/i)
     || raw.match(/^(?:actually|i mean)\s+(.+)$/i)
+    || raw.match(/^not\s+.+?\s+but\s+(.+)$/i)
     || raw.match(/^not\s+[^,]+,\s*(.+)$/i)
     || raw.match(/^(.+?)\s+(?:i mean)\s+(.+)$/i);
   if (match) return match[2] || match[1];
@@ -198,7 +200,7 @@ function correctionValue(text) {
 
 function hasSlotContext(text, session) {
   if (String(session.awaiting || '').startsWith('handoff-')) return false;
-  return Boolean(correctionValue(text) || session.pendingSamsung ||
+  return Boolean(correctionValue(text) || commercialFollowup(text, session) || session.pendingSamsung ||
     (/^(?:quantity\s+|(?:i\s+)?need\s+)?\d+\s*(?:gb|tb|units?|pieces?)?[.!?]?$/i.test(String(text).trim()) &&
       (session.lastModel || session.lastProducts?.length || session.slots && Object.keys(session.slots).length)));
 }
@@ -267,8 +269,9 @@ function slotReply(text, session) {
   if (corrected) {
     delete slots.storage; delete slots.ram;
     if (['storage', 'ram'].includes(slots.lastSlot)) delete slots.lastSlot;
-    const reply = narrowingReply(value, { ...session, awaiting: null, narrow: null, lastModel: null });
-    if (reply) return { ...reply, lastModel: reply.lastModel || null, selectedVariant: null, text: 'Got it, ' + (reply.lastModel?.name || narrow.displayLabel(reply.narrow?.scope.family || reply.narrow?.scope.brand || reply.narrow?.scope.categoryId, products) || 'your item') + '. ' + reply.text.replace(/^Yes, we have[^.]*\.\s*/, ''), slots };
+    delete slots.brand;
+    const reply = narrowingReply(value, { ...session, awaiting: null, narrow: null, lastProducts: [], lastModel: null });
+    if (reply) return { ...reply, lastModel: reply.lastModel || null, selectedVariant: null, text: 'Got it, ' + (reply.lastModel?.name || narrow.displayLabel(reply.narrow?.scope.family || reply.narrow?.scope.brand || reply.narrow?.scope.categoryId || reply.narrow?.scope.term, products) || 'your item') + '. ' + reply.text.replace(/^Yes, we have[^.]*\.\s*/, ''), slots };
     return done('Got it. Which item do you need?', { awaiting: null });
   }
   return null;
@@ -314,6 +317,13 @@ function narrowingReply(text, session) {
   if (hit.level === 'category') return result('Yes, we have ' + hit.scope.brand + ' products in: ' + shown + '. Which type are you looking for?', ['product-guide'], { ...extra, awaiting: 'category' });
   if (hit.level === 'variant' || hit.level === 'single') {
     const product = products[0];
+    const storage = query.match(/\b(\d+)\s*(gb|tb)\b/i) || query.match(/(?:pro max|pro|plus|mini)\s+(\d{3,4})\b/i);
+    if (storage && /iphone/i.test(product.name)) {
+      const capacity = storage[1] + (storage[2] || 'GB').toUpperCase();
+      const supported = product.options?.find(option => option.key === 'storage')?.options || [];
+      if (!supported.some(option => normalizeInput(option).replace(/\s/g, '') === capacity.toLowerCase())) return result(sourceLine(), ['product-guide', 'not-in-catalog'], { ...extra, lastModel: product, awaiting: null });
+      return result(product.name + ', ' + capacity + '. We list it; our team confirms stock with your quote.', ['product-guide'], { ...extra, lastModel: product, slots: { ...(session.slots || {}), storage: capacity }, awaiting: null, chips: ['Request a quote', 'Talk to someone'] });
+    }
     const field = narrow.variantField(product);
     if (field && hit.variantAsked) return result(hit.matchedVariant
       ? product.name + ' in ' + hit.matchedVariant + '. We list it; our team confirms stock with your quote.'
@@ -609,6 +619,76 @@ function genericSourceAsk(text) {
   return false;
 }
 
+
+// Purchase requirements remain separate from catalogue model identity.
+function commercialFollowup(text, session) {
+  if (!session.slots?.quantity && !session.slots?.items) return false;
+  const details = purchaseDetails(text);
+  const raw = normalizeInput(text).replace(/[.!?]+$/, '');
+  const brand = loadCatalog().products.some(p => normalizeInput(p.brand) === raw);
+  const city = /^(?:(?:to|in|for)\s+)?(?:freetown|bo|kenema|monrovia|conakry)[.!?]*$/i.test(raw);
+  const category = raw.split(/\s+/).length <= 3 && narrow.resolve(raw).ids.length;
+  return Boolean(brand || city || category || details.quantity || details.purpose || /^(?:new|used|refurbished|refurb|second[ -]hand)$/.test(raw));
+}
+
+function commercialReply(text, session) {
+  const details = purchaseDetails(text);
+  const platform = text.match(/\b(macs?|windows|linux)\b/i);
+  if (platform) details.query = /^macs?$/i.test(platform[1]) ? 'MacBook' : 'computers';
+  if (!details.quantity) {
+    const count = text.match(/\b(\d+)\s+([a-z]+)\b/);
+    if (count && !/^(?:gb|tb|pro|max|plus|mini)$/.test(count[2])) {
+      const hit = narrow.resolve(count[2]);
+      if (hit.ids.length && !hit.scope.modelId) { details.quantity = count[1]; details.query = text.replace(count[1], '').trim(); }
+    }
+  }
+  const parts = text.split(/\s*(?:,\s*|\s+(?:and|plus)\s+)\s*/).filter(Boolean);
+  const items = parts.map(part => {
+    const detail = purchaseDetails(part);
+    const count = part.match(/\b(\d+)\s+([a-z]+)\b/);
+    const hit = narrow.resolve(detail.query.replace(/\b\d+\b/g, ''));
+    const category = part.match(/\b(laptops?|notebooks?|computers?|phones?|tablets?|monitors?|printers?|routers?|servers?)\b/);
+    const platform = part.match(/\b(macs?|windows|linux)\b/i);
+    const label = platform ? (/^macs?$/i.test(platform[1]) ? 'Mac computers' : platform[1].replace(/^./, c => c.toUpperCase()) + ' computers') : category?.[1] || (count && narrow.resolve(count[2]).ids.length ? count[2] : null) || (hit.scope.categoryId && loadCatalog().products.find(p => p.categoryId === hit.scope.categoryId)?.category.toLowerCase());
+    const quantity = detail.quantity || (label && count?.[1]);
+    return quantity && label ? { quantity, category: label } : null;
+  }).filter(Boolean);
+  const chips = ['Request a quote', 'Talk to someone'];
+  if (items.length === 1 && session.slots?.items && !correctionValue(text)) {
+    const combined = session.slots.items.filter(item => item.category !== items[0].category);
+    items.unshift(...combined);
+  }
+  if (items.length === 1 && session.slots?.quantity && session.slots?.category && session.slots.category !== items[0].category && !correctionValue(text)) items.unshift({ quantity: session.slots.quantity, category: session.slots.category });
+  if (items.length > 1) return result('Got it, ' + listWords(items.map(item => item.quantity + ' ' + item.category)) + '. Our team confirms stock with your quote. Which city should it go to?', ['product-guide', 'bulk-request'], {
+    slots: { ...(session.slots || {}), items }, fields: { quantity: items.map(item => item.quantity).join(', ') }, lastTopic: 'product:bulk', awaiting: null, chips,
+  });
+  const followup = commercialFollowup(text, session);
+  if (!followup && (!details.quantity || (!details.condition && !details.purpose && Number(details.quantity) < 10))) return null;
+  const city = text.match(/^(?:(?:to|in|for)\s+)?(freetown|bo|kenema|monrovia|conakry)[.!?]*$/i);
+  const brandOnly = loadCatalog().products.some(p => normalizeInput(p.brand) === text.replace(/[.!?]+$/, ''));
+  const parent = brandOnly ? { categoryId: session.narrow?.scope?.categoryId } : session.narrow;
+  const hit = followup && !details.quantity && parent ? narrow.resolve(details.query, parent) : narrow.resolve(details.query);
+  const products = narrow.buildTree(loadCatalog().products).filter(product => hit.ids.includes(product.id));
+  if (!products.length && !followup && !platform) return null;
+  const state = products.length ? hit : session.narrow;
+  if (products.length && !state.scope.categoryId && new Set(products.map(p => p.categoryId)).size === 1) state.scope.categoryId = products[0].categoryId;
+  const currentProducts = products.length ? products : session.lastProducts || [];
+  const slots = { ...(session.slots || {}), ...(details.quantity ? { quantity: details.quantity } : {}),
+    ...(details.condition ? { condition: details.condition } : {}), ...(details.purpose ? { purpose: details.purpose } : {}) };
+  if (details.quantity && !state?.scope?.brand) delete slots.brand;
+  if (state?.scope?.brand) slots.brand = state.scope.brand;
+  if (city) slots.deliveryCity = city[1].replace(/^./, c => c.toUpperCase());
+  const label = platform ? (/^macs?$/i.test(platform[1]) ? 'Mac computers' : platform[1].replace(/^./, c => c.toUpperCase()) + ' computers') : state?.scope?.categoryId ? narrow.displayLabel(state.scope.categoryId, currentProducts) : currentProducts[0]?.category || 'units';
+  slots.category = items[0]?.category || slots.category || label;
+  const description = [slots.quantity, slots.condition, slots.brand, label].filter(Boolean).join(' ') + (slots.purpose ? ' for ' + slots.purpose : '');
+  const question = city ? 'Would you like to request a quote?' : String(slots.quantity || '').includes('–') ? 'What exact quantity should the team quote?'
+    : !slots.condition ? 'Do you prefer new or refurbished units?' : !slots.brand ? 'Which brand would you prefer?' : 'Which city should it go to?';
+  return result('Got it, ' + description + '. Our team confirms stock with your quote. ' + question, ['product-guide', 'bulk-request'], {
+    slots, fields: { quantity: slots.quantity || '' }, narrow: state, lastProducts: currentProducts,
+    lastTopic: session.lastTopic || 'product:' + (state?.scope?.categoryId || 'bulk'), awaiting: null, chips,
+  });
+}
+
 function guidedReply(rawInput, session, lang, flags) {
   flags = flags || {};
   const text = normalizeInput(String(rawInput || '').trim());
@@ -632,11 +712,14 @@ function guidedReply(rawInput, session, lang, flags) {
   const form = guidedForm(String(rawInput || '').trim(), session);
   if (form) return form;
 
+  const commercial = commercialReply(text, session);
+  if (commercial) return commercial;
+
   const intent = serviceIntent(text);
   if (intent) return serviceReply(intent);
 
   const skipProduct = /\b(quote|talk to|speak to|price|cost|how much|install(?:ation|ations|ing)?|deploy(?:ment)?|delivery|deliver|refund|invoice)\b/i.test(text);
-  if (!/\b(what models|listed in|how many)\b/i.test(text) && !skipProduct && !flags.priceAsk && (isSlotFill(text, session) || HAVE_ASK.test(text) || WANT_ASK.test(text) || /^(?:can you |could you )?(?:show|list)\b/i.test(text) || (text.split(/\s+/).length <= 6 && !/^(tell|explain|what|how|why|can|could|where|when)\b/i.test(text)))) {
+  if (!/\b(what models|listed in|how many)\b/i.test(text) && !skipProduct && !flags.priceAsk && (isSlotFill(text, session) || HAVE_ASK.test(text) || WANT_ASK.test(text) || /^(?:(?:can|could|do)\s+)?(?:you|una)\s+(?:have|get|sell|stock)\b/i.test(text) || /^(?:can you |could you )?(?:show|list)\b/i.test(text) || (text.split(/\s+/).length <= 6 && !/^(tell|explain|what|how|why|can|could|where|when)\b/i.test(text)))) {
     const guided = narrowingReply(text, session);
     if (guided) {
       const quantity = text.match(/\b(?:need|want|like|for)\s+(\d+)\b/i);
@@ -649,9 +732,9 @@ function guidedReply(rawInput, session, lang, flags) {
   // Alison FAQ patterns (Starlink is intentionally not handled here).
   if (flags.priceAsk) {
     const named = familySearch(text);
-    const item = named[0] ? ' For the ' + named[0].name + ',' : '';
+    const item = named[0] ? ' For the ' + named[0].name + ', our team will confirm stock with your quote.' : ' Our team will confirm stock with your quote.';
     return result(
-      'Prices are quoted per order, based on the model, quantity, and delivery country.' + item + ' our team will confirm stock with your quote. What item do you need, and how many?',
+      'Prices are quoted per order, based on the model, quantity, and delivery country.' + item + ' What item do you need, and how many?',
       ['faq-price', 'refused-price'],
       { chips: ['Request a quote', 'Talk to someone'], lastProducts: named, matchCount: 0 }
     );

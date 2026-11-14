@@ -2,6 +2,7 @@
 
 const {
   loadCatalog,
+  purchaseDetails,
   normalize,
   tokensOf,
   expandToken,
@@ -139,9 +140,16 @@ function termMatches(p, token) {
 
 function resolve(text, stored = {}) {
   // An unambiguous generation plus model suffix must name an actual catalogue item.
-  const shorthand = normalize(text);
-  if (/^\d{1,2} (?:pro(?: max)?|plus|mini)$/.test(shorthand)) {
-    const candidates = loadCatalog().products.filter(p => normalize(p.name).endsWith(' ' + shorthand));
+  text = purchaseDetails(text).query;
+  // Storage is a configuration slot; it must not become a model-generation token.
+  const shorthand = normalize(text).replace(/\b\d+\s*(?:gb|tb)\b/g, '').replace(/\b(pro max|pro|plus|mini)\s+\d{3,4}$/, '$1').replace(/\s+/g, ' ').trim();
+  const abbreviated = shorthand.match(/^(?:([a-z]+) )?(\d{1,2} (?:pro(?: max)?|plus|mini))$/);
+  if (abbreviated) {
+    const candidates = loadCatalog().products.filter(p => {
+      const name = normalize(p.name);
+      const prefix = name.split(' ')[0];
+      return name.endsWith(' ' + abbreviated[2]) && (!abbreviated[1] || prefix === abbreviated[1] || (abbreviated[1].length >= 4 && levenshtein(prefix, abbreviated[1]) <= 1));
+    });
     if (distinct(candidates.map(p => normalize(p.name))).length === 1) text = candidates[0].name;
   }
   const variantAsk = String(text).match(/^(.+?)\s+in\s+(.+?)\s*[?]?$/i);

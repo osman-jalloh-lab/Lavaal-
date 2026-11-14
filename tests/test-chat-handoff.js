@@ -157,13 +157,15 @@ async function main() {
   assert.match(knownPayload.fields.productOrService, /Onyx Black/);
   assert.match(knownPayload.summary, /Onyx Black/);
 
-  for (const text of ['can someone call me back', 'talk to a human', 'I need an agent', 'real person', 'human', 'agent', 'speak to somebody', 'talk to customer service', 'talk to your team']) {
+  for (const text of ['can someone call me back', 'talk to a human', 'I need an agent', 'talk to a real person', 'speak to somebody', 'talk to customer service', 'talk to your team']) {
     const reply = respond(text);
     checkReply(reply, CHANNEL);
     assert.deepEqual(reply.chips, ['WhatsApp', 'Email']);
     assert.equal(reply.awaiting, 'handoff-channel');
     assert.equal(shouldSkipModel(reply), 'handoff-intake');
   }
+  // A standalone noun is not an explicit request to contact the team.
+  for (const text of ['agent', 'human', 'real person']) assert.ok(!String(respond(text).awaiting).startsWith('handoff-'));
   assert.notEqual(respond('Do you have Samsung phones?').awaiting, 'handoff-name');
   assert.match(respond('how can I contact you?').text, /support@lavaall\.com/);
   for (const cancelAt of [0, 1, 2]) {
