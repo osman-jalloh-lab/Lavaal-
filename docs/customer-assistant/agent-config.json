@@ -1,0 +1,41 @@
+{
+  "artifact": "review-only A1 configuration; not vendor API schema",
+  "name": "LAVAALL Assistant",
+  "enabled": false,
+  "site": "technology",
+  "mountPath": "/",
+  "textOnly": true,
+  "voiceEnabled": false,
+  "languages": [
+    "en",
+    "fr",
+    "pt"
+  ],
+  "languageSwitchingAcceptance": "untested in real Preview",
+  "krio": "best-effort text with English fallback; never Haitian Creole",
+  "firstMessages": {
+    "en": "I'm LAVAALL Assistant, an AI assistant. I can help with Technology questions or prepare an inquiry for your review.",
+    "fr": "Je suis LAVAALL Assistant, un assistant IA. Je peux répondre aux questions sur la technologie ou préparer une demande à vérifier.",
+    "pt": "Sou LAVAALL Assistant, um assistente de IA. Posso ajudar com perguntas sobre tecnologia ou preparar um pedido para a sua revisão."
+  },
+  "policyFile": "agent-policy.md",
+  "knowledgeFile": "kb-technology.md",
+  "allowedTools": [
+    "draft_inquiry"
+  ],
+  "browserConsentTools": [],
+  "privilegedTools": [],
+  "externalActivation": "Preview-only server text path; production disabled",
+  "humanContacts": {
+    "email": "support@lavaall.com",
+    "whatsapp": "+1 (737) 704-4182",
+    "botConnectionPermitted": false
+  },
+  "suggestedQuestions": {
+    "count": 10,
+    "placement": "LAVAALL surrounding interface"
+  },
+  "draftToolScope": "authenticated server-to-server draft only; opaque session link; browser review and Send are separate",
+  "browserVoiceEnabled": false,
+  "browserVoice": "optional Web Speech API behind CHAT_BROWSER_VOICE_ENABLED; default off; tap-only"
+}

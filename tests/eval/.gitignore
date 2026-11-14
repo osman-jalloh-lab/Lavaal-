@@ -1,0 +1,7 @@
+# Generated eval runs. Keep recorded baselines tracked.
+results-wip.json
+results-round2.json
+results-verify.json
+results-*.json
+!results-before.json
+!results-after.json

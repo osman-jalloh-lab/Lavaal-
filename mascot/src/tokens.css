@@ -1,0 +1,137 @@
+/*
+ * LAVAALL Mascot Prototype — Design Tokens (v1.3)
+ *
+ * SOURCED, not guessed. Every brand value below was read from the production
+ * repo (osman-jalloh-lab/Lavaal-, origin/main @ 9317148, 2026-10-23) via
+ * `git show` — read-only, nothing in that repo was modified.
+ * Full evidence with paths and line numbers: docs/mascot/BRAND_AUDIT_RESULTS.md
+ *
+ *   Technology (main site)  assets/css/main.css:6  (matches MAGNUM.md:125-130)
+ *   Web division            api/web/_site/styles.css:7-17 (dark) and :25-31 (light band)
+ *
+ * Removed in v1.3 (no source evidence — came from AI concept art only):
+ *   #FF6B00 orange, #FFA500 amber, #2A1A00 dark orange, #1B3A6B navy
+ *
+ * Usage rules carried over from the source files:
+ *   - Web: "sun = CTA only, violet = focus only" (styles.css:1), so the mascot
+ *     does NOT use --lavaall-web-sun or --lavaall-web-focus as body colors.
+ *   - Technology --sun (#FFE03D) IS a real core brand color (MAGNUM.md:125).
+ *     The mascot still avoids it as a body color; owner decides if it appears.
+ *
+ * Still needs owner sign-off on the combined design board before release.
+ */
+
+:root {
+  /* ── Technology brand — assets/css/main.css:6 ─────────────────────────── */
+  --lavaall-sun:       #FFE03D;
+  --lavaall-sky:       #00C2FF;
+  --lavaall-lime:      #00F5A0;
+  --lavaall-coral:     #FF5C5C;
+  --lavaall-ink:       #0A0A14;
+  --lavaall-white:     #FFFFFF;
+  --lavaall-offwhite:  #F4F9FF;
+  --lavaall-muted:     #5A6A80;
+
+  /* ── Web division brand — api/web/_site/styles.css ────────────────────── */
+  --lavaall-web-bg:        #0B252A;   /* :8  dark teal band            */
+  --lavaall-web-bg-2:      #10323A;   /* :9                              */
+  --lavaall-web-text-2:    #C7D3D1;   /* :11                             */
+  --lavaall-web-accent:    #E7D3BF;   /* :12 warm sand                   */
+  --lavaall-web-sun:       #F7E04A;   /* :13 CTA only — not for mascot   */
+  --lavaall-web-focus:     #8B7CFF;   /* :15 focus only — not for mascot */
+  --lavaall-web-cream:     #F5ECE5;   /* :26 light band surface          */
+  --lavaall-web-clay:      #8A4B2A;   /* :30 light band accent           */
+
+  /* ── Mascot tokens (reference brand tokens first) ─────────────────────── */
+  --mascot-tech-shell:   var(--lavaall-offwhite);
+  --mascot-tech-joint:   var(--lavaall-ink);
+  --mascot-tech-accent:  var(--lavaall-sky);
+  --mascot-tech-accent-2:var(--lavaall-lime);   /* logo gradient end */
+
+  --mascot-web-shell:    var(--lavaall-web-cream);
+  --mascot-web-joint:    var(--lavaall-web-bg);
+  --mascot-web-accent:   var(--lavaall-web-accent);
+  --mascot-web-panel:    var(--lavaall-web-bg-2);
+
+  --mascot-face-bg:      var(--lavaall-ink);    /* shared black display face */
+  --mascot-accent:       var(--mascot-tech-accent);
+  --mascot-glow-opacity: 0.35;
+
+  /* ── UI surfaces (v1.3.1) — derived ONLY from brand tokens ──────────────
+     Replaces the generic Tailwind grays (#111827, #1F2937, #374151, #9CA3AF…).
+     Technology: offwhite/sky mixed into ink. Web: overridden below with the
+     Web site's own tokens (styles.css:8-16). */
+  --ui-surface-0:   var(--lavaall-ink);
+  --ui-surface-1:   color-mix(in srgb, var(--lavaall-offwhite) 4%, var(--lavaall-ink));
+  --ui-surface-2:   color-mix(in srgb, var(--lavaall-offwhite) 9%, var(--lavaall-ink));
+  --ui-surface-3:   color-mix(in srgb, var(--lavaall-sky) 20%, var(--lavaall-ink));
+  --ui-line:        rgba(244, 249, 255, 0.14);   /* offwhite @ the Web site's .14 line alpha */
+  --ui-line-strong: rgba(244, 249, 255, 0.26);
+  --ui-text:        var(--lavaall-offwhite);
+  --ui-text-2:      color-mix(in srgb, var(--lavaall-offwhite) 85%, var(--lavaall-ink));
+  --ui-text-muted:  color-mix(in srgb, var(--lavaall-offwhite) 62%, var(--lavaall-ink));
+  --ui-ok:          var(--lavaall-lime);
+  --ui-warn:        var(--lavaall-sun);
+  --ui-danger:      var(--lavaall-coral);
+
+  /* ── Chat panel tokens ─────────────────────────────────────────────────── */
+  --chat-bg:           var(--ui-surface-1);
+  --chat-surface:      var(--ui-surface-2);
+  --chat-border:       var(--ui-line);
+  --chat-text:         var(--ui-text);
+  --chat-text-muted:   var(--ui-text-muted);
+  --chat-user-bubble:  var(--ui-surface-3);
+  --chat-bot-bubble:   var(--ui-surface-2);
+  --chat-input-bg:     var(--ui-surface-0);
+  --chat-send-bg:      var(--lavaall-sky);
+  --chat-send-text:    var(--lavaall-ink);
+
+  /* ── Layout & spacing ──────────────────────────────────────────────────── */
+  --mascot-size:           80px;
+  --mascot-size-mobile:    56px;
+  --mascot-radius:         12px;
+  --mascot-z-index:        9000;
+  --mascot-chat-z-index:   9001;
+
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+}
+
+/* Variant overrides — `data-variant` on the mascot root (and chat panel). */
+[data-variant="technology"] {
+  --mascot-accent: var(--mascot-tech-accent);
+}
+
+/* Web: the /web site's own palette (api/web/_site/styles.css:8-16). The chat-*
+   tokens are re-declared because they resolve at the element that defines them. */
+[data-variant="web"] {
+  --mascot-accent:  var(--mascot-web-accent);
+  --ui-surface-0:   var(--lavaall-web-bg);
+  --ui-surface-1:   var(--lavaall-web-bg);
+  --ui-surface-2:   var(--lavaall-web-bg-2);
+  --ui-surface-3:   color-mix(in srgb, var(--lavaall-web-accent) 22%, var(--lavaall-web-bg-2));
+  --ui-line:        rgba(255, 255, 255, 0.14);   /* styles.css:16 */
+  --ui-line-strong: rgba(255, 255, 255, 0.26);
+  --ui-text:        var(--lavaall-white);
+  --ui-text-2:      var(--lavaall-web-text-2);
+  --ui-text-muted:  color-mix(in srgb, var(--lavaall-web-text-2) 80%, var(--lavaall-web-bg));
+
+  --chat-bg:           var(--ui-surface-1);
+  --chat-surface:      var(--ui-surface-2);
+  --chat-border:       var(--ui-line);
+  --chat-text:         var(--ui-text);
+  --chat-text-muted:   var(--ui-text-muted);
+  --chat-user-bubble:  var(--ui-surface-3);
+  --chat-bot-bubble:   var(--ui-surface-2);
+  --chat-input-bg:     var(--ui-surface-0);
+  --chat-send-bg:      var(--lavaall-web-accent);
+  --chat-send-text:    var(--lavaall-web-bg);
+}

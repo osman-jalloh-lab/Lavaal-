@@ -1,0 +1,12 @@
+'use strict';
+const assert = require('node:assert/strict');
+const { loadCatalog } = require('../api/_chat/catalog');
+const narrow = require('../api/_chat/narrow');
+const products = narrow.buildTree(loadCatalog().products);
+const iphones = products.filter(product => /\biphone\b/i.test(product.name));
+assert.ok(iphones.length);
+assert.equal(narrow.displayLabel('phones', iphones), 'iPhones');
+assert.equal(narrow.displayLabel('iphones', products), 'iPhones');
+assert.notEqual(narrow.displayLabel('phones', products), 'iPhones');
+assert.equal(narrow.assertCatalogLabel('iPhones'), 'iPhones');
+console.log('PASS discovery: source-backed iPhone labels');

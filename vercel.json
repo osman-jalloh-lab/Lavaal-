@@ -1,5 +1,9 @@
 {
   "functions": {
+    "api/chat-inquiry.js": {
+      "maxDuration": 20,
+      "includeFiles": "{assets/js/catalog-data.js,assets/data/catalog-generated.json}"
+    },
     "api/ops/index.js": {
       "maxDuration": 30,
       "includeFiles": "docs/ops/souls/**"
@@ -19,6 +23,12 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(self), geolocation=()" }
       ]
     },
     {

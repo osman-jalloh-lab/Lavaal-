@@ -1,0 +1,33 @@
+'use strict';
+const assert = require('node:assert/strict');
+const { respond } = require('../api/_chat/responder');
+const { buildMessages, intentFrom, postEnforce, PHRASES } = require('../api/_chat/llm-responder');
+const { searchCatalog } = require('../api/_chat/catalog');
+const query = 'I need four iPhone 16s. What models are listed in your Technology catalogue?';
+const result = searchCatalog(query);
+const rule = respond(query);
+for (const name of ['iPhone 16', 'iPhone 16 Plus', 'iPhone 16 Pro', 'iPhone 16 Pro Max']) {
+  assert.ok(result.all.some(p => p.name.includes(name)), name);
+  assert.ok(rule.fields.model.includes(name), name);
+}
+assert.doesNotMatch(rule.fields.model, /iPhone 1[345]\b/);
+assert.ok(result.all.every(p => !/iPhone 1[12345]\b/.test(p.name)));
+assert.equal(respond('What is the price of an iPhone 16?', { lastUser: 'Preciso de quatro iPhones, quanto custa?', lastLanguage: 'pt' }).language, 'en');
+const session = { lastUser: query, lastLanguage: 'en', lastProducts: result.all, history: [{ role: 'assistant', text: rule.text }] };
+const french = 'Bonjour, est-ce que vous installez des équipements en Sierra Leone ?';
+const service = respond(french, session);
+assert.equal(service.language, 'fr');
+assert.equal(intentFrom(service), 'installation-service');
+assert.equal(service.fields.inquiryType, 'installation-services');
+assert.doesNotMatch(service.text + JSON.stringify(service.fields), /iphone|epson/i);
+assert.doesNotMatch(JSON.stringify(buildMessages(french, service, session)), /iphone/i);
+assert.ok(JSON.stringify(buildMessages('and the Pro?', respond('and the Pro?', session), session)).includes('Earlier turns'));
+const handoff = respond('I want to speak to a person on your team, please.', session);
+assert.equal(intentFrom(handoff), 'handoff-intake');
+assert.equal(handoff.handoff.tagOsman, true);
+assert.doesNotMatch(handoff.text + JSON.stringify(handoff.fields), /iphone|epson/i);
+const shortly = 'Thank you, someone from our team will reach out to you shortly.';
+assert.equal(handoff.text, 'WhatsApp or email?');
+assert.equal(PHRASES.shortly.en, shortly);
+assert.equal(handoff.awaiting, 'handoff-channel');
+console.log('A2 chat regressions passed');

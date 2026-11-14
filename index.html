@@ -43,7 +43,7 @@
   "url": "https://lavaall.com",
   "logo": "https://lavaall.com/images/logo.png",
   "description": "Enterprise IT hardware supplier and installation company serving West Africa.",
-  "areaServed": ["Sierra Leone", "Guinea", "Guinea-Bissau"],
+  "areaServed": ["Sierra Leone", "Guinea", "Guinea-Bissau", "Liberia"],
   "contactPoint": [
     {
       "@type": "ContactPoint",
@@ -252,11 +252,12 @@
           <span class="sw-panel-num" aria-hidden="true">01</span>
           <p class="sw-panel-tag">West Africa's Network</p>
           <h2 class="sw-panel-h">Hardware delivered<br/>to your <span class="sw-hl">doorstep</span></h2>
-          <p class="sw-panel-sub">We source directly from global distributors — Dell, HP, Cisco, Lenovo — and handle last-mile delivery to your site, whether you're in Freetown, Conakry, or Bissau.</p>
+          <p class="sw-panel-sub">We source directly from global distributors — Dell, HP, Cisco, Lenovo — and handle last-mile delivery to your site, whether you're in Freetown, Monrovia, Conakry, or Bissau.</p>
           <div class="sw-chips">
             <span class="sw-chip">🌍 Sierra Leone</span>
             <span class="sw-chip">Guinea</span>
             <span class="sw-chip">Guinea-Bissau</span>
+            <span class="sw-chip">Liberia</span>
           </div>
         </div>
       </div>
@@ -347,6 +348,7 @@
 <button class="ctry on" data-code="sl" onclick="pickCountry(this,'sl')" aria-pressed="true"><span class="flag">&#127480;&#127473;</span><span data-i18n="cov.sl">Sierra Leone</span></button>
 <button class="ctry" data-code="gn" onclick="pickCountry(this,'gn')" aria-pressed="false"><span class="flag">&#127468;&#127475;</span><span data-i18n="cov.gn">Guinea</span></button>
 <button class="ctry" data-code="gw" onclick="pickCountry(this,'gw')" aria-pressed="false"><span class="flag">&#127468;&#127484;</span><span data-i18n="cov.gw">Guinea-Bissau</span></button>
+<button class="ctry" data-code="lr" onclick="pickCountry(this,'lr')" aria-pressed="false"><span class="flag">&#127473;&#127479;</span><span data-i18n="cov.lr">Liberia</span></button>
 </div>
 <p class="bcloud-hint reveal">Tap a location to see its address</p>
 <div class="branch-cloud reveal" id="branch-cloud"></div>
@@ -1448,14 +1450,15 @@ const covData={
       {city:'Kono',address:'1 Post Office Road'}
     ]},
   gn:{flag:'🇬🇳',en:{name:'Guinea',text:'Full service available. Equipment procurement and installation in Conakry and major regional cities.'},fr:{name:'Guinée',text:'Service complet disponible. Approvisionnement en équipements et installation à Conakry et dans les principales villes régionales.'},kr:{name:'Gini',text:'Ful sɛvis de. Wi prok ikwipmen en install na Conakry en ɔda big tong.'}},
-  gw:{flag:'🇬🇼',en:{name:'Guinea-Bissau',text:'Branch locations coming soon — contact us to confirm coverage for your area.'},fr:{name:'Guinée-Bissau',text:'Agences à venir prochainement — contactez-nous pour confirmer la couverture de votre zone.'},kr:{name:'Gini-Bisao',text:'Brɛnch de kɔmɔt sɔn — kɔntakt wi fɔ kɔnfɔm wɛdɛ wi de na unu eria.'}}
+  gw:{flag:'🇬🇼',en:{name:'Guinea-Bissau',text:'Branch locations coming soon — contact us to confirm coverage for your area.'},fr:{name:'Guinée-Bissau',text:'Agences à venir prochainement — contactez-nous pour confirmer la couverture de votre zone.'},kr:{name:'Gini-Bisao',text:'Brɛnch de kɔmɔt sɔn — kɔntakt wi fɔ kɔnfɔm wɛdɛ wi de na unu eria.'}},
+  lr:{flag:'🇱🇷',en:{name:'Liberia',text:'We deliver to Liberia, including Monrovia. Contact us to confirm delivery and installation details for your area.'},fr:{name:'Libéria',text:'Nous livrons au Libéria, y compris à Monrovia. Contactez-nous pour confirmer la livraison et l’installation dans votre zone.'},kr:{name:'Laybiria',text:'Wi de delivɛ na Laybiria, inklud Monrovia. Kɔntakt wi fɔ kɔnfɔm delivɛ ɛn instɔleshɔn fɔ unu eria.'}}
 };
 
 // SECURITY FIX: Validate code parameter and use safe DOM methods (no innerHTML on
 // any user-relevant data; every node below is built with createElement/textContent)
 function pickCountry(el,code){
   // Validate code parameter
-  const validCodes = ['sl', 'gn', 'gw'];
+  const validCodes = ['sl', 'gn', 'gw', 'lr'];
   if (!validCodes.includes(code)) {
     console.error('Invalid country code');
     return;
@@ -1643,6 +1646,7 @@ const translations={
     'cov.sl':'Sierra Leone',
     'cov.gn':'Guinea',
     'cov.gw':'Guinea-Bissau',
+    'cov.lr':'Liberia',
     'cov.wa':'West Africa',
     /* INDUSTRIES */
     'ind.tag':'Industries',
@@ -1951,6 +1955,7 @@ const translations={
     'cov.sl':'Sierra Leone',
     'cov.gn':'Guinée',
     'cov.gw':'Guinée-Bissau',
+    'cov.lr':'Libéria',
     'cov.wa':'Afrique de l\'Ouest',
     /* INDUSTRIES */
     'ind.tag':'Secteurs',
@@ -2216,6 +2221,7 @@ const translations={
     'cov.sl':'Salone',
     'cov.gn':'Gini',
     'cov.gw':'Gini-Bisao',
+    'cov.lr':'Laybiria',
     'cov.wa':'Wɛs Afrika',
     /* INDUSTRIES */
     'ind.tag':'Indɔstri',
@@ -2601,6 +2607,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script src="assets/js/catalog-data.js"></script>
 <script src="assets/js/catalog.js"></script>
+<script src="assets/js/customer-assistant.js" defer></script>
 <div id="cs-toast" class="cs-toast" role="status" aria-live="polite"></div>
 
 <!-- SCHEDULE A CALL -- two-step Google Calendar booking widget (PART 1 of the
@@ -2746,5 +2753,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 </div>
 </div>
+<script type="module" src="/mascot/src/boot.js"></script>
 </body>
 </html>
