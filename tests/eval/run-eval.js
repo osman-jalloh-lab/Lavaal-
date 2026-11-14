@@ -138,6 +138,12 @@ async function run(cases) {
         }
         const after = await store.transaction(r => r.get('s:' + session.sessionId).context || {});
         records.push({ text, reply, usedModel, modelCalls: calls - oldCalls, rule: { language: rule.language, events: rule.events, fields: rule.fields }, context: after });
+        if (test.checks.noModel && usedModel) failures.push({ reason: 'unexpected-model-call', offendingText: text, turn: index + 1 });
+        const sentenceCount = (reply.text || '').split(/[.!?]+(?:\s|$)/u).filter(part => part.trim()).length;
+        if ((test.checks.minSentences && sentenceCount < test.checks.minSentences)
+            || (test.checks.maxSentences && sentenceCount > test.checks.maxSentences)) {
+          failures.push({ reason: 'sentence-count', offendingText: reply.text || '', turn: index + 1 });
+        }
         failures.push(...hardFails(visible(reply), { request: text, mustNot: test.checks.mustNot, network: network - oldNetwork, transport: transport - oldTransport }).map(f => ({ ...f, turn: index + 1 })));
       }
       results.push({ id: test.id, group: test.group, turns: test.turns, replies: records.map(r => r.reply), usedModel: records.map(r => r.usedModel), observations: records,

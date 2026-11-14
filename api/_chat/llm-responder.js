@@ -89,6 +89,12 @@ function sentenceSplit(text) {
     .filter(Boolean);
 }
 
+// Catalogue requirements need product evidence, not a company-name search hit.
+function productMatch(rule) {
+  return rule.matchCount > 0 && Boolean(rule.fields && rule.fields.model)
+    && !(rule.events || []).includes('company-pitch');
+}
+
 function intentFrom(rule) {
   const events = rule.events || [];
   if (events.includes('handoff-intake')) return 'handoff-intake';
@@ -101,7 +107,7 @@ function intentFrom(rule) {
     return events.includes('tag-osman-handoff') ? 'hours-and-agent' : 'hours';
   }
   if (events.includes('tag-osman-handoff') && !(rule.matchCount > 0)) return 'agent-handoff';
-  if (rule.matchCount > 0) return 'in-catalog';
+  if (productMatch(rule)) return 'in-catalog';
   return 'general';
 }
 
@@ -109,6 +115,7 @@ function requiredSentences(rule) {
   const lang = langOf(rule);
   const intent = intentFrom(rule);
   const events = rule.events || [];
+  if (events.includes('company-pitch')) return [rule.text];
   if (events.includes('handoff-intake') || events.includes('form-complete')) return [rule.text];
   if (intent === 'agent-handoff' || intent === 'hours-and-agent') return [PHRASES.shortly[lang]];
   let core = '';
@@ -121,7 +128,7 @@ function requiredSentences(rule) {
   else if (/wholesale|en gros|por grosso|holsel|bulk/i.test(rule.text || '')) core = PHRASES.bulk[lang];
   else if (intent === 'in-catalog') core = PHRASES.noConfirm[lang];
   const lines = core ? [core] : [];
-  if (intent !== 'block-sensitive') lines.push(PHRASES.offer[lang]);
+  if (intent !== 'block-sensitive' && intent !== 'general') lines.push(PHRASES.offer[lang]);
   return lines;
 }
 
@@ -293,7 +300,7 @@ function postEnforce(modelText, rule) {
     .split(',')
     .map(item => item.trim())
     .filter(Boolean);
-  if (rule.matchCount > 0 && names.length && !hasAllNames(text, names)) {
+  if (productMatch(rule) && names.length && !hasAllNames(text, names)) {
     text = 'Listed in the LAVAALL Technology catalogue: ' + names.join('; ') + '. ' + text;
     repairs.push('inserted-catalog-names');
   }
@@ -354,7 +361,7 @@ function buildMessages(visitorText, rule, session) {
     'Write one short, natural reply in the required language. No markdown, no bullet lists, no repeated sentences.',
     'Use 1–3 sentences total and at most one follow-up question. Keep required lines verbatim, once, including their punctuation. Mention at most four catalogue names.',
     'Use ONLY the catalogue facts provided. Never invent products, models, stock, prices, discounts, warranties, or delivery dates. Never use the phrase \'in stock\', even to deny stock; say the item is listed in the catalogue. When refusing a price, do not use currency codes or symbols such as USD, EUR, $, or £.',
-    'Never deny carrying or having an item or variant. Route unmatched requests to the team: ' + SERVICE_SLA + ' Offer a quick form if contact details are missing.',
+    'Never deny carrying or having an item or variant. Route unmatched PRODUCT requests to the team: ' + SERVICE_SLA + ' Offer a quick form if contact details are missing.',
     'If a quantity is provided, mention it as a DIGIT (write 4, not "four"). If several quantities are provided, mention each digit.',
     'Never use Haitian Creole. For Krio, write Sierra Leone Krio. Do not invent new Krio wording.',
     'If asked whether you are a bot or a person, include the official identity sentence VERBATIM in the required language, and offer a person. Do not claim to be human and do not add or drop words from that sentence.',
@@ -373,9 +380,9 @@ function buildMessages(visitorText, rule, session) {
     'Reply language: ' + lang,
     'Intent: ' + intent,
     (rule.fields && rule.fields.quantity) ? 'Quantity digit(s) to mention: ' + rule.fields.quantity : '',
-    names.length
+    productMatch(rule) && names.length
       ? 'You MUST mention each of these catalogue names, and no others: ' + names.join('; ')
-      : 'No matching public catalogue item was found. Do not invent a listing.',
+      : 'This is not a matched product question. Do not name catalogue items or add stock/price disclaimers or email/WhatsApp contact offers. Offer help or a quick form with one natural question.',
     (rule.fields && rule.fields.fullName && rule.fields.phone)
       ? 'Visitor already gave this name and phone for the request form: ' + rule.fields.fullName + ', ' + rule.fields.phone
       : '',
@@ -394,7 +401,7 @@ function shouldSkipModel(rule) {
   const events = rule.events || [];
   if (events.includes('refused-injection')) return 'refused-injection';
   if (events.some(event => String(event).startsWith('blocked-sensitive'))) return 'blocked-sensitive';
-  const canned = ['installation-service', 'handoff-intake', 'contact-info', 'product-guide', 'category-guide', 'service-help', 'form-intake', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'quote-review-process', 'apple-lock-requirement', 'tag-osman-handoff'];
+  const canned = ['company-pitch', 'installation-service', 'handoff-intake', 'contact-info', 'product-guide', 'category-guide', 'service-help', 'form-intake', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'quote-review-process', 'apple-lock-requirement', 'tag-osman-handoff'];
   const hit = events.find(event => canned.includes(event));
   return hit || null;
 }

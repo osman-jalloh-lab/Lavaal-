@@ -1605,5 +1605,429 @@
       ],
       "clarify": "one-question"
     }
+  },
+  {
+    "id": "I01",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "what makes LAVAALL different?"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Guinea-Bissau",
+        "LAVAALL Web",
+        "website",
+        "apps?|application",
+        "ordering",
+        "bots?",
+        "free preview",
+        "quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ]
+    }
+  },
+  {
+    "id": "I02",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "what makes you different?"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Guinea-Bissau",
+        "LAVAALL Web",
+        "website",
+        "apps?|application",
+        "ordering",
+        "bots?",
+        "free preview",
+        "quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ]
+    }
+  },
+  {
+    "id": "I03",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "why choose LAVAALL?"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Guinea-Bissau",
+        "LAVAALL Web",
+        "website",
+        "apps?|application",
+        "ordering",
+        "bots?",
+        "free preview",
+        "quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ]
+    }
+  },
+  {
+    "id": "I04",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "what do you do?"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Guinea-Bissau",
+        "LAVAALL Web",
+        "website",
+        "apps?|application",
+        "ordering",
+        "bots?",
+        "free preview",
+        "quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ]
+    }
+  },
+  {
+    "id": "I05",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "who are you?"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Guinea-Bissau",
+        "LAVAALL Web",
+        "website",
+        "apps?|application",
+        "ordering",
+        "bots?",
+        "free preview",
+        "quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ]
+    }
+  },
+  {
+    "id": "I06",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "who is LAVAALL?"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Guinea-Bissau",
+        "LAVAALL Web",
+        "website",
+        "apps?|application",
+        "ordering",
+        "bots?",
+        "free preview",
+        "quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ]
+    }
+  },
+  {
+    "id": "I07",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "tell me about LAVAALL"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Guinea-Bissau",
+        "LAVAALL Web",
+        "website",
+        "apps?|application",
+        "ordering",
+        "bots?",
+        "free preview",
+        "quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ]
+    }
+  },
+  {
+    "id": "I08",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "Pourquoi choisir LAVAALL ?"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinée|Guinea",
+        "Libéria|Liberia",
+        "Guinée-Bissau|Guinea-Bissau",
+        "LAVAALL Web",
+        "site|website",
+        "app|application",
+        "commande|ordering",
+        "bot",
+        "gratuit|free",
+        "devis|quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ],
+      "language": "fr"
+    }
+  },
+  {
+    "id": "I09",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "wetin una de du?"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Guinea-Bissau",
+        "LAVAALL Web",
+        "website",
+        "apps?|application",
+        "ordering",
+        "bots?",
+        "free preview",
+        "quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ]
+    }
+  },
+  {
+    "id": "I10",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "wetin una dae do?"
+    ],
+    "interpretation": "General company question, not a product request",
+    "expected": "A balanced short Technology supply and LAVAALL Web pitch with verified country coverage, a single helpful follow-up, and no model call.",
+    "checks": {
+      "clarify": "one-question",
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Sierra Leone",
+        "Guinea",
+        "Liberia",
+        "Guinea-Bissau",
+        "LAVAALL Web",
+        "website",
+        "apps?|application",
+        "ordering",
+        "bots?",
+        "free preview",
+        "quote"
+      ],
+      "mustNot": [
+        "fiber optic|structured cabling|cat6|probook|thinkpad|galaxy|iphone|router",
+        "catalog(?:ue)? listing.{0,80}(?:stock|price)",
+        "stock.{0,30}price confirmation",
+        "@|whatsapp|\\+1[ (]|737.{0,12}704",
+        "\\b(?:stock|inventory|price|pricing)\\b|\\b(?:stock|prix)\\b"
+      ]
+    }
+  },
+  {
+    "id": "I11",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "what do you do for routers"
+    ],
+    "interpretation": "Existing product or AI disclosure intent must remain available",
+    "expected": "Preserve the product narrowing or AI disclosure path instead of returning the company pitch.",
+    "checks": {
+      "intentAll": [
+        "router"
+      ],
+      "intentNot": [
+        "Guinea-Bissau"
+      ],
+      "mustNot": [
+        "Guinea-Bissau"
+      ]
+    }
+  },
+  {
+    "id": "I12",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "what do you do for iPhones"
+    ],
+    "interpretation": "Existing product or AI disclosure intent must remain available",
+    "expected": "Preserve the product narrowing or AI disclosure path instead of returning the company pitch.",
+    "checks": {
+      "intentAll": [
+        "iphone"
+      ],
+      "intentNot": [
+        "Guinea-Bissau"
+      ],
+      "mustNot": [
+        "Guinea-Bissau"
+      ]
+    }
+  },
+  {
+    "id": "I13",
+    "group": "I",
+    "groupName": "Company pitch and intent boundaries",
+    "turns": [
+      "are you human"
+    ],
+    "interpretation": "Existing product or AI disclosure intent must remain available",
+    "expected": "Preserve the product narrowing or AI disclosure path instead of returning the company pitch.",
+    "checks": {
+      "intentAll": [
+        "AI|artificial|assistant"
+      ],
+      "intentNot": [
+        "Guinea-Bissau"
+      ],
+      "mustNot": [
+        "Guinea-Bissau"
+      ]
+    }
   }
 ]

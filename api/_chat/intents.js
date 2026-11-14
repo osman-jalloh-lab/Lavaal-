@@ -14,6 +14,16 @@ function specialIntent(text, lang, session = {}) {
   if (/\b(?:(?:are|is) (?:you|this) (?:an? |the )?(?:bot|robot|human|ai|real person)|am i (?:talking|speaking) (?:to|with) (?:an? )?(?:real person|human)|(?:you|yu|una) (?:a|na) (?:bot|robot|human)|(?:are|r) (?:you|yu|u) (?:really )?(?:human|real)|(?:is|are) (?:this|you) (?:a )?real person|(?:es-tu|etes-vous|tu es|vous etes|est ce que tu es|est ce que vous etes|est ce un) (?:un |une )?(?:bot|robot|humain|personne|ia))\b/.test(raw)) {
     return answer("I'm the LAVAALL Assistant, an AI assistant. Would you like me to connect you with a person on our team?", "Je suis LAVAALL Assistant, un assistant IA. Souhaitez-vous que je vous mette en relation avec une personne de notre équipe ?", 'A na LAVAALL Assistant, wan AI assistant. Yu wan tɔk to wan pɔsin na wi tim?', 'product-guide', { chips: ['Talk to someone'] });
   }
+  // Whole-question intent matching leaves product-qualified questions to discovery.
+  const companyAsk = raw.trim().replace(/^[\s¿]+|[?!.\s]+$/g, '').replace(/^(?:please |bonjour[, ]+|hi[, ]+|hello[, ]+)/, '');
+  if (/^(?:what makes (?:you|lavaall) different|why (?:should i )?choose (?:you|lavaall)|what do you do|what does lavaall do|who are you|who is lavaall|tell me (?:more )?about lavaall|(?:can|could) you tell me about lavaall|pourquoi choisir lavaall|qui etes[- ]vous|qui est lavaall|que faites[- ]vous|parlez[- ]moi de lavaall|qu est[- ]ce qui (?:vous|lavaall) (?:differencie|rend different)|wetin una (?:de du|de do|dae do))$/.test(companyAsk)) {
+    // Krio uses the English fallback until a complete pitch has reviewed wording.
+    const companyLanguage = /^(?:pourquoi|qui |que |parlez|qu est)/.test(companyAsk) ? 'fr' : lang;
+    return reply(companyLanguage === 'fr'
+      ? 'LAVAALL est une marketplace technologique sur devis pour vos besoins en approvisionnement et livraison en Sierra Leone, en Guinée, au Liberia et en Guinée-Bissau, selon le lieu à confirmer avec notre équipe. LAVAALL Web crée des sites web, des applications, des systèmes de commande en ligne et des bots, avec un aperçu gratuit pour commencer. Souhaitez-vous un formulaire rapide pour votre projet ?'
+      : 'LAVAALL is a quote-first technology marketplace for sourcing and delivery in Sierra Leone, Guinea, Liberia and Guinea-Bissau, with our team checking the delivery location. LAVAALL Web builds websites, apps, online ordering and bots, starting with a free preview. Would you like a quick form for your project?',
+    companyLanguage === 'fr' ? 'fr' : 'en', 'company-pitch');
+  }
   if (/\b(?:paid|payment (?:already|confirmation)|confirm (?:my |the )?payment|paiement.*confirm|confirm.*paiement|deja paye|don pay|dɔn pay)\b/.test(raw)) {
     return answer("I can't confirm payments here; our team verifies payments. Would you like me to connect you with them?", "Je ne peux pas confirmer les paiements ici ; notre équipe les vérifie. Souhaitez-vous que je vous mette en relation avec elle ?", 'A nɔ kin kɔnfam payment ya; wi tim go verify am. Yu wan tɔk to wi tim?', 'faq-pay', { chips: ['Talk to someone'] });
   }
