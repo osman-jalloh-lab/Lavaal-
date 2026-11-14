@@ -85,9 +85,10 @@ assert.match(starlink.text, /Starlink/i);
 
 const handoff = respond('I want to speak to a person on your team, please.');
 assert.equal(handoff.handoff.tagOsman, true);
-assert.ok(handoff.text.startsWith('Thanks, someone from our team will reach out to you shortly.'));
+assert.equal(handoff.text, 'Yes, sure. Can I get your first and last name?');
+assert.equal(shouldSkipModel(handoff), 'handoff-intake');
 assert.equal(PHRASES.shortly.en, 'Thanks, someone from our team will reach out to you shortly.');
-assert.ok(postEnforce('I can help.', handoff).text.includes('Thanks, someone from our team will reach out to you shortly.'));
+assert.equal(handoff.awaiting, 'handoff-name');
 assert.doesNotMatch(handoff.text, /epson|printer/i);
 
 console.log('A2 conversation and FAQ flows passed');

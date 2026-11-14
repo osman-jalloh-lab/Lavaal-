@@ -23,11 +23,11 @@ assert.doesNotMatch(service.text + JSON.stringify(service.fields), /iphone|epson
 assert.doesNotMatch(JSON.stringify(buildMessages(french, service, session)), /iphone/i);
 assert.ok(JSON.stringify(buildMessages('and the Pro?', respond('and the Pro?', session), session)).includes('Earlier turns'));
 const handoff = respond('I want to speak to a person on your team, please.', session);
-assert.equal(intentFrom(handoff), 'agent-handoff');
+assert.equal(intentFrom(handoff), 'handoff-intake');
 assert.equal(handoff.handoff.tagOsman, true);
 assert.doesNotMatch(handoff.text + JSON.stringify(handoff.fields), /iphone|epson/i);
 const shortly = 'Thanks, someone from our team will reach out to you shortly.';
-assert.ok(handoff.text.includes(shortly));
+assert.equal(handoff.text, 'Yes, sure. Can I get your first and last name?');
 assert.equal(PHRASES.shortly.en, shortly);
-assert.ok(postEnforce('I can help.', handoff).text.includes(shortly));
+assert.equal(handoff.awaiting, 'handoff-name');
 console.log('A2 chat regressions passed');

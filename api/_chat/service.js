@@ -50,7 +50,7 @@ function requireEvent(value) {
   if (typeof value !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(value)) fail('event');
 }
 
-function normalize(input) {
+function normalizeFields(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)
       || Object.keys(input).some(key => !FIELDS.includes(key))) fail('invalid_fields');
   const draft = {};
@@ -61,6 +61,11 @@ function normalize(input) {
         || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(value)) fail('invalid_fields');
     draft[key] = value.trim();
   }
+  return draft;
+}
+
+function normalize(input) {
+  const draft = normalizeFields(input);
   if (draft.name.length < 2 || draft.name.length > 100
       || !/^\+[1-9]\d{6,14}$/.test(draft.phone)) fail('invalid_contact');
   if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) fail('invalid_email');
@@ -68,6 +73,25 @@ function normalize(input) {
   if (draft.preferredResponse && !['email', 'phone'].includes(draft.preferredResponse)) fail('invalid_response');
   if (draft.country && !COUNTRIES.includes(draft.country)) fail('invalid_country');
   return draft;
+}
+
+function handoffPayload(input, time) {
+  const fields = normalizeFields(input.fields);
+  if (fields.name.length < 2 || fields.name.length > 100
+      || !/[\p{L}]/u.test(fields.name)
+      || fields.inquiryType !== 'customer-support'
+      || !fields.productOrService || !fields.message) fail('invalid_fields');
+  if (fields.preferredResponse === 'email') {
+    if (fields.phone || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) fail('invalid_contact');
+  } else if (fields.preferredResponse === 'phone') {
+    if (fields.email || !/^\+?\d{7,15}$/.test(fields.phone)) fail('invalid_contact');
+  } else fail('invalid_response');
+  return {
+    kind: 'chat-handoff', test: true, route: 'customer-success', owner: 'Alison',
+    flag: 'Someone reached out wanting to talk to you about ' + fields.productOrService + '.',
+    fields, summary: fields.message, createdAt: new Date(time).toISOString(),
+    topicKnownFromChat: Boolean(input.topicKnownFromChat),
+  };
 }
 
 function digestKey(draftId) {
@@ -103,7 +127,7 @@ function compactNarrow(narrow) {
   return state;
 }
 
-function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false, previewLimits = false }) {
+function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false, previewLimits = false, handoffSink = 'test-store' }) {
   if (!store || typeof store.transaction !== 'function'
       || typeof salt !== 'string' || salt.length < 8 || salt.length > 256) fail('unconfigured');
 
@@ -351,9 +375,17 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       provider: ['deepseek', 'gateway'].includes(response.llmProvider) ? response.llmProvider : null,
       skipped: reservation.skip || response.llmSkipped || null,
     };
-    return transaction(records => {
+    const completed = await transaction((records, time) => {
       const event = records.get(eventKey);
       if (!event) fail('session');
+      if (response.handoffPayload && handoffSink === 'test-store' && process.env.VERCEL_ENV !== 'production') {
+        const payload = handoffPayload(response.handoffPayload, time);
+        const sink = 'test-handoff:' + token();
+        records.set(sink, { payload, exp: time + DAY });
+        if (previewDebug) {
+          result.debug.handoff = { sink, payload };
+        }
+      }
       const ledger = records.get(reservation.monthKey);
       if (!reservation.skip && Number.isFinite(response.costUsd) && response.costUsd >= 0) {
         const actual = Math.ceil(response.costUsd * 100 * 1000000) / 1000000;
@@ -363,9 +395,12 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       event.result = result;
       const session = records.get('s:' + id);
       if (session) {
+        const blockedHandoff = (response.events || []).includes('handoff-intake')
+          && (response.events || []).some(event => event === 'refused-injection' || event.startsWith('blocked-sensitive:'));
+        const safeUserText = blockedHandoff ? '' : text;
         const model = response.lastModel && { name: response.lastModel.name, options: response.lastModel.options || [], family: response.lastModel.family, id: response.lastModel.id };
         session.context = {
-          lastUser: text,
+          lastUser: safeUserText,
           lastLanguage: response.language,
           lastQty: response.fields && response.fields.quantity,
           lastProducts: compactProducts(Array.isArray(response.lastProducts) ? response.lastProducts : (!response.reset && session.context && session.context.lastProducts) || []),
@@ -375,11 +410,21 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
           narrow: compactNarrow(response.narrow),
           lastTopic: response.lastTopic || null,
           formDraft: response.formDraft || null,
-          history: [{ role: 'user', text }, { role: 'assistant', text: result.text }],
+          handoffDraft: response.handoffDraft || null,
+          selectedVariant: response.selectedVariant || null,
+          history: [{ role: 'user', text: safeUserText }, { role: 'assistant', text: result.text }],
         };
       }
       return result;
     });
+    if (completed.debug?.handoff) {
+      const { sink, payload } = completed.debug.handoff;
+      console.info('TEST_HANDOFF', JSON.stringify({
+        id: sink, route: payload.route, topicKnownFromChat: Boolean(payload.topicKnownFromChat),
+        hasPhone: Boolean(payload.fields.phone), hasEmail: Boolean(payload.fields.email),
+      }));
+    }
+    return completed;
   }
 
   return { start, draft, review, confirm, turn };

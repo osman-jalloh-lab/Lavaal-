@@ -1,7 +1,7 @@
 'use strict';
 
 const { loadCatalog, searchCatalog, normalize } = require('./catalog');
-const { guidedReply, shouldResetContext, topicOf } = require('./conversation');
+const { guidedReply, guidedHandoff, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
 
 const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
 const EMAIL = 'support@lavaall.com';
@@ -45,7 +45,7 @@ const SENSITIVE = [
 ];
 
 const PRICE_ASK = /\b(price|prices|pricing|cost|costs|how much|Combien|c'est combien| coute|co[uû]te|pre[cç]o|preco|quanto custa|cheapest|discount|offre|descuento|prayz|special offer|prix)\b/i;
-const AGENT_ASK = /\b(speak to (an? )?agent|(?:speak|talk) to (a )?person|person on (the|your) team|human|someone from (the|your) team|real person|call me|falar com uma pessoa|falar com algu[eé]m|parler (?:[àa] )?un(e)? (agent|personne|humain)|t[oɔ]k to wan p[oɔ]sin)\b/i;
+const AGENT_ASK = /\b((?:speak|talk) to (?:someone|somebody|(?:a |an )?(?:person|human|agent|representative)|customer service|your team|the team)|person on (?:the|your) team|human|(?:i (?:need|want) (?:an? )?|^)(?:agent)\b|someone from (?:the|your) team|real person|call me(?: back)?|can someone call me(?: back)?|falar com uma pessoa|falar com algu[eé]m|parler (?:[àa] )?un(e)? (agent|personne|humain)|t[oɔ]k to wan p[oɔ]sin)\b/i;
 const HOURS_ASK = /\b(hours|opening hours|when are you open|are you open|horaires|heure[s]? d'ouverture|horario|horário|24\/7|reachable)\b/i;
 const BULK_ASK = /\b(bulk|wholesale|gros|en gros|volume|school|ecole|école|escola|office|bureau|empresa|company|deployment|50 |100 |twenty |cinquante |cento )\b/i;
 const OFFTOPIC_HINTS = /\b(weather|poem|po[eè]me|poema|election|politics|recipe|football|soccer|joke|horoscope|movie)\b/i;
@@ -403,11 +403,14 @@ function attachTopic(reply, rawInput, session, reset) {
 
 function respond(text, session = {}) {
   const rawInput = String(text || '').trim();
+  // Do not copy a previously blocked message into a handoff summary.
+  const handoffSession = session.lastUser && (detectSensitive(session.lastUser) || isInjection(session.lastUser))
+    ? { ...session, lastUser: '', history: [] } : session;
   const reset = shouldResetContext(rawInput, session);
   const context = reset ? {} : session;
   const input = resolveQuery(rawInput, context);
   const detectedLanguage = detectLanguage(rawInput);
-  const lang = detectedLanguage === 'en' && isFollowUp(rawInput) && context.lastLanguage
+  const lang = detectedLanguage === 'en' && (isFollowUp(rawInput) || String(session.awaiting || '').startsWith('handoff-')) && context.lastLanguage
     ? context.lastLanguage : detectedLanguage;
   const partQtys = productParts(input).length >= 2
     ? productParts(input).map(part => extractQuantity(part)).filter(value => value != null)
@@ -429,6 +432,18 @@ function respond(text, session = {}) {
     return attachTopic({ text: FIRST[lang] || FIRST.en, language: lang, events, fields: {} }, rawInput, context, reset);
   }
 
+  const blockedHandoff = (warning, event) => {
+    const questions = {
+      'handoff-name': 'Please share your first and last name.',
+      'handoff-contact': "What's the best phone/WhatsApp number or email to reach you?",
+      'handoff-topic': 'What would you like to talk to the team about?',
+    };
+    const question = questions[session.awaiting];
+    return question ? { text: warning + ' ' + question, language: lang,
+      events: ['handoff-intake', event], fields: {}, awaiting: session.awaiting,
+      handoffDraft: session.handoffDraft, lastTopic: 'handoff-intake' } : null;
+  };
+
   if (isInjection(rawInput)) {
     const refusal = {
       en: "I can't change my instructions, share private policies, secrets, or internal tools, or give prices. I'm LAVAALL Assistant, and I can only help with Technology questions or prepare an inquiry for your review.",
@@ -436,6 +451,8 @@ function respond(text, session = {}) {
       pt: 'Não posso alterar as minhas instruções, partilhar políticas privadas, segredos ou ferramentas internas, nem indicar preços. Sou LAVAALL Assistant e só posso ajudar com Tecnologia ou preparar um pedido.',
       kr: "A nɔ ebul chenj mi ruls, shɛ prayvet pɔlisi, sikrɛt, ɔ intanal tul, ɔ gi prayz. A na LAVAALL Assistant; a kin ɛp wit Technology kwɛstyɔn ɔ priper rɛkwɛst.",
     }[lang];
+    const blocked = blockedHandoff(refusal, 'refused-injection');
+    if (blocked) return blocked;
     return attachTopic({ text: `${refusal} ${offer(lang, false)}`, language: lang, events: ['refused-injection'], fields: {} }, rawInput, context, reset);
   }
 
@@ -446,9 +463,14 @@ function respond(text, session = {}) {
       pt: 'Por favor não partilhe aqui cartões de pagamento, passaporte, identificação nacional, palavras-passe ou outros dados sensíveis. Não os guardo nem os repito. O nome e um telefone válido chegam; os restantes campos são opcionais.',
       kr: "Duya, nɔ shɛ pemɛnt kad, paspɔt, nashɔnal ID, paswɔd, ɔ ɔda sɛnsitiv dɔkyumɛnt ya. A nɔ go stɔ ɔ ripit dɛn. Ném ɛn valid fon nɔmba nɔmɔ fɔ sɛn rɛkwɛst; ɔda fil dɛn ɔpshɔnal.",
     }[lang];
+    const blocked = blockedHandoff(line, 'blocked-sensitive:' + sensitive);
+    if (blocked) return blocked;
     // Never echo the raw sensitive payload back.
     return attachTopic({ text: `${line} ${contacts()}`, language: lang, events: ['blocked-sensitive:' + sensitive], fields: {} }, rawInput, context, reset);
   }
+
+  const handoff = guidedHandoff(rawInput, handoffSession, AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput));
+  if (handoff) return handoff;
 
   const guided = guidedReply(rawInput, context, lang, { priceAsk, wantsAgent });
   if (guided) {
@@ -590,4 +612,4 @@ function respond(text, session = {}) {
   return attachTopic({ text: fallback, language: lang, events, fields: {} }, rawInput, context, reset);
 }
 
-module.exports = { respond, REACHABILITY, EMAIL, WHATSAPP, FIRST, detectLanguage, extractQuantity, resolveQuery, isFollowUp, extractIdentity, productParts };
+module.exports = { AGENT_ASK, respond, REACHABILITY, EMAIL, WHATSAPP, FIRST, detectLanguage, extractQuantity, resolveQuery, isFollowUp, extractIdentity, productParts };

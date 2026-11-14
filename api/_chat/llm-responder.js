@@ -90,6 +90,7 @@ function sentenceSplit(text) {
 
 function intentFrom(rule) {
   const events = rule.events || [];
+  if (events.includes('handoff-intake')) return 'handoff-intake';
   if (events.includes('refused-injection')) return 'refuse-injection';
   if (events.some(event => String(event).startsWith('blocked-sensitive'))) return 'block-sensitive';
   if (events.includes('redirected-offtopic')) return 'off-topic';
@@ -369,7 +370,7 @@ function shouldSkipModel(rule) {
   const events = rule.events || [];
   if (events.includes('refused-injection')) return 'refused-injection';
   if (events.some(event => String(event).startsWith('blocked-sensitive'))) return 'blocked-sensitive';
-  const canned = ['contact-info', 'product-guide', 'category-guide', 'service-help', 'form-intake', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'tag-osman-handoff'];
+  const canned = ['handoff-intake', 'contact-info', 'product-guide', 'category-guide', 'service-help', 'form-intake', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'tag-osman-handoff'];
   const hit = events.find(event => canned.includes(event));
   return hit || null;
 }

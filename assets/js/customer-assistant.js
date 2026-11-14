@@ -555,7 +555,7 @@
         fieldLabels[key].textContent = labels[lang][index] + (key === 'name' || key === 'phone' ? ' *' : '');
       });
       first.textContent = config.localTestStub === true ? c.first : {
-        en: "Hi, I'm the LAVAALL Assistant. What do you need today?",
+        en: "Hi, I'm the LAVAALL Assistant. How can I help you today?",
         fr: 'Je suis LAVAALL Assistant, un assistant IA. Je peux répondre aux questions sur la technologie ou préparer une demande à vérifier.',
         pt: 'Sou LAVAALL Assistant, um assistente de IA. Posso ajudar com perguntas sobre tecnologia ou preparar um pedido para a sua revisão.'
       }[lang];
@@ -638,7 +638,7 @@
         }
         return;
       }
-      var wantsIntake = /\b(request a quote|start a quote|i want to request a quote|speak to a person|talk to someone|i want to speak to a person)\b/i.test(text);
+      var wantsIntake = /\b(request a quote|start a quote|i want to request a quote)\b/i.test(text);
       var current = generation;
       busy = true;
       renderVoice();

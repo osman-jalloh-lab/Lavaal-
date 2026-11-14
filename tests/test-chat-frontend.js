@@ -177,11 +177,23 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   assert.equal(calls.length, count, 'confirmation does not enable Preview inquiry delivery');
   assert.ok(calls.every(call=>call.action === 'turn'));
   assert.doesNotMatch(log.textContent, /Inquiry type|Your budget|Skipped/);
+  const beforeHandoff = log.children.length;
   const handoffPending = starterButtons[4].events.click();
   assert.match(calls.at(-1).payload.text, /speak to a person/i);
-  resolveTurn({text:'Thanks, someone from our team will reach out to you shortly.'});
+  resolveTurn({text:'Yes, sure. Can I get your first and last name?', awaiting:'handoff-name', chips:[]});
   await handoffPending;
-  assert.match(log.textContent, /Thanks, someone from our team will reach out to you shortly\./);
+  const handoffBubbles = log.children.slice(beforeHandoff);
+  assert.equal(handoffBubbles.length, 2, 'person handoff adds one user bubble and exactly one server assistant bubble');
+  assert.equal(handoffBubbles[1].textContent, 'Yes, sure. Can I get your first and last name?');
+  assert.equal(handoffBubbles.filter(bubble=>bubble.textContent === 'What is your name?').length, 0, 'person handoff has no local name question');
+  const handoffCallCount = calls.length;
+  input.value = 'Ada Test';
+  const namePending = composer.events.submit({preventDefault(){}});
+  assert.equal(calls.length, handoffCallCount + 1, 'handoff name is sent to the server');
+  assert.equal(calls.at(-1).payload.text, 'Ada Test');
+  resolveTurn({text:"Thanks, Ada Test. What's the best phone/WhatsApp number or email to reach you?", awaiting:'handoff-contact', chips:[]});
+  await namePending;
+  assert.equal(log.children.at(-1).textContent, "Thanks, Ada Test. What's the best phone/WhatsApp number or email to reach you?");
   const failDoc = {createElement:tag=>new Element(tag), body:new Element('body')};
   const failPanel = ui.mount(failDoc, local, {
     ...enabled,

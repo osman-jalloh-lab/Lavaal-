@@ -199,7 +199,7 @@ function narrowingReply(text, session) {
     return result(matched
       ? 'Yes, we have the ' + product.name + ' in ' + matched + '. Our team will confirm stock with your quote.'
       : "We don't have the " + product.name + ' in ' + text.trim() + ', but we have it in ' + listWords(field.options) + '.',
-      ['product-guide'], { lastModel: product, narrow: session.narrow, lastProducts: session.lastProducts, chips: matched ? ['Request a quote', 'Talk to someone'] : field.options.slice(0,6), awaiting: matched ? null : session.awaiting });
+      ['product-guide'], { selectedVariant: matched || null, lastModel: product, narrow: session.narrow, lastProducts: session.lastProducts, chips: matched ? ['Request a quote', 'Talk to someone'] : field.options.slice(0,6), awaiting: matched ? null : session.awaiting });
   }
   const parent = continuing ? { ...session.narrow.scope } : {};
   if (modelSwitch) delete parent.modelId;
@@ -236,7 +236,7 @@ function narrowingReply(text, session) {
     const field = narrow.variantField(product);
     if (field && hit.variantAsked) return result(hit.matchedVariant
       ? 'Yes, we have the ' + product.name + ' in ' + hit.matchedVariant + '. Our team will confirm stock with your quote.'
-      : "We don't have the " + product.name + ' in ' + hit.variantAsked + ', but we have it in ' + listWords(field.options) + '.', ['product-guide'], { ...extra, lastModel: product, awaiting: hit.matchedVariant ? null : (field.key === 'color' ? 'color' : 'variant') });
+      : "We don't have the " + product.name + ' in ' + hit.variantAsked + ', but we have it in ' + listWords(field.options) + '.', ['product-guide'], { ...extra, selectedVariant: hit.matchedVariant || null, lastModel: product, awaiting: hit.matchedVariant ? null : (field.key === 'color' ? 'color' : 'variant') });
     if (!continuing && hit.level === 'single' && query.toLowerCase() !== product.name.toLowerCase()) return result('Yes, we have **' + narrow.displayLabel(query, products) + (query.endsWith('s') ? '' : 's') + '**. We list ' + product.name + '. Our team will confirm stock with your quote.', ['category-guide','product-guide'], { ...extra, lastModel: product, awaiting: 'variant' });
     const label = field && (field.label || field.key);
     const questionLabel = label && (label === label.toUpperCase() ? label : label.toLowerCase());
@@ -264,7 +264,8 @@ function isEmail(value) {
 
 function isPhone(value) {
   const raw = String(value || '').trim();
-  return /^[+()0-9 .\-]{7,40}$/.test(raw) && raw.replace(/\D/g, '').length >= 7;
+  const digits = raw.replace(/\D/g, '');
+  return /^\+?[0-9 () .\-]+$/.test(raw) && digits.length >= 7 && digits.length <= 15;
 }
 
 function formDraft(session) {
@@ -330,6 +331,80 @@ function guidedForm(text, session) {
   return null;
 }
 
+// Handoff slots are deterministic and retain the context captured at entry.
+function handoffTopic(session) {
+  if (session.lastModel && session.lastModel.name) {
+    return session.lastModel.name + (session.selectedVariant ? ' (' + session.selectedVariant + ')' : '');
+  }
+  const scope = session.narrow && session.narrow.scope;
+  if (scope) {
+    const products = narrow.buildTree(loadCatalog().products);
+    if (scope.family) return narrow.displayLabel(scope.family, products);
+    if (scope.categoryId) return [scope.brand, narrow.displayLabel(scope.categoryId, products)].filter(Boolean).join(' ');
+  }
+  const topic = session.lastTopic || '';
+  const topics = { 'service-order': 'an existing order', 'service-wholesale': 'a wholesale request',
+    'service-availability': 'product availability', 'service-source': 'a sourcing request',
+    'faq-delivery': 'delivery', 'faq-pay': 'payment', 'faq-price': 'pricing',
+    'faq-timeline': 'delivery timing', 'faq-school': 'a school or NGO request',
+    'faq-trust': 'LAVAALL', 'faq-website': 'a website' };
+  return topics[topic] || (topic.startsWith('product:') ? topic.slice(8) : '');
+}
+
+function guidedHandoff(text, session, start) {
+  const raw = String(text || '').trim();
+  const active = String(session.awaiting || '').startsWith('handoff-');
+  if (!active && !start) return null;
+  const reply = (line, draft, awaiting, extra) => result(line, ['handoff-intake'], {
+    awaiting, handoffDraft: draft, lastTopic: 'handoff-intake', ...extra,
+  });
+  if (active && /^(cancel|cancel request)$/i.test(raw)) {
+    return reply('Request cancelled. What else can I help with?', null, null);
+  }
+  if (!active) {
+    const earlier = session.history || [];
+    const lastUser = earlier.filter(turn => turn.role === 'user').slice(-1)[0];
+    return reply('Yes, sure. Can I get your first and last name?', {
+      name: '', contact: '', topic: handoffTopic(session).slice(0, 300),
+      topicKnownFromChat: Boolean(handoffTopic(session)),
+      earlier: String(session.lastUser || (lastUser && lastUser.text) || '').slice(0, 200),
+    }, 'handoff-name', { handoff: { tagOsman: true } });
+  }
+  const draft = { ...(session.handoffDraft || {}) };
+  if (session.awaiting === 'handoff-name') {
+    if (start || raw.length < 2 || raw.length > 100 || !/\p{L}/u.test(raw) || isEmail(raw) || isPhone(raw)) {
+      return reply('Please share your first and last name.', draft, 'handoff-name');
+    }
+    draft.name = raw;
+    return reply("Thanks, " + raw + ". What's the best phone/WhatsApp number or email to reach you?", draft, 'handoff-contact');
+  }
+  if (session.awaiting === 'handoff-contact') {
+    if (raw.length > 300 || (!isEmail(raw) && !isPhone(raw))) {
+      return reply("That doesn't look like a valid phone number or email. What's the best phone/WhatsApp number (with country code) or email to reach you?", draft, 'handoff-contact');
+    }
+    draft.contact = raw;
+    if (!draft.topic) return reply('What would you like to talk to the team about?', draft, 'handoff-topic');
+  } else if (session.awaiting === 'handoff-topic') {
+    if (!raw || raw.length > 300) return reply('What would you like to talk to the team about?', draft, 'handoff-topic');
+    draft.topic = raw;
+  }
+  const email = isEmail(draft.contact) ? draft.contact : '';
+  const digits = draft.contact.replace(/\D/g, '');
+  const phone = email ? '' : draft.contact.startsWith('+') ? '+' + digits
+    : draft.contact.startsWith('00') ? '+' + digits.slice(2) : digits;
+  const preferredResponse = email ? 'email' : 'phone';
+  const summary = ('Website chat handoff. Topic: ' + draft.topic + '.' +
+    (draft.earlier ? ' Earlier the visitor asked: "' + draft.earlier + '".' : '') +
+    ' Contact preference: ' + preferredResponse + '.').slice(0, 400);
+  return reply('Thank you. Someone from our team will reach out to you shortly.', null, null, {
+    handoffPayload: { topicKnownFromChat: Boolean(draft.topicKnownFromChat), kind: 'chat-handoff', test: true, route: 'customer-success', owner: 'Alison',
+      flag: 'Someone reached out wanting to talk to you about ' + draft.topic + '.',
+      fields: { inquiryType: 'customer-support', name: draft.name, phone, email, preferredResponse,
+        subject: ('Chat handoff: ' + draft.topic).slice(0, 300), productOrService: draft.topic, message: summary },
+      summary },
+  });
+}
+
 function isNewQuestion(text) {
   const raw = String(text || '').trim();
   if (serviceIntent(raw) || CONTACT_ASK.test(raw) || HELP_ASK.test(raw)) return true;
@@ -341,6 +416,7 @@ function isNewQuestion(text) {
 function isSlotFill(text, session) {
   if (!session || !session.awaiting) return false;
   const raw = String(text || '').trim();
+  if (String(session.awaiting).startsWith('handoff-')) return !/^(cancel|cancel request)$/i.test(raw);
   if (!raw) return false;
   if (String(session.awaiting).startsWith('form-') && session.awaiting !== 'form-offer') return true;
   if (CONTACT_ASK.test(raw) || serviceIntent(raw)) return false;
@@ -388,6 +464,7 @@ function topicOf(text, session) {
 
 function shouldResetContext(text, session) {
   if (!session || !(session.lastTopic || session.awaiting || (session.lastProducts || []).length || session.lastModel)) return false;
+  if (String(session.awaiting || '').startsWith('handoff-')) return false;
   if (isSlotFill(text, session)) return false;
   const next = topicOf(text, {});
   const prev = session.lastTopic;
@@ -510,6 +587,6 @@ function guidedReply(rawInput, session, lang, flags) {
 }
 
 module.exports = {
-  guidedReply, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK,
+  guidedReply, guidedHandoff, isSlotFill, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK,
   shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START,
 };
