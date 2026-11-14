@@ -512,5 +512,5 @@ function categoryCounts() {
 }
 
 module.exports = {
-  loadCatalog, searchCatalog, findByName, normalize, categoryCounts, ROOT,
+  loadCatalog, searchCatalog, findByName, normalize, tokensOf, expandToken, levenshtein, isTransposition, categoryCounts, ROOT,
 };

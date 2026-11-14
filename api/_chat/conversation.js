@@ -1,6 +1,7 @@
 'use strict';
 
 const { searchCatalog, loadCatalog } = require('./catalog');
+const narrow = require('./narrow');
 const EMAIL = 'support@lavaall.com';
 const WHATSAPP = '+1 (737) 704-4182';
 
@@ -36,6 +37,7 @@ function uniqueNames(products) {
 }
 
 function listWords(items) {
+  if (items.length > 8) return listWords(items.slice(0,8)) + ', and ' + (items.length-8) + ' more';
   if (!items.length) return '';
   if (items.length === 1) return items[0];
   if (items.length === 2) return items[0] + ' and ' + items[1];
@@ -45,12 +47,6 @@ function listWords(items) {
 function familySearch(query) {
   const result = searchCatalog(query, { limit: 24 });
   return (result.all && result.all.length ? result.all : result.matches) || [];
-}
-
-function closestFamily(query) {
-  const loose = String(query || '').replace(/\b\d{2,5}s?\b/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!loose) return [];
-  return familySearch(loose);
 }
 
 function colorMatch(asked, colors) {
@@ -63,33 +59,8 @@ function colorMatch(asked, colors) {
 }
 
 function pickModel(text, products) {
-  const raw = String(text || '').trim();
-  if (!products.length) return null;
-  const lower = raw.toLowerCase();
-  const exact = products.find(product => product.name.toLowerCase() === lower);
-  if (exact) return exact;
-  const contained = products.find(product => product.name.toLowerCase() === 'iphone ' + lower || product.name.toLowerCase().endsWith(' ' + lower));
-  if (contained) return contained;
-  const numbered = raw.match(/\b(1[1-6])\b/);
-  const modifier = raw.match(/\b(pro max|pro-max|plus|pro|max|mini|air)\b/i);
-  if (numbered) {
-    const gen = numbered[1];
-    const candidates = products.filter(product => new RegExp('\\b' + gen + '\\b').test(product.name));
-    if (modifier) {
-      const wanted = modifier[1].toLowerCase().replace('pro-max', 'pro max');
-      const hit = candidates.find(product => product.name.toLowerCase().includes(wanted));
-      if (hit) return hit;
-    }
-    const base = candidates.find(product => /^(.+\s)?(iphone|ipad|galaxy)\s+\d+$/i.test(product.name) || new RegExp('\\b' + gen + '$', 'i').test(product.name));
-    if (base) return base;
-    if (candidates.length === 1) return candidates[0];
-  }
-  if (modifier && products.length) {
-    const wanted = modifier[1].toLowerCase().replace('pro-max', 'pro max');
-    const hit = products.find(product => product.name.toLowerCase().includes(wanted));
-    if (hit) return hit;
-  }
-  return null;
+  const hit = narrow.resolve(text, {});
+  return products.find(p => hit.ids.includes(p.id)) || null;
 }
 
 function result(text, events, extra) {
@@ -114,71 +85,8 @@ function productQuery(text) {
 }
 
 function familyName(query) {
-  const match = String(query || '').trim().match(/^(?:apple\s+)?(iphone|ipad|macbook|galaxy)s?$/i);
-  return match ? match[1] : null;
-}
-
-function shortVariant(name, family) {
-  return String(name || '').replace(new RegExp('^(?:apple\\s+)?' + family + '\\s+', 'i'), '').trim() || name;
-}
-
-function sortVariants(labels) {
-  const rank = { '': 0, mini: 1, plus: 2, air: 3, pro: 4, 'pro max': 5 };
-  return labels.slice().sort((left, right) => {
-    const a = Number((String(left).match(/(\d+)/) || [])[1] || 0);
-    const b = Number((String(right).match(/(\d+)/) || [])[1] || 0);
-    if (a !== b) return b - a;
-    const va = String(left).replace(/^\d+\s*/i, '').toLowerCase();
-    const vb = String(right).replace(/^\d+\s*/i, '').toLowerCase();
-    return (Object.hasOwn(rank, va) ? rank[va] : 9) - (Object.hasOwn(rank, vb) ? rank[vb] : 9);
-  });
-}
-
-function productsForQuery(query, products) {
-  const asked = String(query || '').trim();
-  const iphone = asked.match(/iphone\s+(1[0-9])/i);
-  if (iphone) {
-    const gen = iphone[1];
-    return (products || []).filter(product => new RegExp('\\biphone\\s+' + gen + '\\b', 'i').test(product.name));
-  }
-  return products || [];
-}
-
-function availabilityReply(query, products) {
-  const label = productQuery(query) || uniqueNames(products)[0];
-  products = productsForQuery(label, products);
-  const names = uniqueNames(products);
-  const family = familyName(label);
-  if (family && names.length) {
-    const variants = sortVariants(names.map(name => shortVariant(name, family)));
-    const shown = variants.slice(0, 8);
-    const list = shown.join(', ') + (variants.length > shown.length ? '...' : '');
-    const plural = family.toLowerCase() === 'iphone' ? 'iPhones' : family + 's';
-    return result(
-      'Yes, we have ' + plural + ' in our catalogue: ' + list + '. Which model are you looking for?',
-      ['product-guide'],
-      { chips: names.slice(0, 5), awaiting: 'model', lastFamily: names[0], lastProducts: products, matchCount: products.length }
-    );
-  }
-  if (!names.length) {
-    if (!familyName(label) && !/\b(iphone|ipad|macbook|galaxy)\b/i.test(label)) {
-      return sourceReply(label);
-    }
-    const closest = uniqueNames(closestFamily(label)).slice(0, 4);
-    const extra = closest.length
-      ? ' The closest we have is the ' + listWords(closest) + '. Would you like to look at that?'
-      : ' I can help you look for a close equivalent if you tell me the spec you need.';
-    return result(
-      "I don't see the " + label + ' in our catalogue.' + extra,
-      ['product-guide', 'not-in-catalog'],
-      { chips: closest.slice(0, 4).concat(['Talk to someone']).slice(0, 5), awaiting: closest.length ? 'model' : null, lastFamily: closest[0], lastProducts: closestFamily(label) }
-    );
-  }
-  return result(
-    'Yes, we have the ' + (names[0].replace(/\s+(Plus|Pro Max|Pro|Max|mini|Air)$/i, '') || names[0]) + ' in our catalogue. Our team will confirm stock with your quote. Which model are you looking for?',
-    ['product-guide'],
-    { chips: names.slice(0, 5), awaiting: 'model', lastFamily: names[0], lastProducts: products, matchCount: products.length }
-  );
+  const hit = narrow.resolve(query);
+  return hit.level !== 'none' && hit.level !== 'not-carried' && String(query).split(/\s+/).length <= 4 ? query : null;
 }
 
 function colorReply(product, asked) {
@@ -218,18 +126,6 @@ const SERVICE_INTENTS = [
   { topic: 'service-availability', re: /\b((?:can|could|will) the team confirm (?:product )?availability|confirm (?:product )?availability|how do (?:you|i|we) (?:confirm|check) (?:product )?availability)\b/i, lead: 'Yes, our team can **confirm product availability** with your request. I cannot confirm stock here.' },
 ];
 
-const CATEGORY_DEFS = [
-  { label: 'phones', pattern: /^(phones?|smartphones?)$/i, match: product => product.categoryId === 'phones' },
-  { label: 'chargers', pattern: /^(chargers?|charging cables?)$/i, match: product => product.categoryId === 'accessories' && /charg/i.test((product.name || '') + ' ' + (product.family || '')) },
-  { label: 'laptops', pattern: /^(laptops?|notebooks?)$/i, match: product => product.categoryId === 'computers' && /laptop|notebook|macbook|elitebook|probook|thinkpad|latitude|ideapad|yoga|zbook|vivobook|aspire|xps|surface/i.test((product.name || '') + ' ' + (product.family || '') + ' ' + (product.category || '')) },
-  { label: 'computers', pattern: /^(computers?|desktops?|pcs?|workstations?)$/i, match: product => product.categoryId === 'computers' },
-  { label: 'tablets', pattern: /^(tablets?)$/i, match: product => product.categoryId === 'tablets' },
-  { label: 'monitors', pattern: /^(monitors?|screens?)$/i, match: product => product.categoryId === 'monitors' },
-  { label: 'printers', pattern: /^(printers?)$/i, match: product => product.categoryId === 'printers' },
-  { label: 'TVs', pattern: /^(tvs?|televisions?)$/i, match: product => product.categoryId === 'tvs' },
-  { label: 'servers', pattern: /^(servers?)$/i, match: product => product.categoryId === 'servers' },
-];
-
 function joinBlocks(parts) {
   return parts.filter(Boolean).join('\n\n');
 }
@@ -262,8 +158,7 @@ function sourceReply(label) {
 function looksLikeProductLookup(text) {
   const query = productQuery(text);
   if (!query) return false;
-  if (familyName(query)) return true;
-  if (/\b(iphone|ipad|macbook|galaxy|pixel|starlink)\s+\w+/i.test(query)) return true;
+  if ((HAVE_ASK.test(text) || WANT_ASK.test(text) || query.split(/\s+/).length <= 3) && familyName(query)) return true;
   if (HAVE_ASK.test(text) && familyName(query)) return true;
   return false;
 }
@@ -286,93 +181,81 @@ function categoryToken(text) {
 }
 
 function categoryDef(text) {
-  const token = categoryToken(text);
-  if (!token || token.split(/\s+/).length > 3) return null;
-  return CATEGORY_DEFS.find(entry => entry.pattern.test(token)) || null;
+  const hit = narrow.resolve(categoryToken(text));
+  return hit.scope.categoryId && hit.level !== 'none' ? { label: hit.scope.categoryId } : null;
 }
 
-function productsForDef(entry) {
-  return (loadCatalog().products || []).filter(entry.match);
-}
-
-function brandTypeLabel(brand, items) {
-  if (/^apple$/i.test(brand) && items.length && items.every(item => /iphone/i.test(item.name) || /iphone/i.test(item.family || ''))) {
-    return 'iPhone';
+function narrowingReply(text, session) {
+  const query = categoryToken(text);
+  // Bare Starlink keeps the existing policy path; product-type words use the catalogue.
+  if (/^starlink$/i.test(query)) return null;
+  const continuing = session.narrow && isSlotFill(text, session);
+  const modelSwitch = continuing && session.lastModel && session.awaiting === 'color' && /\d/.test(text);
+  if (continuing && !modelSwitch && ['color', 'variant'].includes(session.awaiting) && session.lastModel && query.toLowerCase() !== session.lastModel.name.toLowerCase()) {
+    const product = session.lastModel;
+    const field = narrow.variantField(product);
+    if (!field) return result('A team member will confirm the available colors for the ' + product.name + '.', ['product-guide'], { lastModel: product, awaiting: 'variant', narrow: session.narrow });
+    const matched = colorMatch(text, field.options);
+    return result(matched
+      ? 'Yes, we have the ' + product.name + ' in ' + matched + '. Our team will confirm stock with your quote.'
+      : "We don't have the " + product.name + ' in ' + text.trim() + ', but we have it in ' + listWords(field.options) + '.',
+      ['product-guide'], { lastModel: product, narrow: session.narrow, lastProducts: session.lastProducts, chips: matched ? ['Request a quote', 'Talk to someone'] : field.options.slice(0,6), awaiting: matched ? null : session.awaiting });
   }
-  return brand;
-}
-
-function categoryChips(products) {
-  const groups = new Map();
-  for (const product of products || []) {
-    const brand = product.brand || '';
-    if (!brand || /^various$/i.test(brand)) continue;
-    const label = brandTypeLabel(brand, [product]);
-    if (!groups.has(label)) groups.set(label, { count: 0, first: product });
-    groups.get(label).count++;
+  const parent = continuing ? { ...session.narrow.scope } : {};
+  if (modelSwitch) delete parent.modelId;
+  const hit = narrow.resolve(query, continuing && !modelSwitch ? { ...session.narrow, scope: parent } : parent);
+  if (continuing && ['brand', 'family', 'model', 'category'].includes(session.awaiting) && (hit.level === 'none' || (hit.level === 'not-carried' && !query.toLowerCase().split(/\s+/).some(word => word.length > 2 && (session.narrow.labels || []).some(label => label.toLowerCase().includes(word)))))) {
+    const labels = session.narrow.labels || [];
+    const scope = session.narrow.scope || {};
+    const scopedProducts = narrow.buildTree(loadCatalog().products);
+    const subject = narrow.displayLabel(scope.family || scope.brand || scope.term || scope.categoryId || 'catalogue', scopedProducts);
+    return result("I don't see " + query + ' among our ' + subject + ' ' + (session.awaiting === 'category' ? 'categories' : session.awaiting === 'family' ? 'families' : session.awaiting + 's') + '. We have ' + listWords(labels.slice(0, 8)) + '. Which one are you looking for?', ['product-guide'], {
+      narrow: session.narrow, lastProducts: session.lastProducts, awaiting: session.awaiting,
+      lastTopic: session.lastTopic, chips: labels.slice(0, 6),
+    });
   }
-  const brands = [...groups.entries()].sort((a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0])).map(([label]) => label);
-  if (brands.length) return brands.slice(0, 6);
-  const types = uniqueNames(products);
-  return types.slice(0, 6);
-}
-
-function matchChip(text, products) {
-  const raw = String(text || '').trim();
-  if (!raw || !products || !products.length) return [];
-  if (/^iphone$/i.test(raw)) return products.filter(item => /iphone/i.test(item.name) || /iphone/i.test(item.family || '') || /^apple$/i.test(item.brand || ''));
-  const brand = products.filter(item => (item.brand || '').toLowerCase() === raw.toLowerCase() || brandTypeLabel(item.brand, [item]).toLowerCase() === raw.toLowerCase());
-  if (brand.length) return brand;
-  const named = products.filter(item => item.name.toLowerCase() === raw.toLowerCase() || (item.family || '').toLowerCase() === raw.toLowerCase());
-  if (named.length) return named;
-  const partial = products.filter(item => item.name.toLowerCase().includes(raw.toLowerCase()) || (item.family || '').toLowerCase().includes(raw.toLowerCase()));
-  return partial.length && partial.length < products.length ? partial : [];
-}
-
-function categoryReply(entry, products) {
-  if (!products.length) return sourceReply(entry.label);
-  const chips = categoryChips(products);
-  const types = uniqueNames(products);
-  const askBrand = chips.length && chips.every(label => products.some(item => (item.brand && item.brand.toLowerCase() === label.toLowerCase()) || brandTypeLabel(item.brand, [item]) === label));
-  if (askBrand && !chips.every(label => types.includes(label))) {
-    return result(
-      'Yes, we have **' + entry.label + '**. Which brand?',
-      ['category-guide', 'product-guide'],
-      { chips: chips.slice(0, 6), awaiting: 'brand', lastFamily: entry.label, lastProducts: products, lastTopic: 'product:' + entry.label, matchCount: products.length }
-    );
+  if (hit.level === 'none') return null;
+  const products = narrow.buildTree(loadCatalog().products).filter(p => hit.ids.includes(p.id));
+  const state = { level: hit.level, scope: hit.scope, labels: hit.labels, ids: hit.ids };
+  const extra = { narrow: state, lastProducts: products, lastFamily: hit.scope.family || query, lastTopic: 'product:' + (hit.scope.categoryId || query), matchCount: products.length, chips: hit.labels.slice(0,6) };
+  const shown = listWords(hit.labels.slice(0,8)) + (hit.labels.length > 8 ? ', and ' + (hit.labels.length-8) + ' more' : '');
+  if (hit.level === 'not-carried') {
+    const brandMissing = hit.missingLevel === 'brand';
+    const subject = narrow.displayLabel(hit.scope.family || hit.scope.brand || hit.scope.term || hit.scope.categoryId || 'our catalogue', products);
+    const opening = brandMissing ? "We don't carry " + query + '.' : "I don't see the " + query + ' in our catalogue.';
+    const options = brandMissing
+      ? ' ' + String(hit.scope.categoryId || 'Product').replace(/^./, c => c.toUpperCase()).replace(/s$/, '') + ' brands we have: ' + shown + '. Which brand would you like?'
+      : hit.missingLevel === 'category'
+        ? ' From ' + hit.scope.brand + ' we have ' + shown + '. Which type are you looking for?'
+        : ' The closest ' + subject + ' options we have are ' + shown + '. Which one would you like?';
+    return result(opening + options, ['product-guide', 'not-in-catalog'], { ...extra, awaiting: hit.missingLevel || 'model' });
   }
-  const listed = types.slice(0, 6).map(name => '**' + name + '**').join(', ');
-  return result(
-    'Yes, we have **' + entry.label + '**. We list ' + listed + '. What type are you looking for?',
-    ['category-guide', 'product-guide'],
-    { chips: (chips.length ? chips : types).slice(0, 6), awaiting: 'type', lastFamily: entry.label, lastProducts: products, lastTopic: 'product:' + entry.label, matchCount: products.length }
-  );
-}
-
-function selectedItemsReply(label, products, session) {
-  const names = uniqueNames(products);
-  if (!names.length) return sourceReply(label);
-  if (names.length === 1) {
+  if (hit.level === 'category') return result('Yes, we have ' + hit.scope.brand + ' products in: ' + shown + '. Which type are you looking for?', ['product-guide'], { ...extra, awaiting: 'category' });
+  if (hit.level === 'variant' || hit.level === 'single') {
     const product = products[0];
-    const colors = productColors(product);
-    if (colors.length) {
-      return result(
-        'Yes, we have the **' + names[0] + '**. What color are you looking for?',
-        ['category-guide', 'product-guide'],
-        { chips: colors.slice(0, 5), awaiting: 'color', lastModel: product, lastProducts: products, lastFamily: session.lastFamily || label, lastTopic: session.lastTopic, matchCount: 1 }
-      );
-    }
-    return result(
-      'Yes, we have **' + names[0] + '** in our catalogue. Our team will confirm stock with your quote.',
-      ['category-guide', 'product-guide'],
-      { chips: ['Request a quote', 'Talk to someone'], awaiting: null, lastModel: product, lastProducts: products, lastFamily: session.lastFamily || label, lastTopic: session.lastTopic, matchCount: 1 }
-    );
+    const field = narrow.variantField(product);
+    if (field && hit.variantAsked) return result(hit.matchedVariant
+      ? 'Yes, we have the ' + product.name + ' in ' + hit.matchedVariant + '. Our team will confirm stock with your quote.'
+      : "We don't have the " + product.name + ' in ' + hit.variantAsked + ', but we have it in ' + listWords(field.options) + '.', ['product-guide'], { ...extra, lastModel: product, awaiting: hit.matchedVariant ? null : (field.key === 'color' ? 'color' : 'variant') });
+    if (!continuing && hit.level === 'single' && query.toLowerCase() !== product.name.toLowerCase()) return result('Yes, we have **' + narrow.displayLabel(query, products) + (query.endsWith('s') ? '' : 's') + '**. We list ' + product.name + '. Our team will confirm the details with your quote.', ['category-guide','product-guide'], { ...extra, lastModel: product, awaiting: 'variant' });
+    const label = field && (field.label || field.key);
+    const questionLabel = label && (label === label.toUpperCase() ? label : label.toLowerCase());
+    const heading = continuing ? 'Yes, we have that.' : 'Yes, we have the ' + product.name + '.';
+    return result(field ? heading + (field.key === 'color' ? ' What color are you looking for?' : ' Which ' + questionLabel + ' are you looking for?') : 'Yes, we have the ' + product.name + '. Our team will confirm the details with your quote.', ['product-guide'], { ...extra, lastModel: product, awaiting: field ? (field.key === 'color' ? 'color' : 'variant') : 'variant' });
   }
-  return result(
-    'Yes, we have **' + label + '** in our catalogue: ' + names.slice(0, 8).join(', ') + '. Which model are you looking for?',
-    ['category-guide', 'product-guide'],
-    { chips: names.slice(0, 5), awaiting: 'model', lastProducts: products, lastFamily: label, lastTopic: session.lastTopic || ('product:' + label), matchCount: products.length }
-  );
+  const isCategory = hit.level === 'brand' || (hit.scope.categoryId && !hit.scope.brand && !hit.scope.family && !hit.scope.term);
+  const displayQuery = narrow.displayLabel(query, products);
+  let wording = 'Yes, we have **' + displayQuery + '** in our catalogue: ' + shown + '. Which ' + hit.level + ' are you looking for?';
+  if (isCategory) wording = 'Yes, we have **' + ((hit.level === 'brand' && hit.scope.term) ? narrow.displayLabel(hit.scope.term, products) + (hit.scope.term.endsWith('s') ? '' : 's') : (hit.scope.categoryId ? narrow.displayLabel(hit.scope.categoryId, products) : displayQuery + (query.endsWith('s') ? '' : 's'))) + '**.' + (hit.level === 'brand' ? ' Which brand?' : ' We list ' + shown + '. Which model are you looking for?');
+  if (hit.level === 'family' && hit.scope.brand) {
+    const type = hit.scope.term ? narrow.displayLabel(hit.scope.term, products) : hit.scope.categoryId ? narrow.displayLabel(hit.scope.categoryId, products).replace(/^[A-Z][a-z]/, match => match.toLowerCase()) : 'products';
+    const plural = type.endsWith('s') ? type : type + 's';
+    wording = 'Yes, we have **' + hit.scope.brand + '** ' + plural + ': ' + shown + '. Which one are you looking for?';
+  }
+  // Shared catalogue prefixes preserve familiar family wording without product rules.
+  if (!isCategory && hit.level === 'family' && products.every(p => p.brand.toLowerCase() !== query.toLowerCase() && narrow.brandLabel(p.brand, products).toLowerCase() === query.toLowerCase())) wording = 'Yes, we have ' + displayQuery + (query.endsWith('s') ? '' : 's') + ' in our catalogue: ' + shown + '. Which model are you looking for?';
+  if (hit.level === 'model') wording = 'Yes, we have the ' + (hit.scope.family || (new Set(products.map(p => p.family)).size === 1 ? products[0].family : displayQuery)) + ' in our catalogue. Our team will confirm stock with your quote. ' + shown + '. Which model are you looking for?';
+  return result(wording, isCategory ? ['category-guide','product-guide'] : ['product-guide'], { ...extra, awaiting: hit.level });
 }
 
 function isEmail(value) {
@@ -464,16 +347,16 @@ function isSlotFill(text, session) {
   if (isNewQuestion(raw) && session.awaiting === 'form-offer') return false;
   if (isNewQuestion(raw) && !String(session.awaiting).startsWith('form-')) {
     // A short brand/model/color answer is not a new question.
-    if (['brand', 'type', 'model', 'color'].includes(session.awaiting) && raw.length <= 48 && !/[?]/.test(raw) && !HAVE_ASK.test(raw) && !WANT_ASK.test(raw) && !serviceIntent(raw)) {
+    if (['category', 'brand', 'family', 'type', 'model', 'color', 'variant'].includes(session.awaiting) && raw.length <= 48 && !/[?]/.test(raw) && !HAVE_ASK.test(raw) && !WANT_ASK.test(raw) && !serviceIntent(raw)) {
       return true;
     }
     return false;
   }
   if (session.awaiting === 'form-offer') return FORM_START.test(raw) || /^fill out a form$/i.test(raw);
   if (String(session.awaiting).startsWith('form-')) return true;
-  if (['brand', 'type', 'model', 'color'].includes(session.awaiting)) {
-    if (HAVE_ASK.test(raw) || (WANT_ASK.test(raw) && categoryToken(raw) && !pickModel(raw, session.lastProducts || []) && !matchChip(raw, session.lastProducts || []).length)) return false;
-    if (categoryDef(raw) && topicOf(raw, {}) !== (session.lastTopic || '')) return false;
+  if (['category', 'brand', 'family', 'type', 'model', 'color', 'variant'].includes(session.awaiting)) {
+    if (HAVE_ASK.test(raw) || (WANT_ASK.test(raw) && categoryToken(raw) && !pickModel(raw, session.lastProducts || []) && !narrow.resolve(raw, session.narrow || {}).ids.length)) return false;
+    if (session.awaiting !== 'category' && categoryDef(raw) && topicOf(raw, {}) !== (session.lastTopic || '')) return false;
     return true;
   }
   return false;
@@ -490,7 +373,7 @@ function topicOf(text, session) {
   if (entry) return 'product:' + entry.label;
   const query = productQuery(raw);
   const family = familyName(query);
-  if (HAVE_ASK.test(raw) || WANT_ASK.test(raw) || family || /^\s*(?:the )?((?:apple )?iphone(?:\s+1[1-6])?(?:\s+(?:pro max|pro|plus|max|mini))?)\s*\??\s*$/i.test(raw)) {
+  if (HAVE_ASK.test(raw) || WANT_ASK.test(raw) || family) {
     return 'product:' + (family ? family.toLowerCase() : (query || raw).toLowerCase().replace(/\s+/g, ' ').slice(0, 48));
   }
   if (PRICE_ASK.test(raw)) return 'faq-price';
@@ -510,19 +393,6 @@ function shouldResetContext(text, session) {
   const prev = session.lastTopic;
   if (!next || !prev) return Boolean(prev && next && next !== prev);
   return next !== prev;
-}
-
-function guidedCategory(text, session) {
-  const awaiting = session && session.awaiting;
-  if ((awaiting === 'brand' || awaiting === 'type') && (session.lastProducts || []).length) {
-    const matched = matchChip(text, session.lastProducts);
-    if (matched.length) return selectedItemsReply(categoryToken(text) || uniqueNames(matched)[0], matched, session);
-    const picked = pickModel(text, session.lastProducts);
-    if (picked) return selectedItemsReply(picked.name, [picked], session);
-  }
-  const entry = categoryDef(text);
-  if (!entry) return null;
-  return categoryReply(entry, productsForDef(entry));
 }
 
 function genericSourceAsk(text) {
@@ -561,59 +431,11 @@ function guidedReply(rawInput, session, lang, flags) {
   const intent = serviceIntent(text);
   if (intent) return serviceReply(intent);
 
-  const category = guidedCategory(text, session);
-  if (category) return category;
-
-  if (session.awaiting === 'color' && session.lastModel && session.lastModel.name && !HAVE_ASK.test(text) && !CONTACT_ASK.test(text)) {
-    if (/\b(quote|talk to someone|speak to a person|price)\b/i.test(text)) return null;
-    return colorReply(session.lastModel, text);
-  }
-
-  if (session.awaiting === 'model' && (session.lastProducts || []).length && !CONTACT_ASK.test(text)) {
-    if (/\b(quote|talk to someone|speak to a person|price)\b/i.test(text) && !/^\s*(15|16|pro|plus)\b/i.test(text)) return null;
-    const picked = pickModel(text, session.lastProducts);
-    if (picked) {
-      const colors = productColors(picked);
-      return result(
-        'Yes, we have that. What color are you looking for?',
-        ['product-guide'],
-        {
-          chips: colors.length ? colors.slice(0, 5) : ['Request a quote', 'Talk to someone'],
-          awaiting: colors.length ? 'color' : null,
-          lastModel: picked,
-          lastProducts: session.lastProducts,
-          lastFamily: session.lastFamily,
-          matchCount: 1,
-        }
-      );
-    }
-    if (/^\s*(\d{2}|pro|plus|max|mini|air|iphone.*)\b/i.test(text)) {
-      const switched = familySearch(text);
-      if (switched.length) {
-        const pickedSwitch = pickModel(text, switched) || switched[0];
-        return result(
-          'Yes, we have that. What color are you looking for?',
-          ['product-guide'],
-          {
-            chips: productColors(pickedSwitch).slice(0, 5),
-            awaiting: productColors(pickedSwitch).length ? 'color' : null,
-            lastModel: pickedSwitch,
-            lastProducts: switched,
-            matchCount: 1,
-          }
-        );
-      }
-    }
-  }
-
-  const skipWant = /\b(speak to|talk to|request a quote|start a quote)\b/i.test(text);
-  const wantQuery = productQuery(text);
-  const wantProduct = !skipWant && WANT_ASK.test(text) && wantQuery.length > 0 && wantQuery.length <= 48 && !/\b(what models|listed in|how many)\b/i.test(text);
-  if (HAVE_ASK.test(text) || wantProduct || /^\s*(?:the )?((?:apple )?iphone(?:\s+1[1-6])?(?:\s+(?:pro max|pro|plus|max|mini))?)\s*\??\s*$/i.test(text)) {
-    const query = wantQuery;
-    if (query && !/\bstarlink\b/i.test(query)) {
-      return availabilityReply(query, familySearch(query));
-    }
+  const skipProduct = /\b(quote|talk to|speak to|price|cost|how much|install|delivery|deliver|refund|invoice)\b/i.test(text);
+  if (!/\b(what models|listed in|how many)\b/i.test(text) && !skipProduct && !flags.priceAsk && (isSlotFill(text, session) || HAVE_ASK.test(text) || WANT_ASK.test(text) || (text.split(/\s+/).length <= 6 && !/^(tell|explain|what|how|why|can|could|where|when)\b/i.test(text)))) {
+    const guided = narrowingReply(text, session);
+    if (guided) return guided;
+    if ((HAVE_ASK.test(text) || WANT_ASK.test(text)) && !/starlink/i.test(text)) return sourceReply(productQuery(text));
   }
 
   // Alison FAQ patterns (Starlink is intentionally not handled here).

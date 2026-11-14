@@ -74,6 +74,35 @@ function digestKey(draftId) {
   return hash('submission:' + draftId);
 }
 
+function compactProducts(products) {
+  if (!Array.isArray(products)) return [];
+  return products.slice(0, 24).map(product => ({
+    id: product.id,
+    name: product.name,
+    brand: product.brand,
+    family: product.family,
+    categoryId: product.categoryId,
+    options: product.options || [],
+  }));
+}
+
+function compactNarrow(narrow) {
+  if (!narrow || typeof narrow !== 'object') return null;
+  const scope = {};
+  for (const key of ['categoryId', 'brand', 'family', 'term', 'modelId']) {
+    if (typeof narrow.scope?.[key] === 'string') scope[key] = narrow.scope[key];
+  }
+  const state = {
+    level: narrow.level,
+    scope,
+    labels: Array.isArray(narrow.labels) ? narrow.labels.slice(0, 24) : [],
+  };
+  // Large slices are reconstructed from scope on the next turn. Truncating IDs
+  // would silently restrict the catalogue choices to an arbitrary first page.
+  if (Array.isArray(narrow.ids) && narrow.ids.length <= 200) state.ids = narrow.ids;
+  return state;
+}
+
 function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false, previewLimits = false }) {
   if (!store || typeof store.transaction !== 'function'
       || typeof salt !== 'string' || salt.length < 8 || salt.length > 256) fail('unconfigured');
@@ -339,10 +368,11 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
           lastUser: text,
           lastLanguage: response.language,
           lastQty: response.fields && response.fields.quantity,
-          lastProducts: Array.isArray(response.lastProducts) ? response.lastProducts : (!response.reset && session.context && session.context.lastProducts) || [],
+          lastProducts: compactProducts(Array.isArray(response.lastProducts) ? response.lastProducts : (!response.reset && session.context && session.context.lastProducts) || []),
           lastFamily: response.lastFamily || (!response.reset && session.context && session.context.lastFamily) || null,
           lastModel: model || (response.awaiting === null ? null : (!response.reset && session.context && session.context.lastModel) || null),
           awaiting: response.awaiting || null,
+          narrow: compactNarrow(response.narrow),
           lastTopic: response.lastTopic || null,
           formDraft: response.formDraft || null,
           history: [{ role: 'user', text }, { role: 'assistant', text: result.text }],

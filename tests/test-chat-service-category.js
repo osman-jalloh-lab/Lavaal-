@@ -70,7 +70,8 @@ noPrices(done.text);
 
 const phone = respond('want phone');
 assert.equal(shouldSkipModel(phone), 'category-guide');
-assert.match(phone.text, /Yes, we have \*\*phones\*\*\. Which brand\?/);
+// Category display names retain the catalogue casing (FIXES2).
+assert.match(phone.text, /Yes, we have \*\*Phones\*\*\. Which brand\?/);
 assert.ok(phone.chips.includes('Samsung'));
 assert.ok(phone.chips.includes('iPhone'));
 assert.doesNotMatch(phone.chips.join(' | '), /Cases & Screen Protectors/i);
@@ -78,7 +79,7 @@ assert.doesNotMatch(phone.text, /Cases & Screen Protectors|Camon 20/i);
 noPrices(phone.text);
 
 const bare = respond('phone');
-assert.match(bare.text, /Yes, we have \*\*phones\*\*/);
+assert.match(bare.text, /Yes, we have \*\*Phones\*\*/);
 assert.ok(bare.chips.includes('Samsung') && bare.chips.includes('iPhone'));
 
 const samsung = respond('Samsung', phone);
@@ -148,7 +149,7 @@ assert.doesNotMatch(kept.text, /Delivery arrives within 24 hours/);
   assert.match(second.text, /confirm product availability/i);
   assert.doesNotMatch(second.text, /wholesale/i);
   const category = await service.turn(session.sessionId, session.proof, 'svc3', undefined, session.csrf, 'want phone');
-  assert.match(category.text, /\*\*phones\*\*/);
+  assert.match(category.text, /\*\*Phones\*\*/);
   assert.ok(Array.isArray(category.chips) && category.chips.includes('Samsung'));
   console.log('PASS service help, topic reset, form intake, category chips and source-offer');
 })().catch(error => { console.error(error); process.exitCode = 1; });
