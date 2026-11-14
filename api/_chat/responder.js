@@ -47,7 +47,7 @@ const SENSITIVE = [
 
 const PRICE_ASK = /\b(price|prices|pricing|cost|costs|how much|Combien|c'est combien| coute|co[uû]te|pre[cç]o|preco|quanto custa|cheapest|discount|offre|descuento|prayz|special offer|prix)\b/i;
 const QUOTE_ASK = /\b(request a quote|start a quote|get a quote|i (?:want|need|would like) (?:to (?:request|get) )?a quote|quote please)\b/i;
-const AGENT_ASK = /\b((?:speak|talk) to (?:someone|somebody|(?:a |an )?(?:person|human|agent|representative)|customer service|your team|the team)|person on (?:the|your) team|human|(?:i (?:need|want) (?:an? )?|^)(?:agent)\b|someone from (?:the|your) team|real person|call me(?: back)?|can someone call me(?: back)?|falar com uma pessoa|falar com algu[eé]m|parler (?:[àa] )?un(e)? (agent|personne|humain)|t[oɔ]k to wan p[oɔ]sin)\b/i;
+const AGENT_ASK = /\b(?:(?:speak|talk|chat) (?:to|with) (?:someone|somebody|(?:a |an |real )?(?:person|human|agent|representative)|customer service|your team|the team)|(?:i (?:need|want)|connect me (?:to|with)|put me through to) (?:a |an |real )?(?:person|human|agent|representative)\b(?!\s+(?:resources?|of)\b)|person on (?:the|your) team|someone from (?:the|your) team|call me(?: back)?|can someone call me(?: back)?|falar com (?:uma pessoa|algu[eé]m|um agente)|parler (?:[àa] |avec )?(?:un|une) (?:agent|personne|humain)|t[oɔ]k to (?:wan p[oɔ]sin|s[oɔ]mb[oɔ]di|di tim))\b/i;
 const HOURS_ASK = /\b(hours|opening hours|when are you open|are you open|horaires|heure[s]? d'ouverture|horario|horário|24\/7|reachable)\b/i;
 const BULK_ASK = /\b(bulk|wholesale|gros|en gros|volume|school|ecole|école|escola|office|bureau|empresa|company|deployment|50 |100 |twenty |cinquante |cento )\b/i;
 const OFFTOPIC_HINTS = /\b(weather|poem|po[eè]me|poema|election|politics|recipe|football|soccer|joke|horoscope|movie)\b/i;
@@ -466,11 +466,12 @@ function respond(text, session = {}) {
     }[lang], language: lang, events: ['blocked-sensitive:' + sensitive], fields: {}, chips: ['Request a quote', 'Talk to someone'], sensitiveBlocked: true };
   }
 
+  const special = require('./intents').specialIntent(rawInput, lang, session);
+  if (special) return attachTopic(special, rawInput, context, reset);
+
   const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : /\b(invoice|refund|damaged|legal|lawyer)\b/i.test(rawInput) || (AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput)), lang);
   if (handoff) return handoff;
 
-  const special = require('./intents').specialIntent(rawInput, lang, session);
-  if (special) return attachTopic(special, rawInput, context, reset);
   const slot = require('./conversation').slotReply(rawInput, session);
   if (slot) { slot.language = lang; return slot; }
 
