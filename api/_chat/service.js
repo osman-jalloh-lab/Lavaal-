@@ -382,6 +382,8 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
         const payload = handoffPayload(response.handoffPayload, time);
         const sink = 'test-handoff:' + token();
         records.set(sink, { payload, exp: time + DAY });
+        // Public, PII-free receipt for UI adapters (e.g. the mascot): only after Confirm wrote the test sink.
+        result.handoff = { status: 'received', test: true, route: payload.route };
         if (previewDebug) {
           result.debug.handoff = { sink, payload };
         }

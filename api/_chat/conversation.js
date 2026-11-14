@@ -420,6 +420,26 @@ function isNewQuestion(text) {
   return /^(how |can |could |do you |what |where |when |why )/i.test(raw) && raw.length > 20;
 }
 
+// A message that names something outside the current narrowing scope starts a new topic.
+const OUT_OF_SCOPE_WORDS = /\b(starlink|routers?|wi-?fi|internet|install(?:ation|ing)?|cctv|cameras?|solar|inverters?|websites?|web ?sites?|deliver(?:y|ies)?|laptops?|computers?|printers?|servers?|tvs?|monitors?|phones?|tablets?)\b/i;
+function leavesScope(raw, session) {
+  const scope = session && session.narrow;
+  if (!scope || !['category', 'brand', 'family', 'type', 'model'].includes(session.awaiting)) return false;
+  const query = categoryToken(raw);
+  if (!query) return false;
+  const labels = (scope.labels || []).map(label => String(label).toLowerCase());
+  const inLabels = word => labels.some(label => label.includes(word));
+  const words = query.toLowerCase().split(/\s+/).filter(word => word.length > 1);
+  if (words.length && words.every(inLabels)) return false;
+  const fresh = narrow.resolve(query);
+  const current = scope.ids || [];
+  if (fresh.level !== 'none' && Array.isArray(fresh.ids) && fresh.ids.length) {
+    return !fresh.ids.some(id => current.includes(id));
+  }
+  const named = query.match(OUT_OF_SCOPE_WORDS);
+  return Boolean(named && !inLabels(named[1].toLowerCase().replace(/s$/, '')));
+}
+
 function isSlotFill(text, session) {
   if (!session || !session.awaiting) return false;
   const raw = String(text || '').trim();
@@ -430,7 +450,7 @@ function isSlotFill(text, session) {
   if (isNewQuestion(raw) && session.awaiting === 'form-offer') return false;
   if (isNewQuestion(raw) && !String(session.awaiting).startsWith('form-')) {
     // A short brand/model/color answer is not a new question.
-    if (['category', 'brand', 'family', 'type', 'model', 'color', 'variant'].includes(session.awaiting) && raw.length <= 48 && !/[?]/.test(raw) && !HAVE_ASK.test(raw) && !WANT_ASK.test(raw) && !serviceIntent(raw)) {
+    if (['category', 'brand', 'family', 'type', 'model', 'color', 'variant'].includes(session.awaiting) && !leavesScope(raw, session) && raw.length <= 48 && !/[?]/.test(raw) && !HAVE_ASK.test(raw) && !WANT_ASK.test(raw) && !serviceIntent(raw)) {
       return true;
     }
     return false;
@@ -438,6 +458,7 @@ function isSlotFill(text, session) {
   if (session.awaiting === 'form-offer') return FORM_START.test(raw) || /^fill out a form$/i.test(raw);
   if (String(session.awaiting).startsWith('form-')) return true;
   if (['category', 'brand', 'family', 'type', 'model', 'color', 'variant'].includes(session.awaiting)) {
+    if (leavesScope(raw, session)) return false;
     if (HAVE_ASK.test(raw) || (WANT_ASK.test(raw) && categoryToken(raw) && !pickModel(raw, session.lastProducts || []) && !narrow.resolve(raw, session.narrow || {}).ids.length)) return false;
     if (session.awaiting !== 'category' && categoryDef(raw) && topicOf(raw, {}) !== (session.lastTopic || '')) return false;
     return true;
