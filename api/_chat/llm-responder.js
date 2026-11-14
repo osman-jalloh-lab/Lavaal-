@@ -3,6 +3,7 @@
 const { respond, REACHABILITY, EMAIL, WHATSAPP, FIRST, isFollowUp } = require('./responder');
 const { SERVICE_SLA } = require('./conversation');
 const { chat, SpendCapError } = require('./llm-gateway');
+const knowledge = require('./knowledge');
 
 const PRICE_RE = /(?:[$£€]\s?\d|\b(?:USD|EUR|GBP)\s*\d|\d[\d,.]*\s*(?:USD|EUR|GBP|dollars?|euros?|pounds?)\b|\bLe\s+\d|\bcosts?\s+\d|\bpriced?\s+at\b|\bdiscount of\b|\d\s*%\s*(?:off|discount)|\b% off\b)/i;
 const STOCK_RE = /\bin stock\b|available (now|immediately|today|for (immediate|same-day))|we have (them|it|those) (in stock|available)|guaranteed (stock|availability)|ready to ship/i;
@@ -356,11 +357,14 @@ function buildMessages(visitorText, rule, session) {
     .filter(Boolean);
   const must = requiredSentences(rule);
   const history = isFollowUp(visitorText) ? ((session && session.history) || []).slice(-6) : [];
+  // Public facts generated from existing site copy; Technology only (the Web section is a stub).
+  const facts = intentFrom(rule) === 'off-topic' ? [] : knowledge.selectFacts(visitorText, { site: 'technology', limit: 4 });
 
   const system = [
     'You are LAVAALL Assistant for LAVAALL Technology and LAVAALL Web. LAVAALL Web builds websites, apps, online ordering and bots; offer a free preview and ask what the business needs.',
     'Write one short, natural reply in the required language. No markdown, no bullet lists, no repeated sentences.',
     'Use 1–3 sentences total and at most one follow-up question. Keep required lines verbatim, once, including their punctuation. Mention at most four catalogue names.',
+    'Use the verified LAVAALL facts and catalogue facts provided when they answer the question. Do not carry an earlier topic into a new question.',
     'Use ONLY the catalogue facts provided. Never invent products, models, stock, prices, discounts, warranties, or delivery dates. Never use the phrase \'in stock\', even to deny stock; say the item is listed in the catalogue. When refusing a price, do not use currency codes or symbols such as USD, EUR, $, or £.',
     'Never deny carrying or having an item or variant. Route unmatched PRODUCT requests to the team: ' + SERVICE_SLA + ' Offer a quick form if contact details are missing.',
     'If a quantity is provided, mention it as a DIGIT (write 4, not "four"). If several quantities are provided, mention each digit.',
@@ -378,6 +382,9 @@ function buildMessages(visitorText, rule, session) {
   const user = [
     history.length ? 'Earlier turns:\n' + history.map(turn => (turn.role === 'user' ? 'Visitor: ' : 'Assistant: ') + String(turn.text || '').slice(0, 400)).join('\n') : '',
     'Visitor message: ' + visitorText,
+    facts.length
+      ? 'Verified LAVAALL facts (public knowledge pack v' + knowledge.VERSION + '):\n' + facts.map(item => '- ' + item.text).join('\n')
+      : 'Verified LAVAALL facts: none match this question.',
     'Reply language: ' + lang,
     'Intent: ' + intent,
     (rule.fields && rule.fields.quantity) ? 'Quantity digit(s) to mention: ' + rule.fields.quantity : '',
