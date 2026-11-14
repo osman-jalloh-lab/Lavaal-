@@ -43,7 +43,7 @@ assert.doesNotMatch(missing.text, /iPhone 17 Pro/);
 
 const want = respond('I want an iPhone');
 assert.equal(shouldSkipModel(want), 'product-guide');
-assert.match(want.text, /Yes, we have Phones in our catalogue:/);
+assert.match(want.text, /Yes, we have iPhones in our catalogue:/);
 assert.match(want.text, /15/);
 assert.match(want.text, /16/);
 assert.match(want.text, /Which model are you looking for\?/);

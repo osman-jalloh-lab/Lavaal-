@@ -100,6 +100,9 @@ function categoryLabels(products) {
 // Resolve display text from catalogue fields while keeping matching terms normalized.
 function displayLabel(value, products) {
   const key = normalize(value);
+  const isIphone = product => /\biphone\b/i.test(product.family + ' ' + product.name);
+  // Use the source-backed product line when the matched phone set is all iPhones.
+  if (products.length && (/^iphones?$/.test(key) || (/^phones?$/.test(key) && products.every(isIphone))) && products.some(isIphone)) return 'iPhones';
   const preferred = [...products].sort((a, b) => Number(b.source === 'site-catalog') - Number(a.source === 'site-catalog'));
   for (const p of preferred) {
     if (normalize(p.categoryId) === key || normalize(p.category) === key) return p.category;
@@ -314,6 +317,7 @@ function resolve(text, stored = {}) {
 }
 function isCatalogLabel(value) {
   const key = normalize(value);
+  if (key === 'iphones') return loadCatalog().products.some(p => /\biphone\b/i.test(p.family + ' ' + p.name));
   return buildTree(loadCatalog().products).some(p =>
     [p.category, p.brand, p.family, p.name].some(label => normalize(label) === key));
 }

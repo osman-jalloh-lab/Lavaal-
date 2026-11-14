@@ -112,7 +112,7 @@ noPrices(missing.text);
 
 const iphone = respond('I want an iPhone');
 assert.equal(shouldSkipModel(iphone), 'product-guide');
-assert.match(iphone.text, /Yes, we have Phones in our catalogue:/);
+assert.match(iphone.text, /Yes, we have iPhones in our catalogue:/);
 assert.match(iphone.text, /Which model are you looking for\?/);
 
 const contact = respond('how can I contact this person?');
