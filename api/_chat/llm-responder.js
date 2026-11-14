@@ -150,7 +150,7 @@ function compactReply(text, required) {
   return [...kept, ...protectedLines].join(' ').trim();
 }
 
-function stripViolations(text) {
+function stripViolations(text, rule) {
   const repairs = [];
   let out = String(text || '').trim();
   out = out.replace(/^```[a-z]*\s*/i, '').replace(/```$/i, '').trim();
@@ -159,7 +159,12 @@ function stripViolations(text) {
   out = out.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
   if (out !== beforeQuotes) repairs.push('normalized-punctuation');
 
-  out = sentenceSplit(out).map(sentence => /\b(?:we|i) (?:do not|don't|cannot|can't) (?:have|carry|stock|sell|list)\b|couldn't find (?:that|the) (?:exact )?item/i.test(sentence) ? SERVICE_SLA : sentence).join(' ');
+  const denial = /\b(?:we|i) (?:do not|don't|cannot|can't) (?:have|carry|stock|sell|list)\b|couldn't find (?:that|the) (?:exact )?item/i;
+  if (sentenceSplit(out).some(sentence => denial.test(sentence))) {
+    // A model's denial is not evidence that an answerable catalogue/process question is unknown.
+    out = rule && (rule.events || []).includes('not-in-catalog') ? SERVICE_SLA + ' Would you like to fill out a quick form?' : (rule && rule.text || 'What product or service would you like help with?');
+    repairs.push('replaced-product-denial');
+  }
 
   const beforePrice = out;
   out = out.replace(/\$\s?\d[\d,]*(?:\.\d+)?(?:\s*(?:USD|usd|dollars?))?/g, '');
@@ -263,7 +268,7 @@ function repairVisitorPhoneMix(text, visitorPhone) {
 function postEnforce(modelText, rule) {
   if ((rule.events || []).some(event => ['handoff-intake', 'form-complete'].includes(event))) return { text: rule.text, repairs: ['preserved-intake'] };
   const repairs = [];
-  const cleaned = stripViolations(modelText);
+  const cleaned = stripViolations(modelText, rule);
   repairs.push(...cleaned.repairs);
   let text = HAITIAN_RE.test(cleaned.text) ? rule.text : cleaned.text;
   if (HAITIAN_RE.test(cleaned.text)) repairs.push('replaced-haitian-creole');
@@ -389,7 +394,7 @@ function shouldSkipModel(rule) {
   const events = rule.events || [];
   if (events.includes('refused-injection')) return 'refused-injection';
   if (events.some(event => String(event).startsWith('blocked-sensitive'))) return 'blocked-sensitive';
-  const canned = ['installation-service', 'handoff-intake', 'contact-info', 'product-guide', 'category-guide', 'service-help', 'form-intake', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'tag-osman-handoff'];
+  const canned = ['installation-service', 'handoff-intake', 'contact-info', 'product-guide', 'category-guide', 'service-help', 'form-intake', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'quote-review-process', 'apple-lock-requirement', 'tag-osman-handoff'];
   const hit = events.find(event => canned.includes(event));
   return hit || null;
 }

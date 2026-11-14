@@ -198,9 +198,25 @@ function correctionValue(text) {
   return match ? match[1] : null;
 }
 
+function referenceFollowup(text, session) {
+  return /^(?:(?:of|for)\s+)?(?:those|these|them)(?:\s+ones)?[.!?]*$/i.test(String(text).trim()) &&
+    Boolean(session.lastProducts?.length || session.lastModel || session.slots?.quantity || session.lastQty || session.lastTopic === 'faq-price');
+}
+
+function scopeLabel(state, products) {
+  const scope = state?.scope || {};
+  // A product type can live inside a broader catalogue category.
+  if (scope.term && products.some(p => tokensForLabel(p.name).includes(scope.term.replace(/s$/, '').toLowerCase()))) {
+    const term = scope.term.replace(/s$/, '');
+    return term.charAt(0).toUpperCase() + term.slice(1) + 's';
+  }
+  return narrow.displayLabel(scope.family || scope.brand || scope.term || scope.categoryId, products);
+}
+function tokensForLabel(value) { return String(value).toLowerCase().split(/[^a-z0-9]+/).map(word => word.replace(/s$/, '')); }
+
 function hasSlotContext(text, session) {
   if (String(session.awaiting || '').startsWith('handoff-')) return false;
-  return Boolean(correctionValue(text) || commercialFollowup(text, session) || session.pendingSamsung ||
+  return Boolean(referenceFollowup(text, session) || correctionValue(text) || commercialFollowup(text, session) || session.pendingSamsung ||
     (/^(?:quantity\s+|(?:i\s+)?need\s+)?\d+\s*(?:gb|tb|units?|pieces?)?[.!?]?$/i.test(String(text).trim()) &&
       (session.lastModel || session.lastProducts?.length || session.slots && Object.keys(session.slots).length)));
 }
@@ -221,6 +237,11 @@ function slotReply(text, session) {
   const shared = { slots, lastModel: session.lastModel, selectedVariant: session.selectedVariant,
     narrow: session.narrow, lastProducts: session.lastProducts, lastTopic: session.lastTopic, awaiting: session.awaiting };
   const done = (line, extra) => result(line, ['product-guide', 'slot-update'], { ...shared, chips: ['Request a quote', 'Talk to someone'], ...extra });
+  if (referenceFollowup(raw, session)) {
+    const quantity = slots.quantity || session.lastQty;
+    const names = uniqueNames(session.lastModel ? [session.lastModel] : session.lastProducts || []);
+    return done((quantity ? 'For ' + quantity + ' units, ' : '') + (names.length === 1 ? names[0] + ': would you like to request a quote?' : names.length ? 'which item from that list should the team quote?' : 'which item should the team quote?'), { fields: quantity ? { quantity } : {}, awaiting: null });
+  }
   const samsung = raw.match(/\b(?:samsung\s+)?a\s*(\d{2})\b/i);
   if (session.pendingSamsung && /^(?:yes|yes please|correct|confirm|galaxy\s+a\s*\d{2})[.!]?$/i.test(raw)) {
     const reply = narrowingReply(session.pendingSamsung, { ...session, pendingSamsung: null, awaiting: null, narrow: null });
@@ -231,7 +252,8 @@ function slotReply(text, session) {
     const listed = products.some(p => new RegExp('\\bGalaxy A' + samsung[1] + '\\b', 'i').test(p.name));
     if (listed) return done('Do you mean the ' + label + '?', { pendingSamsung: label, chips: [label], lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: 'samsung-confirm' });
     const nearest = products.filter(p => /\bGalaxy A\d+/i.test(p.name)).sort((a,b) => Math.abs(Number(a.name.match(/A(\d+)/)[1]) - Number(samsung[1])) - Math.abs(Number(b.name.match(/A(\d+)/)[1]) - Number(samsung[1]))).slice(0,3).map(p => p.name);
-    return done(sourceLine(), { chips: nearest.concat(['Talk to someone']), lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: null });
+    const plausibleTypo = nearest.some(name => Math.abs(Number(name.match(/A(\d+)/)[1]) - Number(samsung[1])) <= 3);
+    return done(plausibleTypo ? 'For ' + label + ', the nearest catalogue models are ' + listWords(nearest) + '. Did you mean one of those?' : sourceLine(), { chips: nearest.concat(['Talk to someone']), lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: null });
   }
   const place = value.match(/^(?:to\s+|in\s+)?(sierra leone|guinea[- ]bissau|guinea|liberia|conakry|freetown|monrovia|bo|kenema)$/i);
   if (place && (corrected || /deliver|ship|country|city/i.test(session.lastTopic || ''))) {
@@ -271,7 +293,7 @@ function slotReply(text, session) {
     if (['storage', 'ram'].includes(slots.lastSlot)) delete slots.lastSlot;
     delete slots.brand;
     const reply = narrowingReply(value, { ...session, awaiting: null, narrow: null, lastProducts: [], lastModel: null });
-    if (reply) return { ...reply, lastModel: reply.lastModel || null, selectedVariant: null, text: 'Got it, ' + (reply.lastModel?.name || narrow.displayLabel(reply.narrow?.scope.family || reply.narrow?.scope.brand || reply.narrow?.scope.categoryId || reply.narrow?.scope.term, products) || 'your item') + '. ' + reply.text.replace(/^Yes, we have[^.]*\.\s*/, ''), slots };
+    if (reply) return { ...reply, lastModel: reply.lastModel || null, selectedVariant: null, text: 'Got it, ' + (reply.lastModel?.name || scopeLabel(reply.narrow, reply.lastProducts || products) || 'your item') + '. ' + reply.text.replace(/^Yes, we have[^.]*\.\s*/, ''), slots };
     return done('Got it. Which item do you need?', { awaiting: null });
   }
   return null;
@@ -717,6 +739,11 @@ function guidedReply(rawInput, session, lang, flags) {
 
   const intent = serviceIntent(text);
   if (intent) return serviceReply(intent);
+
+  if (/\b(?:internet|connectivity|batter(?:y|ies)|something|anything)\b/i.test(text) && !narrow.resolve(categoryToken(text)).ids.length) {
+    const question = /\bbatter/i.test(text) ? 'Which device or application is the battery for?' : /\b(?:internet|connectivity)\b/i.test(text) ? 'Where will you use the connection, and what do you need it for?' : 'What kind of product do you need, and what will you use it for?';
+    return result(question, ['product-guide', 'product-clarification'], { chips: ['Browse catalogue', 'Request a quote'] });
+  }
 
   const skipProduct = /\b(quote|talk to|speak to|price|cost|how much|install(?:ation|ations|ing)?|deploy(?:ment)?|delivery|deliver|refund|invoice)\b/i.test(text);
   if (!/\b(what models|listed in|how many)\b/i.test(text) && !skipProduct && !flags.priceAsk && (isSlotFill(text, session) || HAVE_ASK.test(text) || WANT_ASK.test(text) || /^(?:(?:can|could|do)\s+)?(?:you|una)\s+(?:have|get|sell|stock)\b/i.test(text) || /^(?:can you |could you )?(?:show|list)\b/i.test(text) || (text.split(/\s+/).length <= 6 && !/^(tell|explain|what|how|why|can|could|where|when)\b/i.test(text)))) {

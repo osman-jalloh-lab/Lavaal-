@@ -1,6 +1,6 @@
 'use strict';
 
-const { loadCatalog, searchCatalog, normalize } = require('./catalog');
+const { loadCatalog, searchCatalog, normalize, normalizeInput } = require('./catalog');
 const { SERVICE_SLA, guidedReply, guidedHandoff, handoffPrompt, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
 
 const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
@@ -472,6 +472,22 @@ function respond(text, session = {}) {
   const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : /\b(invoice|refund|damaged|legal|lawyer)\b/i.test(rawInput) || (AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput)), lang);
   if (handoff) return handoff;
 
+  // Process and safety questions remain answerable even when no exact SKU is named.
+  if (!String(session.awaiting || '').startsWith('handoff-') && /\b(?:send|submit|forward)\b/i.test(rawInput) && /\b(?:quote|request|inquiry)\b/i.test(rawInput)) {
+    return attachTopic({ text: 'Nothing is sent until you review the summary and choose Confirm. Would you like to prepare the request for review?',
+      language: lang, events: ['quote-review-process'], fields: {}, chips: ['Request a quote', 'Cancel'] }, rawInput, context, reset);
+  }
+  if (!String(session.awaiting || '').startsWith('handoff-') && /\b(?:activation|icloud|i-cloud|mdm|locked|lock[- ]?free)\b/i.test(rawInput)
+      && /\b(?:apple|macbooks?|macs?|iphones?|ipads?)\b/i.test(rawInput)) {
+    return attachTopic({ text: 'For used Apple devices, the quote must require removal of Activation Lock, iCloud ownership locks, and any MDM management before purchase. The team must verify that requirement for the specific device; I cannot promise it is lock-free. Which Apple model should the quote cover?',
+      language: lang, events: ['apple-lock-requirement'], fields: { message: rawInput.slice(0, 2000) }, chips: ['Request a quote'] }, rawInput, context, reset);
+  }
+  const normalizedAsk = normalizeInput(rawInput);
+  if (!session.awaiting && /^do you sale\b/i.test(normalizedAsk) && /\bcomputers?\b/i.test(normalizedAsk)) {
+    const category = respond(normalizedAsk.replace(/^do you sale\b/i, 'do you sell'), session);
+    return { ...category, text: 'Computers are sourced quote-first: the team confirms the configuration, stock, and price with your quote. Would you like to search laptops or desktops?', chips: ['Laptops', 'Desktops'], events: ['category-guide'] };
+  }
+
   const slot = require('./conversation').slotReply(rawInput, session);
   if (slot) { slot.language = lang; return slot; }
 
@@ -584,7 +600,7 @@ function respond(text, session = {}) {
   }
 
   const lookingForThing = (Array.isArray(qty) ? qty.length : qty) || /\b(iphone|ipad|tesla|drone|moto|motos|motorcycle|laptop|server|router|starlink|ps5|tractor|trator|ticket|v[eé]lo|gopro|john deere)\b/i.test(input + " " + rawInput)
-    || /\b(cherche|procuro|looking for|need|want to buy|vendez-vous)\b/i.test(input);
+    || /\b(cherche|procuro|looking for|need|want to buy|vendez-vous|(?:could|can) you source)\b/i.test(input);
   if (lookingForThing || priceAsk) {
     return attachTopic({
       text: (priceAsk
