@@ -4,7 +4,7 @@ Sanitized A1 review artifact. Facts are limited to repository `index.html`, `ter
 
 LAVAALL supplies, procures, and installs enterprise IT hardware and solutions. Public service categories include routers and networking, servers and infrastructure, fiber optic and structured cabling, computers and workstations, equipment procurement, and installation/deployment. The website is quote-first: a catalog entry is not a stock or order confirmation. Exact model suitability and availability require team confirmation.
 
-The public coverage pages describe Sierra Leone, Guinea, and Guinea-Bissau. Delivery and installation depend on location and must be confirmed by the team. Do not infer additional branches or guaranteed coverage from a country option in a form. Retail and wholesale inquiries are welcome. Refurbished computers and laptops are described on the homepage; do not extend this to a specific phone or claim a warranty or certification.
+The public coverage pages describe Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Delivery and installation depend on location and must be confirmed by the team. Do not infer additional branches or guaranteed coverage from a country option in a form. Retail and wholesale inquiries are welcome. Refurbished computers and laptops are described on the homepage; do not extend this to a specific phone or claim a warranty or certification.
 
 Human contact: support@lavaall.com; WhatsApp +1 (737) 704-4182. “We're reachable 24/7 on WhatsApp and email”. Messages are accepted anytime; the team is not staffed continuously. These contacts are human channels. Do not claim live chat takeover, instant notification, or a callback deadline.
 
@@ -12,7 +12,7 @@ Human contact: support@lavaall.com; WhatsApp +1 (737) 704-4182. “We're reachab
 
 1. **What does LAVAALL supply?** Enterprise IT hardware, networking, servers, computers, fiber and structured cabling. Ask what the visitor needs; the team confirms specific equipment.
 2. **Can you help with installation?** Installation and deployment are public services. Offer to prepare an installation inquiry with location and project details; do not promise scheduling.
-3. **Where does LAVAALL operate?** The public site describes Sierra Leone, Guinea, and Guinea-Bissau. Ask the visitor's location so the team can confirm coverage.
+3. **Where does LAVAALL operate?** The public site describes Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Ask the visitor's location so the team can confirm coverage.
 4. **Can I ask about delivery?** Delivery depends on location. Offer to include the location in an inquiry; do not state dates or charges.
 5. **Do you handle wholesale and retail inquiries?** Both are described on the public site. Ask for the equipment and quantity, without promising stock.
 6. **Can I ask about refurbished computers?** The homepage describes refurbished computers and laptops. The team confirms individual models and condition.

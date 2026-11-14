@@ -497,10 +497,10 @@ function respond(text, session = {}) {
 
   if (/\b(install(?:ation|ations|ing)?|installe[rz]?|installer|installations?|deployment|deploy|deploiement|instalacao|instalar)\b/i.test(foldedText(rawInput))) {
     const line = {
-      en: 'LAVAALL supplies and installs equipment. Public coverage pages describe Sierra Leone, Guinea, and Guinea-Bissau. Delivery and installation depend on the location and must be confirmed by the team; I cannot promise scheduling.',
-      fr: "LAVAALL fournit et installe des équipements. Les pages publiques de couverture décrivent la Sierra Leone, la Guinée et la Guinée-Bissau. La livraison et l’installation dépendent du lieu et doivent être confirmées par l’équipe ; je ne peux pas promettre de date.",
-      pt: 'A LAVAALL fornece e instala equipamentos. As páginas públicas de cobertura descrevem Serra Leoa, Guiné e Guiné-Bissau. A entrega e a instalação dependem do local e devem ser confirmadas pela equipa; não posso prometer agendamento.',
-      kr: 'LAVAALL de supply ɛn install ɛkwipmɛnt. Di pɔblik coverage pej dɛn diskrayb Sierra Leone, Guinea ɛn Guinea-Bissau. Delivery ɛn installation dipɛnd pan di ples; di tim mɔs kɔnfam. A nɔ ebul prɔmis tɛm.',
+      en: 'LAVAALL supplies and installs equipment. Public coverage pages describe Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Delivery and installation depend on the location and must be confirmed by the team; I cannot promise scheduling.',
+      fr: "LAVAALL fournit et installe des équipements. Les pages publiques de couverture décrivent la Sierra Leone, la Guinée, le Libéria et la Guinée-Bissau. La livraison et l’installation dépendent du lieu et doivent être confirmées par l’équipe ; je ne peux pas promettre de date.",
+      pt: 'A LAVAALL fornece e instala equipamentos. As páginas públicas de cobertura descrevem Serra Leoa, Guiné, Libéria e Guiné-Bissau. A entrega e a instalação dependem do local e devem ser confirmadas pela equipa; não posso prometer agendamento.',
+      kr: 'LAVAALL de supply ɛn install ɛkwipmɛnt. Di pɔblik coverage pej dɛn diskrayb Sierra Leone, Guinea, Liberia ɛn Guinea-Bissau. Delivery ɛn installation dipɛnd pan di ples; di tim mɔs kɔnfam. A nɔ ebul prɔmis tɛm.',
     }[lang];
     return attachTopic({ text: `${line} ${offer(lang, wantsAgent)}`, language: lang,
       events: ['installation-service', ...(wantsAgent ? ['tag-osman-handoff'] : [])],
