@@ -1,7 +1,7 @@
 'use strict';
 
 const { loadCatalog, searchCatalog, normalize, normalizeInput } = require('./catalog');
-const { SERVICE_SLA, guidedReply, guidedHandoff, handoffPrompt, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
+const { SERVICE_SLA, guidedReply, guidedHandoff, handoffPrompt, handoffChips, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
 const { knowledgeReply } = require('./knowledge-answers');
 
 const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
@@ -433,7 +433,7 @@ function respond(text, session = {}) {
     const question = handoffPrompt(session, lang);
     return question ? { text: warning + ' ' + question, language: lang,
       events: ['handoff-intake', event], fields: {}, awaiting: session.awaiting,
-      handoffDraft: session.handoffDraft, chips: session.awaiting === 'handoff-confirm' ? ['Confirm', 'Cancel'] : session.awaiting === 'handoff-channel' ? ['WhatsApp', 'Email'] : ['Cancel request'], lastTopic: 'handoff-intake' } : null;
+      handoffDraft: session.handoffDraft, chips: handoffChips(session, lang), lastTopic: 'handoff-intake' } : null;
   };
 
   if (isInjection(rawInput)) {

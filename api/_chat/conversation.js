@@ -461,6 +461,31 @@ const HANDOFF_COPY = {
     sla: 'Sɔmbɔdi frɔm wi tim go rich yu insay 24 awa.',
   },
 };
+// Topic chips for the talk-to-someone handoff. Krio mirrors the WhatsApp/Email chips and keeps English labels.
+const TOPIC_CHIPS = {
+  en: ['Customer service', 'Request a call', 'Get a quote', 'Order help', 'Something else'],
+  fr: ['Service client', 'Demander un appel', 'Obtenir un devis', 'Aide pour une commande', 'Autre chose'],
+};
+const TOPIC_OTHER = { en: 'What would you like to talk about?', fr: 'De quoi souhaitez-vous parler ?', kr: 'Wetin yu wan tɔk abawt?' };
+const foldChip = value => String(value || '').trim().replace(/[.!]+$/, '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function topicChips(language) { return (TOPIC_CHIPS[language] || TOPIC_CHIPS.en).concat('Cancel request'); }
+// Server-side check: only a fixed label (any language) counts as a chip tap. Returns its index or -1.
+function topicChipIndex(text) {
+  const key = foldChip(text);
+  if (!key) return -1;
+  for (const labels of Object.values(TOPIC_CHIPS)) {
+    const index = labels.findIndex(label => foldChip(label) === key);
+    if (index !== -1) return index;
+  }
+  return -1;
+}
+function handoffChips(session, language) {
+  const draft = session.handoffDraft || {};
+  if (session.awaiting === 'handoff-confirm') return ['Confirm', 'Cancel'];
+  if (session.awaiting === 'handoff-channel') return ['WhatsApp', 'Email'];
+  if (session.awaiting === 'handoff-topic' && draft.kind !== 'quote' && !draft.topicOther) return topicChips(handoffLanguage(session, language));
+  return ['Cancel request'];
+}
 function handoffLanguage(session, language) {
   const chosen = language || session.handoffDraft?.language || session.lastLanguage;
   return HANDOFF_COPY[chosen] ? chosen : 'en';
@@ -470,7 +495,7 @@ function handoffPrompt(session, language) {
   const copy = HANDOFF_COPY[handoffLanguage(session, language)];
   const draft = session.handoffDraft || {};
   return ({ 'handoff-channel': copy.channel, 'handoff-contact': draft.channel === 'email' ? copy.email : copy.phone,
-    'handoff-name': copy.name, 'handoff-topic': draft.kind === 'quote' ? copy.quote : copy.topic,
+    'handoff-name': copy.name, 'handoff-topic': draft.kind === 'quote' ? copy.quote : draft.topicOther ? TOPIC_OTHER[handoffLanguage(session, language)] : copy.topic,
     'handoff-confirm': copy.confirm(draft) })[session.awaiting] || null;
 }
 
@@ -496,8 +521,10 @@ function guidedHandoff(text, session, start, language) {
     }, 'handoff-channel', { chips: ['WhatsApp', 'Email'], handoff: { tagOsman: true } });
   }
   const draft = { ...(session.handoffDraft || {}) };
-  const topicQuestion = draft.kind === 'quote' ? copy.quote : copy.topic;
   const confirmation = () => reply(copy.confirm(draft), draft, 'handoff-confirm', { chips: ['Confirm', 'Cancel'] });
+  const askTopic = () => draft.kind === 'quote' ? reply(copy.quote, draft, 'handoff-topic')
+    : draft.topicOther ? reply(TOPIC_OTHER[lang], draft, 'handoff-topic')
+      : reply(copy.topic, draft, 'handoff-topic', { chips: topicChips(lang) });
   if (session.awaiting === 'handoff-channel') {
     if (!/^(whatsapp|email|e-mail)$/i.test(raw)) return reply(copy.channel, draft, 'handoff-channel', { chips: ['WhatsApp', 'Email'] });
     draft.channel = /^whatsapp$/i.test(raw) ? 'whatsapp' : 'email';
@@ -518,10 +545,18 @@ function guidedHandoff(text, session, start, language) {
       return reply(copy.name, draft, 'handoff-name');
     }
     draft.name = raw;
-    if (!draft.topic) return reply(topicQuestion, draft, 'handoff-topic');
+    if (!draft.topic) return askTopic();
   } else if (session.awaiting === 'handoff-topic') {
-    if (!raw || raw.length > 300) return reply(topicQuestion, draft, 'handoff-topic');
-    draft.topic = raw;
+    if (!raw || raw.length > 300) return askTopic();
+    const chip = draft.kind === 'quote' ? -1 : topicChipIndex(raw);
+    if (chip === 4) {
+      // Something else: one short free-text question; the typed answer becomes the topic.
+      draft.topicOther = true;
+      return askTopic();
+    }
+    // Chip values come from the fixed server list, never from the visitor's text.
+    draft.topic = chip === -1 ? raw : (TOPIC_CHIPS[lang] || TOPIC_CHIPS.en)[chip];
+    delete draft.topicOther;
   }
   if (session.awaiting !== 'handoff-confirm' || !/^(confirm|yes|yes,? confirm|yes please|correct|ok|okay)[.!]?$/i.test(raw)) return confirmation();
   const email = isEmail(draft.contact) ? draft.contact : '';
@@ -832,5 +867,5 @@ function guidedReply(rawInput, session, lang, flags) {
 
 module.exports = {
   slotReply, hasSlotContext, guidedReply, guidedHandoff, isSlotFill, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK,
-  shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START, normalizeContactPhone, handoffPrompt, handoffSla,
+  shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START, normalizeContactPhone, handoffPrompt, handoffSla, handoffChips, topicChipIndex, TOPIC_CHIPS,
 };
