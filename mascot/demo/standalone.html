@@ -1652,6 +1652,10 @@ class ChatPanel {
     this._onError      = this._handleError.bind(this);
     this._onHandoff    = this._handleHandoff.bind(this);
     this._onHandoffDemo = this._handleHandoffDemo.bind(this); // P1-2: demo event
+    // RealChatAdapter events (behaviour only; the mock never fires these).
+    this._onChips      = this._handleChips.bind(this);
+    this._onReset      = this._handleReset.bind(this);
+    this._onReview     = this._handleReview.bind(this);
 
     // P1-1: Map of every registered adapter listener (eventName → handler fn).
     // Used in destroy() to remove them all cleanly.
@@ -1663,6 +1667,9 @@ class ChatPanel {
       'chat:error':      this._onError,
       'chat:handoff':    this._onHandoff,
       'handoff:demo':    this._onHandoffDemo,  // P1-2: renamed demo event
+      'chat:chips':      this._onChips,
+      'chat:reset':      this._onReset,
+      'request:review':  this._onReview,
     };
 
     this._render();
@@ -1764,13 +1771,24 @@ class ChatPanel {
     // Footer disclaimer
     const footer = document.createElement('p');
     footer.className = 'chat-footer';
-    footer.textContent = 'Demo only — no real messages sent. Powered by LAVAALL mock adapter.';
+    footer.textContent = this._adapter && typeof this._adapter.footerText === 'string'
+      ? this._adapter.footerText
+      : 'Demo only — no real messages sent. Powered by LAVAALL mock adapter.';
 
     // Assemble panel
     panel.appendChild(header);
     panel.appendChild(status);
     panel.appendChild(msgList);
     panel.appendChild(typing);
+    // Suggestion chips from the real backend (e.g. Confirm / Cancel). Hidden when empty.
+    // No styles are added here; the look is left to the design owner.
+    const chips = document.createElement('div');
+    chips.className = 'chat-chips';
+    chips.setAttribute('role', 'group');
+    chips.setAttribute('aria-label', 'Suggested replies');
+    chips.setAttribute('hidden', '');
+    this._chipBar = chips;
+    panel.appendChild(chips);
     panel.appendChild(inputArea);
     panel.appendChild(footer);
 
@@ -1842,9 +1860,11 @@ class ChatPanel {
     this._lastVariant = variant;
 
     // Greet (v1.3: names from CHARACTER_BIBLE; existing "Lava" product untouched)
-    this._appendMessage('bot', variant === 'web'
-      ? "Hi! I'm the LAVAALL Web assistant demo. Canned answers only."
-      : "Hi! I'm the LAVAALL Assistant demo. Canned answers only.");
+    this._appendMessage('bot', this._adapter && typeof this._adapter.greeting === 'function'
+      ? this._adapter.greeting(variant)
+      : (variant === 'web'
+        ? "Hi! I'm the LAVAALL Web assistant demo. Canned answers only."
+        : "Hi! I'm the LAVAALL Assistant demo. Canned answers only."));
     this._mascot && this._mascot.setState('wave');
     this._mascot && this._mascot.setMessage('Need a hand?');
 
@@ -1897,13 +1917,20 @@ class ChatPanel {
     if (this._busy) return;   // v1.3.1: a reply is in progress
     const text = this._textarea.value.trim();
     if (!text) return;
-
-    this._appendMessage('user', text);
     this._textarea.value = '';
-    this._textarea.focus();
-    this._setSendEnabled(false);
+    this._sendText(text);
+  }
 
-    this._adapter && this._adapter.send(text);
+  /** Shared by the Send button and suggestion chips. */
+  _sendText(text) {
+    if (this._busy || this._destroyed) return;
+    const value = String(text || '').trim();
+    if (!value) return;
+    this._renderChips([]);
+    this._appendMessage('user', value);
+    this._textarea && this._textarea.focus();
+    this._setSendEnabled(false);
+    this._adapter && this._adapter.send(value);
   }
 
   _appendMessage(role, text) {
@@ -1913,8 +1940,29 @@ class ChatPanel {
 
     const bubble = document.createElement('div');
     bubble.className = 'chat-message-bubble';
-    // XSS-safe: textContent only
-    bubble.textContent = String(text).slice(0, 1000);
+    const value = String(text).slice(0, role === 'bot' ? 4000 : 1000);
+    if (role === 'bot' && value.includes('**')) {
+      // **key words** from the backend become <strong> nodes. Still XSS-safe: text nodes only.
+      value.split(/(\*\*[^*]+\*\*)/).forEach(part => {
+        if (!part) return;
+        if (/^\*\*[^*]+\*\*$/.test(part)) {
+          const strong = document.createElement('strong');
+          strong.textContent = part.slice(2, -2);
+          bubble.appendChild(strong);
+        } else {
+          if (typeof document.createTextNode === 'function') {
+            bubble.appendChild(document.createTextNode(part));
+          } else {
+            const span = document.createElement('span');
+            span.textContent = part;
+            bubble.appendChild(span);
+          }
+        }
+      });
+    } else {
+      // XSS-safe: textContent only
+      bubble.textContent = value;
+    }
 
     li.appendChild(bubble);
     this._messageList.appendChild(li);
@@ -2004,7 +2052,8 @@ class ChatPanel {
     if (text) {
       this._appendMessage('bot', text);
       this._mascot && this._mascot.setState('speak');
-      this._mascot && this._mascot.setMessage(text.slice(0, 60) + (text.length > 60 ? '…' : ''));
+      const plain = text.replace(/\*\*/g, '');
+      this._mascot && this._mascot.setMessage(plain.slice(0, 60) + (plain.length > 60 ? '…' : ''));
     }
   }
 
@@ -2044,10 +2093,12 @@ class ChatPanel {
     // chat:handoff is still supported for adapter compatibility.
     // If channel is 'demo-mock' it came from the old simulateHandoff path;
     // treat it the same as handoff:demo.
+    // A real adapter sends message '' because the server's thank-you line is already shown.
+    const realAck = e.detail && e.detail.message === '' && e.detail.channel && e.detail.channel !== 'demo-mock';
     const msg = e.detail && e.detail.message
       ? e.detail.message
       : "I'm connecting you with the LAVAALL team. They'll follow up shortly.";
-    this._appendMessage('bot', msg);
+    if (!realAck) this._appendMessage('bot', msg);
     this._mascot && this._mascot.setState('happy');
     // P1-2: Do NOT claim confirmed delivery from a mock event.
     // "Request queued (demo only)" is explicit about being simulated.
@@ -2070,6 +2121,40 @@ class ChatPanel {
     this._appendMessage('bot', msg);
     this._mascot && this._mascot.setState('happy');
     this._setStatus('Simulated request (demo only — nothing was sent)');
+  }
+
+  _handleChips(e) {
+    if (this._destroyed) return;
+    this._renderChips(e.detail && Array.isArray(e.detail.chips) ? e.detail.chips : []);
+  }
+
+  _handleReset() {
+    if (this._destroyed || !this._messageList) return;
+    // New topic: keep the greeting and the visitor's latest message, drop earlier turns.
+    const items = Array.from(this._messageList.children || []);
+    const lastUser = items.filter(li => String(li.className || '').includes('chat-message--user')).pop();
+    items.forEach((li, index) => { if (index !== 0 && li !== lastUser) li.remove(); });
+  }
+
+  _handleReview() {
+    if (this._destroyed) return;
+    this._setStatus('Please check the details, then choose Confirm or Cancel.');
+  }
+
+  _renderChips(chips) {
+    const bar = this._chipBar;
+    if (!bar) return;
+    while (bar.firstChild) bar.removeChild(bar.firstChild);
+    const list = (chips || []).filter(c => typeof c === 'string' && c.trim()).slice(0, 6);
+    list.forEach(label => {
+      const button = document.createElement('button');
+      button.setAttribute('type', 'button');
+      button.className = 'chat-chip';
+      button.textContent = label.slice(0, 80);
+      button.addEventListener('click', () => this._sendText(label));
+      bar.appendChild(button);
+    });
+    if (list.length) bar.removeAttribute('hidden'); else bar.setAttribute('hidden', '');
   }
 
   // ── Adapter event binding (P1-1) ─────────────────────────────────
