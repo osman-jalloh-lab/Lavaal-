@@ -115,4 +115,44 @@ check('time-promise stripping keeps the rest of the public FAQ', () => {
   assert.equal(gen.noTimePromise('We will follow up with pricing within 24 hours.'), 'We will follow up with pricing.');
 });
 
+const { shouldSkipModel } = require('../api/_chat/llm-responder');
+check('company questions are answered from the pack before catalogue narrowing, with 0 model calls', () => {
+  const cases = [
+    ['Do you work in Guinea?', /^Yes, we work in \*\*Guinea\*\*\..*Conakry.*Which city are you in\?$/],
+    ['Do you have a branch in Bo?', /^Yes, our \*\*Bo\*\* branch is at 28 Bojon Street\. What can we help you with\?$/],
+    ['Where do you operate?', /\*\*Sierra Leone\*\*, \*\*Guinea\*\* and \*\*Guinea-Bissau\*\*/],
+    ['Do you work in Liberia?', /For \*\*Liberia\*\*, our team can confirm coverage/],
+    ['Do you sell wholesale?', /^\*\*Both\*\*\. .*how many\?$/],
+    ['Which industries do you serve?', /Healthcare Facilities/],
+    ['What does LAVAALL do?', /\*\*enterprise IT equipment\*\*/],
+  ];
+  for (const [ask, re] of cases) {
+    const r = respond(ask, {});
+    assert.equal(shouldSkipModel(r), 'knowledge-answer', ask);
+    assert.match(r.text, re, ask);
+    assert.equal((r.text.match(/\?/g) || []).length, 1, 'one follow-up question: ' + ask);
+    assert.ok((r.text.match(/[.!?](\s|$)/g) || []).length <= 4, 'short: ' + ask);
+    assert.doesNotMatch(r.text, /We don't carry|in our catalogue/, ask);
+  }
+});
+
+check('questions the pack cannot answer get the plain missing-information line', () => {
+  for (const ask of ['Who owns LAVAALL?', 'What is your warranty?', 'What is your return policy?']) {
+    const r = respond(ask, {});
+    assert.equal(shouldSkipModel(r), 'knowledge-answer', ask);
+    assert.equal(r.text, knowledge.missingLine('technology'));
+  }
+});
+
+check('existing product, delivery, service and handoff paths are untouched', () => {
+  assert.equal(shouldSkipModel(respond('iPhone 16', {})), 'product-guide');
+  assert.equal(shouldSkipModel(respond('Do you deliver to Kenema?', {})), 'faq-delivery');
+  assert.equal(shouldSkipModel(respond('How do you handle wholesale requests?', {})), 'service-help');
+  assert.equal(shouldSkipModel(respond('I want to speak to someone', {})), 'handoff-intake');
+  // Mid-flow slot fills are never hijacked.
+  assert.notEqual(shouldSkipModel(respond('Do you have a branch in Bo?', { awaiting: 'handoff-name', handoffDraft: { name: '', contact: '', topic: '' } })), 'knowledge-answer');
+  // Other languages keep the existing paths (the pack is English).
+  assert.notEqual(shouldSkipModel(respond('Travaillez-vous en Guinée ?', {})), 'knowledge-answer');
+});
+
 console.log('knowledge pack checks:', checks);
