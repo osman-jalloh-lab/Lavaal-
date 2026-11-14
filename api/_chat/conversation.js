@@ -237,11 +237,11 @@ function narrowingReply(text, session) {
     if (field && hit.variantAsked) return result(hit.matchedVariant
       ? 'Yes, we have the ' + product.name + ' in ' + hit.matchedVariant + '. Our team will confirm stock with your quote.'
       : "We don't have the " + product.name + ' in ' + hit.variantAsked + ', but we have it in ' + listWords(field.options) + '.', ['product-guide'], { ...extra, lastModel: product, awaiting: hit.matchedVariant ? null : (field.key === 'color' ? 'color' : 'variant') });
-    if (!continuing && hit.level === 'single' && query.toLowerCase() !== product.name.toLowerCase()) return result('Yes, we have **' + narrow.displayLabel(query, products) + (query.endsWith('s') ? '' : 's') + '**. We list ' + product.name + '. Our team will confirm the details with your quote.', ['category-guide','product-guide'], { ...extra, lastModel: product, awaiting: 'variant' });
+    if (!continuing && hit.level === 'single' && query.toLowerCase() !== product.name.toLowerCase()) return result('Yes, we have **' + narrow.displayLabel(query, products) + (query.endsWith('s') ? '' : 's') + '**. We list ' + product.name + '. Our team will confirm stock with your quote.', ['category-guide','product-guide'], { ...extra, lastModel: product, awaiting: 'variant' });
     const label = field && (field.label || field.key);
     const questionLabel = label && (label === label.toUpperCase() ? label : label.toLowerCase());
     const heading = continuing ? 'Yes, we have that.' : 'Yes, we have the ' + product.name + '.';
-    return result(field ? heading + (field.key === 'color' ? ' What color are you looking for?' : ' Which ' + questionLabel + ' are you looking for?') : 'Yes, we have the ' + product.name + '. Our team will confirm the details with your quote.', ['product-guide'], { ...extra, lastModel: product, awaiting: field ? (field.key === 'color' ? 'color' : 'variant') : 'variant' });
+    return result(field ? heading + (field.key === 'color' ? ' What color are you looking for?' : ' Which ' + questionLabel + ' are you looking for?') : 'Yes, we have the ' + product.name + '. Our team will confirm stock with your quote.', ['product-guide'], { ...extra, lastModel: product, awaiting: field ? (field.key === 'color' ? 'color' : 'variant') : 'variant' });
   }
   const isCategory = hit.level === 'brand' || (hit.scope.categoryId && !hit.scope.brand && !hit.scope.family && !hit.scope.term);
   const displayQuery = narrow.displayLabel(query, products);
@@ -254,7 +254,7 @@ function narrowingReply(text, session) {
   }
   // Shared catalogue prefixes preserve familiar family wording without product rules.
   if (!isCategory && hit.level === 'family' && products.every(p => p.brand.toLowerCase() !== query.toLowerCase() && narrow.brandLabel(p.brand, products).toLowerCase() === query.toLowerCase())) wording = 'Yes, we have ' + displayQuery + (query.endsWith('s') ? '' : 's') + ' in our catalogue: ' + shown + '. Which model are you looking for?';
-  if (hit.level === 'model') wording = 'Yes, we have the ' + (hit.scope.family || (new Set(products.map(p => p.family)).size === 1 ? products[0].family : displayQuery)) + ' in our catalogue. Our team will confirm stock with your quote. ' + shown + '. Which model are you looking for?';
+  if (hit.level === 'model') wording = 'Yes, we have ' + narrow.displayLabel(hit.scope.family || (new Set(products.map(p => p.family)).size === 1 ? products[0].family : displayQuery), products) + ' models: ' + shown + '. Which one are you looking for?';
   return result(wording, isCategory ? ['category-guide','product-guide'] : ['product-guide'], { ...extra, awaiting: hit.level });
 }
 

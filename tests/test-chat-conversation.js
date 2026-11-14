@@ -18,9 +18,8 @@ assert.ok((contact.chips || []).includes('Talk to someone'));
 
 const ip15 = respond('do you have iPhone 15?');
 assert.equal(shouldSkipModel(ip15), 'product-guide');
-assert.match(ip15.text, /Yes, we have the iPhone 15 in our catalogue/);
-assert.match(ip15.text, /Our team will confirm stock with your quote/);
-assert.match(ip15.text, /Which model are you looking for\?/);
+assert.equal(ip15.text, 'Yes, we have iPhone 15 models: iPhone 15, iPhone 15 Plus, iPhone 15 Pro, and iPhone 15 Pro Max. Which one are you looking for?');
+assert.doesNotMatch(ip15.text, /Our team will confirm stock with your quote/);
 assert.doesNotMatch(ip15.text, /A catalogue listing is not a stock or price confirmation/);
 assert.deepEqual(ip15.chips, ['iPhone 15', 'iPhone 15 Plus', 'iPhone 15 Pro', 'iPhone 15 Pro Max']);
 const picked = respond('15', ip15);

@@ -36,6 +36,10 @@ const byName = name => {
   assert.ok(product, `fixture exists in catalogue: ${name}`);
   return product;
 };
+const stockConfirmation = 'Our team will confirm stock with your quote.';
+function noStockConfirmation(reply) {
+  assert.ok(!reply.text.includes(stockConfirmation), `mid-narrowing reply must not confirm stock: ${reply.text}`);
+}
 const visible = reply => [reply.text, ...(reply.chips || [])].join(' ');
 function guide(text, previous) {
   const reply = respond(text, previous);
@@ -57,20 +61,23 @@ function variant(product, previous) {
     || product.options.find(option => option.type === 'select' && !['condition', 'quantity'].includes(option.key));
   if (!field) {
     assert.equal(selected.awaiting, 'variant', 'items without selects keep a light variant scope');
-    assert.ok(selected.text.includes(`Yes, we have the ${product.name}. Our team will confirm the details with your quote.`));
+    assert.ok(selected.text.includes(`Yes, we have the ${product.name}. Our team will confirm stock with your quote.`));
     return selected;
   }
+  noStockConfirmation(selected);
   assert.equal(selected.awaiting, field.key === 'color' ? 'color' : 'variant');
   for (const value of field.options.slice(0, 6)) has(selected, value);
   const answer = guide(field.options[0], selected);
   assert.ok(answer.text.includes(`Yes, we have the ${product.name} in ${field.options[0]}. Our team will confirm stock with your quote.`));
   const missing = guide('unlisted purple finish', selected);
   assert.ok(missing.text.includes(`We don't have the ${product.name} in unlisted purple finish, but we have it in `));
+  noStockConfirmation(missing);
   for (const value of field.options) has(missing, value);
   return selected;
 }
 function unavailable(text, nearest, previous) {
   const reply = guide(text, previous);
+  noStockConfirmation(reply);
   assert.match(reply.text, /don't (?:carry|have|see)/i);
   assert.equal(reply.narrow.level, 'not-carried', `${text}: missing model is not a missing variant`);
   assert.ok(nearest.some(item => visible(reply).includes(item.name) || visible(reply).includes(item.family)), `${text}: nearest catalogue models or families offered`);
@@ -82,6 +89,7 @@ function unavailable(text, nearest, previous) {
 const phone = guide('phone');
 has(phone, 'Samsung');
 assert.equal(phone.awaiting, 'brand');
+noStockConfirmation(phone);
 const unmatchedBrand = guide('unlistedbrand', phone);
 assert.equal(unmatchedBrand.awaiting, 'brand');
 assert.deepEqual(unmatchedBrand.narrow.scope, phone.narrow.scope);
@@ -92,6 +100,7 @@ assert.equal(typoBrand.awaiting, 'family');
 has(typoBrand, 'Galaxy S');
 const samsung = guide('Samsung', phone);
 assert.equal(samsung.awaiting, 'family');
+noStockConfirmation(samsung);
 has(samsung, 'Galaxy S');
 assert.match(samsung.text, /^Yes, we have \*\*Samsung\*\* phones:/);
 assert.doesNotMatch(samsung.text, /Which family|Samsungs/);
@@ -101,6 +110,9 @@ assert.deepEqual(unmatchedFamily.narrow.scope, samsung.narrow.scope);
 has(unmatchedFamily, 'Galaxy S');
 const family = guide('Galaxy S', samsung);
 assert.equal(family.awaiting, 'model');
+assert.equal(family.text, 'Yes, we have Galaxy S models: Galaxy S24, Galaxy S24 Ultra, Galaxy S23, and Galaxy S25 FE. Which one are you looking for?');
+assert.equal(guide('Do you have Galaxy S?').text, family.text);
+noStockConfirmation(family);
 for (const item of products.filter(item => item.source === 'site-catalog' && item.brand === 'Samsung' && item.family === 'Galaxy S')) has(family, item.name);
 const ultra = byName('Galaxy S24 Ultra');
 const ultraReply = variant(ultra, family);
@@ -119,6 +131,7 @@ assert.match(missingBrand.text, /don't (?:carry|have)/i);
 has(missingBrand, 'Samsung');
 assert.match(missingBrand.text, /^We don't carry Huawei phones\. Phone brands we have:/);
 assert.doesNotMatch(missingBrand.text, /source it, let us check/i);
+noStockConfirmation(missingBrand);
 
 const google = guide('Google', phone);
 assert.equal(google.lastModel.name, 'Pixel 8', 'single-model brand resolves its model without a trailing name');
@@ -172,7 +185,7 @@ const charger = guide('charger');
 has(charger, byName('Chargers & Charging Cables').name);
 assert.ok(!(charger.chips || []).includes('Various'));
 const chargerModel = variant(byName('Chargers & Charging Cables'), charger);
-assert.match(guide('Do you have Chargers & Charging Cables in blue?', chargerModel).text, /team will confirm the details with your quote/);
+assert.match(guide('Do you have Chargers & Charging Cables in blue?', chargerModel).text, /team will confirm stock with your quote/);
 assert.equal(guide('black?', chargerModel).text, `A team member will confirm the available colors for the ${chargerModel.lastModel.name}.`);
 const banks = guide('power bank');
 has(banks, byName('Power Banks').name);
@@ -191,6 +204,7 @@ assert.ok(!respond('Do you have Starlink?').events.includes('product-guide'));
 const broadSamsung = guide('samsung');
 assert.equal(broadSamsung.awaiting, 'category');
 assert.equal(broadSamsung.narrow.level, 'category');
+noStockConfirmation(broadSamsung);
 assert.match(broadSamsung.text, /^Yes, we have Samsung products in: /);
 assert.match(broadSamsung.text, /Which type are you looking for\?$/);
 const samsungPhones = guide('Phones', broadSamsung);
@@ -201,7 +215,8 @@ const invalidCategory = guide('unlistedtype', broadSamsung);
 assert.equal(invalidCategory.awaiting, 'category');
 assert.equal(invalidCategory.narrow.scope.brand, 'Samsung');
 const iphoneFamily = guide('16', guide('I want an iPhone'));
-assert.match(iphoneFamily.text, /Yes, we have the iPhone 16 in our catalogue/);
+assert.equal(iphoneFamily.text, 'Yes, we have iPhone 16 models: iPhone 16, iPhone 16 Plus, iPhone 16 Pro, and iPhone 16 Pro Max. Which one are you looking for?');
+noStockConfirmation(iphoneFamily);
 assert.doesNotMatch(iphoneFamily.text, /have the 16 in/);
 
 const tv = guide('tv');
