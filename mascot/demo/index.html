@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LAVAALL Mascot Prototype — Local Demo v1.3</title>
+  <meta name="robots" content="noindex,nofollow"/>
+  <!-- No external resources. All CSS loaded from relative paths. -->
+  <link rel="stylesheet" href="../src/tokens.css"/>
+  <link rel="stylesheet" href="../src/mascot/mascot-animations.css"/>
+  <link rel="stylesheet" href="../src/chat/chat-panel.css"/>
+  <style>
+    /* ── Demo page styles ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: var(--lavaall-ink, #0A0A14);
+      color: var(--lavaall-offwhite, #F4F9FF);
+      min-height: 100vh;
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    .demo-header {
+      background: var(--ui-surface-1);
+      border-bottom: 1px solid var(--ui-surface-2);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .demo-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .demo-logo-mark {
+      width: 32px;
+      height: 32px;
+      background: var(--lavaall-sky, #00C2FF);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+      color: var(--lavaall-ink, #0A0A14);
+    }
+
+    .demo-logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .demo-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(244, 249, 255, 0.08);
+      color: var(--ui-text-muted);
+      border: 1px solid var(--ui-line);
+    }
+
+    /* ── Main layout ─────────────────────────────────────────── */
+    .demo-main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .demo-main { grid-template-columns: minmax(0, 1fr); padding: 20px 16px; }
+    }
+
+    /* ── Cards ───────────────────────────────────────────────── */
+    .demo-card {
+      background: var(--ui-surface-1);
+      border: 1px solid var(--ui-surface-2);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .demo-card-full { grid-column: 1 / -1; }
+
+    .demo-card h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ui-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Variant toggle ──────────────────────────────────────── */
+    .variant-toggle {
+      display: flex;
+      gap: 8px;
+    }
+
+    .variant-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background: var(--ui-surface-2);
+      color: var(--ui-text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .variant-btn:hover { background: var(--ui-line); color: #F4F9FF; }
+
+    .variant-btn.active[data-v="technology"] {
+      border-color: var(--lavaall-sky, #00C2FF);
+      color: var(--lavaall-sky, #00C2FF);
+      background: rgba(0, 194, 255, 0.08);
+    }
+
+    .variant-btn.active[data-v="web"] {
+      border-color: var(--lavaall-web-accent, #E7D3BF);
+      color: var(--lavaall-web-accent, #E7D3BF);
+      background: rgba(231, 211, 191, 0.08);
+    }
+
+    .variant-btn:focus-visible {
+      outline: 2px solid var(--lavaall-sky, #00C2FF);
+      outline-offset: 2px;
+    }
+
+    /* ── State grid ──────────────────────────────────────────── */
+    .state-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .state-btn {
+      padding: 9px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--ui-line);
+      background: var(--ui-surface-2);
+      color: var(--ui-text-2);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .state-btn:hover { background: var(--ui-line); color: #F4F9FF; border-color: var(--ui-line-strong); }
+
+    .state-btn.active {
+      border-color: var(--mascot-accent, #00C2FF);
+      color: var(--mascot-accent, #00C2FF);
+      background: rgba(0, 194, 255, 0.06);
+    }
+
+    .state-btn:focus-visible {
+      outline: 2px solid var(--lavaall-sky, #00C2FF);
+      outline-offset: 2px;
+    }
+
+    /* ── Live readout ────────────────────────────────────────── */
+    .live-readout {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .readout-chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      background: var(--ui-surface-2);
+      border: 1px solid var(--ui-line);
+      color: var(--ui-text-muted);
+    }
+
+    .readout-chip span {
+      color: var(--ui-text);
+      font-weight: 600;
+    }
+
+    /* ── Actions ─────────────────────────────────────────────── */
+    .action-grid {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-btn--primary {
+      background: var(--lavaall-sky, #00C2FF);
+      color: var(--lavaall-ink, #0A0A14);
+    }
+
+    .action-btn--secondary {
+      background: var(--ui-surface-2);
+      color: #F4F9FF;
+      border: 1px solid var(--ui-line);
+    }
+
+    .action-btn--danger {
+      background: rgba(255, 92, 92, 0.15);
+      color: var(--ui-danger);
+      border: 1px solid rgba(255, 92, 92, 0.3);
+    }
+
+    .action-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .action-btn:active { transform: scale(0.97); }
+
+    .action-btn:focus-visible {
+      outline: 2px solid var(--lavaall-sky, #00C2FF);
+      outline-offset: 2px;
+    }
+
+    /* ── Mobile preview ──────────────────────────────────────── */
+    .mobile-preview {
+      background: var(--ui-surface-0);
+      border: 2px solid var(--ui-surface-2);
+      border-radius: 28px;
+      width: 375px;
+      max-width: 100%;
+      height: 500px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 8px var(--ui-surface-1);
+    }
+
+    .mobile-preview-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 24px;
+      background: var(--ui-surface-0);
+      border-radius: 0 0 14px 14px;
+      z-index: 10;
+    }
+
+    .mobile-preview-content {
+      width: 100%;
+      height: 100%;
+      background: var(--lavaall-ink, #0A0A14);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px 20px;
+      gap: 12px;
+    }
+
+    .mobile-preview-content p {
+      font-size: 13px;
+      color: var(--ui-text-muted);
+      text-align: center;
+    }
+
+    .mobile-hint {
+      font-size: 11px;
+      color: var(--ui-line-strong);
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* ── Audit status ────────────────────────────────────────── */
+    .audit-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .audit-list li {
+      font-size: 12px;
+      color: var(--ui-text-muted);
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      line-height: 1.4;
+    }
+
+    .audit-list li::before {
+      content: '✓';
+      color: var(--ui-ok);
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .audit-list li.warn::before { content: '⚠'; color: var(--ui-warn); }
+
+    /* ── Log output ──────────────────────────────────────────── */
+    .event-log {
+      background: var(--ui-surface-0);
+      border: 1px solid var(--ui-surface-2);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--ui-ok);
+      max-height: 140px;
+      overflow-y: auto;
+      margin-top: 12px;
+    }
+
+    .event-log p { margin-bottom: 2px; opacity: 0.8; }
+    .event-log p:last-child { opacity: 1; }
+
+    /* ── Reduced motion notice ───────────────────────────────── */
+    .rm-notice {
+      display: none;
+      padding: 10px 16px;
+      background: rgba(255, 224, 61, 0.1);
+      border: 1px solid rgba(255, 224, 61, 0.3);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--ui-warn);
+      margin-top: 12px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .rm-notice { display: block; }
+    }
+
+    /* ── v1.3: walking lane (non-interactive, near the hero) ─── */
+    .demo-lane {
+      grid-column: 1 / -1;
+      height: 170px;
+      border: 1px dashed var(--ui-line);
+      border-radius: 16px;
+      display: flex;
+      align-items: flex-start;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--ui-text-muted);
+      pointer-events: none;
+    }
+
+    /* ── v1.3: design board for owner sign-off ──────────────── */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+    @media (max-width: 768px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .board figure {
+      background: #0A0A14;
+      border: 1px solid var(--ui-surface-2);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .board figure.on-teal  { background: #0B252A; }
+    .board img { width: 100%; max-width: 140px; height: auto; display: block; margin: 0 auto 8px; }
+    .board figcaption { font-size: 12px; color: inherit; opacity: 0.8; }
+    .icon-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-top: 16px; }
+    .swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; font-size: 11px; }
+    .swatch { display: flex; align-items: center; gap: 6px; color: var(--ui-text-muted); }
+    .swatch i { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--ui-line); display: inline-block; }
+    .board-note { font-size: 12px; color: var(--ui-text-muted); margin-top: 12px; line-height: 1.5; }
+    .board-note code { overflow-wrap: anywhere; }
+
+    .contract-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .contract-btn {
+      padding: 6px 10px; border-radius: 8px; border: 1px solid var(--ui-line);
+      background: var(--ui-surface-2); color: var(--ui-text-2); font: 600 11px ui-monospace, monospace; cursor: pointer;
+    }
+    .contract-btn:hover { background: var(--ui-line); }
+    .contract-btn:focus-visible { outline: 2px solid var(--lavaall-sky, #00C2FF); outline-offset: 2px; }
+
+    .mascot-noscript { position: fixed; right: 24px; bottom: 24px; width: 80px; height: auto; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Skip link ───────────────────────────────────────────────── -->
+  <a class="visually-hidden" href="#demo-controls" style="position:absolute;left:-9999px;">Skip to demo controls</a>
+
+  <!-- ── Header ──────────────────────────────────────────────────── -->
+  <header class="demo-header" role="banner">
+    <div class="demo-logo">
+      <div class="demo-logo-mark" aria-hidden="true">V</div>
+      <span class="demo-logo-text">LAVAALL Mascot Prototype</span>
+    </div>
+    <span class="demo-badge">Local Demo — No Network Calls</span>
+  </header>
+
+  <!-- ── Main controls ───────────────────────────────────────────── -->
+  <main class="demo-main" id="demo-controls">
+
+    <!-- v1.3: non-interactive walking lane. MascotRoamer confines waypoints to this box. -->
+    <div class="demo-lane" data-mascot-lane aria-hidden="true">
+      Walking lane (non-interactive). Desktop only. Walking stops on any click, key, scroll or focus, and after 8 seconds.
+    </div>
+
+    <!-- Variant toggle -->
+    <section class="demo-card" aria-labelledby="variant-heading">
+      <h2 id="variant-heading">Character Variant</h2>
+      <div class="variant-toggle" role="group" aria-label="Select mascot variant">
+        <button class="variant-btn active" data-v="technology" id="btn-tech"
+                aria-pressed="true" type="button">
+          🤖 Technology (robot)
+        </button>
+        <button class="variant-btn" data-v="web" id="btn-web"
+                aria-pressed="false" type="button">
+          🐱 Web (cat-inspired)
+        </button>
+      </div>
+      <div class="live-readout" aria-live="polite" aria-label="Current mascot status">
+        <div class="readout-chip">Variant: <span id="readout-variant">technology</span></div>
+        <div class="readout-chip">State: <span id="readout-state">idle</span></div>
+        <div class="readout-chip">Contract: <span id="readout-contract">closed</span></div>
+        <div class="readout-chip">Enabled: <span id="readout-enabled">true</span></div>
+      </div>
+      <div class="rm-notice" role="status">
+        ⚠ prefers-reduced-motion is active — animations are suppressed.
+      </div>
+    </section>
+
+    <!-- Actions -->
+    <section class="demo-card" aria-labelledby="actions-heading">
+      <h2 id="actions-heading">Actions</h2>
+      <div class="action-grid">
+        <button class="action-btn action-btn--primary" id="btn-open-chat" type="button">
+          💬 Open Chat
+        </button>
+        <button class="action-btn action-btn--secondary" id="btn-show" type="button">
+          👁 Show Mascot
+        </button>
+        <button class="action-btn action-btn--secondary" id="btn-hide" type="button">
+          🙈 Hide Mascot
+        </button>
+        <button class="action-btn action-btn--secondary" id="btn-pause" type="button">
+          ⏸ Pause Anim
+        </button>
+        <button class="action-btn action-btn--secondary" id="btn-resume" type="button">
+          ▶ Resume Anim
+        </button>
+        <button class="action-btn action-btn--secondary" id="btn-roam-start" type="button">
+          🚶 Walk now
+        </button>
+        <button class="action-btn action-btn--secondary" id="btn-roam-idle" type="button">
+          ⏳ Walk if idle (4 s)
+        </button>
+        <button class="action-btn action-btn--secondary" id="btn-roam-stop" type="button">
+          ⏹ Stop walking
+        </button>
+        <button class="action-btn action-btn--secondary" id="btn-sim-error" type="button">
+          ⚡ Sim Error
+        </button>
+        <button class="action-btn action-btn--secondary" id="btn-sim-handoff" type="button">
+          🤝 Sim Handoff
+        </button>
+        <button class="action-btn action-btn--danger" id="btn-destroy" type="button">
+          🗑 Destroy
+        </button>
+      </div>
+    </section>
+
+    <!-- State grid -->
+    <section class="demo-card" aria-labelledby="states-heading">
+      <h2 id="states-heading">Animation States (9 internal)</h2>
+      <div class="state-grid" role="group" aria-label="Animation state controls">
+        <button class="state-btn active" data-state="idle"   type="button">😊 idle</button>
+        <button class="state-btn"        data-state="walk"   type="button">🚶 walk</button>
+        <button class="state-btn"        data-state="wave"   type="button">👋 wave</button>
+        <button class="state-btn"        data-state="listen" type="button" title="Animation demo only. No microphone is used.">👂 listen (demo only, no mic)</button>
+        <button class="state-btn"        data-state="think"  type="button">🤔 think</button>
+        <button class="state-btn"        data-state="speak"  type="button">💬 speak</button>
+        <button class="state-btn"        data-state="happy"  type="button">🎉 happy</button>
+        <button class="state-btn"        data-state="sleep"  type="button">😴 sleep</button>
+        <button class="state-btn"        data-state="error"  type="button">❌ error</button>
+      </div>
+    </section>
+
+    <!-- v1.3: COMPONENT_CONTRACT.json events -->
+    <section class="demo-card" aria-labelledby="contract-heading">
+      <h2 id="contract-heading">Contract events (design kit)</h2>
+      <div class="contract-grid" role="group" aria-label="Send component contract events">
+        <button class="contract-btn" data-evt="OPEN" type="button">OPEN</button>
+        <button class="contract-btn" data-evt="USER_MESSAGE" type="button">USER_MESSAGE</button>
+        <button class="contract-btn" data-evt="ASSISTANT_START" type="button">ASSISTANT_START</button>
+        <button class="contract-btn" data-evt="ASSISTANT_END" type="button">ASSISTANT_END</button>
+        <button class="contract-btn" data-evt="LISTEN_START" type="button">LISTEN_START</button>
+        <button class="contract-btn" data-evt="LISTEN_END" type="button">LISTEN_END</button>
+        <button class="contract-btn" data-evt="HANDOFF" type="button">HANDOFF</button>
+        <button class="contract-btn" data-evt="ERROR" type="button">ERROR</button>
+        <button class="contract-btn" data-evt="CLOSE" type="button">CLOSE</button>
+        <button class="contract-btn" data-evt="HIDE" type="button">HIDE</button>
+      </div>
+      <p class="board-note">Presentation only. These change the mascot's pose; none of them sends a message, opens a microphone or calls a backend.</p>
+    </section>
+
+    <!-- Audit checklist -->
+    <section class="demo-card" aria-labelledby="audit-heading">
+      <h2 id="audit-heading">Prototype Audit Status v1.3</h2>
+      <ul class="audit-list" id="audit-list">
+        <li>Build runs locally (open this file in browser, no server needed)</li>
+        <li>Zero network calls from running demo</li>
+        <li>Brand colors sourced from the production repo with file:line evidence (v1.3)</li>
+        <li>Web skin is the cat-inspired companion from the design kit (v1.3)</li>
+        <li>SVGs come from one generated module: no hand-copied duplicates, no file:// fetch race (v1.3)</li>
+        <li>Walking: bounded lane, stops on interaction/scroll/focus, 8 s cap, desktop only (v1.3)</li>
+        <li>Animations pause in background tabs and on pagehide (v1.3)</li>
+        <li>Static poster SVGs + 48/96/192 PNG icons; noscript fallback (v1.3)</li>
+        <li>COMPONENT_CONTRACT state names and events accepted (v1.3)</li>
+        <li>Canned replies make no stock, price, hours or delivery claims (v1.3)</li>
+        <li>Handoff events: handoff:demo / request:simulated, never request:confirmed</li>
+        <li>DOMParser SVG sanitization: event attrs/scripts stripped</li>
+        <li>prefers-reduced-motion suppresses animation and disables walking</li>
+        <li>Keyboard: Tab/Enter/Space/Escape; focus trap inside chat panel</li>
+        <li>XSS-safe: all text via textContent</li>
+        <li>localStorage prefs: hide/pause/mute (no PII)</li>
+        <li>Mobile: bottom-right dock, safe-area insets, no walking</li>
+        <li class="warn">Owner sign-off needed on the design board above</li>
+        <li class="warn">Chest "V" is a simplification of the official logo; approve or supply a vector mark</li>
+        <li class="warn">Chatbot release gates (PR #74/#75/#40, $25 cap) are out of scope here</li>
+      </ul>
+    </section>
+
+    <!-- v1.3: design board for owner sign-off (CHARACTER_BIBLE / BRAND_AUDIT step 5) -->
+    <section class="demo-card demo-card-full" aria-labelledby="board-heading">
+      <h2 id="board-heading">Design board: LAVAALL Companions (needs owner sign-off)</h2>
+      <div class="board">
+        <figure><img src="../assets/static/tech-idle.svg" alt="Technology robot, idle pose" width="120" height="160"/><figcaption>Technology robot · idle</figcaption></figure>
+        <figure><img src="../assets/static/tech-speaking.svg" alt="Technology robot, speaking pose" width="120" height="160"/><figcaption>Technology robot · speaking</figcaption></figure>
+        <figure class="on-teal"><img src="../assets/static/web-idle.svg" alt="Web cat-inspired companion, idle pose" width="120" height="160"/><figcaption>Web cat-inspired · idle</figcaption></figure>
+        <figure class="on-teal"><img src="../assets/static/web-speaking.svg" alt="Web cat-inspired companion, speaking pose" width="120" height="160"/><figcaption>Web cat-inspired · speaking</figcaption></figure>
+      </div>
+      <div class="icon-row" aria-label="Static icon exports at 48 and 96 pixels">
+        <img src="../assets/static/icons/tech-idle-48.png" width="48" height="48" alt="Technology icon 48px"/>
+        <img src="../assets/static/icons/web-idle-48.png" width="48" height="48" alt="Web icon 48px"/>
+        <img src="../assets/static/icons/tech-idle-96.png" width="96" height="96" alt="Technology icon 96px"/>
+        <img src="../assets/static/icons/web-idle-96.png" width="96" height="96" alt="Web icon 96px"/>
+      </div>
+      <div class="swatches" aria-label="Sourced palette">
+        <span class="swatch"><i style="background:#00C2FF"></i>sky #00C2FF</span>
+        <span class="swatch"><i style="background:#00F5A0"></i>lime #00F5A0</span>
+        <span class="swatch"><i style="background:#0A0A14"></i>ink #0A0A14</span>
+        <span class="swatch"><i style="background:#F4F9FF"></i>offwhite #F4F9FF</span>
+        <span class="swatch"><i style="background:#0B252A"></i>web teal #0B252A</span>
+        <span class="swatch"><i style="background:#10323A"></i>web teal-2 #10323A</span>
+        <span class="swatch"><i style="background:#E7D3BF"></i>web sand #E7D3BF</span>
+        <span class="swatch"><i style="background:#F5ECE5"></i>web cream #F5ECE5</span>
+      </div>
+      <p class="board-note">
+        Colors read from the production repo: <code>assets/css/main.css:6</code> (Technology) and
+        <code>api/web/_site/styles.css:8-30</code> (Web). The chest "V" is a simplified version of the official
+        logo (<code>images/logo.png</code>). Original artwork; the concept PNG was reference only.
+        Details: <code>docs/mascot/BRAND_AUDIT_RESULTS.md</code>.
+      </p>
+    </section>
+
+    <!-- Mobile preview section -->
+    <section class="demo-card demo-card-full" aria-labelledby="mobile-heading">
+      <h2 id="mobile-heading">Mobile Preview (375px simulation)</h2>
+      <div class="mobile-preview" role="img" aria-label="375px mobile viewport simulation showing mascot in bottom-right dock position">
+        <div class="mobile-preview-notch" aria-hidden="true"></div>
+        <div class="mobile-preview-content">
+          <p>The mascot docks to the bottom-right corner at 56px on mobile.</p>
+          <p>It does not cover navigation, forms, or primary CTAs.</p>
+          <p>Chat panel expands upward from the mascot position.</p>
+          <p class="mobile-hint">(Resize your browser to &lt;768px to see actual mobile behavior)</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Event log -->
+    <section class="demo-card demo-card-full" aria-labelledby="log-heading">
+      <h2 id="log-heading">Event Log</h2>
+      <div class="event-log" id="event-log" aria-live="polite" aria-label="Live event log" role="log">
+        <p>Demo initialized. Events will appear here.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Mascot mount point (outside all forms and nav) ─────────── -->
+  <div id="mascot-root-container" aria-label="Mascot widget"></div>
+  <noscript>
+    <img class="mascot-noscript" src="../assets/static/tech-idle.svg" width="80" height="107" alt="LAVAALL Assistant (static image, JavaScript is off)"/>
+  </noscript>
+
+  <script type="module">
+    // ── Feature flag ── explicitly ON for demo page only
+    const MASCOT_ENABLED = true;
+
+    import { MascotController } from '../src/mascot/mascot-controller.js';
+    import { MockChatAdapter }  from '../src/chat/mock-chat-adapter.js';
+    import { ChatPanel }        from '../src/chat/chat-panel.js';
+    import { MascotRoamer }     from '../src/mascot/mascot-roamer.js';
+    // v1.3: generated from the .svg masters (npm run build:assets). Works on file://.
+    import { MASCOT_SVGS }      from '../src/mascot/mascot-svgs.js';
+
+
+    // ── Mount mascot ──────────────────────────────────────────────
+    const container = document.getElementById('mascot-root-container');
+
+    let mascot = new MascotController({
+      container,
+      variant: 'technology',
+      enabled: MASCOT_ENABLED,
+      svgSource: MASCOT_SVGS,
+    });
+
+
+    const adapter = new MockChatAdapter();
+
+    const chatPanel = new ChatPanel({
+      mascot,
+      adapter,
+      container: document.body,
+    });
+
+    const makeRoamer = () => new MascotRoamer({
+      mascot,
+      lane: '[data-mascot-lane]',
+      isDialogOpen: () => chatPanel.isOpen,
+      onStop: (reason) => { log(`walking stopped (${reason})`); updateReadout(); },
+    });
+    let roamer = makeRoamer();
+
+    // Initial state
+    mascot.setState('idle');
+    mascot.setMessage('Need a hand?');
+
+    // ── Event log helper ──────────────────────────────────────────
+    const logEl = document.getElementById('event-log');
+    function log(msg) {
+      const p = document.createElement('p');
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      p.textContent = `[${time}] ${msg}`;
+      logEl.appendChild(p);
+      logEl.scrollTop = logEl.scrollHeight;
+      // Keep last 50 entries
+      while (logEl.children.length > 50) logEl.removeChild(logEl.firstChild);
+    }
+
+    // ── Live readout ──────────────────────────────────────────────
+    function updateReadout() {
+      document.getElementById('readout-variant').textContent = mascot.variant;
+      document.getElementById('readout-state').textContent   = mascot.state;
+      document.getElementById('readout-contract').textContent = mascot.contractState;
+      document.getElementById('readout-enabled').textContent = String(MASCOT_ENABLED);
+
+      // Update state button highlight
+      document.querySelectorAll('.state-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.state === mascot.state);
+      });
+    }
+
+    // ── Variant toggle ────────────────────────────────────────────
+    document.querySelectorAll('.variant-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.dataset.v;
+        mascot.setVariant(v);
+        log(`setVariant("${v}")`);
+        // Re-theme the chat panel (brand palette per variant) even while it is open.
+        document.querySelectorAll('.chat-panel').forEach(p => p.setAttribute('data-variant', v));
+
+
+
+        document.querySelectorAll('.variant-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.v === v);
+          b.setAttribute('aria-pressed', String(b.dataset.v === v));
+        });
+
+        updateReadout();
+      });
+    });
+
+    // ── State buttons ─────────────────────────────────────────────
+    document.querySelectorAll('.state-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = btn.dataset.state;
+        mascot.setState(s);
+        log(`setState("${s}")`);
+        updateReadout();
+      });
+    });
+
+    // ── v1.3: contract events ─────────────────────────────────────
+    document.querySelectorAll('.contract-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const result = mascot.send(btn.dataset.evt);
+        log(`send("${btn.dataset.evt}") → ${result}`);
+        updateReadout();
+      });
+    });
+
+    // ── Action buttons ────────────────────────────────────────────
+    document.getElementById('btn-open-chat').addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('mascot:open-chat'));
+      log('dispatched mascot:open-chat');
+    });
+
+    document.getElementById('btn-show').addEventListener('click', () => {
+      mascot.show();
+      log('show()');
+      updateReadout();
+    });
+
+    document.getElementById('btn-hide').addEventListener('click', () => {
+      mascot.hide();
+      log('hide() — preference saved to localStorage');
+      updateReadout();
+    });
+
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      mascot.pause();
+      log('pause() — animations paused');
+    });
+
+    document.getElementById('btn-resume').addEventListener('click', () => {
+      mascot.resume();
+      log('resume() — animations resumed');
+    });
+
+    document.getElementById('btn-roam-start').addEventListener('click', () => {
+      if (roamer.isStarted) { log('already walking'); return; }
+      const ok = roamer.start();
+      log(ok ? 'roamer.start(): walking in the lane (stops on interaction, scroll, focus or after 8 s)'
+             : 'roamer.start(): not started (needs desktop width >= 1024px and no reduced motion)');
+      updateReadout();
+    });
+
+    document.getElementById('btn-roam-idle').addEventListener('click', (e) => {
+      e.currentTarget.blur();
+      // The click itself counts as an interaction, so arm a fresh roamer on the next tick.
+      setTimeout(() => {
+        roamer.destroy();
+        roamer = makeRoamer();
+        const armed = roamer.startWhenIdle(4000);
+        log(armed ? 'startWhenIdle(4000): walks in 4 s unless you click, type, scroll or focus something'
+                  : 'startWhenIdle: not armed (needs desktop width >= 1024px and no reduced motion)');
+      }, 0);
+    });
+
+    document.getElementById('btn-roam-stop').addEventListener('click', () => {
+      if (roamer.isStarted) {
+        roamer.stop('button');
+      } else {
+        log('roamer not running');
+      }
+    });
+
+    document.getElementById('btn-sim-error').addEventListener('click', () => {
+      if (chatPanel.isOpen) {
+        adapter.simulateError();
+        log('adapter.simulateError()');
+      } else {
+        mascot.setState('error');
+        mascot.setMessage('Oops! Something went wrong.');
+        log('setState("error") — open chat first to see full error flow');
+        setTimeout(() => { mascot.setState('idle'); mascot.setMessage(''); updateReadout(); }, 2500);
+        updateReadout();
+      }
+    });
+
+    document.getElementById('btn-sim-handoff').addEventListener('click', () => {
+      if (chatPanel.isOpen) {
+        adapter.simulateHandoff();
+        log('adapter.simulateHandoff()');
+      } else {
+        mascot.setState('handoff');
+        mascot.setMessage('Handoff preview (demo only, nothing sent)');
+        log('setState("handoff"): preview only. Open chat first to see the full mock flow');
+        setTimeout(() => { mascot.setState('idle'); mascot.setMessage(''); updateReadout(); }, 2500);
+        updateReadout();
+      }
+    });
+
+    document.getElementById('btn-destroy').addEventListener('click', () => {
+      if (confirm('Destroy mascot? Reload page to restore.')) {
+        roamer.destroy();
+        mascot.destroy();
+        log('destroy() called — reload page to restore');
+      }
+    });
+
+    // ── Global event listeners (for log) ─────────────────────────
+    window.addEventListener('mascot:open-chat',    () => log('EVENT: mascot:open-chat'));
+    window.addEventListener('mascot:close-chat',   () => log('EVENT: mascot:close-chat'));
+    window.addEventListener('mascot:request-help', () => log('EVENT: mascot:request-help'));
+
+    adapter.addEventListener('chat:open',      () => log('ADAPTER: chat:open'));
+    adapter.addEventListener('chat:close',     () => log('ADAPTER: chat:close'));
+    adapter.addEventListener('chat:listening', () => log('ADAPTER: chat:listening'));
+    adapter.addEventListener('chat:thinking',  () => log('ADAPTER: chat:thinking'));
+    adapter.addEventListener('chat:speaking',  (e) => log(`ADAPTER: chat:speaking — "${(e.detail.text||'').slice(0,40)}…"`));
+    adapter.addEventListener('chat:idle',      () => log('ADAPTER: chat:idle'));
+    adapter.addEventListener('chat:error',     () => log('ADAPTER: chat:error'));
+    adapter.addEventListener('chat:handoff',   (e) => log(`ADAPTER: chat:handoff (channel=${e.detail && e.detail.channel})`));
+    adapter.addEventListener('handoff:demo',   (e) => log(`ADAPTER: handoff:demo — ${e.detail && e.detail.message}`));
+    adapter.addEventListener('request:simulated', () => log('ADAPTER: request:simulated (NOT request:confirmed)'));
+    adapter.addEventListener('turn:start',     () => log('ADAPTER: turn:start'));
+    adapter.addEventListener('turn:thinking',  () => log('ADAPTER: turn:thinking'));
+    adapter.addEventListener('turn:response',  () => log('ADAPTER: turn:response'));
+    adapter.addEventListener('turn:error',     () => log('ADAPTER: turn:error'));
+
+    // ── Console guard (catch unhandled errors) ────────────────────
+    window.addEventListener('error', (e) => log(`ERROR: ${e.message}`));
+    window.addEventListener('unhandledrejection', (e) => log(`UNHANDLED: ${e.reason}`));
+
+    log('Mascot prototype initialized. Feature flag MASCOT_ENABLED = true');
+    log(`Reduced motion: ${mascot.reducedMotion}`);
+    updateReadout();
+  </script>
+</body>
+</html>

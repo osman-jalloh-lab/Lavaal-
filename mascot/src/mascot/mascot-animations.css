@@ -1,0 +1,536 @@
+/*
+ * LAVAALL Mascot Prototype — Animation System (v1.3)
+ * All animations are CSS-only (GPU-composited transforms/opacity).
+ * No JS timers run during idle — only CSS animation.
+ * prefers-reduced-motion: all durations set to 0.001ms, no movement.
+ */
+
+/* ── Base mascot layout ─────────────────────────────────────────────── */
+.mascot-root {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: var(--mascot-size, 80px);
+  z-index: var(--mascot-z-index, 9000);
+  cursor: default; /* trigger button handles cursor */
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Safe area insets for mobile notches/home bar */
+  bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  right: max(24px, env(safe-area-inset-right, 24px));
+}
+
+/* P2-9: Transparent activation button covers the SVG area */
+.mascot-trigger {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 0;
+  z-index: 1;
+}
+
+.mascot-trigger:focus-visible {
+  outline: 3px solid var(--mascot-accent, #00C2FF);
+  outline-offset: 4px;
+}
+
+.mascot-root:focus-visible {
+  outline: none; /* focus is on inner trigger now */
+}
+
+.mascot-root[hidden] {
+  display: none !important;
+}
+
+.mascot-svg-wrapper {
+  width: var(--mascot-size, 80px);
+  height: auto;
+  display: block;
+  /* Scale SVG to fit container */
+}
+
+.mascot-svg-wrapper svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Speech bubble */
+.mascot-bubble {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: var(--chat-surface, var(--ui-surface-2));
+  color: var(--chat-text, #F4F9FF);
+  border: 1px solid var(--mascot-accent, #00C2FF);
+  border-radius: 12px 12px 4px 12px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 220px;
+  min-width: 80px;
+  box-shadow: 0 4px 16px rgba(10, 10, 20, 0.4);
+  opacity: 0;
+  transform: translateY(6px) scale(0.95);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mascot-bubble.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.mascot-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  right: 16px;
+  width: 12px;
+  height: 12px;
+  background: var(--chat-surface, var(--ui-surface-2));
+  border-right: 1px solid var(--mascot-accent, #00C2FF);
+  border-bottom: 1px solid var(--mascot-accent, #00C2FF);
+  transform: rotate(45deg);
+}
+
+/* Dismiss / controls bar */
+.mascot-controls {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.mascot-root:hover .mascot-controls,
+.mascot-root:focus-within .mascot-controls {
+  opacity: 1;
+}
+
+.mascot-ctrl-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(10,10,20,0.85);
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mascot-ctrl-btn:hover {
+  background: var(--ui-surface-2);
+  color: #F4F9FF;
+}
+
+.mascot-ctrl-btn:focus-visible {
+  outline: 2px solid var(--mascot-accent, #00C2FF);
+  outline-offset: 2px;
+}
+
+/* ── Variant themes ─────────────────────────────────────────────────── */
+[data-variant="technology"] .mascot-bubble {
+  border-color: #00C2FF;
+}
+[data-variant="technology"] .mascot-bubble::after {
+  border-color: #00C2FF;
+}
+/* v1.3: Web sand accent, sourced from api/web/_site/styles.css:12 (orange removed) */
+[data-variant="web"] .mascot-bubble {
+  border-color: #E7D3BF;
+}
+[data-variant="web"] .mascot-bubble::after {
+  border-color: #E7D3BF;
+}
+
+/* ── Mobile layout ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mascot-root {
+    --mascot-size: 56px;
+    bottom: max(16px, env(safe-area-inset-bottom, 16px));
+    right: max(16px, env(safe-area-inset-right, 16px));
+  }
+  .mascot-bubble {
+    max-width: 180px;
+    font-size: 12px;
+    right: 0;
+  }
+}
+
+/* ── STATE: idle ────────────────────────────────────────────────────── */
+.mascot-root[data-state="idle"] .mascot-svg-wrapper {
+  animation: mascot-float 3s ease-in-out infinite;
+}
+
+.mascot-root[data-state="idle"] #tech-eye-left,
+.mascot-root[data-state="idle"] #web-eye-left {
+  animation: mascot-blink 4s ease-in-out infinite;
+}
+
+.mascot-root[data-state="idle"] #tech-eye-right,
+.mascot-root[data-state="idle"] #web-eye-right {
+  animation: mascot-blink 4s ease-in-out 0.1s infinite;
+}
+
+.mascot-root[data-state="idle"] #tech-antenna,
+.mascot-root[data-state="idle"] #web-collar-tag {
+  animation: mascot-antenna-pulse 2.5s ease-in-out infinite;
+}
+
+/* v1.3 cat-inspired Web skin: slow tail sway when idle */
+.mascot-root[data-state="idle"] #web-tail {
+  animation: mascot-tail-sway 3s ease-in-out infinite;
+}
+
+/* ── STATE: walk ────────────────────────────────────────────────────── */
+.mascot-root[data-state="walk"] .mascot-svg-wrapper {
+  animation: mascot-walk-bounce 0.5s ease-in-out infinite;
+}
+
+.mascot-root[data-state="walk"] #tech-arm-left,
+.mascot-root[data-state="walk"] #web-arm-left {
+  animation: mascot-arm-swing-left 0.5s ease-in-out infinite;
+}
+
+.mascot-root[data-state="walk"] #tech-arm-right,
+.mascot-root[data-state="walk"] #web-arm-right {
+  animation: mascot-arm-swing-right 0.5s ease-in-out infinite;
+}
+
+.mascot-root[data-state="walk"] #tech-leg-left,
+.mascot-root[data-state="walk"] #web-leg-left {
+  animation: mascot-leg-swing-left 0.5s ease-in-out infinite;
+}
+
+.mascot-root[data-state="walk"] #tech-leg-right,
+.mascot-root[data-state="walk"] #web-leg-right {
+  animation: mascot-leg-swing-right 0.5s ease-in-out infinite;
+}
+
+.mascot-root[data-state="walk"] #web-tail {
+  animation: mascot-tail-sway 0.5s ease-in-out infinite;
+}
+
+/* ── STATE: wave ────────────────────────────────────────────────────── */
+.mascot-root[data-state="wave"] #tech-arm-right,
+.mascot-root[data-state="wave"] #web-arm-right {
+  animation: mascot-wave-arm 0.6s ease-in-out 3;
+}
+
+.mascot-root[data-state="wave"] .mascot-svg-wrapper {
+  animation: mascot-float 3s ease-in-out infinite;
+}
+
+/* ── STATE: listen ──────────────────────────────────────────────────── */
+.mascot-root[data-state="listen"] #tech-ear-left,
+.mascot-root[data-state="listen"] #web-ear-left,
+.mascot-root[data-state="listen"] #tech-ear-right,
+.mascot-root[data-state="listen"] #web-ear-right {
+  animation: mascot-ear-tilt 1.2s ease-in-out infinite alternate;
+}
+
+.mascot-root[data-state="listen"] #tech-think-dots,
+.mascot-root[data-state="listen"] #web-think-dots {
+  opacity: 1;
+  animation: mascot-dots-pulse 1s ease-in-out infinite;
+}
+
+/* v1.3: face swap. Dots replace eyes and mouth so they never overlap. */
+.mascot-root[data-state="listen"] #tech-eye-left,
+.mascot-root[data-state="listen"] #tech-eye-right,
+.mascot-root[data-state="listen"] #tech-mouth,
+.mascot-root[data-state="listen"] #web-eye-left,
+.mascot-root[data-state="listen"] #web-eye-right,
+.mascot-root[data-state="listen"] #web-mouth,
+.mascot-root[data-state="think"] #tech-eye-left,
+.mascot-root[data-state="think"] #tech-eye-right,
+.mascot-root[data-state="think"] #tech-mouth,
+.mascot-root[data-state="think"] #web-eye-left,
+.mascot-root[data-state="think"] #web-eye-right,
+.mascot-root[data-state="think"] #web-mouth,
+.mascot-root[data-state="speak"] #tech-eye-left,
+.mascot-root[data-state="speak"] #tech-eye-right,
+.mascot-root[data-state="speak"] #tech-mouth,
+.mascot-root[data-state="speak"] #web-eye-left,
+.mascot-root[data-state="speak"] #web-eye-right,
+.mascot-root[data-state="speak"] #web-mouth {
+  opacity: 0;
+}
+
+/* ── STATE: think ───────────────────────────────────────────────────── */
+.mascot-root[data-state="think"] #tech-head,
+.mascot-root[data-state="think"] #web-head {
+  animation: mascot-head-tilt 2s ease-in-out infinite alternate;
+}
+
+.mascot-root[data-state="think"] #tech-think-dots,
+.mascot-root[data-state="think"] #web-think-dots {
+  opacity: 1;
+  animation: mascot-dots-chase 1.2s ease-in-out infinite;
+}
+
+.mascot-root[data-state="think"] #tech-antenna {
+  animation: mascot-antenna-spin 2s linear infinite;
+}
+
+.mascot-root[data-state="think"] #web-collar-tag {
+  animation: mascot-antenna-pulse 1s ease-in-out infinite;
+}
+
+/* ── STATE: speak ───────────────────────────────────────────────────── */
+.mascot-root[data-state="speak"] .mascot-svg-wrapper {
+  animation: mascot-speak-bounce 0.3s ease-in-out infinite;
+}
+
+.mascot-root[data-state="speak"] #tech-speak-bars,
+.mascot-root[data-state="speak"] #web-speak-bars {
+  opacity: 1;
+  animation: mascot-speak-bars 0.4s ease-in-out infinite alternate;
+}
+
+
+/* ── STATE: happy ───────────────────────────────────────────────────── */
+.mascot-root[data-state="happy"] .mascot-svg-wrapper {
+  animation: mascot-happy-jump 0.5s ease-out 2;
+}
+
+.mascot-root[data-state="happy"] #tech-arm-left,
+.mascot-root[data-state="happy"] #web-arm-left {
+  animation: mascot-arm-raise-left 0.5s ease-out 2;
+}
+
+.mascot-root[data-state="happy"] #tech-arm-right,
+.mascot-root[data-state="happy"] #web-arm-right {
+  animation: mascot-arm-raise-right 0.5s ease-out 2;
+}
+
+.mascot-root[data-state="happy"] #web-tail {
+  animation: mascot-tail-sway 0.35s ease-in-out 4;
+}
+
+/* ── STATE: sleep ───────────────────────────────────────────────────── */
+.mascot-root[data-state="sleep"] .mascot-svg-wrapper {
+  animation: mascot-sleep-breathe 3s ease-in-out infinite;
+}
+
+.mascot-root[data-state="sleep"] #tech-eye-left,
+.mascot-root[data-state="sleep"] #tech-eye-right,
+.mascot-root[data-state="sleep"] #web-eye-left,
+.mascot-root[data-state="sleep"] #web-eye-right {
+  animation: mascot-eyes-close 0.5s ease-in forwards;
+}
+
+.mascot-root[data-state="sleep"] #tech-antenna circle,
+.mascot-root[data-state="sleep"] #web-collar-tag {
+  animation: mascot-sleep-glow 3s ease-in-out infinite;
+}
+
+/* ── STATE: error ───────────────────────────────────────────────────── */
+.mascot-root[data-state="error"] .mascot-svg-wrapper {
+  animation: mascot-shake 0.5s ease-in-out;
+}
+
+.mascot-root[data-state="error"] #tech-antenna,
+.mascot-root[data-state="error"] #web-collar-tag {
+  animation: mascot-error-flicker 0.2s ease-in-out 5;
+}
+
+/* ── KEYFRAMES ──────────────────────────────────────────────────────── */
+
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes mascot-blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  94%            { transform: scaleY(0.1); }
+}
+
+@keyframes mascot-antenna-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes mascot-antenna-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes mascot-walk-bounce {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%       { transform: translateY(-4px) rotate(1deg); }
+}
+
+@keyframes mascot-arm-swing-left {
+  0%, 100% { transform: rotate(-20deg); }
+  50%       { transform: rotate(20deg); }
+}
+
+@keyframes mascot-arm-swing-right {
+  0%, 100% { transform: rotate(20deg); }
+  50%       { transform: rotate(-20deg); }
+}
+
+@keyframes mascot-leg-swing-left {
+  0%, 100% { transform: rotate(-15deg); }
+  50%       { transform: rotate(15deg); }
+}
+
+@keyframes mascot-leg-swing-right {
+  0%, 100% { transform: rotate(15deg); }
+  50%       { transform: rotate(-15deg); }
+}
+
+@keyframes mascot-wave-arm {
+  0%   { transform: rotate(0deg) translateY(0); }
+  25%  { transform: rotate(-40deg) translateY(-6px); }
+  75%  { transform: rotate(-15deg) translateY(-3px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+
+@keyframes mascot-ear-tilt {
+  from { transform: rotate(-8deg); }
+  to   { transform: rotate(8deg); }
+}
+
+@keyframes mascot-head-tilt {
+  from { transform: rotate(-6deg); }
+  to   { transform: rotate(4deg); }
+}
+
+@keyframes mascot-dots-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.3; transform: scale(0.7); }
+}
+
+@keyframes mascot-dots-chase {
+  0%   { opacity: 0.2; }
+  33%  { opacity: 1; }
+  66%  { opacity: 0.2; }
+  100% { opacity: 0.2; }
+}
+
+@keyframes mascot-speak-bounce {
+  0%, 100% { transform: scaleY(1) translateY(0); }
+  50%       { transform: scaleY(0.97) translateY(1px); }
+}
+
+@keyframes mascot-speak-bars {
+  0%   { transform: scaleY(0.6); }
+  100% { transform: scaleY(1.2); }
+}
+
+@keyframes mascot-speak-eyes {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0.7); }
+}
+
+@keyframes mascot-eye-wide {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(1.3); }
+}
+
+@keyframes mascot-happy-jump {
+  0%   { transform: translateY(0) scale(1); }
+  30%  { transform: translateY(-14px) scale(1.05); }
+  60%  { transform: translateY(-6px) scale(0.98); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes mascot-arm-raise-left {
+  0%, 100% { transform: rotate(0deg); }
+  40%       { transform: rotate(-60deg) translateY(-8px); }
+}
+
+@keyframes mascot-arm-raise-right {
+  0%, 100% { transform: rotate(0deg); }
+  40%       { transform: rotate(60deg) translateY(-8px); }
+}
+
+@keyframes mascot-sleep-breathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.02); }
+}
+
+@keyframes mascot-eyes-close {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0); }
+}
+
+@keyframes mascot-sleep-glow {
+  0%, 100% { opacity: 0.9; }
+  50%       { opacity: 0.2; }
+}
+
+@keyframes mascot-shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-5px) rotate(-2deg); }
+  30%       { transform: translateX(5px) rotate(2deg); }
+  45%       { transform: translateX(-4px) rotate(-1deg); }
+  60%       { transform: translateX(4px) rotate(1deg); }
+  75%       { transform: translateX(-2px); }
+}
+
+@keyframes mascot-tail-sway {
+  0%, 100% { transform: rotate(0deg); }
+  50%       { transform: rotate(-9deg); }
+}
+
+@keyframes mascot-error-flicker {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+/* ── Reduced motion override ────────────────────────────────────────── */
+/* v1.3: same suppression when the controller receives REDUCED_MOTION */
+.mascot-root[data-reduced-motion="true"] *,
+.mascot-root[data-reduced-motion="true"] *::before,
+.mascot-root[data-reduced-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-root *,
+  .mascot-root *::before,
+  .mascot-root *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ── Paused state (user preference) ────────────────────────────────── */
+/* v1.3: background tab / pagehide (STATES_AND_BEHAVIOR) */
+.mascot-root[data-page-hidden="true"] *,
+.mascot-root[data-page-hidden="true"] *::before,
+.mascot-root[data-page-hidden="true"] *::after,
+.mascot-root[data-paused="true"] *,
+.mascot-root[data-paused="true"] *::before,
+.mascot-root[data-paused="true"] *::after {
+  animation-play-state: paused !important;
+}
+
+/* ── Walk safe zone constraint (demo page only) ─────────────────────── */
+/* On the real site, JS constrains walk to a bounded lane.
+   In the demo the mascot stays fixed; animation plays in-place. */
+.mascot-root[data-state="walk"] {
+  /* No positional change — walk is in-place animation only */
+}

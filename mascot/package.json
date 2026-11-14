@@ -1,0 +1,20 @@
+{
+  "name": "lavaall-mascot-prototype",
+  "version": "1.3.0",
+  "description": "Isolated LAVAALL mascot prototype \u00e2\u20ac\u201d local demo only, no production deployment",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run-all.js",
+    "test:browser": "node tests/browser-tests.js",
+    "test:all": "node tests/run-all.js && node tests/browser-tests.js",
+    "build:assets": "node scripts/build-assets.js",
+    "check:assets": "node scripts/build-assets.js --check",
+    "export:icons": "node scripts/export-icons.js",
+    "demo": "node scripts/serve.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
