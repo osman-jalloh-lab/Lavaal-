@@ -68,7 +68,7 @@ function coverage(html) {
   const start = html.indexOf('const covData={');
   const block = html.slice(start, html.indexOf('\n};', start));
   const countries = [];
-  for (const code of ['sl', 'gn', 'gw']) {
+  for (const code of ['sl', 'gn', 'gw', 'lr']) {
     const m = block.match(new RegExp('\\b' + code + ":\\{flag:'[^']*',en:\\{name:'([^']+)',text:'([^']+)'\\}"));
     if (m) countries.push({ code, name: m[1], text: m[2] });
   }
@@ -111,15 +111,17 @@ function build() {
   read(path.join(ROOT, 'api/_chat/llm-responder.js'));
   const { REACHABILITY, EMAIL, WHATSAPP } = require(path.join(ROOT, 'api/_chat/responder.js'));
   const { PHRASES } = require(path.join(ROOT, 'api/_chat/llm-responder.js'));
+  const { SERVICE_SLA } = require(path.join(ROOT, 'api/_chat/conversation.js'));
   const { loadCatalog } = require(path.join(ROOT, 'api/_chat/catalog.js'));
   const planTech = read(path.join(PLAN_DIR, 'kb-technology.md'), { optional: true });
   const planWeb = read(path.join(PLAN_DIR, 'kb-web.md'), { optional: true });
 
   const contact = { email: EMAIL, whatsapp: WHATSAPP, reachability: REACHABILITY };
   const contactLine = REACHABILITY + ': **' + EMAIL + '** or WhatsApp **' + WHATSAPP + '**.';
+  // Routing line, not a delivery promise: Mark's 24-hour team route + form offer when contact is missing.
   const missing = {
-    technology: "I don't have that information. I can pass your question to our team with a quick form, or you can reach us on " + 'email **' + EMAIL + '** or WhatsApp **' + WHATSAPP + '**.',
-    web: "I don't have that information about LAVAALL Web. You can reach the team on email **" + EMAIL + '** or WhatsApp **' + WHATSAPP + '**.',
+    technology: SERVICE_SLA + ' Would you like to fill out a quick form?',
+    web: SERVICE_SLA + ' Would you like to fill out a quick form?',
   };
 
   // ── Technology facts ─────────────────────────────────────────────
@@ -193,7 +195,7 @@ function build() {
       'Put the key words (product, model, color, contact) in **bold**.',
       'Do not carry an earlier topic into a new question.',
       'Krio means Sierra Leone Krio. Never use Haitian Creole.',
-      'Use only the verified facts and catalogue entries. If the answer is not there, say so plainly and offer the form or contact.',
+      'Use only the verified facts and catalogue entries. If the answer is not there, do not invent it and do not say we do not have it. Route the question to the team (someone will get back within 24 hours) and offer a form if contact details are missing.',
       'Never invent prices, stock, delivery dates, customers or claims.',
     ],
     policy: {

@@ -70,7 +70,8 @@ const { memoryStore } = require('../api/_chat/store');
     const user = prompts[0][1].content;
     assert.match(user, /Verified LAVAALL facts \(public knowledge pack v1\)/);
     assert.match(user, /Routers & Networking/);
-    assert.match(prompts[0][0].content, /I don't have that information\./);
+    assert.match(prompts[0][0].content, /Never deny carrying or having an item/);
+    assert.match(prompts[0][0].content, /Someone from our team will get back to you within 24 hours/);
     console.log('ok - model prompt carries knowledge-pack facts');
 
     // 2. Catalogue narrowing goes through the real backend with zero model calls.
@@ -82,19 +83,47 @@ const { memoryStore } = require('../api/_chat/store');
     assert.deepEqual(events.slice(-5).map(e => e.name), ['chat:listening', 'chat:thinking', 'chat:speaking', 'chat:chips', 'chat:idle']);
     console.log('ok - catalogue turn through the real handler, 0 model calls');
 
-    // 3. Handoff on this branch's server (92157c9 flow, no Confirm step yet): the adapter must NOT
-    //    claim a confirmed request, and says so with request:unconfirmed.
-    await turn('I want to speak to someone');
-    assert.equal(spoken().pop(), 'Yes, sure. Can I get your first and last name?');
-    await turn('Ada Test');
-    await turn('ada@example.test');
-    assert.match(spoken().pop(), /someone from our team will reach out to you shortly/i);
-    assert.equal(count('request:confirmed'), 0, 'no request:confirmed without an explicit Confirm');
-    assert.equal(count('request:unconfirmed'), 1);
-    assert.equal(transportCalls, 0);
-    const sinks = await store.transaction(rows => [...rows].filter(([key]) => key.startsWith('test-handoff:')));
-    assert.equal(sinks.length, 1, 'server still writes the Preview test record on this base (Mark adds the Confirm gate)');
-    console.log('ok - handoff without Confirm never fires request:confirmed');
+    // 3. Mark's Confirm/Cancel handoff: WhatsApp or email chips, one contact field, then a summary.
+    //    request:confirmed fires only after Confirm AND the server ack. Nothing is written earlier.
+    //    Use a fresh session so the earlier iPhone 16 turn does not pre-fill the topic.
+    cookie = '';
+    events.length = 0;
+    const handoffAdapter = new RealChatAdapter({ fetch: browserFetch, crypto, listenMs: 0 });
+    for (const name of ['chat:listening', 'chat:thinking', 'chat:speaking', 'chat:chips', 'chat:idle', 'chat:error', 'chat:handoff', 'request:review', 'request:confirmed', 'request:unconfirmed']) {
+      handoffAdapter.addEventListener(name, e => events.push({ name, detail: e.detail }));
+    }
+    const handoffTurn = text => new Promise(resolve => {
+      const done = () => { handoffAdapter.removeEventListener('chat:idle', done); handoffAdapter.removeEventListener('chat:error', done); resolve(); };
+      handoffAdapter.addEventListener('chat:idle', done); handoffAdapter.addEventListener('chat:error', done);
+      handoffAdapter.send(text);
+    });
+    const sinksOf = () => store.transaction(rows => [...rows].filter(([key]) => key.startsWith('test-handoff:')));
+    await handoffTurn('I want to speak to someone');
+    assert.equal(spoken().pop(), 'WhatsApp or email?');
+    assert.deepEqual(events.filter(e => e.name === 'chat:chips').at(-1).detail.chips, ['WhatsApp', 'Email']);
+    assert.equal(count('request:review'), 0, 'channel chips are not a review');
+    assert.equal(count('request:confirmed'), 0);
+    await handoffTurn('Email');
+    assert.equal(spoken().pop(), 'What is your email address?');
+    await handoffTurn('ada@example.test');
+    assert.equal(spoken().pop(), 'Can I get your first and last name?');
+    await handoffTurn('Ada Test');
+    assert.equal(spoken().pop(), 'What would you like to talk to the team about?');
+    assert.equal((await sinksOf()).length, 0, 'no test sink before Confirm');
+    await handoffTurn('a laptop for our office');
+    assert.match(spoken().pop(), /Please confirm your details: Name: Ada Test\. Contact: ada@example\.test\. Topic: a laptop for our office/);
+    assert.deepEqual(events.filter(e => e.name === 'chat:chips').at(-1).detail.chips, ['Confirm', 'Cancel']);
+    assert.equal(count('request:review'), 1);
+    assert.equal(count('request:confirmed'), 0, 'no request:confirmed until Confirm + server ack');
+    assert.equal((await sinksOf()).length, 0, 'still no test sink before Confirm');
+    await handoffTurn('Confirm');
+    const thanks = spoken().pop();
+    assert.equal(thanks, 'Thank you, someone from our team will reach out to you shortly.');
+    assert.doesNotMatch(thanks, /email support@|call |WhatsApp \+1/i);
+    assert.equal(count('request:confirmed'), 1);
+    assert.equal(count('request:unconfirmed'), 0);
+    assert.equal((await sinksOf()).length, 1, 'Preview test record written only after Confirm');
+    console.log('ok - handoff Confirm + server ack fires request:confirmed once; chips and thank-you only');
 
     // 4. The adapter never touched review/confirm/draft or any contact endpoint.
     assert.equal(transportCalls, 0);
