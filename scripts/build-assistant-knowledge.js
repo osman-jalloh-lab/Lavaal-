@@ -224,8 +224,9 @@ function serialize(pack) { return JSON.stringify(pack, null, 2) + '\n'; }
 if (require.main === module) {
   const text = serialize(build());
   if (process.argv.includes('--check')) {
-    const current = fs.existsSync(OUT) ? fs.readFileSync(OUT, 'utf8') : '';
-    if (current !== text) { console.error('knowledge pack is stale: run node scripts/build-assistant-knowledge.js'); process.exit(1); }
+    // Content check only: source hashes change whenever a policy file is edited for other reasons.
+    const current = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {};
+    if (current.contentHash !== JSON.parse(text).contentHash) { console.error('knowledge pack is stale: run node scripts/build-assistant-knowledge.js'); process.exit(1); }
     console.log('knowledge pack is up to date');
   } else {
     fs.mkdirSync(path.dirname(OUT), { recursive: true });

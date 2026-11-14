@@ -1765,11 +1765,11 @@
     },
     {
       "path": "api/_chat/llm-responder.js",
-      "sha256": "91a71989de048b10ab47b7f63b605ce7b0326d941fdc787b7eb973a7459e63f8"
+      "sha256": "f591eb1dc2b8e0edcdf8e84ce89d28f6ee448c031d53313a18cae71fdf50671e"
     },
     {
       "path": "api/_chat/responder.js",
-      "sha256": "cadedf7c7970ed1802e708697385698bc39cc9f0bfb1acee80249b134ca0d49a"
+      "sha256": "567c8a3fd77f2d447a891629f0e5cfce50c1277c502dbb51082eb77b39ac5b0f"
     },
     {
       "path": "api/web/_site/content/en.json",
