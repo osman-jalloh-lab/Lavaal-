@@ -11,10 +11,10 @@ const HAITIAN_RE = /\b(mwen|kounye a|sak pase|tanpri|ou ka|nou ka|kreyòl ayisye
 
 const PHRASES = {
   offer: {
-    en: 'Would you like to speak to a person, or send an email request? Your name and a valid phone number are enough; other fields are optional. Nothing is sent until you review the summary and click Send.',
-    fr: "Souhaitez-vous parler à une personne, ou envoyer une demande par e-mail ? Le nom et un numéro de téléphone valide suffisent ; les autres champs sont facultatifs. Rien n'est envoyé avant que vous ne vérifiiez le récapitulatif et cliquiez sur Envoyer.",
-    pt: 'Quer falar com uma pessoa, ou enviar um pedido por e-mail? O nome e um telefone válido chegam; os restantes campos são opcionais. Nada é enviado até rever o resumo e clicar em Enviar.',
-    kr: 'Yu wan tɔk to wan pɔsin, ɔ sɛn ɛmail rɛkwɛst? A kin ɛp yu fill di fɔm. Ném ɛn wan valid fon nɔmba nɔmɔ; ɔl ɔda fil dɛn ɔpshɔnal. Wi nɔ sɛn am te yu rivyu di sɔmari ɛn klik Send.',
+    en: 'Would you like a quick form, or to contact ' + EMAIL + ' or WhatsApp ' + WHATSAPP + '?',
+    fr: 'Souhaitez-vous un formulaire rapide, ou contacter ' + EMAIL + ' ou WhatsApp ' + WHATSAPP + ' ?',
+    pt: 'Quer um formulário rápido, ou contactar ' + EMAIL + ' ou WhatsApp ' + WHATSAPP + '?',
+    kr: 'Yu wan fill wan kwik fɔm, ɔ kɔntakt ' + EMAIL + ' ɔ WhatsApp ' + WHATSAPP + '?',
   },
   noConfirm: {
     en: 'A catalogue listing is not a stock or price confirmation.',
@@ -108,32 +108,46 @@ function intentFrom(rule) {
 function requiredSentences(rule) {
   const lang = langOf(rule);
   const intent = intentFrom(rule);
-  const lines = [];
-  if (intent === 'off-topic') lines.push(PHRASES.offTopic[lang]);
-  if (intent === 'not-in-catalog') lines.push(PHRASES.notListed[lang]);
-  if ((intent === 'in-catalog' || (rule.matchCount > 0)) && !(rule.events || []).includes('product-guide') && !(rule.events || []).includes('contact-info')) lines.push(PHRASES.noConfirm[lang]);
-  if (/cannot give prices|ne peux pas indiquer de prix|não posso indicar preços|nɔ ebul gi prayz/i.test(rule.text || '')) {
-    lines.push(PHRASES.noPrice[lang]);
-  }
-  if (/wholesale|en gros|por grosso|holsel|bulk/i.test(rule.text || '')) {
-    lines.push(PHRASES.bulk[lang]);
-  }
-  if (intent === 'hours' || intent === 'hours-and-agent') lines.push(PHRASES.hours[lang]);
-  if (/refurb|reconditionn|recondicionad|rifɔbish/i.test(rule.text || '') || /refurb|reconditionn|recondicionad|rifɔbish/i.test((rule.fields && rule.fields.message) || '')) {
-    lines.push(PHRASES.refurb[lang]);
-  }
-  if (intent === 'agent-handoff' || intent === 'hours-and-agent' || (rule.handoff && rule.handoff.tagOsman)) {
-    lines.push(PHRASES.shortly[lang]);
-  }
-  if ((rule.events || []).includes('acknowledged-frustration')) {
-    lines.push(PHRASES.noTime[lang]);
-  }
-  if ((rule.events || []).includes('identified-assistant') && PHRASES.identity[lang]) {
-    lines.unshift(PHRASES.identity[lang]);
-  }
+  const events = rule.events || [];
+  if (events.includes('handoff-intake') || events.includes('form-complete')) return [rule.text];
+  if (intent === 'agent-handoff' || intent === 'hours-and-agent') return [PHRASES.shortly[lang]];
+  let core = '';
+  if (events.includes('identified-assistant')) core = PHRASES.identity[lang] || PHRASES.identity.en;
+  else if (intent === 'not-in-catalog') core = PHRASES.notListed[lang];
+  else if (intent === 'off-topic') core = PHRASES.offTopic[lang];
+  else if (intent === 'hours') core = PHRASES.hours[lang];
+  else if (/cannot give prices|ne peux pas indiquer de prix|não posso indicar preços|nɔ ebul gi prayz/i.test(rule.text || '')) core = PHRASES.noPrice[lang];
+  else if (/refurb|reconditionn|recondicionad|rifɔbish/i.test(rule.text || '')) core = PHRASES.refurb[lang];
+  else if (/wholesale|en gros|por grosso|holsel|bulk/i.test(rule.text || '')) core = PHRASES.bulk[lang];
+  else if (intent === 'in-catalog') core = PHRASES.noConfirm[lang];
+  const lines = core ? [core] : [];
   if (intent !== 'block-sensitive') lines.push(PHRASES.offer[lang]);
-  lines.push(PHRASES.contacts);
   return lines;
+}
+
+// Preserve complete required lines while fitting a short model body around them.
+function compactReply(text, required) {
+  const protectedLines = [...new Set(required.filter(Boolean))];
+  let body = text;
+  for (const line of protectedLines) body = body.split(line).join(' ');
+  const requiredCount = protectedLines.reduce((n, line) => n + sentenceSplit(line).length, 0);
+  const budget = Math.max(0, 3 - requiredCount);
+  const hasQuestion = protectedLines.some(line => line.includes('?'));
+  const seen = new Set();
+  let questions = hasQuestion ? 1 : 0;
+  const kept = [];
+  for (let sentence of sentenceSplit(body)) {
+    const key = sentence.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    if (sentence.includes('?')) {
+      if (questions) continue;
+      questions++;
+    }
+    sentence = sentence.replace(/^\p{Ll}/u, letter => letter.toUpperCase());
+    if (kept.length < budget) kept.push(sentence);
+  }
+  return [...kept, ...protectedLines].join(' ').trim();
 }
 
 function stripViolations(text) {
@@ -247,6 +261,7 @@ function repairVisitorPhoneMix(text, visitorPhone) {
 }
 
 function postEnforce(modelText, rule) {
+  if ((rule.events || []).some(event => ['handoff-intake', 'form-complete'].includes(event))) return { text: rule.text, repairs: ['preserved-intake'] };
   const repairs = [];
   const cleaned = stripViolations(modelText);
   repairs.push(...cleaned.repairs);
@@ -314,7 +329,9 @@ function postEnforce(modelText, rule) {
     text = text.replace(/\u0000SLA(\d+)\u0000/g, (_, index) => kept[Number(index)] || 'Someone from our team will get back to you within 24 hours.');
     repairs.push('final-deadline-strip-kept-sla');
   }
-  return { text: text.replace(/[ \t]{2,}/g, ' ').trim(), repairs };
+  const compact = compactReply(text, requiredSentences(rule));
+  if (compact !== text) repairs.push('compacted-reply');
+  return { text: compact.replace(/[ \t]{2,}/g, ' ').trim(), repairs };
 }
 
 function buildMessages(visitorText, rule, session) {
@@ -330,12 +347,10 @@ function buildMessages(visitorText, rule, session) {
   const system = [
     'You are LAVAALL Assistant for LAVAALL Technology and LAVAALL Web. LAVAALL Web builds websites, apps, online ordering and bots; offer a free preview and ask what the business needs.',
     'Write one short, natural reply in the required language. No markdown, no bullet lists, no repeated sentences.',
-    'Keep the entire reply, including every required closing sentence, to 60-90 words. Use one compact closing block. Never cut, shorten, or paraphrase required closings. Mention at most four catalogue names; do not list every close variant.',
+    'Use 1–3 sentences total and at most one follow-up question. Keep required lines verbatim, once, including their punctuation. Mention at most four catalogue names.',
     'Use ONLY the catalogue facts provided. Never invent products, models, stock, prices, discounts, warranties, or delivery dates. Never use the phrase \'in stock\', even to deny stock; say the item is listed in the catalogue. When refusing a price, do not use currency codes or symbols such as USD, EUR, $, or £.',
     'Never deny carrying or having an item or variant. Route unmatched requests to the team: ' + SERVICE_SLA + ' Offer a quick form if contact details are missing.',
     'If a quantity is provided, mention it as a DIGIT (write 4, not "four"). If several quantities are provided, mention each digit.',
-    'Keep this English line EXACT, even when the rest of the reply is French, Portuguese, or Krio: ' + REACHABILITY,
-    'Also include ' + EMAIL + ' and WhatsApp ' + WHATSAPP + '.',
     'Never use Haitian Creole. For Krio, write Sierra Leone Krio. Do not invent new Krio wording.',
     'If asked whether you are a bot or a person, include the official identity sentence VERBATIM in the required language, and offer a person. Do not claim to be human and do not add or drop words from that sentence.',
     'If the visitor is frustrated, stay calm, do not promise a time or stock, and include the required cannot-promise-a-time sentence verbatim.',
