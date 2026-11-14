@@ -1,7 +1,7 @@
 'use strict';
 
 const { loadCatalog, searchCatalog, normalize } = require('./catalog');
-const { SERVICE_SLA, guidedReply, guidedHandoff, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
+const { SERVICE_SLA, guidedReply, guidedHandoff, handoffPrompt, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
 
 const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
 const EMAIL = 'support@lavaall.com';
@@ -429,14 +429,7 @@ function respond(text, session = {}) {
   }
 
   const blockedHandoff = (warning, event) => {
-    const questions = {
-      'handoff-name': 'Could I get your first and last name, please?',
-      'handoff-channel': 'WhatsApp or email?',
-      'handoff-contact': session.handoffDraft?.channel === 'email' ? 'What is your email address?' : 'What is your WhatsApp number, with country code?',
-      'handoff-topic': session.handoffDraft?.kind === 'quote' ? 'What would you like a quote for?' : 'What would you like to talk to the team about?',
-      'handoff-confirm': 'Please confirm your details: Name: ' + session.handoffDraft?.name + '. Contact: ' + session.handoffDraft?.contact + '. Topic: ' + session.handoffDraft?.topic + '. Shall I pass this to our team?',
-    };
-    const question = questions[session.awaiting];
+    const question = handoffPrompt(session, lang);
     return question ? { text: warning + ' ' + question, language: lang,
       events: ['handoff-intake', event], fields: {}, awaiting: session.awaiting,
       handoffDraft: session.handoffDraft, chips: session.awaiting === 'handoff-confirm' ? ['Confirm', 'Cancel'] : session.awaiting === 'handoff-channel' ? ['WhatsApp', 'Email'] : ['Cancel request'], lastTopic: 'handoff-intake' } : null;
@@ -473,7 +466,7 @@ function respond(text, session = {}) {
     }[lang], language: lang, events: ['blocked-sensitive:' + sensitive], fields: {}, chips: ['Request a quote', 'Talk to someone'], sensitiveBlocked: true };
   }
 
-  const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : /\b(invoice|refund|damaged|legal|lawyer)\b/i.test(rawInput) || (AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput)));
+  const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : /\b(invoice|refund|damaged|legal|lawyer)\b/i.test(rawInput) || (AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput)), lang);
   if (handoff) return handoff;
 
   const special = require('./intents').specialIntent(rawInput, lang, session);
@@ -520,7 +513,7 @@ function respond(text, session = {}) {
   const catalogPreview = searchMaybeMulti(input, { limit: 8 });
   const productIntent = TECH_HINTS.test(input) || (catalogPreview.matches.length > 0 && (qty || priceAsk || /\b(iphone|laptop|server|router|dell|hp|cisco|macbook)\b/i.test(input)));
   if (wantsAgent && !productIntent && !priceAsk) {
-    return guidedHandoff(rawInput, handoffSession, true);
+    return guidedHandoff(rawInput, handoffSession, true, lang);
   }
 
   if (hours && !priceAsk && !TECH_HINTS.test(input) && !TECH_HINTS.test(rawInput) && !searchMaybeMulti(String(input).replace(/24\s*\/\s*7/ig, " ").replace(/\b24\s+7\b/g, " ")).matches.length) {

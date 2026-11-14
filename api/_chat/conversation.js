@@ -403,46 +403,87 @@ function handoffTopic(session) {
   return topics[topic] || (topic.startsWith('product:') ? topic.slice(8) : '');
 }
 
-function guidedHandoff(text, session, start) {
+// French and Sierra Leone Krio reuse the reviewed handoff vocabulary.
+const HANDOFF_COPY = {
+  en: {
+    channel: 'WhatsApp or email?', phone: 'What is your WhatsApp number, with country code?', email: 'What is your email address?',
+    invalidPhone: 'Please enter a valid WhatsApp number with country code.', invalidEmail: 'Please enter a valid email address.',
+    name: 'Could I get your first and last name, please?', topic: 'What would you like to talk to the team about?', quote: 'What would you like a quote for?',
+    confirm: d => 'Please confirm your details: Name: ' + d.name + '. Contact: ' + d.contact + '. Topic: ' + d.topic + '. Shall I pass this to our team?',
+    receipt: 'Thank you, someone from our team will reach out to you shortly.', cancel: 'Request cancelled. What else can I help with?', sla: SERVICE_SLA,
+  },
+  fr: {
+    channel: 'WhatsApp ou e-mail ?', phone: 'Quel est votre numéro WhatsApp avec indicatif pays ?', email: 'Quelle est votre adresse e-mail ?',
+    invalidPhone: 'Veuillez saisir un numéro WhatsApp valide avec indicatif pays.', invalidEmail: 'Veuillez saisir une adresse e-mail valide.',
+    name: 'Quel est votre prénom et votre nom, s’il vous plaît ?', topic: 'De quoi souhaitez-vous parler avec notre équipe ?', quote: 'Pour quel article souhaitez-vous un devis ?',
+    confirm: d => 'Veuillez vérifier vos coordonnées : nom : ' + d.name + ' ; contact : ' + d.contact + ' ; sujet : ' + d.topic + '. Puis-je transmettre cette demande à notre équipe ?',
+    receipt: "Merci, quelqu'un de l'équipe vous recontactera sous peu.", cancel: 'Demande annulée. Comment puis-je vous aider ?',
+    sla: 'Quelqu’un de notre équipe vous recontactera sous 24 heures.',
+  },
+  kr: {
+    channel: 'Yu WhatsApp ɔ ɛmail?', phone: 'Yu WhatsApp fon nɔmba wit country code?', email: 'Yu ɛmail?',
+    invalidPhone: 'Duya, valid WhatsApp fon nɔmba wit country code?', invalidEmail: 'Duya, valid ɛmail?',
+    name: 'Duya, yu fɔs ném ɛn las ném?', topic: 'Wetin yu wan tɔk to di tim abawt?', quote: 'Wetin yu nid fɔ quote?',
+    confirm: d => 'Rivyu di sɔmari: ném: ' + d.name + '; fon ɔ ɛmail: ' + d.contact + '; rɛkwɛst: ' + d.topic + '. Yu wan sɛn am to di tim?',
+    receipt: 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn.', cancel: 'Rɛkwɛst kansul. Wetin yu nid?',
+    sla: 'Sɔmbɔdi frɔm wi tim go rich yu insay 24 awa.',
+  },
+};
+function handoffLanguage(session, language) {
+  const chosen = language || session.handoffDraft?.language || session.lastLanguage;
+  return HANDOFF_COPY[chosen] ? chosen : 'en';
+}
+function handoffSla(language) { return (HANDOFF_COPY[language] || HANDOFF_COPY.en).sla; }
+function handoffPrompt(session, language) {
+  const copy = HANDOFF_COPY[handoffLanguage(session, language)];
+  const draft = session.handoffDraft || {};
+  return ({ 'handoff-channel': copy.channel, 'handoff-contact': draft.channel === 'email' ? copy.email : copy.phone,
+    'handoff-name': copy.name, 'handoff-topic': draft.kind === 'quote' ? copy.quote : copy.topic,
+    'handoff-confirm': copy.confirm(draft) })[session.awaiting] || null;
+}
+
+function guidedHandoff(text, session, start, language) {
+  const lang = handoffLanguage(session, language);
+  const copy = HANDOFF_COPY[lang];
   const raw = String(text || '').trim();
   const active = String(session.awaiting || '').startsWith('handoff-');
   if (!active && !start) return null;
   const reply = (line, draft, awaiting, extra) => result(line, ['handoff-intake'], {
-    awaiting, handoffDraft: draft, lastTopic: 'handoff-intake', chips: awaiting ? ['Cancel request'] : [], ...extra,
+    language: lang, awaiting, handoffDraft: draft, lastTopic: 'handoff-intake', chips: awaiting ? ['Cancel request'] : [], ...extra,
   });
   if (active && /^(cancel|cancel request|no|no thanks|stop)[.!]?$/i.test(raw)) {
-    return reply('Request cancelled. What else can I help with?', null, null, { chips: ['Request a quote', 'Talk to someone'] });
+    return reply(copy.cancel, null, null, { chips: ['Request a quote', 'Talk to someone'] });
   }
   if (!active) {
     const earlier = session.history || [];
     const lastUser = earlier.filter(turn => turn.role === 'user').slice(-1)[0];
-    return reply('WhatsApp or email?', {
-      kind: start === 'quote' ? 'quote' : 'person', name: '', contact: '', topic: handoffTopic(session).slice(0, 300),
+    return reply((lang === 'en' ? '' : copy.sla + ' ') + copy.channel, {
+      language: lang, kind: start === 'quote' ? 'quote' : 'person', name: '', contact: '', topic: handoffTopic(session).slice(0, 300),
       topicKnownFromChat: Boolean(handoffTopic(session)),
       earlier: String(session.lastUser || (lastUser && lastUser.text) || '').slice(0, 200),
     }, 'handoff-channel', { chips: ['WhatsApp', 'Email'], handoff: { tagOsman: true } });
   }
   const draft = { ...(session.handoffDraft || {}) };
-  const topicQuestion = draft.kind === 'quote' ? 'What would you like a quote for?' : 'What would you like to talk to the team about?';
-  const confirmation = () => reply('Please confirm your details: Name: ' + draft.name + '. Contact: ' + draft.contact + '. Topic: ' + draft.topic + '. Shall I pass this to our team?', draft, 'handoff-confirm', { chips: ['Confirm', 'Cancel'] });
+  const topicQuestion = draft.kind === 'quote' ? copy.quote : copy.topic;
+  const confirmation = () => reply(copy.confirm(draft), draft, 'handoff-confirm', { chips: ['Confirm', 'Cancel'] });
   if (session.awaiting === 'handoff-channel') {
-    if (!/^(whatsapp|email|e-mail)$/i.test(raw)) return reply('WhatsApp or email?', draft, 'handoff-channel', { chips: ['WhatsApp', 'Email'] });
+    if (!/^(whatsapp|email|e-mail)$/i.test(raw)) return reply(copy.channel, draft, 'handoff-channel', { chips: ['WhatsApp', 'Email'] });
     draft.channel = /^whatsapp$/i.test(raw) ? 'whatsapp' : 'email';
-    return reply(draft.channel === 'whatsapp' ? 'What is your WhatsApp number, with country code?' : 'What is your email address?', draft, 'handoff-contact');
+    return reply(draft.channel === 'whatsapp' ? copy.phone : copy.email, draft, 'handoff-contact');
   }
   if (session.awaiting === 'handoff-contact') {
     const value = draft.channel === 'email' ? (isEmail(raw) ? raw : null) : normalizeContactPhone(raw);
-    if (!value || raw.length > 300) return reply(draft.channel === 'email' ? 'Please enter a valid email address.' : 'Please enter a valid WhatsApp number with country code.', draft, 'handoff-contact');
+    if (!value || raw.length > 300) return reply(draft.channel === 'email' ? copy.invalidEmail : copy.invalidPhone, draft, 'handoff-contact');
     draft.contact = value;
-    return reply('Can I get your first and last name?', draft, 'handoff-name');
+    return reply(lang === 'en' ? 'Can I get your first and last name?' : copy.name, draft, 'handoff-name');
   }
   if (session.awaiting === 'handoff-name') {
     if (start || !raw || raw.length > 100 || !/\p{L}/u.test(raw) || isEmail(raw) || isPhone(raw)) {
-      return reply('Could I get your first and last name, please?', draft, 'handoff-name');
+      return reply(copy.name, draft, 'handoff-name');
     }
     if (!/\p{L}.*\s+.*\p{L}/u.test(raw) && !draft.nameAsked) {
       draft.nameAsked = true;
-      return reply('Could I get your first and last name, please?', draft, 'handoff-name');
+      return reply(copy.name, draft, 'handoff-name');
     }
     draft.name = raw;
     if (!draft.topic) return reply(topicQuestion, draft, 'handoff-topic');
@@ -459,7 +500,7 @@ function guidedHandoff(text, session, start) {
   const summary = ('Website chat handoff. Topic: ' + draft.topic + '.' +
     (draft.earlier ? ' Earlier the visitor asked: "' + draft.earlier + '".' : '') +
     ' Contact preference: ' + preferredResponse + '.').slice(0, 400);
-  return reply('Thank you, someone from our team will reach out to you shortly.', null, null, {
+  return reply(copy.receipt, null, null, {
     handoffPayload: { topicKnownFromChat: Boolean(draft.topicKnownFromChat), kind: 'chat-handoff', test: true, route: 'customer-success', owner: 'Alison',
       flag: draft.kind === 'quote' ? 'Someone reached out wanting a quote for ' + draft.topic + '.' : 'Someone reached out wanting to talk to you about ' + draft.topic + '.',
       fields: { inquiryType: draft.kind === 'quote' ? 'quote-request' : 'customer-support', name: draft.name, phone, email, preferredResponse,
@@ -681,5 +722,5 @@ function guidedReply(rawInput, session, lang, flags) {
 
 module.exports = {
   slotReply, hasSlotContext, guidedReply, guidedHandoff, isSlotFill, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK,
-  shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START, normalizeContactPhone,
+  shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START, normalizeContactPhone, handoffPrompt, handoffSla,
 };
