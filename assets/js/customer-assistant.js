@@ -16,7 +16,7 @@
       answer: 'Local test response: the team can confirm your Technology request. I cannot access internal systems or confirm stock, dates or pricing.',
       language: 'Language',
       notice: 'Krio text is best-effort.',
-      questions: ['Phones & laptops', 'Starlink & internet', 'Installation', 'Request a quote', 'Talk to someone']
+      questions: ['Phones & laptops', 'Installation', 'Request a quote', 'Talk to someone']
     },
     fr: {
       first: 'Je suis LAVAALL Assistant, un assistant IA. Ceci est une démonstration locale TEST ONLY.',
@@ -30,7 +30,7 @@
       answer: 'Réponse de test locale : l’équipe peut vérifier votre demande Technology. Aucun accès aux systèmes internes ; aucun engagement sur les stocks, dates ou tarifs.',
       language: 'Langue',
       notice: 'Le krio écrit est proposé au mieux.',
-      questions: ['Téléphones et ordinateurs', 'Starlink et internet', 'Installation', 'Demander un devis', 'Parler à quelqu’un']
+      questions: ['Téléphones et ordinateurs', 'Installation', 'Demander un devis', 'Parler à quelqu’un']
     },
     pt: {
       first: 'Sou LAVAALL Assistant, um assistente de IA. Esta é uma demonstração local TEST ONLY.',
@@ -44,7 +44,7 @@
       answer: 'Resposta de teste local: a equipa pode verificar o seu pedido Technology. Sem acesso a sistemas internos nem confirmação de stock, datas ou preços.',
       language: 'Idioma',
       notice: 'Texto em krio é uma tentativa sem garantia.',
-      questions: ['Telefones e computadores', 'Starlink e internet', 'Instalação', 'Pedir orçamento', 'Falar com alguém']
+      questions: ['Telefones e computadores', 'Instalação', 'Pedir orçamento', 'Falar com alguém']
     }
   };
   var labels = {
@@ -273,7 +273,6 @@
     var started = false, lastChips = null;
     var starterMessages = [
       'What phones and laptops are in the Technology catalogue?',
-      'Tell me about Starlink and internet options.',
       'Do you install equipment in Sierra Leone?',
       'I want to request a quote.',
       'I want to speak to a person on your team, please.'
@@ -333,7 +332,7 @@
       }
       matches.forEach(function (name) { option(name, 'Tell me about ' + name, true); });
       ['See options','Request a quote','Contact support'].forEach(function (label, index) {
-        option(label, [starterMessages[0], starterMessages[3], starterMessages[4]][index], false);
+        option(label, [starterMessages[0], starterMessages[2], starterMessages[3]][index], false);
       });
       suggestions.hidden = false;
       composerInput.setAttribute('aria-expanded', 'true');
@@ -346,7 +345,7 @@
         var button = createElement('button', label);
         button.type = 'button';
         button.addEventListener('click', function () {
-          var canned = { 'Request a quote': starterMessages[3], 'Talk to someone': starterMessages[4] };
+          var canned = { 'Request a quote': starterMessages[2], 'Talk to someone': starterMessages[3] };
           return sendTextTurn(canned[label] || label);
         });
         followups.appendChild(button);

@@ -49,7 +49,8 @@ assert.equal(ui.eligible({
   ...enabled, CHAT_VOICE_ENABLED:true, CHAT_ENABLED:false
 }, local), false);
 for (const language of ['en','fr','pt']) {
-  assert.equal(ui.copy[language].questions.length, 5);
+  assert.equal(ui.copy[language].questions.length, 4);
+  assert.ok(!ui.copy[language].questions.some(q => /starlink/i.test(q)));
   assert.match(ui.copy[language].first, /AI|IA/);
   assert.doesNotMatch(JSON.stringify({ ...ui.copy[language], accepted: undefined }), /\$|free|shortly|24 hours|200\+|500\+/i);
 }
@@ -113,7 +114,8 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   const ask = descendants(composer).find(child=>child.tag === 'button');
   const starters = byClass(panel, 'customer-assistant-starters');
   const starterButtons = descendants(starters).filter(child=>child.tag === 'button');
-  assert.deepEqual(starterButtons.map(child=>child.textContent), ['Phones & laptops', 'Starlink & internet', 'Installation', 'Request a quote', 'Talk to someone']);
+  assert.deepEqual(starterButtons.map(child=>child.textContent), ['Phones & laptops', 'Installation', 'Request a quote', 'Talk to someone']);
+  assert.ok(!starterButtons.some(child=>/starlink/i.test(child.textContent)), 'Starlink & internet starter chip removed (Osman, Nov 14)');
   assert.equal(descendants(panel).some(child=>child.className === 'customer-assistant-fields' && !child.hidden), false);
   assert.equal(panel.children.filter(child=>child.tag === 'dl').length, 0);
   const suggestions = byClass(panel, 'customer-assistant-suggestions');
@@ -157,7 +159,7 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   await composer.events.submit({preventDefault(){}});
   assert.equal(calls.length, beforeHelp, 'Ask assistant does not start a product search');
   assert.match(log.textContent, /Sure, what can I help with/);
-  const quotePending = starterButtons[3].events.click();
+  const quotePending = starterButtons[2].events.click();
   assert.equal(calls.at(-1).payload.text, 'I want to request a quote.');
   resolveTurn({text:'WhatsApp or email?', awaiting:'handoff-channel', chips:['WhatsApp', 'Email']});
   await quotePending;
@@ -173,7 +175,7 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   assert.ok(calls.every(call=>call.action === 'turn'));
   assert.doesNotMatch(log.textContent, /Inquiry type|Your budget|Skipped/);
   const beforeHandoff = log.children.length;
-  const handoffPending = starterButtons[4].events.click();
+  const handoffPending = starterButtons[3].events.click();
   assert.match(calls.at(-1).payload.text, /speak to a person/i);
   resolveTurn({text:'WhatsApp or email?', awaiting:'handoff-channel', chips:[]});
   await handoffPending;
