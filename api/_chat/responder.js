@@ -45,6 +45,7 @@ const SENSITIVE = [
 ];
 
 const PRICE_ASK = /\b(price|prices|pricing|cost|costs|how much|Combien|c'est combien| coute|co[uû]te|pre[cç]o|preco|quanto custa|cheapest|discount|offre|descuento|prayz|special offer|prix)\b/i;
+const QUOTE_ASK = /\b(request a quote|start a quote|get a quote|i (?:want|need|would like) (?:to (?:request|get) )?a quote|quote please)\b/i;
 const AGENT_ASK = /\b((?:speak|talk) to (?:someone|somebody|(?:a |an )?(?:person|human|agent|representative)|customer service|your team|the team)|person on (?:the|your) team|human|(?:i (?:need|want) (?:an? )?|^)(?:agent)\b|someone from (?:the|your) team|real person|call me(?: back)?|can someone call me(?: back)?|falar com uma pessoa|falar com algu[eé]m|parler (?:[àa] )?un(e)? (agent|personne|humain)|t[oɔ]k to wan p[oɔ]sin)\b/i;
 const HOURS_ASK = /\b(hours|opening hours|when are you open|are you open|horaires|heure[s]? d'ouverture|horario|horário|24\/7|reachable)\b/i;
 const BULK_ASK = /\b(bulk|wholesale|gros|en gros|volume|school|ecole|école|escola|office|bureau|empresa|company|deployment|50 |100 |twenty |cinquante |cento )\b/i;
@@ -428,20 +429,21 @@ function respond(text, session = {}) {
   const bulk = BULK_ASK.test(input) || BULK_ASK.test(rawInput) || qtyList.some(value => Number(value) >= 10);
   const events = [];
 
-  if (!rawInput) {
+  if (!rawInput && !String(session.awaiting || '').startsWith('handoff-')) {
     return attachTopic({ text: FIRST[lang] || FIRST.en, language: lang, events, fields: {} }, rawInput, context, reset);
   }
 
   const blockedHandoff = (warning, event) => {
     const questions = {
-      'handoff-name': 'Please share your first and last name.',
+      'handoff-name': 'Could I get your first and last name, please?',
       'handoff-contact': "What's the best phone/WhatsApp number or email to reach you?",
-      'handoff-topic': 'What would you like to talk to the team about?',
+      'handoff-topic': session.handoffDraft?.kind === 'quote' ? 'What would you like a quote for?' : 'What would you like to talk to the team about?',
+      'handoff-confirm': 'Please confirm your details: Name: ' + session.handoffDraft?.name + '. Contact: ' + session.handoffDraft?.contact + '. Topic: ' + session.handoffDraft?.topic + '. Shall I pass this to our team?',
     };
     const question = questions[session.awaiting];
     return question ? { text: warning + ' ' + question, language: lang,
       events: ['handoff-intake', event], fields: {}, awaiting: session.awaiting,
-      handoffDraft: session.handoffDraft, lastTopic: 'handoff-intake' } : null;
+      handoffDraft: session.handoffDraft, chips: session.awaiting === 'handoff-confirm' ? ['Confirm', 'Cancel'] : ['Cancel request'], lastTopic: 'handoff-intake' } : null;
   };
 
   if (isInjection(rawInput)) {
@@ -469,7 +471,7 @@ function respond(text, session = {}) {
     return attachTopic({ text: `${line} ${contacts()}`, language: lang, events: ['blocked-sensitive:' + sensitive], fields: {} }, rawInput, context, reset);
   }
 
-  const handoff = guidedHandoff(rawInput, handoffSession, AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput));
+  const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput));
   if (handoff) return handoff;
 
   const guided = guidedReply(rawInput, context, lang, { priceAsk, wantsAgent });
@@ -612,4 +614,4 @@ function respond(text, session = {}) {
   return attachTopic({ text: fallback, language: lang, events, fields: {} }, rawInput, context, reset);
 }
 
-module.exports = { AGENT_ASK, respond, REACHABILITY, EMAIL, WHATSAPP, FIRST, detectLanguage, extractQuantity, resolveQuery, isFollowUp, extractIdentity, productParts };
+module.exports = { AGENT_ASK, QUOTE_ASK, respond, REACHABILITY, EMAIL, WHATSAPP, FIRST, detectLanguage, extractQuantity, resolveQuery, isFollowUp, extractIdentity, productParts };

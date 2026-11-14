@@ -356,38 +356,45 @@ function guidedHandoff(text, session, start) {
   const active = String(session.awaiting || '').startsWith('handoff-');
   if (!active && !start) return null;
   const reply = (line, draft, awaiting, extra) => result(line, ['handoff-intake'], {
-    awaiting, handoffDraft: draft, lastTopic: 'handoff-intake', ...extra,
+    awaiting, handoffDraft: draft, lastTopic: 'handoff-intake', chips: awaiting ? ['Cancel request'] : [], ...extra,
   });
-  if (active && /^(cancel|cancel request)$/i.test(raw)) {
-    return reply('Request cancelled. What else can I help with?', null, null);
+  if (active && /^(cancel|cancel request|no|no thanks|stop)[.!]?$/i.test(raw)) {
+    return reply('Request cancelled. What else can I help with?', null, null, { chips: ['Request a quote', 'Talk to someone'] });
   }
   if (!active) {
     const earlier = session.history || [];
     const lastUser = earlier.filter(turn => turn.role === 'user').slice(-1)[0];
-    return reply('Yes, sure. Can I get your first and last name?', {
-      name: '', contact: '', topic: handoffTopic(session).slice(0, 300),
+    return reply('Yes sure, can I get your first and last name?', {
+      kind: start === 'quote' ? 'quote' : 'person', name: '', contact: '', topic: handoffTopic(session).slice(0, 300),
       topicKnownFromChat: Boolean(handoffTopic(session)),
       earlier: String(session.lastUser || (lastUser && lastUser.text) || '').slice(0, 200),
     }, 'handoff-name', { handoff: { tagOsman: true } });
   }
   const draft = { ...(session.handoffDraft || {}) };
+  const topicQuestion = draft.kind === 'quote' ? 'What would you like a quote for?' : 'What would you like to talk to the team about?';
+  const confirmation = () => reply('Please confirm your details: Name: ' + draft.name + '. Contact: ' + draft.contact + '. Topic: ' + draft.topic + '. Shall I pass this to our team?', draft, 'handoff-confirm', { chips: ['Confirm', 'Cancel'] });
   if (session.awaiting === 'handoff-name') {
-    if (start || raw.length < 2 || raw.length > 100 || !/\p{L}/u.test(raw) || isEmail(raw) || isPhone(raw)) {
-      return reply('Please share your first and last name.', draft, 'handoff-name');
+    if (start || !raw || raw.length > 100 || !/\p{L}/u.test(raw) || isEmail(raw) || isPhone(raw)) {
+      return reply('Could I get your first and last name, please?', draft, 'handoff-name');
+    }
+    if (!/\p{L}.*\s+.*\p{L}/u.test(raw) && !draft.nameAsked) {
+      draft.nameAsked = true;
+      return reply('Could I get your first and last name, please?', draft, 'handoff-name');
     }
     draft.name = raw;
-    return reply("Thanks, " + raw + ". What's the best phone/WhatsApp number or email to reach you?", draft, 'handoff-contact');
+    return reply("What's the best phone/WhatsApp number or email to reach you?", draft, 'handoff-contact');
   }
   if (session.awaiting === 'handoff-contact') {
     if (raw.length > 300 || (!isEmail(raw) && !isPhone(raw))) {
       return reply("That doesn't look like a valid phone number or email. What's the best phone/WhatsApp number (with country code) or email to reach you?", draft, 'handoff-contact');
     }
     draft.contact = raw;
-    if (!draft.topic) return reply('What would you like to talk to the team about?', draft, 'handoff-topic');
+    if (!draft.topic) return reply(topicQuestion, draft, 'handoff-topic');
   } else if (session.awaiting === 'handoff-topic') {
-    if (!raw || raw.length > 300) return reply('What would you like to talk to the team about?', draft, 'handoff-topic');
+    if (!raw || raw.length > 300) return reply(topicQuestion, draft, 'handoff-topic');
     draft.topic = raw;
   }
+  if (session.awaiting !== 'handoff-confirm' || !/^(confirm|yes|yes,? confirm|yes please|correct|ok|okay)[.!]?$/i.test(raw)) return confirmation();
   const email = isEmail(draft.contact) ? draft.contact : '';
   const digits = draft.contact.replace(/\D/g, '');
   const phone = email ? '' : draft.contact.startsWith('+') ? '+' + digits
@@ -396,10 +403,10 @@ function guidedHandoff(text, session, start) {
   const summary = ('Website chat handoff. Topic: ' + draft.topic + '.' +
     (draft.earlier ? ' Earlier the visitor asked: "' + draft.earlier + '".' : '') +
     ' Contact preference: ' + preferredResponse + '.').slice(0, 400);
-  return reply('Thank you. Someone from our team will reach out to you shortly.', null, null, {
+  return reply('Thank you, someone from our team will reach out to you shortly.', null, null, {
     handoffPayload: { topicKnownFromChat: Boolean(draft.topicKnownFromChat), kind: 'chat-handoff', test: true, route: 'customer-success', owner: 'Alison',
-      flag: 'Someone reached out wanting to talk to you about ' + draft.topic + '.',
-      fields: { inquiryType: 'customer-support', name: draft.name, phone, email, preferredResponse,
+      flag: draft.kind === 'quote' ? 'Someone reached out wanting a quote for ' + draft.topic + '.' : 'Someone reached out wanting to talk to you about ' + draft.topic + '.',
+      fields: { inquiryType: draft.kind === 'quote' ? 'quote-request' : 'customer-support', name: draft.name, phone, email, preferredResponse,
         subject: ('Chat handoff: ' + draft.topic).slice(0, 300), productOrService: draft.topic, message: summary },
       summary },
   });

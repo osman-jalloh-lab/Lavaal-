@@ -77,9 +77,9 @@ function normalize(input) {
 
 function handoffPayload(input, time) {
   const fields = normalizeFields(input.fields);
-  if (fields.name.length < 2 || fields.name.length > 100
+  if (!fields.name || fields.name.length > 100
       || !/[\p{L}]/u.test(fields.name)
-      || fields.inquiryType !== 'customer-support'
+      || !['customer-support', 'quote-request'].includes(fields.inquiryType)
       || !fields.productOrService || !fields.message) fail('invalid_fields');
   if (fields.preferredResponse === 'email') {
     if (fields.phone || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) fail('invalid_contact');
@@ -88,7 +88,7 @@ function handoffPayload(input, time) {
   } else fail('invalid_response');
   return {
     kind: 'chat-handoff', test: true, route: 'customer-success', owner: 'Alison',
-    flag: 'Someone reached out wanting to talk to you about ' + fields.productOrService + '.',
+    flag: fields.inquiryType === 'quote-request' ? 'Someone reached out wanting a quote for ' + fields.productOrService + '.' : 'Someone reached out wanting to talk to you about ' + fields.productOrService + '.',
     fields, summary: fields.message, createdAt: new Date(time).toISOString(),
     topicKnownFromChat: Boolean(input.topicKnownFromChat),
   };
@@ -368,7 +368,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       response = { costUsd: error.costUsd, text: "I couldn't complete that reply. We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182." };
     }
     const result = { text: response.text };
-    if (Array.isArray(response.chips) && response.chips.length) result.chips = response.chips.slice(0, 6);
+    if (Array.isArray(response.chips)) result.chips = response.chips.slice(0, 6);
     if (response.reset) result.reset = true;
     if (previewDebug && process.env.VERCEL_ENV !== 'production') result.debug = {
       model: ['deepseek-flash', 'openai/gpt-4o-mini'].includes(response.llmModel) ? response.llmModel : null,

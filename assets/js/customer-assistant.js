@@ -15,7 +15,7 @@
       disabled: 'I could not complete that just now. Email support@lavaall.com or WhatsApp +1 (737) 704-4182.',
       answer: 'Local test response: the team can confirm your Technology request. I cannot access internal systems or confirm stock, dates or pricing.',
       language: 'Language',
-      notice: 'Language switching is unverified until tested in vendor Preview. Krio text is best-effort.',
+      notice: 'Krio text is best-effort.',
       questions: ['Phones & laptops', 'Starlink & internet', 'Installation', 'Request a quote', 'Talk to someone']
     },
     fr: {
@@ -29,7 +29,7 @@
       disabled: 'Je n’ai pas pu terminer cette réponse. Écrivez à support@lavaall.com ou WhatsApp +1 (737) 704-4182.',
       answer: 'Réponse de test locale : l’équipe peut vérifier votre demande Technology. Aucun accès aux systèmes internes ; aucun engagement sur les stocks, dates ou tarifs.',
       language: 'Langue',
-      notice: 'Le changement de langue reste à vérifier en Preview du fournisseur. Le krio écrit est proposé au mieux.',
+      notice: 'Le krio écrit est proposé au mieux.',
       questions: ['Téléphones et ordinateurs', 'Starlink et internet', 'Installation', 'Demander un devis', 'Parler à quelqu’un']
     },
     pt: {
@@ -43,7 +43,7 @@
       disabled: 'Não consegui concluir essa resposta. Email support@lavaall.com ou WhatsApp +1 (737) 704-4182.',
       answer: 'Resposta de teste local: a equipa pode verificar o seu pedido Technology. Sem acesso a sistemas internos nem confirmação de stock, datas ou preços.',
       language: 'Idioma',
-      notice: 'A mudança de idioma aguarda testes no Preview do fornecedor. Texto em krio é uma tentativa sem garantia.',
+      notice: 'Texto em krio é uma tentativa sem garantia.',
       questions: ['Telefones e computadores', 'Starlink e internet', 'Instalação', 'Pedir orçamento', 'Falar com alguém']
     }
   };
@@ -273,7 +273,7 @@
     followups.className = 'customer-assistant-followups';
     panel.appendChild(followups);
     panel.appendChild(composer);
-    var intake = null, intakeDraft = {}, started = false, lastChips = null;
+    var started = false, lastChips = null;
     var starterMessages = [
       'What phones and laptops are in the Technology catalogue?',
       'Tell me about Starlink and internet options.',
@@ -281,7 +281,6 @@
       'I want to request a quote.',
       'I want to speak to a person on your team, please.'
     ];
-    var nextMessages = ['Show me other models.', starterMessages[3], starterMessages[4]];
     function nameMatchesQuery(name, query) {
       var lower = String(name).toLowerCase();
       if (lower.indexOf(query) === -1) return false;
@@ -297,7 +296,7 @@
     function renderSuggestions() {
       suggestions.textContent = '';
       var query = composerInput.value.trim().toLowerCase();
-      if (!query || query.length < 3 || busy || intake) { hideSuggestions(); return; }
+      if (!query || query.length < 3 || busy) { hideSuggestions(); return; }
       // CATALOG is a top-level lexical binding on the homepage, not necessarily window.CATALOG.
       var catalog = typeof CATALOG !== 'undefined' ? CATALOG : (config.catalog || root.CATALOG || []);
       var matches = [], seen = {};
@@ -345,37 +344,16 @@
     composerInput.addEventListener('input', renderSuggestions);
     function renderFollowups() {
       followups.textContent = '';
-      if (intake) {
-        ['Start over', 'Cancel request'].forEach(function (label, index) {
-          var button = createElement('button', label);
-          button.type = 'button';
-          button.addEventListener('click', function () {
-            if (busy) return;
-            intakeDraft = {};
-            intake = index === 0 ? 'name' : null;
-            intakeReply(index === 0 ? 'What is your name?' : 'Request cancelled. What else can I help with?');
-          });
-          followups.appendChild(button);
-        });
-        return;
-      }
-      var labels = (lastChips && lastChips.length) ? lastChips.slice(0, 5) : ['See other models', 'Request a quote', 'Talk to someone'];
+      var labels = Array.isArray(lastChips) ? lastChips : ['See other models', 'Request a quote', 'Talk to someone'];
       labels.forEach(function (label) {
         var button = createElement('button', label);
         button.type = 'button';
         button.addEventListener('click', function () {
-          var canned = { 'See other models': nextMessages[0], 'Request a quote': nextMessages[1], 'Talk to someone': nextMessages[2] };
+          var canned = { 'Request a quote': starterMessages[3], 'Talk to someone': starterMessages[4] };
           return sendTextTurn(canned[label] || label);
         });
         followups.appendChild(button);
       });
-    }
-    function intakeReply(text) {
-      appendAssistant(text);
-      composerInput.value = '';
-      composerInput.focus();
-      renderFollowups();
-      log.scrollTop = log.scrollHeight;
     }
     var voiceOn = browserVoiceEnabled(config, location), supported, mic, speaker, voiceHint, voiceStatus;
     var recognition = null, speaking = false, voiceState = 'ready', utterance = null;
@@ -605,40 +583,6 @@
         composerInput.focus();
         return;
       }
-      if (intake && /^(how |can |could |do you |what |where |when |why )/i.test(text) && text.length > 20) {
-        intake = null;
-        intakeDraft = {};
-      }
-      if (intake) {
-        var visitorBubble = createElement('p', text);
-        visitorBubble.className = 'customer-assistant-user';
-        log.appendChild(visitorBubble);
-        if (intake === 'name') {
-          if (text.length > 300) { intakeReply('Please use a name under 300 characters.'); return; }
-          intakeDraft.name = text;
-          intake = 'phone';
-          intakeReply('What phone number should the team use?');
-        } else if (intake === 'phone') {
-          if (!/^[+()0-9 .-]{7,40}$/.test(text) || text.replace(/\D/g, '').length < 7) {
-            intakeReply('Please enter a phone number including the country code.'); return;
-          }
-          intakeDraft.phone = text;
-          intake = 'confirm';
-          intakeReply('Please confirm: ' + intakeDraft.name + ', ' + intakeDraft.phone + '. Reply Confirm or Cancel. Preview inquiry delivery is off.');
-        } else if (/^(confirm|yes|yes,? confirm)[.!]?$/i.test(text)) {
-          intake = null;
-          intakeReply('Details confirmed for this conversation. Preview inquiry delivery is off; please contact the team using the details below.');
-          intakeDraft = {};
-        } else if (/^(cancel|no)$/i.test(text)) {
-          intake = null;
-          intakeDraft = {};
-          intakeReply('Request cancelled. What else can I help with?');
-        } else {
-          intakeReply('Reply Confirm to keep these details in this conversation, or Cancel.');
-        }
-        return;
-      }
-      var wantsIntake = /\b(request a quote|start a quote|i want to request a quote)\b/i.test(text);
       var current = generation;
       busy = true;
       renderVoice();
@@ -667,10 +611,6 @@
         appendAssistant(replyText);
         lastChips = Array.isArray(result.chips) ? result.chips : null;
         renderFollowups();
-        if (wantsIntake) {
-          intake = 'name';
-          intakeReply('What is your name?');
-        }
         status.textContent = '';
         composerInput.value = '';
         composerInput.focus();

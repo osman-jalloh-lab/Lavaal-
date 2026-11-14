@@ -6,11 +6,11 @@ const { memoryStore } = require('../api/_chat/store');
 const { createHandler } = require('../api/chat-inquiry');
 const { respond } = require('../api/_chat/responder');
 const { shouldSkipModel } = require('../api/_chat/llm-responder');
-const NAME = 'Yes, sure. Can I get your first and last name?';
-const CONTACT = "Thanks, Ada Test. What's the best phone/WhatsApp number or email to reach you?";
+const NAME = 'Yes sure, can I get your first and last name?';
+const CONTACT = "What's the best phone/WhatsApp number or email to reach you?";
 const INVALID = "That doesn't look like a valid phone number or email. What's the best phone/WhatsApp number (with country code) or email to reach you?";
 const TOPIC = 'What would you like to talk to the team about?';
-const CLOSE = 'Thank you. Someone from our team will reach out to you shortly.';
+const CLOSE = 'Thank you, someone from our team will reach out to you shortly.';
 const NOW = Date.UTC(2026, 10, 13, 12);
 let modelCalls = 0, transportCalls = 0;
 const handoffLogs = [];
@@ -53,13 +53,17 @@ function checkPayload(payload, topic, email = false) {
   assert.doesNotMatch(JSON.stringify(payload), /sessionId|csrf|proof|"ip"|cookie/i);
 }
 async function createReplay(f, text) {
-  return f.service.turn(f.session.sessionId, f.session.proof, 'handoff_4', undefined, f.session.csrf, text);
+  return f.service.turn(f.session.sessionId, f.session.proof, 'handoff_5', undefined, f.session.csrf, text);
 }
 async function basic(f, contact = '+232 76 000 000') {
   checkReply(await f.turn('I want to speak to someone on your team'), NAME);
   checkReply(await f.turn('Ada Test'), CONTACT);
   checkReply(await f.turn(contact), TOPIC);
-  const close = await f.turn('a laptop order for our office');
+  const summary = await f.turn('a laptop order for our office');
+  assert.match(summary.text, /^Please confirm your details:/);
+  assert.deepEqual(summary.chips, ['Confirm', 'Cancel']);
+  assert.equal((await records(f.store)).length, 0);
+  const close = await f.turn('Confirm');
   checkReply(close, CLOSE);
   return close;
 }
@@ -73,7 +77,7 @@ async function main() {
   checkPayload(saved[0][1].payload, 'a laptop order for our office');
   assert.equal(close.debug.handoff.sink, saved[0][0]);
   assert.deepEqual(close.debug.handoff.payload, saved[0][1].payload);
-  const replay = await createReplay(f, 'a laptop order for our office');
+  const replay = await createReplay(f, 'Confirm');
   assert.deepEqual(replay, close);
   assert.equal((await records(f.store)).length, 1, 'a retried close must not duplicate the record');
 
@@ -85,10 +89,10 @@ async function main() {
   const repeated = await fixture();
   await repeated.turn('talk to a person');
   for (const phrase of ['talk to a person', 'I want to speak to someone']) {
-    checkReply(await repeated.turn(phrase), 'Please share your first and last name.');
+    checkReply(await repeated.turn(phrase), 'Could I get your first and last name, please?');
   }
   for (const [slot, advance, question] of [
-    ['handoff-name', 'Ada Test', 'Please share your first and last name.'],
+    ['handoff-name', 'Ada Test', 'Could I get your first and last name, please?'],
     ['handoff-contact', 'ada@example.com', "What's the best phone/WhatsApp number or email to reach you?"],
     ['handoff-topic', 'private topic marker', TOPIC],
   ]) {
@@ -101,6 +105,7 @@ async function main() {
       const reply = await guarded.turn(unsafe);
       assert.ok(reply.text.endsWith(question));
       assert.match(reply.text, /Please don't share|I can't change my instructions/);
+      assert.ok(['handoff-intake', 'refused-injection', 'blocked-sensitive'].some(reason => reply.debug.skipped.startsWith(reason)));
       assert.doesNotMatch(reply.text, /hunter2|ignore previous/);
       const context = await guarded.store.transaction(rows => rows.get('s:' + guarded.session.sessionId).context);
       assert.equal(context.awaiting, slot);
@@ -112,18 +117,20 @@ async function main() {
 
   const invalid = await fixture();
   checkReply(await invalid.turn('talk to a human'), NAME);
-  for (const name of ['x', '1234567', 'ada@example.com', 'A'.repeat(101)]) checkReply(await invalid.turn(name), 'Please share your first and last name.');
+  for (const name of ['1234567', 'ada@example.com', 'A'.repeat(101)]) checkReply(await invalid.turn(name), 'Could I get your first and last name, please?');
   checkReply(await invalid.turn('Ada Test'), CONTACT);
   checkReply(await invalid.turn('hello'), INVALID);
   checkReply(await invalid.turn('ada@example.com'), TOPIC);
-  checkReply(await invalid.turn('help with a quote'), CLOSE);
+  assert.match((await invalid.turn('help with a quote')).text, /^Please confirm your details:/);
+  checkReply(await invalid.turn('Confirm'), CLOSE);
   checkPayload((await records(invalid.store))[0][1].payload, 'help with a quote', true);
 
   const known = await fixture();
   for (const text of ['phone', 'Samsung', 'Galaxy S', 'S24', 'Onyx Black']) await known.turn(text);
   checkReply(await known.turn('talk to a person'), NAME);
   checkReply(await known.turn('Ada Test'), CONTACT);
-  checkReply(await known.turn('+232 76 000 000'), CLOSE);
+  assert.match((await known.turn('+232 76 000 000')).text, /^Please confirm your details:/);
+  checkReply(await known.turn('Confirm'), CLOSE);
   const knownPayload = (await records(known.store))[0][1].payload;
   assert.match(knownPayload.fields.productOrService, /Galaxy S24/);
   assert.match(knownPayload.fields.productOrService, /Onyx Black/);
@@ -184,8 +191,8 @@ async function main() {
       return res.body;
     }
     const session = await request('session');
-    const inputs = ['I want to speak to someone on your team', 'Ada Test', '+232 76 000 000', 'a laptop order for our office'];
-    const expected = [NAME, CONTACT, TOPIC, CLOSE];
+    const inputs = ['I want to speak to someone on your team', 'Ada Test', '+232 76 000 000', 'a laptop order for our office', 'Confirm'];
+    const expected = [NAME, CONTACT, TOPIC, 'Please confirm your details: Name: Ada Test. Contact: +232 76 000 000. Topic: a laptop order for our office. Shall I pass this to our team?', CLOSE];
     for (let i = 0; i < inputs.length; i++) checkReply(await request('turn', { ...session, eventId: 'handler_' + i, text: inputs[i] }), expected[i]);
     assert.equal((await records(store)).length, 1);
     assert.equal(networkCalls, 0);
