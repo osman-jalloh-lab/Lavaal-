@@ -4,8 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const cases = require('./eval/cases.json');
 const { hardFails, scoreCase } = require('./eval/run-eval');
-assert.equal(cases.length, 80);
-assert.equal(new Set(cases.map(c => c.id)).size, 80);
+assert.equal(cases.length, 93);
+assert.equal(new Set(cases.map(c => c.id)).size, 93);
+assert.equal(cases.filter(c => c.group === 'I').length, 13);
 for (const group of 'ABCDEFGH') {
   assert.equal(cases.filter(c => c.group === group).length, 10);
   for (let i = 1; i <= 10; i++) assert(cases.some(c => c.id === group + String(i).padStart(2, '0')));

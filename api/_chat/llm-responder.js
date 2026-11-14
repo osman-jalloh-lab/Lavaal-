@@ -382,6 +382,7 @@ function buildMessages(visitorText, rule, session) {
     (rule.fields && rule.fields.quantity) ? 'Quantity digit(s) to mention: ' + rule.fields.quantity : '',
     productMatch(rule) && names.length
       ? 'You MUST mention each of these catalogue names, and no others: ' + names.join('; ')
+      : intent === 'not-in-catalog' ? 'No matching public catalogue item was found. Do not invent a listing.'
       : 'This is not a matched product question. Do not name catalogue items or add stock/price disclaimers or email/WhatsApp contact offers. Offer help or a quick form with one natural question.',
     (rule.fields && rule.fields.fullName && rule.fields.phone)
       ? 'Visitor already gave this name and phone for the request form: ' + rule.fields.fullName + ', ' + rule.fields.phone

@@ -71,7 +71,8 @@ async function main() {
   assert(!enforced.text.includes('$900'));
   for (const line of requiredSentences(rule)) assert(enforced.text.includes(line), 'missing verbatim policy: ' + line);
   assert(enforced.text.includes('Your phone is +12025550100'));
-  assert(enforced.text.includes('WhatsApp +1 (737) 704-4182'));
+  // A canned price guide has no matched SKU; general enforcement adds no contact offer.
+  assert(!enforced.text.includes('WhatsApp +1 (737) 704-4182'));
   const noPhone = postEnforce('Your phone is +1 (737) 704-4182.', { ...rule, fields: {} });
   assert(!noPhone.text.includes('Your phone is +1 (737) 704-4182'));
   const names = searchCatalog('Apple iPhone 16', 4).matches.map(item => item.name.replace(/^Apple /, ''));
