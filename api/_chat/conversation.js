@@ -745,7 +745,7 @@ function guidedReply(rawInput, session, lang, flags) {
     return result(question, ['product-guide', 'product-clarification'], { chips: ['Browse catalogue', 'Request a quote'] });
   }
 
-  const skipProduct = /\b(quote|talk to|speak to|price|cost|how much|install(?:ation|ations|ing)?|deploy(?:ment)?|delivery|deliver|refund|invoice)\b/i.test(text);
+  const skipProduct = PAY_ASK.test(text) || LEGAL_ASK.test(text) || TRUST_ASK.test(text) || WEBSITE_ASK.test(text) || /\b(quote|talk to|speak to|price|cost|how much|install(?:ation|ations|ing)?|deploy(?:ment)?|delivery|deliver|refund|invoice)\b/i.test(text);
   if (!/\b(what models|listed in|how many)\b/i.test(text) && !skipProduct && !flags.priceAsk && (isSlotFill(text, session) || HAVE_ASK.test(text) || WANT_ASK.test(text) || /^(?:(?:can|could|do)\s+)?(?:you|una)\s+(?:have|get|sell|stock)\b/i.test(text) || /^(?:can you |could you )?(?:show|list)\b/i.test(text) || (text.split(/\s+/).length <= 6 && !/^(tell|explain|what|how|why|can|could|where|when)\b/i.test(text)))) {
     const guided = narrowingReply(text, session);
     if (guided) {

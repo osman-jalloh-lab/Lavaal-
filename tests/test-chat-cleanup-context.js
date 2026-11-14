@@ -22,6 +22,9 @@ for (const query of ['I need connectivity for my workshop', 'I want a battery fo
   assert.match(reply.text, /\?/);
   assert.doesNotMatch(reply.text, /24 hours|quick form/);
 }
+const payment = respond('Do you have payment options for buyers?');
+assert.match(payment.text, /Payment is agreed after a quote/);
+assert.doesNotMatch(payment.text, /24 hours|quick form/);
 const phone = respond('samsong a56');
 assert.match(phone.text, /Galaxy A56/);
 assert.match(phone.text, /nearest catalogue.*Did you mean/);
