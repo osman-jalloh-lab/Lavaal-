@@ -91,7 +91,9 @@ function knowledgeReply(rawInput, session = {}, lang = 'en') {
   if (/\b(industr(y|ies)|sectors?)\b|\bwho do you (serve|work with)\b|\bwhat (kind|type)s? of (customers|clients|businesses)\b/i.test(text)) {
     return reply(byId('industries').text + ' What kind of organisation are you with?', 'industries');
   }
-  if (/\b(what (does|is) lavaall|what do you (do|sell|supply)|who are you|tell me about (lavaall|your company|you))\b/i.test(text)) {
+  const about = /\b(what (does|is) lavaall|what do you (do|sell|supply)|who are you|tell me about (lavaall|your company|you))\b/i.exec(text);
+  // Product-qualified asks ("what do you do for routers") stay with catalogue discovery.
+  if (about && !/^\s+(for|with|on)\s+\S/i.test(text.slice(about.index + about[0].length))) {
     return reply(byId('about').text.replace('enterprise IT equipment', '**enterprise IT equipment**') + ' What are you looking for today?', 'about');
   }
   return null;

@@ -131,7 +131,7 @@ check('company questions are answered from the pack before catalogue narrowing, 
     ['Do you work in Liberia?', /For \*\*Liberia\*\*: We deliver to Liberia, including Monrovia/],
     ['Do you sell wholesale?', /^\*\*Both\*\*\. .*how many\?$/],
     ['Which industries do you serve?', /Healthcare Facilities/],
-    ['What does LAVAALL do?', /\*\*enterprise IT equipment\*\*/],
+    ['What do you sell?', /\*\*enterprise IT equipment\*\*/],
   ];
   for (const [ask, re] of cases) {
     const r = respond(ask, {});
@@ -140,6 +140,14 @@ check('company questions are answered from the pack before catalogue narrowing, 
     assert.equal((r.text.match(/\?/g) || []).length, 1, 'one follow-up question: ' + ask);
     assert.ok((r.text.match(/[.!?](\s|$)/g) || []).length <= 4, 'short: ' + ask);
     assert.doesNotMatch(r.text, /We don't carry|in our catalogue/, ask);
+  }
+});
+
+check('whole-question company asks keep the #83 company pitch; product-qualified asks stay with discovery', () => {
+  // 'What does LAVAALL do?' is matched whole by the company-pitch intent (#83 eaa1e66), which runs first.
+  assert.equal(shouldSkipModel(respond('What does LAVAALL do?', {})), 'company-pitch');
+  for (const ask of ['what do you do for routers', 'what do you do for iPhones']) {
+    assert.notEqual(shouldSkipModel(respond(ask, {})), 'knowledge-answer', ask);
   }
 });
 
