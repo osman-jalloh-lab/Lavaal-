@@ -130,6 +130,10 @@ function visibleInPanel(panel, el) {
     assert.equal(await t.type('a laptop for our office'), 'Please confirm your details: Name: Ada Test. Contact: +23276123456. Topic: a laptop for our office. Shall I pass this to our team?');
     assert.deepEqual(t.chipLabels(), ['Confirm', 'Cancel']);
     t.barUsable('Confirm step');
+    // Showing chips shrinks the list; it re-scrolls so the current question/summary is not hidden behind them.
+    t.panel._messageList.scrollTop = 0; t.panel._messageList.scrollHeight = 999;
+    t.panel._renderChips(['Confirm', 'Cancel']);
+    assert.equal(t.panel._messageList.scrollTop, 999, 'message list scrolled to the newest message after chips render');
     assert.deepEqual(t.events, ['request:review']);
     assert.equal((await sinks()).length, 0, 'nothing written before Confirm');
     // Typing "yes" in the bar at the Confirm step is the same as the Confirm chip.

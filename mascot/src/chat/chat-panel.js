@@ -555,6 +555,7 @@ export class ChatPanel {
       bar.appendChild(button);
     });
     if (list.length) bar.removeAttribute('hidden'); else bar.setAttribute('hidden', '');
+    if (this._messageList) this._messageList.scrollTop = this._messageList.scrollHeight;
   }
 
   // ── Adapter event binding (P1-1) ─────────────────────────────────
