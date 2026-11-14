@@ -10,6 +10,7 @@ const {
 } = require('./catalog');
 const phrase = (text, value) => (' ' + normalize(text) + ' ').includes(' ' + normalize(value) + ' ');
 const stem = w => w.replace(/s$/, '');
+const weakIdentity = token => /^(pro|max|mini|plus|standard|office|home|business|wireless|bluetooth|smart|blue|black|white|red|green|silver|gold)$/.test(token);
 const generic = value => /^(models?|series)?$/.test(normalize(value));
 const distinct = values => [...new Set(values)];
 const trees = new WeakMap();
@@ -105,15 +106,18 @@ function displayLabel(value, products) {
   }
   for (const p of preferred) {
     for (const field of [p.family, p.brand, p.name]) {
-      const words = String(field || '').split(/\s+/);
-      const count = key.split(' ').length;
-      for (let i = 0; i <= words.length - count; i += 1) {
-        const label = words.slice(i, i + count).join(' ');
-        if (normalize(label) === key) return label;
-      }
+      if (normalize(field) === key) return field;
     }
   }
-  return value;
+  const tokens = tokensOf(value);
+  const matching = preferred.filter(p => tokens.some(token => termMatches(p, token)));
+  if (matching.length) {
+    const categories = distinct(matching.map(p => p.category));
+    if (categories.length === 1) return categories[0];
+    const families = distinct(matching.map(p => p.family));
+    if (families.length === 1) return families[0];
+  }
+  return null;
 }
 
 function inScope(products, scope) {
@@ -126,11 +130,17 @@ function inScope(products, scope) {
 }
 
 function termMatches(p, token) {
-  const words = normalize([p.name, p.family, p.specLine, p.desc].join(' ')).split(' ');
+  const words = normalize([p.name, p.family, p.brand, p.category].join(' ')).split(' ');
   return [...expandToken(token)].some(t => words.some(w => expandToken(w).has(t)));
 }
 
 function resolve(text, stored = {}) {
+  // An unambiguous generation plus model suffix must name an actual catalogue item.
+  const shorthand = normalize(text);
+  if (/^\d{1,2} (?:pro(?: max)?|plus|mini)$/.test(shorthand)) {
+    const candidates = loadCatalog().products.filter(p => normalize(p.name).endsWith(' ' + shorthand));
+    if (distinct(candidates.map(p => normalize(p.name))).length === 1) text = candidates[0].name;
+  }
   const variantAsk = String(text).match(/^(.+?)\s+in\s+(.+?)\s*[?]?$/i);
   if (variantAsk) {
     const base = resolve(variantAsk[1], stored);
@@ -152,7 +162,12 @@ function resolve(text, stored = {}) {
   };
   let products = inScope(all, scope);
   const raw = normalize(text);
-  const words = distinct(raw.split(' ').filter(w => /\d/.test(w)).concat(tokensOf(text))).filter(w => !['please', 'color', 'colour', 'available', 'availability'].includes(w));
+  const hasContext = Boolean(scope.modelId || scope.family || scope.brand || scope.categoryId || scope.term || stored.awaiting);
+  const identifying = tokensOf(text);
+  const quantityPrefix = raw.match(/^([0-9]+)\s+(?:laptops?|computers?|phones?|units?|pcs|pieces|ordinateurs?|portables?|tablets?|monitors?|printers?|routers?|switches?)\b/);
+  const quantity = quantityPrefix && quantityPrefix[1];
+  const words = distinct((hasContext || identifying.length ? raw.split(' ').filter(w => /\d/.test(w) && w !== quantity) : []).concat(identifying)).filter(w => !['please', 'color', 'colour', 'available', 'availability'].includes(w));
+  if (!hasContext && !identifying.some(w => !/^(pro|max|mini|plus|standard|office|home|business|wireless|bluetooth|smart|blue|black|white|red|green|silver|gold)$/.test(w))) return { level: 'none', labels: [], ids: [], products: [], scope: {} };
   const used = new Set();
   let detected = false;
   const consume = value => normalize(value).split(' ').forEach(w => used.add(w));
@@ -172,9 +187,9 @@ function resolve(text, stored = {}) {
   }
   const brands = distinct(products.map(p => p.brand)).filter(b => normalize(b) !== 'various');
   let brand = brands.find(b => phrase(raw, b) || phrase(raw, brandLabel(b, products)));
-  if (!brand) brand = brands.find(b => words.some(w => w.length >= 4 && normalize(b).split(' ').some(t => t.length >= 4 && (isTransposition(w, t) || levenshtein(w, t) <= (w.length >= 5 ? 2 : 1)))));
+  if (!brand) brand = brands.find(b => words.some(w => w.length >= 4 && normalize(b).split(' ').some(t => t.length >= 4 && (isTransposition(w, t) || levenshtein(w, t) <= (w.length >= 7 && w[0] === t[0] ? 2 : 1)))));
   if (brand) {
-    words.filter(w => w.length >= 4 && normalize(brand).split(' ').some(t => t.length >= 4 && (isTransposition(w, t) || levenshtein(w, t) <= (w.length >= 5 ? 2 : 1)))).forEach(w => used.add(w));
+    words.filter(w => w.length >= 4 && normalize(brand).split(' ').some(t => t.length >= 4 && (isTransposition(w, t) || levenshtein(w, t) <= (w.length >= 7 && w[0] === t[0] ? 2 : 1)))).forEach(w => used.add(w));
     consume(brand);
     consume(brandLabel(brand, products));
     scope.brand = brand;
@@ -190,7 +205,7 @@ function resolve(text, stored = {}) {
     products = products.filter(p => p.family === family);
     detected = true;
   } else {
-    const shared = words.find(w => !used.has(w) && families.filter(f => normalize(f).split(' ').includes(w)).length > 0);
+    const shared = words.find(w => !used.has(w) && (hasContext || !/^\d/.test(w)) && w.length >= 4 && !weakIdentity(w) && families.filter(f => normalize(f).split(' ').includes(w)).length > 0);
     if (shared) {
       products = products.filter(p => normalize(p.family).split(' ').includes(shared));
       scope.term = shared;
@@ -201,7 +216,8 @@ function resolve(text, stored = {}) {
   let missing = false;
   // Intersect every identifying word. Unknown words retain the nearest parent.
   for (const w of words.filter(w => !used.has(w))) {
-    const subset = products.filter(p => termMatches(p, w));
+    if (!detected && !hasContext && weakIdentity(w)) continue;
+    const subset = products.filter(p => termMatches(p, w) && (!/^cameras?$/.test(w) || p.categoryId === 'cameras'));
     if (subset.length) {
       products = subset;
       detected = true;
@@ -296,10 +312,21 @@ function resolve(text, stored = {}) {
     } : {})
   };
 }
+function isCatalogLabel(value) {
+  const key = normalize(value);
+  return buildTree(loadCatalog().products).some(p =>
+    [p.category, p.brand, p.family, p.name].some(label => normalize(label) === key));
+}
+function assertCatalogLabel(value) {
+  if (!isCatalogLabel(value)) throw new Error('Catalogue availability requires a catalogue label');
+  return value;
+}
 module.exports = {
   buildTree,
   resolve,
   variantField,
   brandLabel,
-  displayLabel
+  displayLabel,
+  isCatalogLabel,
+  assertCatalogLabel
 };

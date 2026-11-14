@@ -26,12 +26,12 @@ const NUMBER_WORDS = {
 };
 
 const INJECTION = [
-  /ignore (all |any )?(previous|prior|above) (instructions|prompts|rules)/i,
+  /ignore\b.{0,35}\b(?:instructions|prompts|rules)\b/i,
   /system prompt/i,
   /jailbreak/i,
   /developer mode/i,
   /reveal (your )?(hidden |secret )?(instructions|prompt|policy|notes)/i,
-  /(api keys?|passwords?|tokens?|private notes|internal tools)/i,
+  /(api keys?|tokens?|private notes|internal tools|founders?[’']? notes)/i,
   /you are now a/i,
   /override (your )?policy/i,
   /pretend you (have|can) (no|zero) restrictions/i,
@@ -41,7 +41,8 @@ const INJECTION = [
 const SENSITIVE = [
   { type: 'payment-card', re: /\b(?:\d[ -]*?){13,19}\b/ },
   { type: 'passport', re: /\bpassports?\b|\bpassport number\b|\bnational ids?\b|\bnational identification\b|\bssn\b/i },
-  { type: 'password', re: /\b(password|pin code|cvv|cvc|otp)\b/i },
+  { type: 'password', re: /\b(password|pin|cvv|cvc|otp|iban|mot de passe|code secret)\b/i },
+  { type: 'payment-card', re: /\b(?:card (?:number|details)|(?:give|take|share|send).{0,25}(?:my |your |a )?card|carte bancaire)\b/i },
 ];
 
 const PRICE_ASK = /\b(price|prices|pricing|cost|costs|how much|Combien|c'est combien| coute|co[uû]te|pre[cç]o|preco|quanto custa|cheapest|discount|offre|descuento|prayz|special offer|prix)\b/i;
@@ -115,9 +116,9 @@ function extractIdentity(text) {
 function detectLanguage(text) {
   const lower = String(text || '').toLowerCase();
   const folded = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const krio = /\b(una|bin wan|a de |i wan |una get|di katalog|nɔ|nor ebul|mek una|please una|titi|padi|wetin|usai|boh)\b/i;
+  const krio = /\b(una|dae|mi pikin|fo|kin|nor dae|go pay|a want|bin wan|a de |i wan |una get|di katalog|nɔ|nor ebul|mek una|please una|titi|padi|wetin|usai|boh)\b/i;
   if (krio.test(lower) || /ɛ|ɔ/.test(text)) return 'kr';
-  const frHits = (folded.match(/\b(je|j'|cherche|besoin|vous|avez|est-ce|combien|pouvez|s'il|svp|ordinateur|telephone|etes|es-tu)\b/g) || []).length;
+  const frHits = (folded.match(/\b(je|j'|cherche|besoin|vous|avez|est-ce|combien|pouvez|s'il|svp|ordinateurs?|telephones?|bonjour|livraison|etes|es-tu)\b/g) || []).length;
   const ptHits = (folded.match(/\b(preciso|procuro|quero|voce|voces|tem|quanto|custa|computador|obrigado|por favor)\b/g) || []).length;
   if (ptHits > frHits && ptHits > 0) return 'pt';
   if (frHits > 0) return 'fr';
@@ -453,26 +454,51 @@ function respond(text, session = {}) {
       pt: 'Não posso alterar as minhas instruções, partilhar políticas privadas, segredos ou ferramentas internas, nem indicar preços. Sou LAVAALL Assistant e só posso ajudar com Tecnologia ou preparar um pedido.',
       kr: "A nɔ ebul chenj mi ruls, shɛ prayvet pɔlisi, sikrɛt, ɔ intanal tul, ɔ gi prayz. A na LAVAALL Assistant; a kin ɛp wit Technology kwɛstyɔn ɔ priper rɛkwɛst.",
     }[lang];
-    const blocked = blockedHandoff(refusal, 'refused-injection');
+    const stockLine = lang === 'fr' ? ' Notre équipe confirme le stock avec votre devis.' : lang === 'kr' ? ' Wi tim go kɔnfam stock wit yu quote.' : ' Our team confirms stock with your quote.';
+    const blocked = blockedHandoff(refusal + stockLine, 'refused-injection');
     if (blocked) return blocked;
-    return attachTopic({ text: `${refusal} ${offer(lang, false)}`, language: lang, events: ['refused-injection'], fields: {} }, rawInput, context, reset);
+    return { text: refusal + stockLine, language: lang, events: ['refused-injection'], fields: {}, chips: ['Request a quote', 'Talk to someone'], sensitiveBlocked: true };
   }
 
   if (sensitive) {
     const line = {
-      en: "Please don't share payment cards, passport or national ID numbers, passwords, or other sensitive documents here. I will not store or repeat those details. A name and a valid phone number are enough to send a request; every other field is optional.",
+      en: "Please don't share payment cards, passwords, PINs or other sensitive details here. Payment is arranged with the team after your quote.",
       fr: "Merci de ne pas partager ici de cartes de paiement, numéros de passeport ou d'identité, mots de passe ou autres données sensibles. Je ne les conserverai ni ne les répèterai. Le nom et un numéro de téléphone valide suffisent ; les autres champs sont facultatifs.",
       pt: 'Por favor não partilhe aqui cartões de pagamento, passaporte, identificação nacional, palavras-passe ou outros dados sensíveis. Não os guardo nem os repito. O nome e um telefone válido chegam; os restantes campos são opcionais.',
       kr: "Duya, nɔ shɛ pemɛnt kad, paspɔt, nashɔnal ID, paswɔd, ɔ ɔda sɛnsitiv dɔkyumɛnt ya. A nɔ go stɔ ɔ ripit dɛn. Ném ɛn valid fon nɔmba nɔmɔ fɔ sɛn rɛkwɛst; ɔda fil dɛn ɔpshɔnal.",
     }[lang];
     const blocked = blockedHandoff(line, 'blocked-sensitive:' + sensitive);
     if (blocked) return blocked;
-    // Never echo the raw sensitive payload back.
-    return attachTopic({ text: `${line} ${contacts()}`, language: lang, events: ['blocked-sensitive:' + sensitive], fields: {} }, rawInput, context, reset);
+    // No raw payload or previous sensitive message enters retained state.
+    return { text: {
+      en: "Please don't share payment cards, passwords, PINs or other sensitive details here. Payment is arranged with the team after your quote.",
+      fr: "Ne partagez pas de carte bancaire, de mot de passe, de code PIN ni d’autres données sensibles ici. Le paiement est organisé avec notre équipe après le devis.",
+      kr: 'Duya, nɔ shɛ kad, password, PIN ɔ sensitive details ya. Wi tim go arrange payment afta yu quote.',
+      pt: 'Não partilhe cartões, palavras-passe, PINs ou dados sensíveis aqui. O pagamento é combinado com a equipa após o orçamento.',
+    }[lang], language: lang, events: ['blocked-sensitive:' + sensitive], fields: {}, chips: ['Request a quote', 'Talk to someone'], sensitiveBlocked: true };
   }
+
+  const special = require('./intents').specialIntent(rawInput, lang, session);
+  if (special) return attachTopic(special, rawInput, context, reset);
+  const slot = require('./conversation').slotReply(rawInput, session);
+  if (slot) { slot.language = lang; return slot; }
 
   const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput));
   if (handoff) return handoff;
+
+  if (/\b(install(?:ation|ations|ing)?|installe[rz]?|installer|installations?|deployment|deploy|deploiement|instalacao|instalar)\b/i.test(foldedText(rawInput))) {
+    const line = {
+      en: 'LAVAALL supplies and installs equipment. Public coverage pages describe Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Delivery and installation depend on the location and must be confirmed by the team; I cannot promise scheduling.',
+      fr: "LAVAALL fournit et installe des équipements. Les pages publiques de couverture décrivent la Sierra Leone, la Guinée, le Libéria et la Guinée-Bissau. La livraison et l’installation dépendent du lieu et doivent être confirmées par l’équipe ; je ne peux pas promettre de date.",
+      pt: 'A LAVAALL fornece e instala equipamentos. As páginas públicas de cobertura descrevem Serra Leoa, Guiné, Libéria e Guiné-Bissau. A entrega e a instalação dependem do local e devem ser confirmadas pela equipa; não posso prometer agendamento.',
+      kr: 'LAVAALL de supply ɛn install ɛkwipmɛnt. Di pɔblik coverage pej dɛn diskrayb Sierra Leone, Guinea, Liberia ɛn Guinea-Bissau. Delivery ɛn installation dipɛnd pan di ples; di tim mɔs kɔnfam. A nɔ ebul prɔmis tɛm.',
+    }[lang];
+    return attachTopic({ text: line, chips: ['Request a quote', 'Talk to someone'], language: lang,
+      events: ['installation-service', ...(wantsAgent ? ['tag-osman-handoff'] : [])],
+      fields: draftFields(rawInput, qty, [], 'installation-services', identity),
+      handoff: wantsAgent ? { tagOsman: true } : undefined }, rawInput, context, reset);
+  }
+
 
   const guided = guidedReply(rawInput, context, lang, { priceAsk, wantsAgent });
   if (guided) {
@@ -495,18 +521,6 @@ function respond(text, session = {}) {
     return attachTopic({ text: `${line} ${offer(lang, wantsAgent)}`, language: lang, events: ['identified-assistant'], fields: {}, handoff: wantsAgent ? { tagOsman: true } : undefined }, rawInput, context, reset);
   }
 
-  if (/\b(install(?:ation|ations|ing)?|installe[rz]?|installer|installations?|deployment|deploy|deploiement|instalacao|instalar)\b/i.test(foldedText(rawInput))) {
-    const line = {
-      en: 'LAVAALL supplies and installs equipment. Public coverage pages describe Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Delivery and installation depend on the location and must be confirmed by the team; I cannot promise scheduling.',
-      fr: "LAVAALL fournit et installe des équipements. Les pages publiques de couverture décrivent la Sierra Leone, la Guinée, le Libéria et la Guinée-Bissau. La livraison et l’installation dépendent du lieu et doivent être confirmées par l’équipe ; je ne peux pas promettre de date.",
-      pt: 'A LAVAALL fornece e instala equipamentos. As páginas públicas de cobertura descrevem Serra Leoa, Guiné, Libéria e Guiné-Bissau. A entrega e a instalação dependem do local e devem ser confirmadas pela equipa; não posso prometer agendamento.',
-      kr: 'LAVAALL de supply ɛn install ɛkwipmɛnt. Di pɔblik coverage pej dɛn diskrayb Sierra Leone, Guinea, Liberia ɛn Guinea-Bissau. Delivery ɛn installation dipɛnd pan di ples; di tim mɔs kɔnfam. A nɔ ebul prɔmis tɛm.',
-    }[lang];
-    return attachTopic({ text: `${line} ${offer(lang, wantsAgent)}`, language: lang,
-      events: ['installation-service', ...(wantsAgent ? ['tag-osman-handoff'] : [])],
-      fields: draftFields(rawInput, qty, [], 'installation-services', identity),
-      handoff: wantsAgent ? { tagOsman: true } : undefined }, rawInput, context, reset);
-  }
 
   const catalogPreview = searchMaybeMulti(input, { limit: 8 });
   const productIntent = TECH_HINTS.test(input) || (catalogPreview.matches.length > 0 && (qty || priceAsk || /\b(iphone|laptop|server|router|dell|hp|cisco|macbook)\b/i.test(input)));

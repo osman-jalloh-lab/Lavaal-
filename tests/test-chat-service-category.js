@@ -92,28 +92,28 @@ const model = respond('Galaxy S23', samsung);
 assert.match(model.text, /What color are you looking for\?/);
 assert.ok(model.chips.includes('Cream') || model.chips.includes('Phantom Black'));
 const color = respond('Cream', model);
-assert.match(color.text, /Yes, we have the Galaxy S23 in Cream/);
+assert.match(color.text, /Galaxy S23 in Cream\. We list it; our team confirms stock with your quote/);
 const missingColor = respond('hot pink', model);
 assert.match(missingColor.text, /We don't have the Galaxy S23 in hot pink, but we have it in/);
 assert.doesNotMatch(missingColor.text, /source it, let us check/i);
 noPrices(missingColor.text);
 
 const charger = respond('charger');
-assert.match(charger.text, /Yes, we have \*\*chargers\*\*/);
+assert.match(charger.text, /We list it; our team confirms stock with your quote/);
 assert.match(charger.text, /Chargers & Charging Cables/);
 assert.deepEqual(charger.chips, ['Chargers & Charging Cables']);
 noPrices(charger.text);
 
 const missing = respond('want hoverboard');
-assert.match(missing.text, /don't see \*\*hoverboard\*\*/i);
-assert.match(missing.text, /We can source it, let us check/);
-assert.match(missing.text, /Someone from our team will get back to you within 24 hours\./);
-assert.match(missing.text, /I can help you fill out a quick form/);
+assert.match(missing.text, /couldn't find that exact item/i);
+assert.match(missing.text, /team can check sourcing/i);
+assert.doesNotMatch(missing.text, /within 24 hours/);
+assert.ok(missing.chips.includes('Fill out a form'));
 noPrices(missing.text);
 
 const iphone = respond('I want an iPhone');
 assert.equal(shouldSkipModel(iphone), 'product-guide');
-assert.match(iphone.text, /Yes, we have iPhones in our catalogue:/);
+assert.match(iphone.text, /Yes, we have Phones in our catalogue:/);
 assert.match(iphone.text, /Which model are you looking for\?/);
 
 const contact = respond('how can I contact this person?');

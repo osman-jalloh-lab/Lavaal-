@@ -1,6 +1,6 @@
 'use strict';
 
-const { searchCatalog, loadCatalog } = require('./catalog');
+const { searchCatalog, loadCatalog, normalizeInput } = require('./catalog');
 const narrow = require('./narrow');
 const EMAIL = 'support@lavaall.com';
 const WHATSAPP = '+1 (737) 704-4182';
@@ -78,7 +78,9 @@ function result(text, events, extra) {
 function productQuery(text) {
   return String(text || '')
     .replace(/^(do you (?:have|carry|sell|stock)|have you got|is there (?:an? |any )?|are there |(?:i\s+)?(?:want|need|would like|wanna|looking for|looking to buy|need to (?:get|buy)|want to (?:get|buy|order))|i['’]d like|get me)\s+/i, '')
+    .replace(/^(?:can you |could you )?(?:show|list)(?: me)?\s+/i, '')
     .replace(/^(an?|the|some)\s+/i, '')
+    .replace(/\s+(?:models?\s+)?please$/i, '')
     .replace(/\?+$/, '')
     .replace(/\s+in (?:the|your) (?:technology )?catalogu?e\??$/i, '')
     .trim();
@@ -102,7 +104,7 @@ function colorReply(product, asked) {
   const matched = colorMatch(asked, colors);
   if (matched) {
     return result(
-      'Yes, we have the ' + name + ' in ' + matched + '. Our team will confirm stock with your quote.',
+      name + ', ' + matched + '. We list it; our team confirms stock with your quote.',
       ['product-guide'],
       { chips: ['Request a quote', 'Talk to someone'], lastModel: product, awaiting: null }
     );
@@ -144,12 +146,8 @@ function serviceReply(intent) {
 }
 
 function sourceReply(label) {
-  const shown = label ? '**' + label + '**' : 'that';
   return result(
-    joinBlocks([
-      "I don't see " + shown + ' in our catalogue. We can source it, let us check.',
-      serviceContacts(true),
-    ]),
+    "I couldn't find that exact item in our catalogue. Our team can check sourcing for you. Would you like to talk to someone?",
     ['service-help', 'not-in-catalog', 'source-offer'],
     { chips: ['Fill out a form', 'Talk to someone'], awaiting: 'form-offer', lastTopic: 'service-source' }
   );
@@ -185,6 +183,96 @@ function categoryDef(text) {
   return hit.scope.categoryId && hit.level !== 'none' ? { label: hit.scope.categoryId } : null;
 }
 
+// Slot corrections are parsed before catalogue discovery so numbers cannot switch models.
+function correctionValue(text) {
+  const raw = String(text || '').trim().replace(/[.!?]+$/, '');
+  let match = raw.match(/^(?:naw|nah|no)[, ]+\s*(?:i mean\s+)?(.+)$/i)
+    || raw.match(/^(?:actually|i mean)\s+(.+)$/i)
+    || raw.match(/^not\s+[^,]+,\s*(.+)$/i)
+    || raw.match(/^(.+?)\s+(?:i mean)\s+(.+)$/i);
+  if (match) return match[2] || match[1];
+  match = raw.match(/^(.+?)\s+not\s+.+$/i);
+  return match ? match[1] : null;
+}
+
+function hasSlotContext(text, session) {
+  if (String(session.awaiting || '').startsWith('handoff-')) return false;
+  return Boolean(correctionValue(text) || session.pendingSamsung ||
+    (/^(?:quantity\s+|(?:i\s+)?need\s+)?\d+\s*(?:gb|tb|units?|pieces?)?[.!?]?$/i.test(String(text).trim()) &&
+      (session.lastModel || session.lastProducts?.length || session.slots && Object.keys(session.slots).length)));
+}
+
+function slotReply(text, session) {
+  const raw = normalizeInput(String(text || '').trim());
+  if (String(session.awaiting || '').startsWith('handoff-') || String(session.awaiting || '').startsWith('form-') && session.awaiting !== 'form-offer') return null;
+  const products = narrow.buildTree(loadCatalog().products);
+  const slots = { ...(session.slots || {}) };
+  const corrected = correctionValue(raw);
+  const value = corrected || raw;
+  const field = session.lastModel && narrow.variantField(session.lastModel);
+  if (!corrected && session.awaiting === 'variant' && field && field.options.some(option => normalizeInput(option) === raw)) {
+    const reply = narrowingReply(raw, session);
+    if (reply && /ram/i.test(field.key + ' ' + field.label)) reply.slots = { ...slots, ram: raw.toUpperCase(), lastSlot: 'ram' };
+    return reply;
+  }
+  const shared = { slots, lastModel: session.lastModel, selectedVariant: session.selectedVariant,
+    narrow: session.narrow, lastProducts: session.lastProducts, lastTopic: session.lastTopic, awaiting: session.awaiting };
+  const done = (line, extra) => result(line, ['product-guide', 'slot-update'], { ...shared, chips: ['Request a quote', 'Talk to someone'], ...extra });
+  const samsung = raw.match(/\b(?:samsung\s+)?a\s*(\d{2})\b/i);
+  if (session.pendingSamsung && /^(?:yes|yes please|correct|confirm|galaxy\s+a\s*\d{2})[.!]?$/i.test(raw)) {
+    const reply = narrowingReply(session.pendingSamsung, { ...session, pendingSamsung: null, awaiting: null, narrow: null });
+    return reply && { ...reply, pendingSamsung: null };
+  }
+  if (samsung && !/\bgalaxy\b/i.test(raw)) {
+    const label = 'Galaxy A' + samsung[1];
+    const listed = products.some(p => new RegExp('\\bGalaxy A' + samsung[1] + '\\b', 'i').test(p.name));
+    if (listed) return done('Do you mean the ' + label + '?', { pendingSamsung: label, chips: [label], lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: 'samsung-confirm' });
+    const nearest = products.filter(p => /\bGalaxy A\d+/i.test(p.name)).sort((a,b) => Math.abs(Number(a.name.match(/A(\d+)/)[1]) - Number(samsung[1])) - Math.abs(Number(b.name.match(/A(\d+)/)[1]) - Number(samsung[1]))).slice(0,3).map(p => p.name);
+    return done("We don't list the " + label + '; the nearest catalogue options are ' + listWords(nearest) + ' and our team can check sourcing. Which would you prefer?', { chips: nearest.concat(['Talk to someone']), lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: null });
+  }
+  const place = value.match(/^(?:to\s+|in\s+)?(sierra leone|guinea[- ]bissau|guinea|liberia|conakry|freetown|monrovia|bo|kenema)$/i);
+  if (place && (corrected || /deliver|ship|country|city/i.test(session.lastTopic || ''))) {
+    const label = place[1].replace(/\b\w/g, c => c.toUpperCase());
+    const key = /sierra leone|guinea|liberia/i.test(label) ? 'deliveryCountry' : 'deliveryCity';
+    const before = slots[key]; slots[key] = label; slots.lastSlot = key;
+    return done('Got it, ' + label + (before && before !== label ? ' instead of ' + before : '') + '.', { awaiting: null });
+  }
+  const ram = (corrected && slots.lastSlot === 'ram') || /\bram\b/i.test(raw) || /\d+\s*gb\s+i mean\s+\d+/i.test(raw);
+  const number = value.replace(/^ram\s*/i, '').match(/^(?:(?:quantity|qty|for|(?:i\s+)?need)\s+)?(\d+)\s*(gb|tb|units?|pieces?)?$/i);
+  if (number) {
+    const n = number[1], unit = (number[2] || '').toLowerCase();
+    if (ram) {
+      const before = slots.ram; slots.ram = n + 'GB'; slots.lastSlot = 'ram';
+      return done('Got it, RAM ' + slots.ram + (before ? ' instead of ' + before : '') + '.' + (!session.lastModel ? ' Which device is this for?' : ''), { awaiting: null });
+    }
+    if ((/^(gb|tb)$/.test(unit) || corrected && slots.lastSlot === 'storage') && session.lastModel) {
+      slots.storage = n + (unit || (slots.storage || '').replace(/\d+/g, '') || 'GB').toUpperCase(); slots.lastSlot = 'storage';
+      return done([session.lastModel.name, session.selectedVariant, slots.storage].filter(Boolean).join(', ') + '. We list it; our team confirms stock with your quote.', { awaiting: null });
+    }
+    if (!corrected && !unit && /^\d+$/.test(raw) && ['model', 'family'].includes(session.awaiting) && session.narrow) {
+      const picked = narrowingReply(raw, session);
+      if (picked && !(picked.events || []).includes('not-in-catalog')) return picked;
+    }
+    if (/^(gb|tb)$/.test(unit)) return done('Which item is this storage capacity for?', { awaiting: null, lastModel: null });
+    if (session.lastModel || session.lastProducts?.length || corrected || /^(?:quantity|qty|for|(?:i\s+)?need)\b/i.test(raw)) {
+      const before = slots.quantity || session.lastQty; slots.quantity = n; slots.lastSlot = 'quantity';
+      return done('Got it, ' + n + (before && before !== n ? ' instead of ' + before : '') + '.' + (!session.lastModel && !session.lastProducts?.length ? ' Which item do you need?' : ' Which city should it go to?'), { fields: { quantity: n }, awaiting: null });
+    }
+    if (/^\d+$/.test(raw)) {
+      const iphone = products.some(p => new RegExp('^iPhone ' + n + '(?: |$)', 'i').test(p.name));
+      return done(iphone ? 'Do you mean the iPhone ' + n + ', or a quantity of ' + n + '?' : 'Is ' + n + ' a quantity? Which item do you need?', { chips: iphone ? ['iPhone ' + n, 'Quantity ' + n] : ['Quantity ' + n], awaiting: 'number-choice', lastModel: null });
+    }
+  }
+  if (corrected) {
+    delete slots.storage; delete slots.ram;
+    if (['storage', 'ram'].includes(slots.lastSlot)) delete slots.lastSlot;
+    const reply = narrowingReply(value, { ...session, awaiting: null, narrow: null, lastModel: null });
+    if (reply) return { ...reply, lastModel: reply.lastModel || null, selectedVariant: null, text: 'Got it, ' + (reply.lastModel?.name || narrow.displayLabel(reply.narrow?.scope.family || reply.narrow?.scope.brand || reply.narrow?.scope.categoryId, products) || 'your item') + '. ' + reply.text.replace(/^Yes, we have[^.]*\.\s*/, ''), slots };
+    return done('Got it. Which item do you need?', { awaiting: null });
+  }
+  return null;
+}
+
 function narrowingReply(text, session) {
   const query = categoryToken(text);
   // Bare Starlink keeps the existing policy path; product-type words use the catalogue.
@@ -197,7 +285,7 @@ function narrowingReply(text, session) {
     if (!field) return result('A team member will confirm the available colors for the ' + product.name + '.', ['product-guide'], { lastModel: product, awaiting: 'variant', narrow: session.narrow });
     const matched = colorMatch(text, field.options);
     return result(matched
-      ? 'Yes, we have the ' + product.name + ' in ' + matched + '. Our team will confirm stock with your quote.'
+      ? product.name + ' in ' + matched + '. We list it; our team confirms stock with your quote.'
       : "We don't have the " + product.name + ' in ' + text.trim() + ', but we have it in ' + listWords(field.options) + '.',
       ['product-guide'], { selectedVariant: matched || null, lastModel: product, narrow: session.narrow, lastProducts: session.lastProducts, chips: matched ? ['Request a quote', 'Talk to someone'] : field.options.slice(0,6), awaiting: matched ? null : session.awaiting });
   }
@@ -209,7 +297,7 @@ function narrowingReply(text, session) {
     const scope = session.narrow.scope || {};
     const scopedProducts = narrow.buildTree(loadCatalog().products);
     const subject = narrow.displayLabel(scope.family || scope.brand || scope.term || scope.categoryId || 'catalogue', scopedProducts);
-    return result("I don't see " + query + ' among our ' + subject + ' ' + (session.awaiting === 'category' ? 'categories' : session.awaiting === 'family' ? 'families' : session.awaiting + 's') + '. We have ' + listWords(labels.slice(0, 8)) + '. Which one are you looking for?', ['product-guide'], {
+    return result("I couldn't find that option among our " + subject + ' ' + (session.awaiting === 'category' ? 'categories' : session.awaiting === 'family' ? 'families' : session.awaiting + 's') + '. We have ' + listWords(labels.slice(0, 8)) + '. Which one are you looking for?', ['product-guide'], {
       narrow: session.narrow, lastProducts: session.lastProducts, awaiting: session.awaiting,
       lastTopic: session.lastTopic, chips: labels.slice(0, 6),
     });
@@ -221,10 +309,10 @@ function narrowingReply(text, session) {
   const shown = listWords(hit.labels.slice(0,8)) + (hit.labels.length > 8 ? ', and ' + (hit.labels.length-8) + ' more' : '');
   if (hit.level === 'not-carried') {
     const brandMissing = hit.missingLevel === 'brand';
-    const subject = narrow.displayLabel(hit.scope.family || hit.scope.brand || hit.scope.term || hit.scope.categoryId || 'our catalogue', products);
-    const opening = brandMissing ? "We don't carry " + query + '.' : "I don't see the " + query + ' in our catalogue.';
+    const subject = narrow.displayLabel(hit.scope.family || hit.scope.brand || hit.scope.term || hit.scope.categoryId, products) || products[0]?.category || 'catalogue';
+    const opening = "I couldn't find that exact item in our catalogue.";
     const options = brandMissing
-      ? ' ' + String(hit.scope.categoryId || 'Product').replace(/^./, c => c.toUpperCase()).replace(/s$/, '') + ' brands we have: ' + shown + '. Which brand would you like?'
+      ? ' ' + String(hit.scope.categoryId || products[0]?.category || 'Product').replace(/^./, c => c.toUpperCase()).replace(/s$/, '') + ' brands we have: ' + shown + '. Which brand would you like?'
       : hit.missingLevel === 'category'
         ? ' From ' + hit.scope.brand + ' we have ' + shown + '. Which type are you looking for?'
         : ' The closest ' + subject + ' options we have are ' + shown + '. Which one would you like?';
@@ -235,25 +323,26 @@ function narrowingReply(text, session) {
     const product = products[0];
     const field = narrow.variantField(product);
     if (field && hit.variantAsked) return result(hit.matchedVariant
-      ? 'Yes, we have the ' + product.name + ' in ' + hit.matchedVariant + '. Our team will confirm stock with your quote.'
+      ? product.name + ' in ' + hit.matchedVariant + '. We list it; our team confirms stock with your quote.'
       : "We don't have the " + product.name + ' in ' + hit.variantAsked + ', but we have it in ' + listWords(field.options) + '.', ['product-guide'], { ...extra, selectedVariant: hit.matchedVariant || null, lastModel: product, awaiting: hit.matchedVariant ? null : (field.key === 'color' ? 'color' : 'variant') });
-    if (!continuing && hit.level === 'single' && query.toLowerCase() !== product.name.toLowerCase()) return result('Yes, we have **' + narrow.displayLabel(query, products) + (query.endsWith('s') ? '' : 's') + '**. We list ' + product.name + '. Our team will confirm stock with your quote.', ['category-guide','product-guide'], { ...extra, lastModel: product, awaiting: 'variant' });
+    if (!continuing && hit.level === 'single' && query.toLowerCase() !== product.name.toLowerCase()) return result(product.name + '. We list it; our team confirms stock with your quote.', ['category-guide','product-guide'], { ...extra, lastModel: product, awaiting: 'variant' });
     const label = field && (field.label || field.key);
     const questionLabel = label && (label === label.toUpperCase() ? label : label.toLowerCase());
     const heading = continuing ? 'Yes, we have that.' : 'Yes, we have the ' + product.name + '.';
-    return result(field ? heading + (field.key === 'color' ? ' What color are you looking for?' : ' Which ' + questionLabel + ' are you looking for?') : 'Yes, we have the ' + product.name + '. Our team will confirm stock with your quote.', ['product-guide'], { ...extra, lastModel: product, awaiting: field ? (field.key === 'color' ? 'color' : 'variant') : 'variant' });
+    return result(field ? heading + (field.key === 'color' ? ' What color are you looking for?' : ' Which ' + questionLabel + ' are you looking for?') : product.name + '. We list it; our team confirms stock with your quote.', ['product-guide'], { ...extra, lastModel: product, awaiting: field ? (field.key === 'color' ? 'color' : 'variant') : 'variant' });
   }
   const isCategory = hit.level === 'brand' || (hit.scope.categoryId && !hit.scope.brand && !hit.scope.family && !hit.scope.term);
   const displayQuery = narrow.displayLabel(query, products);
-  let wording = 'Yes, we have **' + displayQuery + '** in our catalogue: ' + shown + '. Which ' + hit.level + ' are you looking for?';
-  if (isCategory) wording = 'Yes, we have **' + ((hit.level === 'brand' && hit.scope.term) ? narrow.displayLabel(hit.scope.term, products) + (hit.scope.term.endsWith('s') ? '' : 's') : (hit.scope.categoryId ? narrow.displayLabel(hit.scope.categoryId, products) : displayQuery + (query.endsWith('s') ? '' : 's'))) + '**.' + (hit.level === 'brand' ? ' Which brand?' : ' We list ' + shown + '. Which model are you looking for?');
+  const affirmativeLabel = value => narrow.assertCatalogLabel(narrow.isCatalogLabel(value) ? value : products[0].category);
+  let wording = 'Yes, we have **' + affirmativeLabel(displayQuery) + '** in our catalogue: ' + shown + '. Which ' + hit.level + ' are you looking for?';
+  if (isCategory) wording = 'Yes, we have **' + affirmativeLabel(hit.scope.categoryId ? narrow.displayLabel(hit.scope.categoryId, products) : displayQuery) + '**.' + (hit.level === 'brand' ? ' Which brand?' : ' We list ' + shown + '. Which model are you looking for?');
   if (hit.level === 'family' && hit.scope.brand) {
-    const type = hit.scope.term ? narrow.displayLabel(hit.scope.term, products) : hit.scope.categoryId ? narrow.displayLabel(hit.scope.categoryId, products).replace(/^[A-Z][a-z]/, match => match.toLowerCase()) : 'products';
+    const type = hit.scope.term ? hit.scope.term : hit.scope.categoryId ? narrow.displayLabel(hit.scope.categoryId, products).replace(/^[A-Z][a-z]/, match => match.toLowerCase()) : 'products';
     const plural = type.endsWith('s') ? type : type + 's';
-    wording = 'Yes, we have **' + hit.scope.brand + '** ' + plural + ': ' + shown + '. Which one are you looking for?';
+    wording = 'Yes, we have **' + narrow.assertCatalogLabel(hit.scope.brand) + '** ' + plural + ': ' + shown + '. Which one are you looking for?';
   }
   // Shared catalogue prefixes preserve familiar family wording without product rules.
-  if (!isCategory && hit.level === 'family' && products.every(p => p.brand.toLowerCase() !== query.toLowerCase() && narrow.brandLabel(p.brand, products).toLowerCase() === query.toLowerCase())) wording = 'Yes, we have ' + displayQuery + (query.endsWith('s') ? '' : 's') + ' in our catalogue: ' + shown + '. Which model are you looking for?';
+  if (!isCategory && hit.level === 'family' && products.every(p => p.brand.toLowerCase() !== query.toLowerCase() && narrow.brandLabel(p.brand, products).toLowerCase() === query.toLowerCase())) wording = 'Yes, we have ' + affirmativeLabel(displayQuery) + ' in our catalogue: ' + shown + '. Which model are you looking for?';
   if (hit.level === 'model') wording = 'Yes, we have ' + narrow.displayLabel(hit.scope.family || (new Set(products.map(p => p.family)).size === 1 ? products[0].family : displayQuery), products) + ' models: ' + shown + '. Which one are you looking for?';
   return result(wording, isCategory ? ['category-guide','product-guide'] : ['product-guide'], { ...extra, awaiting: hit.level });
 }
@@ -493,7 +582,7 @@ function topicOf(text, session) {
 function shouldResetContext(text, session) {
   if (!session || !(session.lastTopic || session.awaiting || (session.lastProducts || []).length || session.lastModel)) return false;
   if (String(session.awaiting || '').startsWith('handoff-')) return false;
-  if (isSlotFill(text, session)) return false;
+  if (hasSlotContext(text, session) || isSlotFill(text, session)) return false;
   const next = topicOf(text, {});
   const prev = session.lastTopic;
   if (!next || !prev) return Boolean(prev && next && next !== prev);
@@ -514,8 +603,10 @@ function genericSourceAsk(text) {
 
 function guidedReply(rawInput, session, lang, flags) {
   flags = flags || {};
-  const text = String(rawInput || '').trim();
+  const text = normalizeInput(String(rawInput || '').trim());
   if (!text) return null;
+  const slot = slotReply(text, session);
+  if (slot) return slot;
 
   if (HELP_ASK.test(text)) {
     return result('Sure, what can I help with?', ['prompt-help'], { chips: ['Phones & laptops', 'Request a quote', 'Talk to someone'] });
@@ -530,16 +621,20 @@ function guidedReply(rawInput, session, lang, flags) {
     );
   }
 
-  const form = guidedForm(text, session);
+  const form = guidedForm(String(rawInput || '').trim(), session);
   if (form) return form;
 
   const intent = serviceIntent(text);
   if (intent) return serviceReply(intent);
 
-  const skipProduct = /\b(quote|talk to|speak to|price|cost|how much|install|delivery|deliver|refund|invoice)\b/i.test(text);
-  if (!/\b(what models|listed in|how many)\b/i.test(text) && !skipProduct && !flags.priceAsk && (isSlotFill(text, session) || HAVE_ASK.test(text) || WANT_ASK.test(text) || (text.split(/\s+/).length <= 6 && !/^(tell|explain|what|how|why|can|could|where|when)\b/i.test(text)))) {
+  const skipProduct = /\b(quote|talk to|speak to|price|cost|how much|install(?:ation|ations|ing)?|deploy(?:ment)?|delivery|deliver|refund|invoice)\b/i.test(text);
+  if (!/\b(what models|listed in|how many)\b/i.test(text) && !skipProduct && !flags.priceAsk && (isSlotFill(text, session) || HAVE_ASK.test(text) || WANT_ASK.test(text) || /^(?:can you |could you )?(?:show|list)\b/i.test(text) || (text.split(/\s+/).length <= 6 && !/^(tell|explain|what|how|why|can|could|where|when)\b/i.test(text)))) {
     const guided = narrowingReply(text, session);
-    if (guided) return guided;
+    if (guided) {
+      const quantity = text.match(/\b(?:need|want|like|for)\s+(\d+)\b/i);
+      if (quantity) { guided.slots = { ...(session.slots || {}), quantity: quantity[1], lastSlot: 'quantity' }; guided.fields.quantity = quantity[1]; }
+      return guided;
+    }
     if ((HAVE_ASK.test(text) || WANT_ASK.test(text)) && !/starlink/i.test(text)) return sourceReply(productQuery(text));
   }
 
@@ -577,7 +672,10 @@ function guidedReply(rawInput, session, lang, flags) {
     return result(
       'Yes, we deliver in our main markets: Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Delivery cost and timing come with your quote. Which city should it go to?',
       ['faq-delivery'],
-      { chips: ['Request a quote', 'Talk to someone'] }
+      { chips: ['Request a quote', 'Talk to someone'], slots: (() => {
+        const country = text.match(/\b(sierra leone|guinea[- ]bissau|liberia|guinea)\b/i);
+        return country ? { ...(session.slots || {}), deliveryCountry: country[1].replace(/\b\w/g, c => c.toUpperCase()), lastSlot: 'deliveryCountry' } : session.slots;
+      })() }
     );
   }
 
@@ -608,13 +706,13 @@ function guidedReply(rawInput, session, lang, flags) {
   if (!session.awaiting && genericSourceAsk(text)) {
     const looked = familySearch(categoryToken(text));
     const useful = (looked || []).filter(item => !/cases|protector/i.test((item.name || '') + ' ' + (item.family || '') + ' ' + (item.categoryId || '')));
-    if (!useful.length) return sourceReply(categoryToken(text));
+    if (!useful.length || !narrow.resolve(categoryToken(text)).ids.length) return sourceReply();
   }
 
   return null;
 }
 
 module.exports = {
-  guidedReply, guidedHandoff, isSlotFill, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK,
+  slotReply, hasSlotContext, guidedReply, guidedHandoff, isSlotFill, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK,
   shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START,
 };

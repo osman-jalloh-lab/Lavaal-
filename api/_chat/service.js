@@ -399,21 +399,23 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       if (session) {
         const blockedHandoff = (response.events || []).includes('handoff-intake')
           && (response.events || []).some(event => event === 'refused-injection' || event.startsWith('blocked-sensitive:'));
-        const safeUserText = blockedHandoff ? '' : text;
+        const safeUserText = blockedHandoff || response.sensitiveBlocked ? '' : text;
         const model = response.lastModel && { name: response.lastModel.name, options: response.lastModel.options || [], family: response.lastModel.family, id: response.lastModel.id };
         session.context = {
           lastUser: safeUserText,
           lastLanguage: response.language,
-          lastQty: response.fields && response.fields.quantity,
+          lastQty: response.fields?.quantity || (!response.reset && session.context?.lastQty) || null,
+          slots: response.slots || (!response.reset && session.context?.slots) || null,
+          pendingSamsung: response.pendingSamsung || null,
           lastProducts: compactProducts(Array.isArray(response.lastProducts) ? response.lastProducts : (!response.reset && session.context && session.context.lastProducts) || []),
           lastFamily: response.lastFamily || (!response.reset && session.context && session.context.lastFamily) || null,
-          lastModel: model || (response.awaiting === null ? null : (!response.reset && session.context && session.context.lastModel) || null),
+          lastModel: Object.hasOwn(response, 'lastModel') ? model || null : (!response.reset && session.context && session.context.lastModel) || null,
           awaiting: response.awaiting || null,
-          narrow: compactNarrow(response.narrow),
+          narrow: Object.hasOwn(response, 'narrow') ? compactNarrow(response.narrow) : (!response.reset && session.context?.narrow) || null,
           lastTopic: response.lastTopic || null,
           formDraft: response.formDraft || null,
           handoffDraft: response.handoffDraft || null,
-          selectedVariant: response.selectedVariant || null,
+          selectedVariant: Object.hasOwn(response, 'selectedVariant') ? response.selectedVariant || null : (!response.reset && session.context?.selectedVariant) || null,
           history: [{ role: 'user', text: safeUserText }, { role: 'assistant', text: result.text }],
         };
       }

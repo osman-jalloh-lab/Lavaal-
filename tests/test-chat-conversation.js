@@ -26,7 +26,7 @@ const picked = respond('15', ip15);
 assert.match(picked.text, /Yes, we have that\. What color are you looking for\?/);
 assert.ok(picked.chips.includes('Blue'));
 const blue = respond('blue', picked);
-assert.match(blue.text, /Yes, we have the iPhone 15 in Blue/);
+assert.match(blue.text, /iPhone 15 in Blue\. We list it; our team confirms stock with your quote/);
 assert.doesNotMatch(blue.text, /Ultramarine|Desert Titanium/);
 
 const ip16 = respond('do you have iPhone 16?');
@@ -36,14 +36,14 @@ assert.match(blue16.text, /We don't have the iPhone 16 in blue, but we have it i
 assert.doesNotMatch(blue16.text, /Blue Titanium|we have it in blue/i);
 
 const missing = respond('do you have iPhone 17?');
-assert.match(missing.text, /I don't see the iPhone 17 in our catalogue/);
+assert.match(missing.text, /I couldn't find that exact item in our catalogue/);
 assert.match(missing.text, /closest/i);
 assert.doesNotMatch(missing.text, /iPhone 17 Pro/);
 
 
 const want = respond('I want an iPhone');
 assert.equal(shouldSkipModel(want), 'product-guide');
-assert.match(want.text, /Yes, we have iPhones in our catalogue:/);
+assert.match(want.text, /Yes, we have Phones in our catalogue:/);
 assert.match(want.text, /15/);
 assert.match(want.text, /16/);
 assert.match(want.text, /Which model are you looking for\?/);
@@ -77,7 +77,8 @@ assert.match(trust.text, /support@lavaall\.com/);
 assert.match(trust.text, /written quote is agreed/);
 
 const website = respond('Can you build a website for us?');
-assert.match(website.text, /free preview/i);
+assert.match(website.text, /LAVAALL Web/i);
+assert.match(website.text, /business.*site or bot do\?/i);
 
 const starlink = respond('Do you have Starlink?');
 assert.notEqual(starlink.events && starlink.events[0], 'product-guide');

@@ -25,6 +25,11 @@ const STOPWORDS = new Set([
   'have', 'having', 'got', 'ask', 'asking', 'tell', 'know', 'there', 'this',
   'that', 'what', 'which', 'when', 'where', 'how', 'much', 'many', 'please',
   'm', 's', 't', 'd', 've', 'll', 're', 'pm', 'am',
+  'no', 'not', 'shop', 'site', 'website', 'thing', 'things', 'something',
+  'data', 'book', 'those', 'too', 'mean', 'actually', 'windows', 'macs',
+  'dem', 'you', 'delivery', 'where', 'instead', 'nah', 'naw',
+  'only', 'just', 'also', 'really', 'very', 'again', 'another', 'other',
+  'unit', 'units', 'pcs', 'pieces', 'quantity', 'qty', 'gb', 'tb', 'mb', 'kg', 'cm', 'mm', 'inch', 'inches',
 ]);
 
 const NUMBER_WORDS = new Set([
@@ -168,8 +173,33 @@ function titleCase(value) {
   return String(value).replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
+// Vocabulary normalization is shared by identity matching and conversation parsers.
+const SPELLINGS = {
+  ipone: 'iphone', iphon: 'iphone', ifone: 'iphone', promx: 'pro max',
+  samzung: 'samsung', samsong: 'samsung', samsun: 'samsung',
+  lapop: 'laptop', laptp: 'laptop', labtop: 'laptop', leptop: 'laptop',
+  compter: 'computer', compters: 'computers', kompyuta: 'computer', computa: 'computer',
+  offis: 'office', fone: 'phone', phon: 'phone', delivr: 'delivery',
+  whr: 'where', u: 'you', dem: '', fiffty: 'fifty',
+};
+const ENGLISH_NUMBERS = {
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+  eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
+  fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,
+  twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+};
+function normalizeInput(value) {
+  let text = String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  text = text.replace(/\b[a-z]+\b/g, word => Object.prototype.hasOwnProperty.call(SPELLINGS, word) ? SPELLINGS[word] : word);
+  const numberPattern = new RegExp('\\b(' + Object.keys(ENGLISH_NUMBERS).join('|') + ')(?:[ -]+(one|two|three|four|five|six|seven|eight|nine))?\\b', 'g');
+  return text.replace(numberPattern, (whole, first, second) => {
+    const value = ENGLISH_NUMBERS[first];
+    return second && value >= 20 ? String(value + ENGLISH_NUMBERS[second]) : second ? String(value) + ' ' + ENGLISH_NUMBERS[second] : String(value);
+  }).replace(/\s+/g, ' ').trim();
+}
+
 function normalize(value) {
-  return String(value || '')
+  return normalizeInput(value)
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -227,7 +257,7 @@ function tokensOf(query) {
     && !STOPWORDS.has(token)
     && !NUMBER_WORDS.has(token)
     && !MODIFIERS.has(token)
-    && !/^\d+$/.test(token)
+    && !/^\d+(?:gb|tb|mb|kg|cm|mm|inch|inches)?$/.test(token)
   );
 }
 
@@ -300,7 +330,7 @@ function tokenScore(product, token) {
       if (item.length < 4) continue;
       if (isTransposition(token, item) || levenshtein(token, item) === 1) return 6;
       const distance = levenshtein(token, item);
-      if (distance === 2 && token.length >= 5 && item.length >= 5) return 6;
+      if (distance === 2 && token.length >= 7 && item.length >= 7 && token[0] === item[0]) return 6;
     }
   }
   return 0;
@@ -333,7 +363,7 @@ function queryBrandTokens(tokens, catalog) {
     if (token.length >= 4 && !GENERIC_TOKENS.has(token)) {
       for (const brand of brands) {
         const distance = levenshtein(token, brand);
-        if (isTransposition(token, brand) || distance === 1 || (distance === 2 && token.length >= 5)) found.add(brand);
+        if (isTransposition(token, brand) || distance === 1 || (distance === 2 && token.length >= 7 && brand.length >= 7 && token[0] === brand[0])) found.add(brand);
       }
     }
   }
@@ -349,7 +379,9 @@ function productHasBrand(product, brands) {
 function searchCatalog(query, options = {}) {
   const catalog = loadCatalog();
   const tokens = tokensOf(query);
-  const numbers = modelNumbers(query);
+  const identityWords = tokens.filter(token => !/^(pro|max|mini|plus|standard|office|home|business|wireless|bluetooth|smart|blue|black|white|red|green|silver|gold)$/.test(token));
+  const numbers = identityWords.length ? modelNumbers(query) : [];
+  if (!identityWords.length) return { matches: [], all: [], tokens, total: catalog.products.length };
   if (!tokens.length && !numbers.length) return { matches: [], tokens, total: catalog.products.length };
   const limit = options.limit || 8;
   const phrase = normalize(query);
@@ -392,7 +424,9 @@ function searchCatalog(query, options = {}) {
     const genericFamily = !familyName || GENERIC_TOKENS.has(familyName) || /^(models?|series|switch|switches|kits?|cables?|standard|accessories|sockets?)$/.test(familyName);
     if (familyName.length > 3 && !genericFamily && containsPhrase(phrase, familyName)) score += 10;
     if (brandsInQueryEarly.length && productHasBrand(product, brandsInQueryEarly)) score += 16;
-    if (score > 0 && strong > 0) scored.push({ score, product });
+    const identity = { ...product, haystack: normalize([product.name, product.brand, product.family, product.category].join(' ')), tokens: new Set(normalize([product.name, product.brand, product.family, product.category].join(' ')).split(' ')) };
+    const identityHit = identityWords.some(token => tokenScore(identity, token) >= 6);
+    if (score > 0 && strong > 0 && identityHit) scored.push({ score, product });
   }
   const brandsInQuery = queryBrandTokens(tokens, catalog);
   if (brandsInQuery.length) {
@@ -512,5 +546,5 @@ function categoryCounts() {
 }
 
 module.exports = {
-  loadCatalog, searchCatalog, findByName, normalize, tokensOf, expandToken, levenshtein, isTransposition, categoryCounts, ROOT,
+  loadCatalog, searchCatalog, findByName, normalizeInput, normalize, tokensOf, expandToken, levenshtein, isTransposition, categoryCounts, ROOT,
 };
