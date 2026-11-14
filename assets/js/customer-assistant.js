@@ -50,9 +50,6 @@
   var labels = {
     en: ['Inquiry type','Name','Phone','Email','Country','Company','Subject','Message','Preferred response','Product or service','Model','Quantity','Your budget','Delivery location','Your timeline','Order number','Issue description','Installation type','Project description'],     fr: ['Type de demande','Nom','Téléphone','E-mail','Pays','Entreprise','Objet','Message','Réponse souhaitée','Produit ou service','Modèle','Quantité','Votre budget','Lieu de livraison','Votre calendrier','Numéro de commande','Description du problème','Type d’installation','Description du projet'],     pt: ['Tipo de pedido','Nome','Telefone','E-mail','País','Empresa','Assunto','Mensagem','Resposta preferida','Produto ou serviço','Modelo','Quantidade','O seu orçamento','Local de entrega','O seu prazo','Número da encomenda','Descrição do problema','Tipo de instalação','Descrição do projeto']
   };
-  var scaffold = Object.freeze({
-    provider:'ElevenLabs', agentId:'NOT_CONFIGURED', textOnly:true, enabled:false, enforcementVerified:false
-  });
   function formatAssistantHtml(text) {
     var escaped = String(text == null ? '' : text)
       .replace(/&/g, '&amp;')
@@ -154,7 +151,7 @@
   var voiceCopy = {
     en: {
       mic:'Use microphone', stop:'Stop microphone', speaker:'Read replies aloud',
-      hint:'Optional browser speech, not ElevenLabs voice. Tap Mic to dictate, then review the text and tap Ask. Your browser vendor may process speech on its servers; Chrome sends audio to Google. You can keep using text.',
+      hint:'Optional browser speech. Tap Mic to dictate, then review the text and tap Ask. Your browser vendor may process speech on its servers; Chrome sends audio to Google. You can keep using text.',
       ready:'Microphone is off. Text input is always available.', listening:'Listening… Tap Stop microphone to cancel.',
       inserted:'Dictation added. Review the text and tap Ask to send.', unavailable:'Speech recognition is unavailable in this browser. Please type your message.',
       denied:'Microphone permission was denied. Please type your message.', failed:'Speech recognition could not start or finish. Please type your message.',
@@ -162,7 +159,7 @@
     },
     fr: {
       mic:'Utiliser le microphone', stop:'Arrêter le microphone', speaker:'Lire les réponses à voix haute',
-      hint:'Parole du navigateur facultative, sans voix ElevenLabs. Touchez le micro pour dicter, puis vérifiez le texte et appuyez sur Demander. Le fournisseur du navigateur peut traiter la parole sur ses serveurs ; Chrome envoie l’audio à Google. Vous pouvez continuer par écrit.',
+      hint:'Parole du navigateur facultative. Touchez le micro pour dicter, puis vérifiez le texte et appuyez sur Demander. Le fournisseur du navigateur peut traiter la parole sur ses serveurs ; Chrome envoie l’audio à Google. Vous pouvez continuer par écrit.',
       ready:'Le microphone est éteint. La saisie de texte reste disponible.', listening:'Écoute en cours… Touchez Arrêter le microphone pour annuler.',
       inserted:'Dictée ajoutée. Vérifiez le texte et appuyez sur Demander pour envoyer.', unavailable:'La reconnaissance vocale est indisponible dans ce navigateur. Saisissez votre message.',
       denied:'L’accès au microphone a été refusé. Saisissez votre message.', failed:'La reconnaissance vocale n’a pas pu démarrer ou se terminer. Saisissez votre message.',
@@ -170,7 +167,7 @@
     },
     pt: {
       mic:'Usar microfone', stop:'Parar microfone', speaker:'Ler respostas em voz alta',
-      hint:'Voz opcional do navegador, sem voz ElevenLabs. Toque no microfone para ditar, depois reveja o texto e toque em Perguntar. O fornecedor do navegador pode processar a fala nos seus servidores; o Chrome envia o áudio ao Google. Pode continuar por texto.',
+      hint:'Voz opcional do navegador. Toque no microfone para ditar, depois reveja o texto e toque em Perguntar. O fornecedor do navegador pode processar a fala nos seus servidores; o Chrome envia o áudio ao Google. Pode continuar por texto.',
       ready:'O microfone está desligado. Pode sempre escrever.', listening:'A ouvir… Toque em Parar microfone para cancelar.',
       inserted:'Ditado adicionado. Reveja o texto e toque em Perguntar para enviar.', unavailable:'O reconhecimento de voz está indisponível neste navegador. Escreva a sua mensagem.',
       denied:'A permissão do microfone foi recusada. Escreva a sua mensagem.', failed:'O reconhecimento de voz não conseguiu iniciar ou terminar. Escreva a sua mensagem.',
@@ -788,7 +785,7 @@
     } catch (_) { return null; }
   }
   var api = {
-    eligible:eligible, summary:summary, copy:copy, fields:fields, scaffold:scaffold, validatePartialDraft:validatePartialDraft, mount:mount,
+    eligible:eligible, summary:summary, copy:copy, fields:fields, validatePartialDraft:validatePartialDraft, mount:mount,
     formatAssistantHtml:formatAssistantHtml, plainReplyText:plainReplyText,
     speechLocale:speechLocale, speechVoice:speechVoice, browserVoiceSupported:browserVoiceSupported, browserVoiceEnabled:browserVoiceEnabled,
     createBrowserTtsAdapter:createBrowserTtsAdapter, createPreviewTransport:createPreviewTransport, boot:boot

@@ -197,10 +197,8 @@ async function main() {
     assert(example.split(/\r?\n/).filter(line => line && !line.startsWith('#')).every(line => /^[A-Z][A-Z0-9_]*$/.test(line)));
     assert.equal(config.voiceEnabled, false);
     assert.equal(config.browserVoiceEnabled, false);
-    const embed = fs.readFileSync(path.join(directory, 'embed-template.html'), 'utf8');
-    assert.match(embed, /<template[\s\S]*<elevenlabs-convai[\s\S]*<script[\s\S]*<\/template>/);
-    const withoutTemplate = embed.replace(/<template[\s\S]*?<\/template>/g, '');
-    assert(!/<script\b|<elevenlabs-convai\b/.test(withoutTemplate));
+    assert.equal(fs.existsSync(path.join(directory, 'embed-template.html')), false, 'no vendor widget embed');
+    assert.doesNotMatch(JSON.stringify(config), /elevenlabs/i);
   });
 
   console.log(`${checks}/${checks} passed`);

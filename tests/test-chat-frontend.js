@@ -53,8 +53,7 @@ for (const language of ['en','fr','pt']) {
   assert.match(ui.copy[language].first, /AI|IA/);
   assert.doesNotMatch(JSON.stringify(ui.copy[language]), /\$|free|shortly|24 hours|200\+|500\+/i);
 }
-assert.equal(ui.scaffold.enabled, false);
-assert.equal(ui.scaffold.textOnly, true);
+assert.equal(ui.scaffold, undefined, 'no vendor widget scaffold');
 assert.equal(ui.summary({
   name:'TEST ONLY'
 },'en').length, 19);
