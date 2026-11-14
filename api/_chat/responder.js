@@ -2,6 +2,7 @@
 
 const { loadCatalog, searchCatalog, normalize, normalizeInput } = require('./catalog');
 const { SERVICE_SLA, guidedReply, guidedHandoff, handoffPrompt, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
+const { knowledgeReply } = require('./knowledge-answers');
 
 const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
 const EMAIL = 'support@lavaall.com';
@@ -504,6 +505,9 @@ function respond(text, session = {}) {
       handoff: wantsAgent ? { tagOsman: true } : undefined }, rawInput, context, reset);
   }
 
+  // Company questions answered from the generated public knowledge pack (0 model calls).
+  const known = !wantsAgent && !CONTACT_ASK.test(rawInput) ? knowledgeReply(rawInput, context, lang) : null;
+  if (known) return attachTopic(known, rawInput, context, reset);
 
   const guided = guidedReply(rawInput, context, lang, { priceAsk, wantsAgent });
   if (guided) {

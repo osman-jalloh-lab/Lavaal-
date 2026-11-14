@@ -401,7 +401,7 @@ function shouldSkipModel(rule) {
   const events = rule.events || [];
   if (events.includes('refused-injection')) return 'refused-injection';
   if (events.some(event => String(event).startsWith('blocked-sensitive'))) return 'blocked-sensitive';
-  const canned = ['installation-service', 'handoff-intake', 'contact-info', 'product-guide', 'category-guide', 'service-help', 'form-intake', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'quote-review-process', 'apple-lock-requirement', 'tag-osman-handoff'];
+  const canned = ['installation-service', 'handoff-intake', 'contact-info', 'product-guide', 'category-guide', 'service-help', 'form-intake', 'prompt-help', 'faq-price', 'faq-pay', 'faq-timeline', 'faq-delivery', 'faq-school', 'faq-trust', 'faq-website', 'quote-review-process', 'apple-lock-requirement', 'tag-osman-handoff', 'knowledge-answer'];
   const hit = events.find(event => canned.includes(event));
   return hit || null;
 }
