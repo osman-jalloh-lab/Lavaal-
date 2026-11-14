@@ -1,6 +1,7 @@
 'use strict';
 
 const { respond, REACHABILITY, EMAIL, WHATSAPP, FIRST, isFollowUp } = require('./responder');
+const { SERVICE_SLA } = require('./conversation');
 const { chat, SpendCapError } = require('./llm-gateway');
 
 const PRICE_RE = /(?:[$£€]\s?\d|\b(?:USD|EUR|GBP)\s*\d|\d[\d,.]*\s*(?:USD|EUR|GBP|dollars?|euros?|pounds?)\b|\bLe\s+\d|\bcosts?\s+\d|\bpriced?\s+at\b|\bdiscount of\b|\d\s*%\s*(?:off|discount)|\b% off\b)/i;
@@ -28,7 +29,7 @@ const PHRASES = {
     kr: 'A nɔ ebul gi prayz, ɛstimet, ɔ diskaunt na dis chat.',
   },
   notListed: {
-    en: 'I do not see that exact item in the public Technology catalogue, so I will not invent a listing, stock, or a price.',
+    en: SERVICE_SLA,
     fr: "Je ne vois pas cet article exact dans le catalogue public Technology, je n'inventerai donc ni fiche, ni stock, ni prix.",
     pt: 'Não vejo esse artigo exato no catálogo público Technology, por isso não invento ficha, stock ou preço.',
     kr: 'A nɔ si dat ɛgzakt item na di pɔblik Technology katalog, so a nɔ go mek-op list, stock, ɔ prayz.',
@@ -143,6 +144,8 @@ function stripViolations(text) {
   const beforeQuotes = out;
   out = out.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
   if (out !== beforeQuotes) repairs.push('normalized-punctuation');
+
+  out = sentenceSplit(out).map(sentence => /\b(?:we|i) (?:do not|don't|cannot|can't) (?:have|carry|stock|sell|list)\b|couldn't find (?:that|the) (?:exact )?item/i.test(sentence) ? SERVICE_SLA : sentence).join(' ');
 
   const beforePrice = out;
   out = out.replace(/\$\s?\d[\d,]*(?:\.\d+)?(?:\s*(?:USD|usd|dollars?))?/g, '');
@@ -329,6 +332,7 @@ function buildMessages(visitorText, rule, session) {
     'Write one short, natural reply in the required language. No markdown, no bullet lists, no repeated sentences.',
     'Keep the entire reply, including every required closing sentence, to 60-90 words. Use one compact closing block. Never cut, shorten, or paraphrase required closings. Mention at most four catalogue names; do not list every close variant.',
     'Use ONLY the catalogue facts provided. Never invent products, models, stock, prices, discounts, warranties, or delivery dates. Never use the phrase \'in stock\', even to deny stock; say the item is listed in the catalogue. When refusing a price, do not use currency codes or symbols such as USD, EUR, $, or £.',
+    'Never deny carrying or having an item or variant. Route unmatched requests to the team: ' + SERVICE_SLA + ' Offer a quick form if contact details are missing.',
     'If a quantity is provided, mention it as a DIGIT (write 4, not "four"). If several quantities are provided, mention each digit.',
     'Keep this English line EXACT, even when the rest of the reply is French, Portuguese, or Krio: ' + REACHABILITY,
     'Also include ' + EMAIL + ' and WhatsApp ' + WHATSAPP + '.',

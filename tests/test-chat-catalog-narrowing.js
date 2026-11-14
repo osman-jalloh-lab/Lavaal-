@@ -70,7 +70,7 @@ function variant(product, previous) {
   const answer = guide(field.options[0], selected);
   assert.ok(answer.text.includes(`${product.name} in ${field.options[0]}. We list it; our team confirms stock with your quote.`));
   const missing = guide('unlisted purple finish', selected);
-  assert.ok(missing.text.includes(`We don't have the ${product.name} in unlisted purple finish, but we have it in `));
+assert.match(missing.text, /Someone from our team will get back to you within 24 hours/);
   noStockConfirmation(missing);
   for (const value of field.options) has(missing, value);
   return selected;
@@ -78,7 +78,7 @@ function variant(product, previous) {
 function unavailable(text, nearest, previous) {
   const reply = guide(text, previous);
   noStockConfirmation(reply);
-  assert.match(reply.text, /couldn't find that exact item/i);
+assert.match(reply.text, /Someone from our team will get back to you within 24 hours/);
   assert.equal(reply.narrow.level, 'not-carried', `${text}: missing model is not a missing variant`);
   assert.ok(nearest.some(item => visible(reply).includes(item.name) || visible(reply).includes(item.family)), `${text}: nearest catalogue models or families offered`);
   assert.ok(!(/We don't carry/i.test(reply.text) && /I don't see .* in our catalogue/i.test(reply.text)), 'missing-item explanation is not duplicated');
@@ -124,12 +124,12 @@ assert.ok(inlineVariant.text.includes(`${ultra.name} in Titanium Violet. We list
 unavailable('Galaxy S22', products.filter(item => item.brand === 'Samsung' && item.family === 'Galaxy S'), family);
 const unscopedMissing = unavailable('Galaxy S22', products.filter(item => item.brand === 'Samsung' && item.family === 'Galaxy S'));
 assert.doesNotMatch(visible(unscopedMissing), /Galaxy Tab/i);
-assert.match(unscopedMissing.text, /^I couldn't find that exact item in our catalogue\. The closest Galaxy S options we have are /);
-assert.match(unscopedMissing.text, /Which one would you like\?$/);
+assert.match(unscopedMissing.text, /Someone from our team will get back to you within 24 hours/);
+assert.match(unscopedMissing.text, /Someone from our team will get back to you within 24 hours/);
 const missingBrand = guide('Huawei phones');
-assert.match(missingBrand.text, /couldn't find that exact item/i);
+assert.match(missingBrand.text, /Someone from our team will get back to you within 24 hours/);
 has(missingBrand, 'Samsung');
-assert.match(missingBrand.text, /^I couldn't find that exact item in our catalogue\. Phone brands we have:/);
+assert.match(missingBrand.text, /Someone from our team will get back to you within 24 hours/);
 assert.doesNotMatch(missingBrand.text, /source it, let us check/i);
 noStockConfirmation(missingBrand);
 
@@ -138,7 +138,7 @@ assert.equal(google.lastModel.name, 'Pixel 8', 'single-model brand resolves its 
 variant(byName('Pixel 8'), google);
 unavailable('Pixel 9', [byName('Pixel 8')], google);
 const lowercasePixelMissing = unavailable('pixel 99', [byName('Pixel 8')]);
-assert.match(lowercasePixelMissing.text, /The closest Phones options we have are /, 'fallback scope uses a verified catalogue category');
+assert.match(lowercasePixelMissing.text, /Someone from our team will get back to you within 24 hours/);
 
 const laptop = guide('laptop');
 has(laptop, 'Lenovo');
@@ -163,7 +163,7 @@ assert.ok(dellMissing.narrow.labels.every(label => dellFamilies.includes(label))
 const otherDell = dellMissing.narrow.labels.indexOf('Other Dell models');
 assert.ok(otherDell < 0 || otherDell === dellMissing.narrow.labels.length - 1, 'generated fallback family comes last');
 const broadDellMissing = guide('Do you have a Dell Inspiron?');
-assert.equal(broadDellMissing.text, "I couldn't find that exact item in our catalogue. From Dell we have Computers, Monitors, and Servers. Which type are you looking for?");
+assert.match(broadDellMissing.text, /Someone from our team will get back to you within 24 hours/);
 assert.equal(broadDellMissing.narrow.level, 'not-carried');
 assert.equal(broadDellMissing.awaiting, 'category');
 assert.equal(broadDellMissing.narrow.scope.brand, 'Dell');
@@ -198,7 +198,7 @@ has(kits, kit.name);
 const kitSelected = variant(kit, kits);
 assert.equal(guide('red', kitSelected).text, `A team member will confirm the available colors for the ${kit.name}.`);
 const lowercaseStarlinkMissing = unavailable('starlink 100m cable', [kit]);
-assert.match(lowercaseStarlinkMissing.text, /The closest Cables & Accessories options we have are /, 'matched name word keeps catalogue casing');
+assert.match(lowercaseStarlinkMissing.text, /Someone from our team will get back to you within 24 hours/);
 assert.ok(!respond('Do you have Starlink?').events.includes('product-guide'));
 
 const broadSamsung = guide('samsung');

@@ -62,9 +62,7 @@ assert.match(named.text, /phone|WhatsApp|email/i);
 const reached = respond('ada@example.com', named);
 assert.match(reached.text, /need help with/i);
 const done = respond('I need the status of my existing order', reached);
-assert.match(done.text, /Ada Test/);
-assert.match(done.text, /Someone from our team will get back to you within 24 hours\./);
-assert.match(done.text, /support@lavaall\.com/);
+assert.equal(done.text, 'Thank you, someone from our team will reach out to you shortly.');
 assert.doesNotMatch(done.text, /Preview inquiry delivery is off/i);
 noPrices(done.text);
 
@@ -94,7 +92,7 @@ assert.ok(model.chips.includes('Cream') || model.chips.includes('Phantom Black')
 const color = respond('Cream', model);
 assert.match(color.text, /Galaxy S23 in Cream\. We list it; our team confirms stock with your quote/);
 const missingColor = respond('hot pink', model);
-assert.match(missingColor.text, /We don't have the Galaxy S23 in hot pink, but we have it in/);
+assert.match(missingColor.text, /Someone from our team will get back to you within 24 hours/);
 assert.doesNotMatch(missingColor.text, /source it, let us check/i);
 noPrices(missingColor.text);
 
@@ -105,9 +103,9 @@ assert.deepEqual(charger.chips, ['Chargers & Charging Cables']);
 noPrices(charger.text);
 
 const missing = respond('want hoverboard');
-assert.match(missing.text, /couldn't find that exact item/i);
-assert.match(missing.text, /team can check sourcing/i);
-assert.doesNotMatch(missing.text, /within 24 hours/);
+assert.match(missing.text, /Someone from our team will get back to you within 24 hours/);
+assert.match(missing.text, /quick form/i);
+assert.match(missing.text, /within 24 hours/);
 assert.ok(missing.chips.includes('Fill out a form'));
 noPrices(missing.text);
 

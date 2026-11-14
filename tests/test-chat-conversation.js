@@ -32,12 +32,12 @@ assert.doesNotMatch(blue.text, /Ultramarine|Desert Titanium/);
 const ip16 = respond('do you have iPhone 16?');
 const picked16 = respond('16', ip16);
 const blue16 = respond('blue', picked16);
-assert.match(blue16.text, /We don't have the iPhone 16 in blue, but we have it in Black, White, Pink, Teal, and Ultramarine/);
+assert.match(blue16.text, /Someone from our team will get back to you within 24 hours/);
 assert.doesNotMatch(blue16.text, /Blue Titanium|we have it in blue/i);
 
 const missing = respond('do you have iPhone 17?');
-assert.match(missing.text, /I couldn't find that exact item in our catalogue/);
-assert.match(missing.text, /closest/i);
+assert.match(missing.text, /Someone from our team will get back to you within 24 hours/);
+assert.match(missing.text, /Someone from our team will get back to you within 24 hours/);
 assert.doesNotMatch(missing.text, /iPhone 17 Pro/);
 
 

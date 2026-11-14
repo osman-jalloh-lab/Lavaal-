@@ -110,7 +110,7 @@ function colorReply(product, asked) {
     );
   }
   return result(
-    "We don't have the " + name + ' in ' + asked.trim() + ', but we have it in ' + listWords(colors) + '.',
+    sourceLine(),
     ['product-guide'],
     { chips: colors.slice(0, 4).concat(['Request a quote']).slice(0, 5), lastModel: product, awaiting: 'color' }
   );
@@ -118,6 +118,7 @@ function colorReply(product, asked) {
 
 
 const SERVICE_SLA = 'Someone from our team will get back to you within 24 hours.';
+function sourceLine() { return SERVICE_SLA + ' Would you like to fill out a quick form?'; }
 const FORM_LINK = '[request form](#signup)';
 const FORM_START = /^(yes|yeah|yep|ok|okay|sure|please)[.!]?\s*$|^fill out a (quick )?form$|^i (can |will |want to )?fill( out)?( this| the| a)? form\b|^help me fill\b|^start (the |a )?form\b/i;
 const FORM_CONTACT = /^(?:(?:my\s+)?(?:phone|whatsapp|email|e-mail)(?:\s+(?:is|number))?\s*[:\-]?\s*)?(.+)$/i;
@@ -147,7 +148,7 @@ function serviceReply(intent) {
 
 function sourceReply(label) {
   return result(
-    "I couldn't find that exact item in our catalogue. Our team can check sourcing for you. Would you like to talk to someone?",
+    sourceLine(),
     ['service-help', 'not-in-catalog', 'source-offer'],
     { chips: ['Fill out a form', 'Talk to someone'], awaiting: 'form-offer', lastTopic: 'service-source' }
   );
@@ -228,7 +229,7 @@ function slotReply(text, session) {
     const listed = products.some(p => new RegExp('\\bGalaxy A' + samsung[1] + '\\b', 'i').test(p.name));
     if (listed) return done('Do you mean the ' + label + '?', { pendingSamsung: label, chips: [label], lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: 'samsung-confirm' });
     const nearest = products.filter(p => /\bGalaxy A\d+/i.test(p.name)).sort((a,b) => Math.abs(Number(a.name.match(/A(\d+)/)[1]) - Number(samsung[1])) - Math.abs(Number(b.name.match(/A(\d+)/)[1]) - Number(samsung[1]))).slice(0,3).map(p => p.name);
-    return done("We don't list the " + label + '; the nearest catalogue options are ' + listWords(nearest) + ' and our team can check sourcing. Which would you prefer?', { chips: nearest.concat(['Talk to someone']), lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: null });
+    return done(sourceLine(), { chips: nearest.concat(['Talk to someone']), lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: null });
   }
   const place = value.match(/^(?:to\s+|in\s+)?(sierra leone|guinea[- ]bissau|guinea|liberia|conakry|freetown|monrovia|bo|kenema)$/i);
   if (place && (corrected || /deliver|ship|country|city/i.test(session.lastTopic || ''))) {
@@ -286,7 +287,7 @@ function narrowingReply(text, session) {
     const matched = colorMatch(text, field.options);
     return result(matched
       ? product.name + ' in ' + matched + '. We list it; our team confirms stock with your quote.'
-      : "We don't have the " + product.name + ' in ' + text.trim() + ', but we have it in ' + listWords(field.options) + '.',
+      : sourceLine(),
       ['product-guide'], { selectedVariant: matched || null, lastModel: product, narrow: session.narrow, lastProducts: session.lastProducts, chips: matched ? ['Request a quote', 'Talk to someone'] : field.options.slice(0,6), awaiting: matched ? null : session.awaiting });
   }
   const parent = continuing ? { ...session.narrow.scope } : {};
@@ -308,15 +309,7 @@ function narrowingReply(text, session) {
   const extra = { narrow: state, lastProducts: products, lastFamily: hit.scope.family || query, lastTopic: 'product:' + (hit.scope.categoryId || query), matchCount: products.length, chips: hit.labels.slice(0,6) };
   const shown = listWords(hit.labels.slice(0,8)) + (hit.labels.length > 8 ? ', and ' + (hit.labels.length-8) + ' more' : '');
   if (hit.level === 'not-carried') {
-    const brandMissing = hit.missingLevel === 'brand';
-    const subject = narrow.displayLabel(hit.scope.family || hit.scope.brand || hit.scope.term || hit.scope.categoryId, products) || products[0]?.category || 'catalogue';
-    const opening = "I couldn't find that exact item in our catalogue.";
-    const options = brandMissing
-      ? ' ' + String(hit.scope.categoryId || products[0]?.category || 'Product').replace(/^./, c => c.toUpperCase()).replace(/s$/, '') + ' brands we have: ' + shown + '. Which brand would you like?'
-      : hit.missingLevel === 'category'
-        ? ' From ' + hit.scope.brand + ' we have ' + shown + '. Which type are you looking for?'
-        : ' The closest ' + subject + ' options we have are ' + shown + '. Which one would you like?';
-    return result(opening + options, ['product-guide', 'not-in-catalog'], { ...extra, awaiting: hit.missingLevel || 'model' });
+    return result(sourceLine(), ['product-guide', 'not-in-catalog'], { ...extra, awaiting: hit.missingLevel || 'model' });
   }
   if (hit.level === 'category') return result('Yes, we have ' + hit.scope.brand + ' products in: ' + shown + '. Which type are you looking for?', ['product-guide'], { ...extra, awaiting: 'category' });
   if (hit.level === 'variant' || hit.level === 'single') {
@@ -324,7 +317,7 @@ function narrowingReply(text, session) {
     const field = narrow.variantField(product);
     if (field && hit.variantAsked) return result(hit.matchedVariant
       ? product.name + ' in ' + hit.matchedVariant + '. We list it; our team confirms stock with your quote.'
-      : "We don't have the " + product.name + ' in ' + hit.variantAsked + ', but we have it in ' + listWords(field.options) + '.', ['product-guide'], { ...extra, selectedVariant: hit.matchedVariant || null, lastModel: product, awaiting: hit.matchedVariant ? null : (field.key === 'color' ? 'color' : 'variant') });
+      : sourceLine(), ['product-guide'], { ...extra, selectedVariant: hit.matchedVariant || null, lastModel: product, awaiting: hit.matchedVariant ? null : (field.key === 'color' ? 'color' : 'variant') });
     if (!continuing && hit.level === 'single' && query.toLowerCase() !== product.name.toLowerCase()) return result(product.name + '. We list it; our team confirms stock with your quote.', ['category-guide','product-guide'], { ...extra, lastModel: product, awaiting: 'variant' });
     const label = field && (field.label || field.key);
     const questionLabel = label && (label === label.toUpperCase() ? label : label.toLowerCase());

@@ -1,7 +1,7 @@
 'use strict';
 
 const { loadCatalog, searchCatalog, normalize } = require('./catalog');
-const { guidedReply, guidedHandoff, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
+const { SERVICE_SLA, guidedReply, guidedHandoff, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
 
 const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
 const EMAIL = 'support@lavaall.com';
@@ -359,13 +359,7 @@ function replyForProducts(lang, text, qty, result, priceAsk, bulk) {
 }
 
 function replyNotListed(lang, text, qty) {
-  const qtyText = quantityClause(qty, lang);
-  return {
-    en: `${qtyText}I do not see that exact item in the public Technology catalogue, so I will not invent a listing, stock, or a price. LAVAALL also procures IT equipment that may not appear on the site, but only the team can say whether they can source it. ${offer(lang, false)}`,
-    fr: `${qtyText}Je ne vois pas cet article exact dans le catalogue public Technology, je n'inventerai donc ni fiche, ni stock, ni prix. LAVAALL peut aussi procurer du matériel informatique absent du site, mais seule l'équipe peut le confirmer. ${offer(lang, false)}`,
-    pt: `${qtyText}Não vejo esse artigo exato no catálogo público Technology, por isso não invento ficha, stock ou preço. A LAVAALL também pode obter equipamento informático que não apareça no site, mas só a equipa o pode confirmar. ${offer(lang, false)}`,
-    kr: `${qtyText}A nɔ si dat ɛgzakt item na di pɔblik Technology katalog, so a nɔ go mek-op list, stock, ɔ prayz. LAVAALL kin sɔs IT ɛkwipmɛnt we nɔ de na di sayt, bɔt nɔmɔ di tim kin se if dɛn kin gɛt am. ${offer(lang, false)}`,
-  }[lang];
+  return SERVICE_SLA + ' Would you like to fill out a quick form?';
 }
 
 function searchMaybeMulti(text, options) {
