@@ -35,11 +35,13 @@ check('sources are public files only; internal souls and notes are refused', () 
   assert.equal(gen.isForbiddenSource('index.html'), false);
 });
 
-const allText = JSON.stringify(committed.sections) + JSON.stringify(committed.missing) + JSON.stringify(committed.behaviour);
+const factsText = JSON.stringify(committed.sections);
+const allText = factsText + JSON.stringify(committed.missing) + JSON.stringify(committed.behaviour);
 check('no prices, stock claims, time promises, stats or internal identities in served facts', () => {
-  assert.doesNotMatch(allText, /[$£€]\s?\d|\b(USD|EUR|GBP)\s*\d|\bLe\s+\d/);
-  assert.doesNotMatch(allText, /\bin stock\b|ready to ship|guaranteed (stock|delivery)/i);
-  assert.doesNotMatch(allText, /within \d+ hours|same[- ]day/i);
+  assert.doesNotMatch(factsText, /[$£€]\s?\d|\b(USD|EUR|GBP)\s*\d|\bLe\s+\d/);
+  assert.doesNotMatch(factsText, /\bin stock\b|ready to ship|guaranteed (stock|delivery)/i);
+  // Facts themselves still must not promise a time. The missing-information line may use the approved 24-hour team route.
+  assert.doesNotMatch(factsText, /within \d+ hours|same[- ]day/i);
   assert.doesNotMatch(allText, /200\+|500\+|since 2018/i);
   assert.doesNotMatch(allText, /jarvis|elevenlabs|wDsJlOXP|soul|founder-rules|ops-rules|password|token/i);
 });
@@ -52,11 +54,12 @@ check('approved public contacts only', () => {
   assert.deepEqual([...emails], ['support@lavaall.com']);
 });
 
-check('missing information is said plainly with the form or contact', () => {
-  assert.match(knowledge.missingLine('technology'), /^I don't have that information\./);
+check('missing information routes to the team within 24 hours and offers a form', () => {
+  const { SERVICE_SLA } = require('../api/_chat/conversation');
+  assert.equal(knowledge.missingLine('technology'), SERVICE_SLA + ' Would you like to fill out a quick form?');
+  assert.match(knowledge.missingLine('technology'), /within 24 hours/);
   assert.match(knowledge.missingLine('technology'), /form/);
-  assert.match(knowledge.missingLine('technology'), /support@lavaall\.com/);
-  assert.match(knowledge.missingLine('technology'), /\+1 \(737\) 704-4182/);
+  assert.doesNotMatch(knowledge.missingLine('technology'), /we don't have it|I don't have that information/i);
 });
 
 check('behaviour rules from Osman are in the pack', () => {
@@ -92,20 +95,24 @@ check('catalogue summary matches the live catalogue loader without duplicating p
 check('retrieval finds the right public fact and nothing for unknown topics', () => {
   assert.ok(knowledge.selectFacts('Do you deliver to Kenema?').some(f => f.id === 'faq-2'));
   assert.ok(knowledge.selectFacts('Do you work in Guinea?').some(f => f.id === 'coverage-gn'));
+  assert.ok(knowledge.selectFacts('Do you work in Liberia?').some(f => f.id === 'coverage-lr'));
   assert.ok(knowledge.selectFacts('Do you sell refurbished laptops?').some(f => f.id === 'faq-3'));
   assert.deepEqual(knowledge.selectFacts('What is your refund policy?'), []);
   assert.deepEqual(knowledge.selectFacts('iphone 16 pro price'), []);
 });
 
-check('model prompt carries verified facts, the missing line and the behaviour rules', () => {
+check('model prompt carries verified facts and Mark\'s routing and length rules', () => {
+  const { SERVICE_SLA } = require('../api/_chat/conversation');
   const ask = 'Do you deliver to Kenema?';
   const [system, user] = buildMessages(ask, respond(ask, {}), {});
   assert.match(user.content, /Verified LAVAALL facts \(public knowledge pack v1\)/);
   assert.match(user.content, /deliver to your doorstep/);
-  assert.ok(system.content.includes(knowledge.missingLine('technology')));
-  assert.match(system.content, /one natural follow-up question/);
-  assert.match(system.content, /\*\*bold\*\*/);
+  assert.ok(system.content.includes(SERVICE_SLA), 'unmatched requests route to the 24-hour team line');
+  assert.match(system.content, /Never deny carrying or having an item/);
+  assert.match(system.content, /follow-up question/);
   assert.match(system.content, /Do not carry an earlier topic/);
+  // Mark: no markdown in model replies; bold highlighting is not instructed here.
+  assert.doesNotMatch(system.content, /put the key words.*\*\*bold\*\*/i);
   const unknown = 'What is your refund policy?';
   assert.match(buildMessages(unknown, respond(unknown, {}), {})[1].content, /Verified LAVAALL facts: none match this question\./);
 });
@@ -120,8 +127,8 @@ check('company questions are answered from the pack before catalogue narrowing, 
   const cases = [
     ['Do you work in Guinea?', /^Yes, we work in \*\*Guinea\*\*\..*Conakry.*Which city are you in\?$/],
     ['Do you have a branch in Bo?', /^Yes, our \*\*Bo\*\* branch is at 28 Bojon Street\. What can we help you with\?$/],
-    ['Where do you operate?', /\*\*Sierra Leone\*\*, \*\*Guinea\*\* and \*\*Guinea-Bissau\*\*/],
-    ['Do you work in Liberia?', /For \*\*Liberia\*\*, our team can confirm coverage/],
+    ['Where do you operate?', /\*\*Sierra Leone\*\*, \*\*Guinea\*\*, \*\*Liberia\*\* and \*\*Guinea-Bissau\*\*/],
+    ['Do you work in Liberia?', /For \*\*Liberia\*\*: We deliver to Liberia, including Monrovia/],
     ['Do you sell wholesale?', /^\*\*Both\*\*\. .*how many\?$/],
     ['Which industries do you serve?', /Healthcare Facilities/],
     ['What does LAVAALL do?', /\*\*enterprise IT equipment\*\*/],

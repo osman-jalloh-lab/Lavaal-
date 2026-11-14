@@ -9,8 +9,8 @@
   },
   "contactLine": "We're reachable 24/7 on WhatsApp and email: **support@lavaall.com** or WhatsApp **+1 (737) 704-4182**.",
   "missing": {
-    "technology": "I don't have that information. I can pass your question to our team with a quick form, or you can reach us on email **support@lavaall.com** or WhatsApp **+1 (737) 704-4182**.",
-    "web": "I don't have that information about LAVAALL Web. You can reach the team on email **support@lavaall.com** or WhatsApp **+1 (737) 704-4182**."
+    "technology": "Someone from our team will get back to you within 24 hours. Would you like to fill out a quick form?",
+    "web": "Someone from our team will get back to you within 24 hours. Would you like to fill out a quick form?"
   },
   "behaviour": [
     "Answer directly in 1-3 short sentences, then ask one natural follow-up question.",
@@ -18,13 +18,13 @@
     "Put the key words (product, model, color, contact) in **bold**.",
     "Do not carry an earlier topic into a new question.",
     "Krio means Sierra Leone Krio. Never use Haitian Creole.",
-    "Use only the verified facts and catalogue entries. If the answer is not there, say so plainly and offer the form or contact.",
+    "Use only the verified facts and catalogue entries. If the answer is not there, do not invent it and do not say we do not have it. Route the question to the team (someone will get back within 24 hours) and offer a form if contact details are missing.",
     "Never invent prices, stock, delivery dates, customers or claims."
   ],
   "policy": {
     "noPrice": "I cannot give prices, estimates, or discounts in this chat.",
     "noConfirm": "A catalogue listing is not a stock or price confirmation.",
-    "notListed": "I do not see that exact item in the public Technology catalogue, so I will not invent a listing, stock, or a price.",
+    "notListed": "Someone from our team will get back to you within 24 hours.",
     "bulk": "Retail and wholesale inquiries are welcome, including bulk orders. The team confirms volume requests; I cannot promise stock.",
     "hours": "Messages are accepted anytime, but the team is not staffed continuously. Someone from the team will reach out after a request is successfully sent; I cannot promise a time.",
     "offTopic": "I'm here to help with LAVAALL Technology — hardware, installation, or a request for the team — not with that topic."
@@ -511,6 +511,25 @@
           "source": "index.html"
         },
         {
+          "id": "coverage-lr",
+          "topic": "coverage where operate country Liberia",
+          "text": "**Liberia**: We deliver to Liberia, including Monrovia. Contact us to confirm delivery and installation details for your area.",
+          "keywords": [
+            "area",
+            "contact",
+            "country",
+            "coverage",
+            "deliv",
+            "delivery",
+            "detail",
+            "install",
+            "liberia",
+            "monrovia",
+            "operate"
+          ],
+          "source": "index.html"
+        },
+        {
           "id": "branches",
           "topic": "branches branch office location near me address Sierra Leone",
           "text": "Sierra Leone branches: Bo (28 Bojon Street), Makeni (10 Rogbaneh Road), Waterloo (135 Main Motor Road), Freetown – Brookfields (21 Old Railway Line), Kenema (1 Main Street), Kono (1 Post Office Road).",
@@ -744,7 +763,7 @@
         {
           "id": "policy-2",
           "topic": "",
-          "text": "The public coverage pages describe Sierra Leone, Guinea, and Guinea-Bissau. Delivery and installation depend on location and must be confirmed by the team. Do not infer additional branches or guaranteed coverage from a country option in a form. Retail and wholesale inquiries are welcome. Refurbished computers and laptops are described on the homepage; do not extend this to a specific phone or claim a warranty or certification.",
+          "text": "The public coverage pages describe Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Delivery and installation depend on location and must be confirmed by the team. Do not infer additional branches or guaranteed coverage from a country option in a form. Retail and wholesale inquiries are welcome. Refurbished computers and laptops are described on the homepage; do not extend this to a specific phone or claim a warranty or certification.",
           "keywords": [
             "additional",
             "branch",
@@ -769,6 +788,7 @@
             "install",
             "laptop",
             "leone",
+            "liberia",
             "loc",
             "must",
             "option",
@@ -860,7 +880,7 @@
         {
           "id": "qa-3",
           "topic": "Where does LAVAALL operate?",
-          "text": "The public site describes Sierra Leone, Guinea, and Guinea-Bissau. Ask the visitor's location so the team can confirm coverage.",
+          "text": "The public site describes Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Ask the visitor's location so the team can confirm coverage.",
           "keywords": [
             "ask",
             "coverage",
@@ -868,6 +888,7 @@
             "guinea",
             "guinea-bissau",
             "leone",
+            "liberia",
             "loc",
             "operate",
             "sierra",
@@ -1765,11 +1786,11 @@
     },
     {
       "path": "api/_chat/llm-responder.js",
-      "sha256": "f591eb1dc2b8e0edcdf8e84ce89d28f6ee448c031d53313a18cae71fdf50671e"
+      "sha256": "2c6ae6b283e7309ba6ea8129b02ed43106ea219f2ae3acc4a287d75ffee626a9"
     },
     {
       "path": "api/_chat/responder.js",
-      "sha256": "567c8a3fd77f2d447a891629f0e5cfce50c1277c502dbb51082eb77b39ac5b0f"
+      "sha256": "52088f7c1de80d83cf27a4c6220b4fd1ec51c1155d48ee8459a5c4729dd12f90"
     },
     {
       "path": "api/web/_site/content/en.json",
@@ -1785,12 +1806,12 @@
     },
     {
       "path": "docs/customer-assistant/kb-technology.md",
-      "sha256": "9617cbb31f38bd4f3332234df9de5e39f111166320fb93b2c085fffbfdcfbae6"
+      "sha256": "9bee39ffb991201cad2ac52e23cfee375192d525cbed3f19ce763e0ab01df46d"
     },
     {
       "path": "index.html",
-      "sha256": "7ff8a94490682dbb692b57f1d1c99ecec2285539abf33a28965e3ed054222ab9"
+      "sha256": "92cdc7a11d45cb2686c2c3ba68222b194e7cb0dd7c56268c5e621c8b3d93b021"
     }
   ],
-  "contentHash": "f40eaa181174f149ad2c3075da0595377f8f6d3d89e18a38834abbf6ea56fbd9"
+  "contentHash": "4ae3be74a837f48d2d4626400f6ab420f5bb1d3334ce919f58cfa1eff90f78b3"
 }

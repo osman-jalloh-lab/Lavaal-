@@ -20,11 +20,14 @@ function split(fact) {
   return m ? { name: m[1], desc: m[2] } : { name: '', desc: fact.text };
 }
 
+// Find-order keeps Guinea-Bissau ahead of Guinea so "Guinea-Bissau" does not hit coverage-gn.
 const COUNTRY = [
   { id: 'coverage-gw', re: /\bguinea[- ]?bissau\b|\bbissau\b/i },
   { id: 'coverage-gn', re: /\bguinea\b|\bconakry\b/i },
+  { id: 'coverage-lr', re: /\bliberia\b|\bmonrovia\b/i },
   { id: 'coverage-sl', re: /\bsierra leone\b|\bsalone\b|\bfreetown\b/i },
 ];
+const COUNTRY_DISPLAY = ['coverage-sl', 'coverage-gn', 'coverage-lr', 'coverage-gw'];
 const BRANCH_CITY = [
   ['Bo', /\bbo\b/i], ['Makeni', /\bmakeni\b/i], ['Waterloo', /\bwaterloo\b/i],
   ['Freetown', /\bfreetown\b|\bbrookfields\b/i], ['Kenema', /\bkenema\b/i], ['Kono', /\bkono\b/i],
@@ -46,17 +49,16 @@ function knowledgeReply(rawInput, session = {}, lang = 'en') {
   }
   if (HANDLED_ELSEWHERE.test(text)) return null;
 
-  // Liberia is not on the public coverage map: say what the map shows and let the team confirm.
-  if (/\bliberia\b|\bmonrovia\b/i.test(text) && (BRANCH.test(text) || OPERATE.test(text))) {
-    const names = COUNTRY.slice().reverse().map(c => '**' + split(byId(c.id)).name + '**');
-    return reply('Our public coverage map lists ' + names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] + '. For **Liberia**, our team can confirm coverage with you. Which city are you in?', 'coverage-liberia');
-  }
   if (BRANCH.test(text)) {
     const branches = byId('branches');
     if (!branches) return null;
     if (/\bguinea[- ]?bissau\b|\bbissau\b/i.test(text)) {
       const { desc } = split(byId('coverage-gw'));
       return reply('For **Guinea-Bissau**: ' + desc + ' Which area are you in?', 'coverage-gw');
+    }
+    if (/\bliberia\b|\bmonrovia\b/i.test(text)) {
+      const { desc } = split(byId('coverage-lr'));
+      return reply('For **Liberia**: ' + desc + ' Which city are you in?', 'coverage-lr');
     }
     const city = BRANCH_CITY.find(([, re]) => re.test(text));
     if (city) {
@@ -74,7 +76,7 @@ function knowledgeReply(rawInput, session = {}, lang = 'en') {
       return reply(line + ' Which city are you in?', country.id);
     }
     if (/\bwhere\b/i.test(text)) {
-      const names = COUNTRY.slice().reverse().map(c => '**' + split(byId(c.id)).name + '**');
+      const names = COUNTRY_DISPLAY.map(id => '**' + split(byId(id)).name + '**');
       return reply('We operate in ' + names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] + '. Which country are you in?', 'coverage');
     }
   }

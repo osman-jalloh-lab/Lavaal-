@@ -178,18 +178,30 @@ registerAsync(test('R-8: chips and topic reset are forwarded', async () => {
 
 // Emulates the #83 handoff with an explicit Confirm step (Mark's local work): the sink is written
 // and acknowledged only on the Confirm turn.
+// Mark's #83 handoff: WhatsApp/email chips, then one contact field, name, topic, Confirm/Cancel, then ack.
+const CHANNEL_Q = 'WhatsApp or email?';
+const CONFIRM_Q = 'Please confirm your details: Name: Ada Test. Contact: +23276000000. Topic: a laptop for our office. Shall I pass this to our team?';
+function handoffTurns() {
+  return ['I want to speak to someone', 'WhatsApp', '+23276000000', 'Ada Test', 'a laptop for our office'];
+}
 function handoffServer({ ackWithoutConfirm = false, ackOnConfirm = true } = {}) {
   let step = 0;
   return fakeServer(text => {
-    if (/speak to someone/i.test(text)) { step = 1; return { body: { text: NAME_Q } }; }
-    if (step === 1) { step = 2; return { body: { text: 'Thanks. What is the best phone/WhatsApp number or email to reach you?' } }; }
-    if (step === 2) {
-      step = 3;
-      if (ackWithoutConfirm) return { body: { text: CLOSE, handoff: { status: 'received', test: true, route: 'customer-success' } } };
-      return { body: { text: 'Here is what I will send: **Ada Test**, **+23276000000**. Shall I send it?', chips: ['Confirm', 'Cancel'] } };
+    if (/speak to someone/i.test(text)) { step = 1; return { body: { text: CHANNEL_Q, chips: ['WhatsApp', 'Email'] } }; }
+    if (step === 1) {
+      if (!/^(whatsapp|email|e-mail)$/i.test(text)) return { body: { text: CHANNEL_Q, chips: ['WhatsApp', 'Email'] } };
+      step = 2;
+      return { body: { text: /^email/i.test(text) ? 'What is your email address?' : 'What is your WhatsApp number, with country code?' } };
     }
-    if (step === 3 && /^confirm$/i.test(text)) { step = 0; return { body: ackOnConfirm ? { text: CLOSE, handoff: { status: 'received', test: true, route: 'customer-success' } } : { text: CLOSE } }; }
-    if (step === 3 && /^cancel$/i.test(text)) { step = 0; return { body: { text: 'Request cancelled. What else can I help with?' } }; }
+    if (step === 2) { step = 3; return { body: { text: 'Can I get your first and last name?' } }; }
+    if (step === 3) { step = 4; return { body: { text: 'What would you like to talk to the team about?' } }; }
+    if (step === 4) {
+      step = 5;
+      if (ackWithoutConfirm) return { body: { text: CLOSE, handoff: { status: 'received', test: true, route: 'customer-success' } } };
+      return { body: { text: CONFIRM_Q, chips: ['Confirm', 'Cancel'] } };
+    }
+    if (step === 5 && /^confirm$/i.test(text)) { step = 0; return { body: ackOnConfirm ? { text: CLOSE, handoff: { status: 'received', test: true, route: 'customer-success' } } : { text: CLOSE } }; }
+    if (step === 5 && /^cancel$/i.test(text)) { step = 0; return { body: { text: 'Request cancelled. What else can I help with?' } }; }
     return { body: { text: 'ok', handoff: { status: 'received', test: true, route: 'customer-success' } } };
   });
 }
@@ -197,8 +209,13 @@ function handoffServer({ ackWithoutConfirm = false, ackOnConfirm = true } = {}) 
 registerAsync(test('C-1: request:confirmed fires once, only after Confirm and the server ack, with no personal data', async () => {
   const a = make(handoffServer()); const ev = record(a);
   await turn(a, 'I want to speak to someone');
-  await turn(a, 'Ada Test');
+  assertEqual(ev.filter(e => e.name === 'chat:chips').pop().detail.chips.join('|'), 'WhatsApp|Email');
+  assert(!names(ev).includes('request:review'), 'channel chips are not a Confirm/Cancel review');
+  assert(!a.reviewPending);
+  await turn(a, 'WhatsApp');
   await turn(a, '+23276000000');
+  await turn(a, 'Ada Test');
+  await turn(a, 'a laptop for our office');
   assert(names(ev).includes('request:review'), 'review shown');
   assert(a.reviewPending, 'review pending');
   assert(!names(ev).includes('request:confirmed'), 'not confirmed before Confirm');
@@ -214,14 +231,14 @@ registerAsync(test('C-1: request:confirmed fires once, only after Confirm and th
 
 registerAsync(test('C-2: a server that writes without a Confirm step never triggers request:confirmed', async () => {
   const a = make(handoffServer({ ackWithoutConfirm: true })); const ev = record(a);
-  await turn(a, 'I want to speak to someone'); await turn(a, 'Ada Test'); await turn(a, 'ada@example.test');
+  for (const t of handoffTurns()) await turn(a, t);
   assert(!names(ev).includes('request:confirmed'));
   assert(names(ev).includes('request:unconfirmed'));
 }));
 
 registerAsync(test('C-3: Confirm without a server ack does not fire request:confirmed', async () => {
   const a = make(handoffServer({ ackOnConfirm: false })); const ev = record(a);
-  await turn(a, 'I want to speak to someone'); await turn(a, 'Ada Test'); await turn(a, '+23276000000'); await turn(a, 'Confirm');
+  for (const t of handoffTurns()) await turn(a, t); await turn(a, 'Confirm');
   assert(!names(ev).includes('request:confirmed'));
 }));
 
@@ -233,7 +250,7 @@ registerAsync(test('C-4: typing Confirm with no summary on screen does not fire 
 
 registerAsync(test('C-5: Cancel clears the summary and fires request:cancelled', async () => {
   const a = make(handoffServer()); const ev = record(a);
-  await turn(a, 'I want to speak to someone'); await turn(a, 'Ada Test'); await turn(a, '+23276000000'); await turn(a, 'Cancel');
+  for (const t of handoffTurns()) await turn(a, t); await turn(a, 'Cancel');
   assert(names(ev).includes('request:cancelled'));
   assert(!names(ev).includes('request:confirmed'));
   assert(!a.reviewPending);
@@ -244,6 +261,19 @@ registerAsync(test('C-6: simulateHandoff is labelled simulated and never fires r
   a.simulateHandoff(); await wait(10);
   assert(names(ev).includes('request:simulated'));
   assert(!names(ev).includes('request:confirmed'));
+}));
+
+registerAsync(test('C-7: WhatsApp/email chips are forwarded and never treated as Confirm/Cancel', async () => {
+  const a = make(handoffServer()); const ev = record(a);
+  await turn(a, 'I want to speak to someone');
+  assertEqual(ev.filter(e => e.name === 'chat:chips').pop().detail.chips.join('|'), 'WhatsApp|Email');
+  assert(!names(ev).includes('request:review'));
+  assert(!names(ev).includes('request:confirmed'));
+  assert(!a.reviewPending);
+  await turn(a, 'Email');
+  assertEqual(ev.filter(e => e.name === 'chat:speaking').pop().detail.text, 'What is your email address?');
+  assert(!names(ev).includes('request:review'));
+  assert(!a.reviewPending);
 }));
 
 // ── Flag / selection ─────────────────────────────────────────────
@@ -292,17 +322,16 @@ registerAsync(test('P-1: real adapter greeting and footer replace the demo copy'
   panel.destroy();
 })));
 
-registerAsync(test('P-2: Confirm chip sends "Confirm"; bold renders as <strong>; real ack adds no extra bubble', () => serial(async () => {
+registerAsync(test('P-2: Confirm chip sends "Confirm"; real ack adds no extra bubble', () => serial(async () => {
   const a = make(handoffServer()); const ev = record(a);
   const { panel, mascotStates } = panelWith(a);
   panel.open();
-  for (const t of ['I want to speak to someone', 'Ada Test', '+23276000000']) { panel._sendText(t); await wait(15); }
+  for (const t of handoffTurns()) { panel._sendText(t); await wait(15); }
   const chipButtons = panel._chipBar.children;
   assertEqual(chipButtons.map(b => b.textContent).join('|'), 'Confirm|Cancel');
   assert(!panel._chipBar.hasAttribute('hidden'), 'chips visible');
   const summary = bubbles(panel).pop();
-  assert(summary.node.children.some(c => c.tagName === 'STRONG' && c.textContent === 'Ada Test'), 'bold name');
-  assertEqual(summary.text, 'Here is what I will send: Ada Test, +23276000000. Shall I send it?');
+  assertEqual(summary.text, CONFIRM_Q);
   chipButtons[0].click(); await wait(15);
   assert(names(ev).includes('request:confirmed'));
   const all = bubbles(panel);
