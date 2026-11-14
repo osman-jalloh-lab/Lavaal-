@@ -100,6 +100,7 @@ async function main() {
   await runSuite('v1.2 Regressions',      './v12-regressions.test.js');
   await runSuite('v1.3 Design Kit',       './v13-design-kit.test.js');
   await runSuite('RealChatAdapter',       './real-chat-adapter.test.js');
+  await runSuite('Homepage boot',         './boot.test.js');
 
   // Wait for any async test promises to settle (adapter timing tests)
   if (asyncPromises.length > 0) {

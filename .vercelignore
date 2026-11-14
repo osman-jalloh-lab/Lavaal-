@@ -5,3 +5,9 @@
 docs/web/
 scripts/web/
 tests/test-web.js
+
+# Mascot demo pages, local preview shots, and test outputs are not part of the site.
+mascot/demo/
+mascot/tests/
+mascot/RESULTS.md
+preview-shots/
