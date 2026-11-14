@@ -364,48 +364,22 @@ function formReply(text, draft, awaiting, events) {
 }
 
 function startForm(session) {
-  return formReply('Sure, I can help you fill out a quick form. What is your **name**?', { name: '', contact: '', need: '', topic: session.lastTopic || '' }, 'form-name');
+  return guidedHandoff('', session, 'form');
 }
 
 function guidedForm(text, session) {
-  const raw = String(text || '').trim();
-  const awaiting = session.awaiting;
-  if (String(awaiting || '').startsWith('form-') && /^(cancel|cancel request)$/i.test(raw)) {
-    return result('Request cancelled. What else can I help with?', ['form-intake'], {
-      chips: ['Request a quote', 'Talk to someone'], awaiting: null, formDraft: null, lastTopic: null,
-    });
-  }
-  if (String(awaiting || '').startsWith('form-') && awaiting !== 'form-offer' && /^start over$/i.test(raw)) {
-    return startForm(session);
-  }
-  if (awaiting === 'form-offer') {
-    if (FORM_START.test(raw) || /^fill out a form$/i.test(raw)) return startForm(session);
-    return null;
-  }
-  if (awaiting === 'form-name') {
-    if (raw.length < 2 || raw.length > 100) return formReply('Please enter a name under 100 characters.', formDraft(session), 'form-name');
-    const draft = Object.assign(formDraft(session), { name: raw });
-    return formReply('Thanks, **' + draft.name + '**. What **phone**, WhatsApp, or **email** should the team use?', draft, 'form-contact');
-  }
-  if (awaiting === 'form-contact') {
-    const value = raw.replace(/^(?:my\s+)?(?:phone|whatsapp|email|e-mail)(?:\s+(?:is|number))?\s*[:\-]?\s*/i, '').trim();
-    if (!isEmail(value) && !isPhone(value)) {
-      return formReply('Please enter a **phone**, WhatsApp number, or **email**.', formDraft(session), 'form-contact');
-    }
-    const draft = Object.assign(formDraft(session), { contact: value });
-    return formReply('What do you need help with?', draft, 'form-need');
-  }
-  if (awaiting === 'form-need') {
-    if (raw.length < 2) return formReply('Please tell me briefly what you need help with.', formDraft(session), 'form-need');
-    const draft = Object.assign(formDraft(session), { need: raw.slice(0, 2000) });
-    const textOut = 'Thank you, someone from our team will reach out to you shortly.';
-    return result(textOut, ['form-intake', 'service-help', 'form-complete'], {
-      chips: ['Talk to someone'],
-      awaiting: null,
-      formDraft: draft,
-      lastTopic: 'form-complete',
-    });
-  }
+  if ((session.awaiting === 'form-offer' && FORM_START.test(text)) || /^(?:fill out a (?:quick )?form|start (?:the |a )?form)$/i.test(text)) return startForm(session);
+  return null;
+}
+
+function normalizeContactPhone(value) {
+  const raw = String(value || '').trim();
+  if (!/^\+?[0-9 () .-]+$/.test(raw)) return null;
+  const digits = raw.replace(/\D/g, '');
+  if (/^\+232/.test(raw)) return /^232[23789]\d{7}$/.test(digits) ? raw : null;
+  if (raw.startsWith('+')) return /^[1-9]\d{7,14}$/.test(digits) ? '+' + digits : null;
+  if (raw.startsWith('00')) return /^[1-9]\d{7,14}$/.test(digits.slice(2)) ? '+' + digits.slice(2) : null;
+  if (/^0[23789]\d{7}$/.test(digits)) return '+232' + digits.slice(1);
   return null;
 }
 
@@ -442,15 +416,26 @@ function guidedHandoff(text, session, start) {
   if (!active) {
     const earlier = session.history || [];
     const lastUser = earlier.filter(turn => turn.role === 'user').slice(-1)[0];
-    return reply('Yes sure, can I get your first and last name?', {
+    return reply('WhatsApp or email?', {
       kind: start === 'quote' ? 'quote' : 'person', name: '', contact: '', topic: handoffTopic(session).slice(0, 300),
       topicKnownFromChat: Boolean(handoffTopic(session)),
       earlier: String(session.lastUser || (lastUser && lastUser.text) || '').slice(0, 200),
-    }, 'handoff-name', { handoff: { tagOsman: true } });
+    }, 'handoff-channel', { chips: ['WhatsApp', 'Email'], handoff: { tagOsman: true } });
   }
   const draft = { ...(session.handoffDraft || {}) };
   const topicQuestion = draft.kind === 'quote' ? 'What would you like a quote for?' : 'What would you like to talk to the team about?';
   const confirmation = () => reply('Please confirm your details: Name: ' + draft.name + '. Contact: ' + draft.contact + '. Topic: ' + draft.topic + '. Shall I pass this to our team?', draft, 'handoff-confirm', { chips: ['Confirm', 'Cancel'] });
+  if (session.awaiting === 'handoff-channel') {
+    if (!/^(whatsapp|email|e-mail)$/i.test(raw)) return reply('WhatsApp or email?', draft, 'handoff-channel', { chips: ['WhatsApp', 'Email'] });
+    draft.channel = /^whatsapp$/i.test(raw) ? 'whatsapp' : 'email';
+    return reply(draft.channel === 'whatsapp' ? 'What is your WhatsApp number, with country code?' : 'What is your email address?', draft, 'handoff-contact');
+  }
+  if (session.awaiting === 'handoff-contact') {
+    const value = draft.channel === 'email' ? (isEmail(raw) ? raw : null) : normalizeContactPhone(raw);
+    if (!value || raw.length > 300) return reply(draft.channel === 'email' ? 'Please enter a valid email address.' : 'Please enter a valid WhatsApp number with country code.', draft, 'handoff-contact');
+    draft.contact = value;
+    return reply('Can I get your first and last name?', draft, 'handoff-name');
+  }
   if (session.awaiting === 'handoff-name') {
     if (start || !raw || raw.length > 100 || !/\p{L}/u.test(raw) || isEmail(raw) || isPhone(raw)) {
       return reply('Could I get your first and last name, please?', draft, 'handoff-name');
@@ -460,13 +445,6 @@ function guidedHandoff(text, session, start) {
       return reply('Could I get your first and last name, please?', draft, 'handoff-name');
     }
     draft.name = raw;
-    return reply("What's the best phone/WhatsApp number or email to reach you?", draft, 'handoff-contact');
-  }
-  if (session.awaiting === 'handoff-contact') {
-    if (raw.length > 300 || (!isEmail(raw) && !isPhone(raw))) {
-      return reply("That doesn't look like a valid phone number or email. What's the best phone/WhatsApp number (with country code) or email to reach you?", draft, 'handoff-contact');
-    }
-    draft.contact = raw;
     if (!draft.topic) return reply(topicQuestion, draft, 'handoff-topic');
   } else if (session.awaiting === 'handoff-topic') {
     if (!raw || raw.length > 300) return reply(topicQuestion, draft, 'handoff-topic');
@@ -641,7 +619,7 @@ function guidedReply(rawInput, session, lang, flags) {
   if (PAY_ASK.test(text) || LEGAL_ASK.test(text)) {
     const handoff = /\b(invoice|refund|damage|legal|lawyer)\b/i.test(text);
     const line = handoff
-      ? 'Thanks, someone from our team will reach out to you shortly. What is the best WhatsApp number or email to reach you?'
+      ? 'WhatsApp or email?'
       : 'Payment is agreed after a quote is accepted. Please never pay before you have a full written quote. Would you like to start a quote now?';
     return result(line, handoff ? ['faq-pay', 'tag-osman-handoff'] : ['faq-pay'], {
       chips: handoff ? [] : ['Request a quote', 'Talk to someone'],
@@ -703,5 +681,5 @@ function guidedReply(rawInput, session, lang, flags) {
 
 module.exports = {
   slotReply, hasSlotContext, guidedReply, guidedHandoff, isSlotFill, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK,
-  shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START,
+  shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START, normalizeContactPhone,
 };

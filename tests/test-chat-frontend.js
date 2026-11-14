@@ -159,15 +159,15 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   assert.match(log.textContent, /Sure, what can I help with/);
   const quotePending = starterButtons[3].events.click();
   assert.equal(calls.at(-1).payload.text, 'I want to request a quote.');
-  resolveTurn({text:'Yes sure, can I get your first and last name?', awaiting:'handoff-name', chips:['Cancel request']});
+  resolveTurn({text:'WhatsApp or email?', awaiting:'handoff-channel', chips:['WhatsApp', 'Email']});
   await quotePending;
-  assert.equal(log.children.at(-1).textContent, 'Yes sure, can I get your first and last name?');
-  assert.deepEqual(descendants(followups).filter(child=>child.tag === 'button').map(child=>child.textContent), ['Cancel request']);
+  assert.equal(log.children.at(-1).textContent, 'WhatsApp or email?');
+  assert.deepEqual(descendants(followups).filter(child=>child.tag === 'button').map(child=>child.textContent), ['WhatsApp', 'Email']);
   const count = calls.length;
-  input.value = 'Ada Test';
+  input.value = 'Email';
   const quoteNamePending = composer.events.submit({preventDefault(){}});
   assert.equal(calls.length, count + 1, 'quote name is sent to the server');
-  resolveTurn({text:"What's the best phone/WhatsApp number or email to reach you?", awaiting:'handoff-contact', chips:[]});
+  resolveTurn({text:"What is your email address?", awaiting:'handoff-contact', chips:[]});
   await quoteNamePending;
   assert.equal(followups.children.length, 0, 'an empty server chips array remains empty during intake');
   assert.ok(calls.every(call=>call.action === 'turn'));
@@ -175,20 +175,20 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   const beforeHandoff = log.children.length;
   const handoffPending = starterButtons[4].events.click();
   assert.match(calls.at(-1).payload.text, /speak to a person/i);
-  resolveTurn({text:'Yes sure, can I get your first and last name?', awaiting:'handoff-name', chips:[]});
+  resolveTurn({text:'WhatsApp or email?', awaiting:'handoff-channel', chips:[]});
   await handoffPending;
   const handoffBubbles = log.children.slice(beforeHandoff);
   assert.equal(handoffBubbles.length, 2, 'person handoff adds one user bubble and exactly one server assistant bubble');
-  assert.equal(handoffBubbles[1].textContent, 'Yes sure, can I get your first and last name?');
+  assert.equal(handoffBubbles[1].textContent, 'WhatsApp or email?');
   assert.equal(handoffBubbles.filter(bubble=>bubble.textContent === 'What is your name?').length, 0, 'person handoff has no local name question');
   const handoffCallCount = calls.length;
-  input.value = 'Ada Test';
+  input.value = 'Email';
   const namePending = composer.events.submit({preventDefault(){}});
   assert.equal(calls.length, handoffCallCount + 1, 'handoff name is sent to the server');
-  assert.equal(calls.at(-1).payload.text, 'Ada Test');
-  resolveTurn({text:"What's the best phone/WhatsApp number or email to reach you?", awaiting:'handoff-contact', chips:[]});
+  assert.equal(calls.at(-1).payload.text, 'Email');
+  resolveTurn({text:"What is your email address?", awaiting:'handoff-contact', chips:[]});
   await namePending;
-  assert.equal(log.children.at(-1).textContent, "What's the best phone/WhatsApp number or email to reach you?");
+  assert.equal(log.children.at(-1).textContent, "What is your email address?");
   const failDoc = {createElement:tag=>new Element(tag), body:new Element('body')};
   const failPanel = ui.mount(failDoc, local, {
     ...enabled,

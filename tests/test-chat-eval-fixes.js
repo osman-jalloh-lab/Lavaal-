@@ -59,7 +59,9 @@ const chips = reply => (reply.chips || []).map(chip => typeof chip === 'string' 
     assert.doesNotMatch(reply.text, /Yes,? we have|Power Banks|Multi-Site|No Gap/i);
   }
   const cameras = await last(['Please show the cameras category']);
-  assert.match(cameras.text + chips(cameras), /camera/i);
+  assert.equal(cameras.context.narrow.scope.categoryId, 'cameras');
+  assert.ok(cameras.context.lastProducts.every(product => product.categoryId === 'cameras'));
+  assert.match(chips(cameras), /Canon|Hikvision|Sony/);
 
   // 2. Vocabulary normalization applies before catalogue matching.
   for (const [input, expected] of [
@@ -78,8 +80,11 @@ const chips = reply => (reply.chips || []).map(chip => typeof chip === 'string' 
   assert.match(chips(a34), /Galaxy A34/i);
   assert.equal(a34.context.lastModel, null, 'An ambiguous A-series request must not select a SKU');
   const absentA = await last(['I am considering samsun a ninety nine']);
-  assert.match(absentA.text, /(?:not|don't|do not).*(?:list|catalog)|(?:list|catalog).*(?:not|don't)/i);
-  assert.match(absentA.text + chips(absentA), /Galaxy A|sourc/i);
+  assert.match(absentA.text, /Someone from our team will get back to you within 24 hours/);
+  assert.doesNotMatch(absentA.text, /we (?:do not|don't) (?:have|carry|stock)|in stock/i);
+  assert.match(absentA.text, /quick form/i);
+  assert.doesNotMatch(chips(absentA), /Galaxy A99|ninety nine/i);
+  assert.equal(absentA.context.lastModel, null);
 
   // 3. Corrections replace prior slot values, including service-persisted context.
   let reply = await last(['I need 18 Dell laptops', 'actually 9']);

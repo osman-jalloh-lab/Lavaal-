@@ -431,14 +431,15 @@ function respond(text, session = {}) {
   const blockedHandoff = (warning, event) => {
     const questions = {
       'handoff-name': 'Could I get your first and last name, please?',
-      'handoff-contact': "What's the best phone/WhatsApp number or email to reach you?",
+      'handoff-channel': 'WhatsApp or email?',
+      'handoff-contact': session.handoffDraft?.channel === 'email' ? 'What is your email address?' : 'What is your WhatsApp number, with country code?',
       'handoff-topic': session.handoffDraft?.kind === 'quote' ? 'What would you like a quote for?' : 'What would you like to talk to the team about?',
       'handoff-confirm': 'Please confirm your details: Name: ' + session.handoffDraft?.name + '. Contact: ' + session.handoffDraft?.contact + '. Topic: ' + session.handoffDraft?.topic + '. Shall I pass this to our team?',
     };
     const question = questions[session.awaiting];
     return question ? { text: warning + ' ' + question, language: lang,
       events: ['handoff-intake', event], fields: {}, awaiting: session.awaiting,
-      handoffDraft: session.handoffDraft, chips: session.awaiting === 'handoff-confirm' ? ['Confirm', 'Cancel'] : ['Cancel request'], lastTopic: 'handoff-intake' } : null;
+      handoffDraft: session.handoffDraft, chips: session.awaiting === 'handoff-confirm' ? ['Confirm', 'Cancel'] : session.awaiting === 'handoff-channel' ? ['WhatsApp', 'Email'] : ['Cancel request'], lastTopic: 'handoff-intake' } : null;
   };
 
   if (isInjection(rawInput)) {
@@ -472,13 +473,13 @@ function respond(text, session = {}) {
     }[lang], language: lang, events: ['blocked-sensitive:' + sensitive], fields: {}, chips: ['Request a quote', 'Talk to someone'], sensitiveBlocked: true };
   }
 
+  const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : /\b(invoice|refund|damaged|legal|lawyer)\b/i.test(rawInput) || (AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput)));
+  if (handoff) return handoff;
+
   const special = require('./intents').specialIntent(rawInput, lang, session);
   if (special) return attachTopic(special, rawInput, context, reset);
   const slot = require('./conversation').slotReply(rawInput, session);
   if (slot) { slot.language = lang; return slot; }
-
-  const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput));
-  if (handoff) return handoff;
 
   if (/\b(install(?:ation|ations|ing)?|installe[rz]?|installer|installations?|deployment|deploy|deploiement|instalacao|instalar)\b/i.test(foldedText(rawInput))) {
     const line = {
@@ -519,14 +520,7 @@ function respond(text, session = {}) {
   const catalogPreview = searchMaybeMulti(input, { limit: 8 });
   const productIntent = TECH_HINTS.test(input) || (catalogPreview.matches.length > 0 && (qty || priceAsk || /\b(iphone|laptop|server|router|dell|hp|cisco|macbook)\b/i.test(input)));
   if (wantsAgent && !productIntent && !priceAsk) {
-    events.push('tag-osman-handoff');
-    const line = {
-      en: 'Thank you, someone from our team will reach out to you shortly. What is the best WhatsApp number or email to reach you?',
-      fr: "Merci, quelqu'un de l'équipe vous recontactera sous peu. Quel est le meilleur WhatsApp ou e-mail pour vous joindre ?",
-      pt: 'Obrigado, alguém da equipa entrará em contacto consigo em breve. Qual é o melhor WhatsApp ou e-mail para o contactarmos?',
-      kr: 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn. Wetin na di bɛst WhatsApp ɔ ɛmail fɔ rich yu?',
-    }[lang];
-    return attachTopic({ text: line, language: lang, events, fields: {}, chips: [], handoff: { tagOsman: true } }, rawInput, context, reset);
+    return guidedHandoff(rawInput, handoffSession, true);
   }
 
   if (hours && !priceAsk && !TECH_HINTS.test(input) && !TECH_HINTS.test(rawInput) && !searchMaybeMulti(String(input).replace(/24\s*\/\s*7/ig, " ").replace(/\b24\s+7\b/g, " ")).matches.length) {

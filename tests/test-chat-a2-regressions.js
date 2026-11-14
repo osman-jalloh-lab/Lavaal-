@@ -26,8 +26,8 @@ const handoff = respond('I want to speak to a person on your team, please.', ses
 assert.equal(intentFrom(handoff), 'handoff-intake');
 assert.equal(handoff.handoff.tagOsman, true);
 assert.doesNotMatch(handoff.text + JSON.stringify(handoff.fields), /iphone|epson/i);
-const shortly = 'Thanks, someone from our team will reach out to you shortly.';
-assert.equal(handoff.text, 'Yes sure, can I get your first and last name?');
+const shortly = 'Thank you, someone from our team will reach out to you shortly.';
+assert.equal(handoff.text, 'WhatsApp or email?');
 assert.equal(PHRASES.shortly.en, shortly);
-assert.equal(handoff.awaiting, 'handoff-name');
+assert.equal(handoff.awaiting, 'handoff-channel');
 console.log('A2 chat regressions passed');

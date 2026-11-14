@@ -20,7 +20,7 @@ async function main() {
   // A) receipt only after Confirm; exact chips on the summary step.
   for (const [start, kind] of [['I want to speak to a person on your team, please.', 'person'], ['I want to request a quote.', 'quote']]) {
     const f = fixture();
-    for (const text of [start, 'Ada Test', '+232 76 000 000']) assert.equal((await f.turn(text)).handoff, undefined);
+    for (const text of [start, 'WhatsApp', '+232 76 000 000', 'Ada Test']) assert.equal((await f.turn(text)).handoff, undefined);
     const summary = await f.turn(kind === 'quote' ? '10 laptops' : 'an order');
     assert.match(summary.text, /^Please confirm your details:/);
     assert.deepEqual(summary.chips, ['Confirm', 'Cancel']);
@@ -33,7 +33,7 @@ async function main() {
     assert.equal(await sinks(f.store), 1);
   }
   const cancelled = fixture();
-  for (const text of ['talk to someone', 'Ada Test', 'ada@example.com', 'an order']) await cancelled.turn(text);
+  for (const text of ['talk to someone', 'Email', 'ada@example.com', 'Ada Test', 'an order']) await cancelled.turn(text);
   const cancel = await cancelled.turn('Cancel');
   assert.equal(cancel.text, 'Request cancelled. What else can I help with?');
   assert.equal(cancel.handoff, undefined);
