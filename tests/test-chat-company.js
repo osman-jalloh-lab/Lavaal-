@@ -34,7 +34,7 @@ const variants = ['what makes you different?', 'what makes LAVAALL different?', 
   assert.match(respond('are you human').text, /AI assistant/);
   assert.ok(!respond('are you human').events.includes('company-pitch'));
   const general = { language: 'en', events: [], fields: {}, matchCount: 2, text: 'How can I help?' };
-  assert.deepEqual(requiredSentences(general), []);
+  assert.deepEqual(requiredSentences(general), ['Would you like a quick form?']);
   assert.doesNotMatch(postEnforce('LAVAALL helps with technology and web projects. How can I help?', general).text, /stock or price|WhatsApp|support@/);
   const messages = buildMessages('Tell me about your business', general, {});
   assert.doesNotMatch(messages[1].content, /MUST mention each/);

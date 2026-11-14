@@ -128,6 +128,7 @@ function requiredSentences(rule) {
   else if (/wholesale|en gros|por grosso|holsel|bulk/i.test(rule.text || '')) core = PHRASES.bulk[lang];
   else if (intent === 'in-catalog') core = PHRASES.noConfirm[lang];
   const lines = core ? [core] : [];
+  if (intent === 'general') lines.push(({ en: 'Would you like a quick form?', fr: 'Souhaitez-vous un formulaire rapide ?', pt: 'Quer um formulário rápido?', kr: 'Yu wan fill wan kwik fɔm?' })[lang]);
   if (intent !== 'block-sensitive' && intent !== 'general') lines.push(PHRASES.offer[lang]);
   return lines;
 }
