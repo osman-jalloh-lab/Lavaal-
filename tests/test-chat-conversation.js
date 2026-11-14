@@ -88,8 +88,11 @@ const handoff = respond('I want to speak to a person on your team, please.');
 assert.equal(handoff.handoff.tagOsman, true);
 assert.equal(handoff.text, 'Yes sure, can I get your first and last name?');
 assert.equal(shouldSkipModel(handoff), 'handoff-intake');
-assert.equal(PHRASES.shortly.en, 'Thanks, someone from our team will reach out to you shortly.');
+assert.equal(PHRASES.shortly.en, 'Thank you, someone from our team will reach out to you shortly.');
 assert.equal(handoff.awaiting, 'handoff-name');
 assert.doesNotMatch(handoff.text, /epson|printer/i);
 
 console.log('A2 conversation and FAQ flows passed');
+
+const receipt = respond('office equipment request', { awaiting: 'form-need', formDraft: { name: 'Mira Sample', contact: 'mira@example.org' } });
+assert.equal(receipt.text, 'Thank you, someone from our team will reach out to you shortly.');

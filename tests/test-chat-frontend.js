@@ -51,7 +51,7 @@ assert.equal(ui.eligible({
 for (const language of ['en','fr','pt']) {
   assert.equal(ui.copy[language].questions.length, 5);
   assert.match(ui.copy[language].first, /AI|IA/);
-  assert.doesNotMatch(JSON.stringify(ui.copy[language]), /\$|free|shortly|24 hours|200\+|500\+/i);
+  assert.doesNotMatch(JSON.stringify({ ...ui.copy[language], accepted: undefined }), /\$|free|shortly|24 hours|200\+|500\+/i);
 }
 assert.equal(ui.scaffold, undefined, 'no vendor widget scaffold');
 assert.equal(ui.summary({
@@ -248,3 +248,5 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   assert.match(panel.textContent, /We're reachable 24\/7 on WhatsApp and email/);
   console.log(`PASS chat frontend: ${assertions} assertions; greeting, chips, typeahead, follow-ups, conversational intake, loading, safety and brand checks`);
 })().catch(error=>{ console.error(error); process.exitCode = 1; });
+
+assert.equal(ui.copy.en.accepted, 'Thank you, someone from our team will reach out to you shortly.');

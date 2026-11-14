@@ -46,7 +46,7 @@ const PHRASES = {
     kr: 'A de ya fɔ ɛp wit LAVAALL Technology — ɛkwipmɛnt, instaleshɔn, ɔ rɛkwɛst fɔ di tim — nɔt dat tɔpik.',
   },
   shortly: {
-    en: 'Thanks, someone from our team will reach out to you shortly.',
+    en: 'Thank you, someone from our team will reach out to you shortly.',
     fr: "Vous pouvez parler à une personne via nos contacts WhatsApp ou e-mail.",
     pt: 'Pode falar com uma pessoa pelos nossos contactos WhatsApp ou e-mail.',
     kr: 'Yu kin tɔk to wan pɔsin na wi WhatsApp ɔ ɛmail.',

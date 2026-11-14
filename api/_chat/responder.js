@@ -175,7 +175,7 @@ function contacts() {
 function offer(lang, wantsAgent) {
   const shortly = wantsAgent
     ? {
-      en: 'Thanks, someone from our team will reach out to you shortly.',
+      en: 'Thank you, someone from our team will reach out to you shortly.',
       fr: "Merci, quelqu'un de l'équipe vous recontactera sous peu.",
       pt: 'Obrigado, alguém da equipa entrará em contacto consigo em breve.',
       kr: 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn.',
@@ -527,7 +527,7 @@ function respond(text, session = {}) {
   if (wantsAgent && !productIntent && !priceAsk) {
     events.push('tag-osman-handoff');
     const line = {
-      en: 'Thanks, someone from our team will reach out to you shortly. What is the best WhatsApp number or email to reach you?',
+      en: 'Thank you, someone from our team will reach out to you shortly. What is the best WhatsApp number or email to reach you?',
       fr: "Merci, quelqu'un de l'équipe vous recontactera sous peu. Quel est le meilleur WhatsApp ou e-mail pour vous joindre ?",
       pt: 'Obrigado, alguém da equipa entrará em contacto consigo em breve. Qual é o melhor WhatsApp ou e-mail para o contactarmos?',
       kr: 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn. Wetin na di bɛst WhatsApp ɔ ɛmail fɔ rich yu?',

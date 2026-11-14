@@ -405,11 +405,7 @@ function guidedForm(text, session) {
   if (awaiting === 'form-need') {
     if (raw.length < 2) return formReply('Please tell me briefly what you need help with.', formDraft(session), 'form-need');
     const draft = Object.assign(formDraft(session), { need: raw.slice(0, 2000) });
-    const textOut = joinBlocks([
-      'Thanks, **' + draft.name + '**. I have your request for the team.',
-      'Please also send it to **' + EMAIL + '** or WhatsApp **' + WHATSAPP + '**, or use the ' + FORM_LINK + ' on this page.',
-      SERVICE_SLA,
-    ]);
+    const textOut = 'Thank you, someone from our team will reach out to you shortly.';
     return result(textOut, ['form-intake', 'service-help', 'form-complete'], {
       chips: ['Talk to someone'],
       awaiting: null,

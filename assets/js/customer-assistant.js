@@ -11,7 +11,7 @@
       skipped: 'Skipped',
       edit: 'Edit inquiry',
       unknown: 'Delivery is uncertain. Do not send again; contact the team.',
-      accepted: 'Your request was accepted. Someone from the team will reach out.',
+      accepted: 'Thank you, someone from our team will reach out to you shortly.',
       disabled: 'I could not complete that just now. Email support@lavaall.com or WhatsApp +1 (737) 704-4182.',
       answer: 'Local test response: the team can confirm your Technology request. I cannot access internal systems or confirm stock, dates or pricing.',
       language: 'Language',
