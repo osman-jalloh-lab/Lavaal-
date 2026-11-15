@@ -14,7 +14,7 @@ const TOPIC = 'What would you like to talk to the team about?';
 const LOCATION = 'Which country and city are you in? You can skip this.';
 const ORGANISATION = 'What organisation are you with? You can skip this.';
 const QUOTE = 'What would you like a quote for?';
-const CLOSE = 'Thank you, someone from our team will reach out to you shortly.';
+const CLOSE = "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).";
 const CANCEL = 'Request cancelled. What else can I help with?';
 const FORBIDDEN = /preview|delivery is off|delivery_disabled|details below|test only|test mode/i;
 let modelCalls = 0, networkCalls = 0, transportCalls = 0;

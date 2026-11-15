@@ -48,7 +48,7 @@ const PHRASES = {
     kr: 'A de ya fɔ ɛp wit LAVAALL Technology — ɛkwipmɛnt, instaleshɔn, ɔ rɛkwɛst fɔ di tim — nɔt dat tɔpik.',
   },
   shortly: {
-    en: 'Thank you, someone from our team will reach out to you shortly.',
+    en: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).",
     fr: "Vous pouvez parler à une personne via nos contacts WhatsApp ou e-mail.",
     pt: 'Pode falar com uma pessoa pelos nossos contactos WhatsApp ou e-mail.',
     kr: 'Yu kin tɔk to wan pɔsin na wi WhatsApp ɔ ɛmail.',

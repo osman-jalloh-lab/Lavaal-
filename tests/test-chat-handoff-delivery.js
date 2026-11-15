@@ -4,7 +4,7 @@ const { createService } = require('../api/_chat/service');
 const { memoryStore, kvStore } = require('../api/_chat/store');
 const { createHandler } = require('../api/chat-inquiry');
 const { respond } = require('../api/_chat/responder');
-const CLOSE = 'Thank you, someone from our team will reach out to you shortly.';
+const CLOSE = "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).";
 const webhook = { CHAT_HANDOFF_WEBHOOK_URL: 'https://handoff.invalid/exec', CHAT_HANDOFF_WEBHOOK_SECRET: 'synthetic-handoff-secret' };
 let assertions = 0;
 function check(fn) { fn(); assertions++; }

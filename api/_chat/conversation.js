@@ -443,7 +443,7 @@ const HANDOFF_COPY = {
     location: 'Which country and city are you in? You can skip this.', organisation: 'What organisation are you with? You can skip this.',
     name: 'Could I get your first and last name, please?', topic: 'What would you like to talk to the team about?', quote: 'What would you like a quote for?',
     confirm: d => 'Please confirm your details: Name: ' + d.name + '. Contact: ' + d.contact + '. Topic: ' + d.topic + '. Shall I pass this to our team?',
-    receipt: 'Thank you, someone from our team will reach out to you shortly.', cancel: 'Request cancelled. What else can I help with?', sla: SERVICE_SLA,
+    receipt: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).", cancel: 'Request cancelled. What else can I help with?', sla: SERVICE_SLA,
   },
   fr: {
     channel: 'WhatsApp ou e-mail ?', phone: 'Quel est votre numéro WhatsApp avec indicatif pays ?', email: 'Quelle est votre adresse e-mail ?',
@@ -451,7 +451,7 @@ const HANDOFF_COPY = {
     location: 'Dans quel pays et quelle ville êtes-vous ? Vous pouvez passer cette question.', organisation: 'Quelle est votre organisation ? Vous pouvez passer cette question.',
     name: 'Quel est votre prénom et votre nom, s’il vous plaît ?', topic: 'De quoi souhaitez-vous parler avec notre équipe ?', quote: 'Pour quel article souhaitez-vous un devis ?',
     confirm: d => 'Veuillez vérifier vos coordonnées : nom : ' + d.name + ' ; contact : ' + d.contact + ' ; sujet : ' + d.topic + '. Puis-je transmettre cette demande à notre équipe ?',
-    receipt: "Merci, quelqu'un de l'équipe vous recontactera sous peu.", cancel: 'Demande annulée. Comment puis-je vous aider ?',
+    receipt: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).", cancel: 'Demande annulée. Comment puis-je vous aider ?',
     sla: 'Quelqu’un de notre équipe vous recontactera sous 24 heures.',
   },
   kr: {
@@ -460,7 +460,7 @@ const HANDOFF_COPY = {
     location: 'Na wich kɔntri ɛn siti yu de? Yu kin skip dis.', organisation: 'Wich ɔganayzeshɔn yu de wit? Yu kin skip dis.',
     name: 'Duya, yu fɔs ném ɛn las ném?', topic: 'Wetin yu wan tɔk to di tim abawt?', quote: 'Wetin yu nid fɔ quote?',
     confirm: d => 'Rivyu di sɔmari: ném: ' + d.name + '; fon ɔ ɛmail: ' + d.contact + '; rɛkwɛst: ' + d.topic + '. Yu wan sɛn am to di tim?',
-    receipt: 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn.', cancel: 'Rɛkwɛst kansul. Wetin yu nid?',
+    receipt: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).", cancel: 'Rɛkwɛst kansul. Wetin yu nid?',
     sla: 'Sɔmbɔdi frɔm wi tim go rich yu insay 24 awa.',
   },
 };

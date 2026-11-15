@@ -67,7 +67,7 @@ assert.equal(organisation.awaiting, 'handoff-organisation');
 const summary = respond('skip', organisation);
 assert.deepEqual(summary.chips, ['Confirm', 'Cancel']);
 const done = respond('Confirm', summary, { privacyConsent: true });
-assert.equal(done.text, 'Thank you, someone from our team will reach out to you shortly.');
+assert.equal(done.text, "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).");
 assert.doesNotMatch(done.text, /Preview inquiry delivery is off/i);
 noPrices(done.text);
 

@@ -190,7 +190,7 @@ export class ChatPanel {
 
     // Consent is requested only alongside the handoff summary.
     const consent = document.createElement('div');
-    consent.className = 'chat-privacy-consent';
+    consent.className = 'chat-privacy-consent chat-message-bubble';
     consent.setAttribute('hidden', '');
     const consentLabel = document.createElement('label');
     const checkbox = document.createElement('input');
@@ -207,6 +207,11 @@ export class ChatPanel {
     consent.appendChild(consentLabel);
     this._privacyConsent = checkbox;
     this._consentArea = consent;
+    const consentMessage = document.createElement('li');
+    consentMessage.className = 'chat-message chat-message--bot';
+    consentMessage.setAttribute('role', 'listitem');
+    consentMessage.appendChild(consent);
+    this._consentMessage = consentMessage;
 
     // Assemble panel
     panel.appendChild(header);
@@ -221,7 +226,6 @@ export class ChatPanel {
     chips.setAttribute('aria-label', 'Suggested replies');
     chips.setAttribute('hidden', '');
     this._chipBar = chips;
-    panel.appendChild(consent);
     panel.appendChild(chips);
     panel.appendChild(inputArea);
     panel.appendChild(footer);
@@ -245,6 +249,7 @@ export class ChatPanel {
 
   _privacyLink(text) {
     const link = document.createElement('a');
+    link.className = 'chat-privacy-link';
     link.textContent = text;
     link.setAttribute('href', '/privacy.html');
     link.setAttribute('target', '_blank');
@@ -602,8 +607,14 @@ export class ChatPanel {
     this._optionalStep = list.includes('Skip');
     const review = list.includes('Confirm') && list.includes('Cancel');
     if (this._consentArea) {
-      if (review) this._consentArea.removeAttribute('hidden');
-      else this._consentArea.setAttribute('hidden', '');
+      // Detach first so retries cannot leave consent in an older message.
+      this._consentMessage.remove();
+      if (review) {
+        this._messageList.appendChild(this._consentMessage);
+        this._consentArea.removeAttribute('hidden');
+      } else {
+        this._consentArea.setAttribute('hidden', '');
+      }
       this._privacyConsent.checked = false;
     }
     list.forEach(label => {

@@ -42,7 +42,7 @@ async function conversational(runtime) {
   // The same event ID succeeds once the visitor checks the box; rejected turns
   // cannot poison the event or consume the session's turn allowance.
   const done = await turn('Confirm', 'confirm-once', true);
-  check(() => assert.equal(done.text, 'Thank you, someone from our team will reach out to you shortly.'));
+  check(() => assert.equal(done.text, "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday)."));
   check(() => assert.equal(done.handoff.status, 'received'));
   check(() => assert.equal(calls, runtime === 'preview' ? 0 : 1));
   const rows = await snapshot(store);

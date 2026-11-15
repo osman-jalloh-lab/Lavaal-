@@ -3,8 +3,8 @@ const assert = require('node:assert/strict');
 const { guidedHandoff, handoffPrompt, handoffSla } = require('../api/_chat/conversation');
 
 for (const [language, channel, contact, topic, namePattern, receipt] of [
-  ['fr', 'Email', 'visitor@example.org', 'Une installation pour notre atelier', /prénom/, "Merci, quelqu'un de l'équipe vous recontactera sous peu."],
-  ['kr', 'WhatsApp', '077 123 456', 'Wi nid ɛp wit wi ofis nɛtwɔk', /fɔs ném/, 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn.'],
+  ['fr', 'Email', 'visitor@example.org', 'Une installation pour notre atelier', /prénom/, "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday)."],
+  ['kr', 'WhatsApp', '077 123 456', 'Wi nid ɛp wit wi ofis nɛtwɔk', /fɔs ném/, "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday)."],
 ]) {
   let session = { lastLanguage: language };
   const turn = (text, start) => {

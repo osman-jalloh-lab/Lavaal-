@@ -93,7 +93,7 @@ function visibleInPanel(panel, el) {
       adapter.addEventListener('chat:idle', done); adapter.addEventListener('chat:error', done);
     });
     const p = panel._panel;
-    const lastBot = () => { const bots = panel._messageList.children.filter(li => li.className.includes('chat-message--bot')); return bots.length ? bots.at(-1).innerText : ''; };
+    const lastBot = () => { const bots = panel._messageList.children.filter(li => li.className.includes('chat-message--bot') && li !== panel._consentMessage); return bots.length ? bots.at(-1).innerText : ''; };
     const chipLabels = () => panel._chipBar.hasAttribute('hidden') ? [] : panel._chipBar.children.map(c => c.textContent);
     // Type in the bar and press Send, exactly like a visitor.
     const type = async text => { const wait = idle(); panel._textarea.value = text; panel._sendBtn.click(); await wait; return lastBot(); };
@@ -135,6 +135,7 @@ function visibleInPanel(panel, el) {
     t.barUsable('organisation question');
     assert.equal(await t.type('   '), 'Please confirm your details: Name: Ada Test. Contact: +23276123456. Topic: a laptop for our office. Shall I pass this to our team?');
     assert.deepEqual(t.chipLabels(), ['Confirm', 'Cancel']);
+    assert.ok(t.panel._messageList.children.includes(t.panel._consentMessage), 'consent is in the message flow');
     t.barUsable('Confirm step');
     const beforeBlankConfirm = t.panel._messageList.children.length;
     t.panel._textarea.value = '';
@@ -149,7 +150,7 @@ function visibleInPanel(panel, el) {
     assert.equal((await sinks()).length, 0, 'nothing written before Confirm');
     // Typing "yes" in the bar at the Confirm step is the same as the Confirm chip.
     t.panel._privacyConsent.checked = true;
-    assert.equal(await t.type('yes'), 'Thank you, someone from our team will reach out to you shortly.');
+    assert.equal(await t.type('yes'), "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).");
     assert.deepEqual(t.events, ['request:review', 'request:confirmed']);
     assert.equal((await sinks()).length, 1, 'one Preview test-sink record after Confirm');
     t.barUsable('thank-you');
@@ -164,7 +165,7 @@ function visibleInPanel(panel, el) {
     await t.type('a router');
     await t.chip('Skip'); await t.chip('Skip');
     t.panel._privacyConsent.checked = true;
-    assert.equal(await t.chip('Confirm'), 'Thank you, someone from our team will reach out to you shortly.');
+    assert.equal(await t.chip('Confirm'), "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).");
     assert.deepEqual(t.events, ['request:review', 'request:confirmed']);
     t.barUsable('thank-you after chip');
     t = makePanel();

@@ -313,4 +313,4 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   console.log(`PASS chat frontend: ${assertions} assertions; greeting, chips, typeahead, follow-ups, conversational intake, loading, safety and brand checks`);
 })().catch(error=>{ console.error(error); process.exitCode = 1; });
 
-assert.equal(ui.copy.en.accepted, 'Thank you, someone from our team will reach out to you shortly.');
+assert.equal(ui.copy.en.accepted, "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).");

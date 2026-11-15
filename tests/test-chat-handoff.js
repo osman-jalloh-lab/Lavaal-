@@ -13,7 +13,7 @@ const INVALID = 'Please enter a valid email address.';
 const TOPIC = 'What would you like to talk to the team about?';
 const LOCATION = 'Which country and city are you in? You can skip this.';
 const ORGANISATION = 'What organisation are you with? You can skip this.';
-const CLOSE = 'Thank you, someone from our team will reach out to you shortly.';
+const CLOSE = "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).";
 const NOW = Date.UTC(2026, 10, 13, 12);
 let modelCalls = 0, transportCalls = 0;
 const handoffLogs = [];

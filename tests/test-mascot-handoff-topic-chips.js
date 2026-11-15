@@ -93,7 +93,7 @@ function visibleInPanel(panel, el) {
       adapter.addEventListener('chat:idle', done); adapter.addEventListener('chat:error', done);
     });
     const p = panel._panel;
-    const lastBot = () => { const bots = panel._messageList.children.filter(li => li.className.includes('chat-message--bot')); return bots.length ? bots.at(-1).innerText : ''; };
+    const lastBot = () => { const bots = panel._messageList.children.filter(li => li.className.includes('chat-message--bot') && li !== panel._consentMessage); return bots.length ? bots.at(-1).innerText : ''; };
     const chipLabels = () => panel._chipBar.hasAttribute('hidden') ? [] : panel._chipBar.children.map(c => c.textContent);
     // Type in the bar and press Send, exactly like a visitor.
     const type = async text => { const wait = idle(); panel._textarea.value = text; panel._sendBtn.click(); await wait; return lastBot(); };
@@ -122,7 +122,7 @@ function visibleInPanel(panel, el) {
     t.barUsable('organisation question');
     return t.chip('Skip');
   };
-  const THANKS = 'Thank you, someone from our team will reach out to you shortly.';
+  const THANKS = "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).";
   const summary = topic => 'Please confirm your details: Name: Ada Test. Contact: +23276123456. Topic: ' + topic + '. Shall I pass this to our team?';
   const toTopic = async t => {
     await t.type('I want to speak to someone');
@@ -162,8 +162,9 @@ function visibleInPanel(panel, el) {
     assert.equal(await t.type('<b>Solar</b> for our clinic'), LOCATION_Q);
     assert.equal(await skipOptional(t), summary('<b>Solar</b> for our clinic'));
     // Plain text in the panel: the bubble holds the text, no markup is parsed.
-    const bubble = t.panel._messageList.children.at(-1);
+    const bubble = t.panel._messageList.children.filter(li => li !== t.panel._consentMessage).at(-1);
     assert.ok(!/<b>/.test(bubble.innerHTML || ''), 'summary is not rendered as HTML');
+    assert.ok(t.panel._messageList.children.includes(t.panel._consentMessage), 'consent is in the message flow');
     t.panel._privacyConsent.checked = true;
     assert.equal(await t.type('yes'), THANKS);
     assert.ok((await lastSink()).includes('Solar'));
