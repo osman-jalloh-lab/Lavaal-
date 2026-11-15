@@ -205,7 +205,7 @@ async function main() {
     https.get = forbiddenNetwork;
     process.env.CONTACT_WEBHOOK_URL = 'https://webhook.invalid/never';
     const store = memoryStore();
-    const handler = createHandler({ runtime: 'test', localTests: true, CHAT_ENABLED: true, store, transport, chat, trustedOrigins: ['http://localhost:3000'], salt: 'TEST ONLY salt' });
+    const handler = createHandler({ runtime: 'test', localTests: true, CHAT_ENABLED: true, deepseekApiKey: 'TEST ONLY mock credential', store, transport, chat, trustedOrigins: ['http://localhost:3000'], salt: 'TEST ONLY salt' });
     let cookie;
     async function request(action, body = {}) {
       const res = { headers: {}, setHeader(key, value) { this.headers[key] = value; }, status(code) { this.code = code; return this; }, send(value) { this.body = JSON.parse(value); return this; } };

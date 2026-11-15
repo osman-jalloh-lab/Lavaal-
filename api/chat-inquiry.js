@@ -17,24 +17,6 @@ function reply(res, status, body) {
   return res.status(status).send(JSON.stringify(body));
 }
 
-function settings(options = {}) {
-  const env = options.env || process.env;
-  const runtime = options.runtime || env.VERCEL_ENV;
-  const production = runtime === 'production' || process.env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'production';
-  const preview = runtime === 'preview' || env.VERCEL_ENV === 'preview';
-  const salt = options.salt || env.CHAT_IP_HASH_SALT;
-  const configuredStore = options.store ? typeof options.store.transaction === 'function' : (env.KV_REST_API_URL && env.KV_REST_API_TOKEN);
-  const enabled = !production && preview && (options.CHAT_ENABLED === true || env.CHAT_ENABLED === 'true') &&
-    Boolean(options.deepseekApiKey || env.DEEPSEEK_API_KEY) && typeof salt === 'string' && salt.length >= 8 && salt.length <= 256 && Boolean(configuredStore);
-  return { env, runtime, production, preview, salt, enabled };
-}
-function publicConfig(options = {}) {
-  const config = settings(options);
-  return { CHAT_ENABLED: Boolean(config.enabled), CHAT_VOICE_ENABLED: false,
-    CHAT_BROWSER_VOICE_ENABLED: false, environment: config.preview && !config.production ? 'preview' : (config.production ? 'production' : 'disabled'),
-    name: 'LAVAALL Assistant' };
-}
-
 function validOrigin(value, localTests) {
   if (typeof value !== 'string') return false;
   try {
@@ -48,30 +30,67 @@ function validOrigin(value, localTests) {
   }
 }
 
-function createHandler(options = {}) {
-  const config = settings(options);
-  const { env, runtime, salt } = config;
-  const { vendorSecret, transport } = options;
-  const localTests = runtime === 'test' && options.localTests === true;
-  const trustedOrigins = [...(options.trustedOrigins || []), ...(env.CHAT_TRUSTED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean)];
-  if (config.preview) for (const host of [env.VERCEL_URL, env.VERCEL_BRANCH_URL]) {
+function settings(options = {}) {
+  // Read env on every request, including requests to the public config endpoint.
+  const env = options.env || process.env;
+  const runtime = options.runtime || env.VERCEL_ENV;
+  const production = runtime === 'production' || env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+  const preview = !production && (runtime === 'preview' || env.VERCEL_ENV === 'preview');
+  const salt = options.salt || env.CHAT_IP_HASH_SALT;
+  const localTests = !production && runtime === 'test' && options.localTests === true;
+  // Production requires the explicit env allowlist; Preview also trusts its Vercel URLs.
+  const suppliedOrigins = production ? [] : (options.trustedOrigins || []);
+  const trustedOrigins = Array.isArray(suppliedOrigins) ? [...suppliedOrigins] : [suppliedOrigins];
+  trustedOrigins.push(...(env.CHAT_TRUSTED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean));
+  if (preview) for (const host of [env.VERCEL_URL, env.VERCEL_BRANCH_URL]) {
     if (host && validOrigin('https://' + host, false)) trustedOrigins.push('https://' + host);
   }
-  const validOrigins = trustedOrigins.length > 0 && trustedOrigins.every(origin => validOrigin(origin, localTests));
-  const testEnabled = options.CHAT_ENABLED === true && runtime === 'test' &&
-    options.store?.kind === 'mock' && typeof transport === 'function' && validOrigins;
-  const enabled = !config.production && validOrigins && (testEnabled || config.enabled);
-  let store = options.store;
-  if (enabled && !store) store = require('./_chat/store').kvStore({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN });
-  const chat = options.chat || (enabled && config.preview ? args => require('./_chat/llm-gateway').chat({ ...args, env }) : undefined);
-  const previewOnly = config.preview && !config.production;
-  const service = enabled ? createService({ ...options, store, salt, chat, previewDebug: previewOnly, previewLimits: previewOnly }) : null;
-  const exposed = { ...publicConfig(options), CHAT_ENABLED: Boolean(enabled) };
+  const validOrigins = Array.isArray(suppliedOrigins) && trustedOrigins.length > 0 && trustedOrigins.every(origin => validOrigin(origin, localTests));
+  const configuredStore = options.store ? typeof options.store.transaction === 'function' : (env.KV_REST_API_URL && env.KV_REST_API_TOKEN);
+  const enabled = (options.CHAT_ENABLED === true || env.CHAT_ENABLED === 'true') &&
+    Boolean(options.deepseekApiKey || env.DEEPSEEK_API_KEY) && typeof salt === 'string' && salt.length >= 8 && salt.length <= 256 &&
+    Boolean(configuredStore) && validOrigins;
+  return { env, runtime, production, preview, salt, localTests, trustedOrigins, enabled };
+}
 
+function flags(config) {
+  return { CHAT_ENABLED: Boolean(config.enabled), CHAT_VOICE_ENABLED: false,
+    CHAT_BROWSER_VOICE_ENABLED: false, environment: config.production ? 'production' : (config.preview ? 'preview' : 'disabled'),
+    name: 'LAVAALL Assistant' };
+}
+
+async function requestSettings(options) {
+  const config = settings(options);
+  if (!config.enabled) return config;
+  config.store = options.store || require('./_chat/store').kvStore({ url: config.env.KV_REST_API_URL, token: config.env.KV_REST_API_TOKEN });
+  const killed = await config.store.transaction(records => {
+    const record = records.get('chat:kill');
+    if (record && typeof record === 'object' && record.exp <= (options.now || Date.now)()) return false;
+    const value = record && typeof record === 'object' ? record.value : record;
+    return value === true || value === 'true' || value === '1' || value === 'kill';
+  });
+  config.enabled = !killed;
+  return config;
+}
+
+async function publicConfig(options = {}) {
+  try { return flags(await requestSettings(options)); }
+  catch (_) { return flags({ ...settings(options), enabled: false }); }
+}
+
+function createHandler(options = {}) {
   return async function handler(req, res) {
-    if (process.env.VERCEL_ENV === 'production') return reply(res, 503, { ...exposed, CHAT_ENABLED: false, environment: 'production', error: 'chat_disabled' });
-    if (!enabled) return reply(res, 503, { ...exposed, error: 'chat_disabled' });
+    let config;
     try {
+      config = await requestSettings(options);
+      const exposed = flags(config);
+      if (!config.enabled) return reply(res, 503, { ...exposed, error: 'chat_disabled' });
+      const { env, salt, store, localTests, trustedOrigins } = config;
+      const { vendorSecret } = options;
+      const chat = options.chat || (args => require('./_chat/llm-gateway').chat({ ...args, env }));
+      const { previewDebug, previewLimits, ...serviceOptions } = options;
+      const service = createService({ ...serviceOptions, store, salt, chat,
+        ...(config.preview ? { previewDebug: true, previewLimits: true } : {}) });
       if (req.query?.action === 'config' && ['GET', 'POST'].includes(req.method)) {
         // Public flags only; no secrets. Session and turns still require Origin.
         return reply(res, 200, exposed);
@@ -142,7 +161,7 @@ function createHandler(options = {}) {
     } catch (error) {
       const codes = ['quota', 'cost_cap', 'billing_unverified', 'session', 'csrf', 'draft', 'consent', 'event', 'replay', 'fields', 'store_unavailable', 'turn_pending'];
       const code = codes.includes(error.code) ? error.code : 'invalid_request';
-      if (config.preview) console.warn('chat_inquiry', req.query && req.query.action, code);
+      if (config?.preview) console.warn('chat_inquiry', req.query && req.query.action, code);
       return reply(res, code === 'store_unavailable' ? 503 : code === 'quota' || code === 'cost_cap' ? 429 : 400, { error: code });
     }
   };

@@ -27,6 +27,7 @@ function response() {
 function handlerOptions(changes = {}) {
   return {
     CHAT_ENABLED: true,
+    deepseekApiKey: 'TEST ONLY mock credential',
     runtime: 'test',
     store: memoryStore(),
     salt: 'TEST ONLY server salt',

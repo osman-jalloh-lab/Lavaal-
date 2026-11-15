@@ -3,11 +3,11 @@
  *
  * The widget is shown only when:
  *   - this is the Technology homepage pathname '/'
- *   - GET /api/chat-inquiry?action=config reports CHAT_ENABLED and environment === 'preview'
+ *   - GET /api/chat-inquiry?action=config reports CHAT_ENABLED === true
  *
  * When those hold, the real adapter is selected (MASCOT_REAL_ADAPTER is set by this
  * page script, never by a visitor) and the existing inline .customer-assistant is hidden,
- * same as the local preview. Otherwise this file is a no-op: production and other
+ * same as the local preview. Otherwise this file is a no-op: disabled chat and other
  * routes keep the existing assistant, and the mock adapter is never shown on the site.
  */
 import { MascotController } from './mascot/mascot-controller.js';
@@ -28,7 +28,7 @@ export function isHomepage(location) {
 }
 
 export function shouldEnableMascot(config) {
-  return Boolean(config && config.CHAT_ENABLED === true && config.environment === 'preview');
+  return Boolean(config && config.CHAT_ENABLED === true);
 }
 
 export function hideLegacyAssistant(root) {
@@ -71,7 +71,7 @@ async function readPublicConfig(fetchImpl) {
     const response = await fetchImpl(CONFIG_URL, { method: 'GET', credentials: 'include', cache: 'no-store' });
     if (!response || !response.ok) return { config: null, reason: 'config-failed' };
     const config = await response.json();
-    return { config, reason: shouldEnableMascot(config) ? 'preview' : 'not-preview' };
+    return { config, reason: shouldEnableMascot(config) ? 'enabled' : 'chat-disabled' };
   } catch (_) {
     return { config: null, reason: 'config-failed' };
   }

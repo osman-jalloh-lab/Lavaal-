@@ -2,7 +2,7 @@
  * LAVAALL Mascot — RealChatAdapter
  *
  * Drop-in replacement for MockChatAdapter. Same interface, same events, but each turn
- * is answered by the existing LAVAALL backend at /api/chat-inquiry (Preview only).
+ * is answered by the existing LAVAALL backend at /api/chat-inquiry when enabled.
  *
  *   send(text) · open() · close() · reset() · simulateError() · simulateHandoff()
  *
@@ -91,7 +91,7 @@ export class RealChatAdapter extends EventTarget {
       const response = await this._fetch(this._endpoint + '?action=config', { method: 'GET', credentials: 'include', cache: 'no-store' });
       if (!response.ok) return { enabled: false, environment: 'disabled' };
       const config = await response.json();
-      const enabled = Boolean(config && config.CHAT_ENABLED === true && config.environment === 'preview');
+      const enabled = Boolean(config && config.CHAT_ENABLED === true);
       return { enabled, environment: config && config.environment };
     } catch (_) {
       return { enabled: false, environment: 'disabled' };

@@ -12,10 +12,12 @@ test('boot: homepage is only pathname /', () => {
   assertEqual(isHomepage({ pathname: '/web' }), false);
 });
 
-test('boot: enabled only when chat is on in preview', () => {
+test('boot: enabled when public config enables chat in Preview or production', () => {
   assertEqual(shouldEnableMascot({ CHAT_ENABLED: true, environment: 'preview' }), true);
-  assertEqual(shouldEnableMascot({ CHAT_ENABLED: true, environment: 'production' }), false);
+  assertEqual(shouldEnableMascot({ CHAT_ENABLED: true, environment: 'production' }), true);
   assertEqual(shouldEnableMascot({ CHAT_ENABLED: false, environment: 'preview' }), false);
+  assertEqual(shouldEnableMascot({ CHAT_ENABLED: false, environment: 'production' }), false);
+  assertEqual(shouldEnableMascot({ CHAT_ENABLED: 'true', environment: 'production' }), false);
 });
 
 function el(tag, attrs = {}) {
@@ -113,18 +115,34 @@ registerAsync(test('boot: mounts on Preview / with the real adapter and hides th
   assertEqual(CONFIG_URL, '/api/chat-inquiry?action=config');
 }));
 
-registerAsync(test('boot: production or a non-home path is a no-op', async () => {
+registerAsync(test('boot: enabled production mounts with the real adapter and hides the legacy assistant', async () => {
+  const { doc, assistant } = fakeDoc();
+  const result = await mountMascot({
+    document: doc,
+    location: { pathname: '/' },
+    fetch: configFetch({ CHAT_ENABLED: true, environment: 'production' }),
+    Controller: FakeController,
+    Panel: FakePanel,
+  });
+  assertEqual(result.mounted, true);
+  assertEqual(result.mode, 'real');
+  assertEqual(result.adapter.isReal, true);
+  assertEqual(result.chatPanel.opts.adapter, result.adapter);
+  assertEqual(assistant.hidden, true);
+}));
+
+registerAsync(test('boot: disabled production or a non-home path is a no-op', async () => {
   const { doc, assistant } = fakeDoc();
   const prod = await mountMascot({
     document: doc,
     location: { pathname: '/' },
-    fetch: configFetch({ CHAT_ENABLED: true, environment: 'production' }),
+    fetch: configFetch({ CHAT_ENABLED: false, environment: 'production' }),
     select: async () => { throw new Error('select should not run'); },
     Controller: FakeController,
     Panel: FakePanel,
   });
   assertEqual(prod.mounted, false);
-  assertEqual(prod.reason, 'not-preview');
+  assertEqual(prod.reason, 'chat-disabled');
   assertEqual(assistant.hidden, false);
   const other = await mountMascot({
     document: fakeDoc().doc,

@@ -332,7 +332,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
     if (typeof text !== 'string' || !text.trim() || text.length > 2000) fail('fields');
     const { respond } = require('./responder');
     const { shouldSkipModel, buildMessages, respondWithLlm } = require('./llm-responder');
-    const { reservationCents } = require('./llm-gateway');
+    const { reservationCents, SpendCapError } = require('./llm-gateway');
     const eventKey = 'turn:' + id + ':' + eventId;
     const digest = hash(text);
     const reservation = await transaction((records, time) => {
@@ -352,14 +352,27 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       const date = new Date(time);
       const monthKey = 'cost:' + date.toISOString().slice(0, 7);
       const ledger = records.get(monthKey) || { n: 0, exp: Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 2, 1) };
-      if (ledger.n + estimate > 2500 || ledger.n >= 2500) fail('cost_cap');
+      // Read the shared ledger in this transaction on every turn: an earlier
+      // request or another instance may have consumed the remaining budget.
+      if (ledger.n + estimate > 2500 || ledger.n >= 2500) throw new SpendCapError();
+      const spent = ledger.n;
       ledger.n += estimate;
+      const notify = ledger.n >= 2000 && !ledger.alerted;
+      if (notify) ledger.alerted = true;
       records.set(monthKey, ledger);
       session.turns++;
       records.set(eventKey, { digest, exp: session.exp });
-      return { rule, skip, context, estimate, monthKey };
+      return { rule, skip, context, estimate, monthKey, spent, reserved: ledger.n, notify };
     });
     if (reservation.result) return reservation.result;
+    // Side effects run only after the store commits, never inside a retried CAS.
+    if (reservation.notify) {
+      try { await alert({ threshold: 80 }); } catch { /* Alert failure cannot reopen the budget. */ }
+    }
+    if (!reservation.skip) console.info('CHAT_SPEND', JSON.stringify({
+      month: reservation.monthKey.slice(5), n: reservation.spent,
+      estimate: reservation.estimate, reserved: reservation.reserved,
+    }));
     let response;
     try {
       response = reservation.skip ? reservation.rule : await respondWithLlm(text, { session: reservation.context, chat });

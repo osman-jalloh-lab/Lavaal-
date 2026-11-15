@@ -66,7 +66,7 @@ function visibleInPanel(panel, el) {
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   const origin = 'http://127.0.0.1:' + server.address().port;
   // A fresh in-memory store per visitor keeps the unchanged hour/day caps from limiting this local test.
-  const freshBackend = () => { store = memoryStore(); handler = createHandler({ runtime: 'test', localTests: true, CHAT_ENABLED: true, store, transport, chat, trustedOrigins: [origin], salt: 'TEST ONLY salt' }); };
+  const freshBackend = () => { store = memoryStore(); handler = createHandler({ runtime: 'test', localTests: true, CHAT_ENABLED: true, deepseekApiKey: 'TEST ONLY mock credential', store, transport, chat, trustedOrigins: [origin], salt: 'TEST ONLY salt' }); };
   let cookie = '';
   const browserFetch = async (url, init = {}) => {
     const headers = { ...(init.headers || {}), Origin: origin };

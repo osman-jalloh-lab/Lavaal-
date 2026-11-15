@@ -13,7 +13,8 @@ const options=()=>({store:memoryStore(),now:()=>clock,salt:'TEST ONLY salt',bill
 async function prepared(s,ip='TEST ONLY IP') {const a=await s.start(ip),d=await s.draft(a.sessionId,fields,'test_event');const r=await s.review(a.sessionId,a.proof,a.csrf,d.draftId);return {...a,...r};}
 const send=(s,a,changes={})=>{a={...a,...changes};return s.confirm(a.sessionId,a.proof,a.csrf,a.draftId,a.token,a.idempotencyKey);};
 async function main(){
- check('default flags always off',()=>assert.deepEqual([publicConfig().CHAT_ENABLED,publicConfig().CHAT_VOICE_ENABLED,publicConfig().CHAT_BROWSER_VOICE_ENABLED],[false,false,false]));
+ const defaultConfig=await publicConfig();
+ check('default flags always off',()=>assert.deepEqual([defaultConfig.CHAT_ENABLED,defaultConfig.CHAT_VOICE_ENABLED,defaultConfig.CHAT_BROWSER_VOICE_ENABLED],[false,false,false]));
  check('all existing fields offered',()=>assert.equal(FIELDS.length,19));
  check('name phone minimum; optional email remains optional',()=>assert.equal(normalize(fields).email,''));
  for(const x of [{...fields,phone:'abc'},{...fields,name:''},{...fields,email:'bad'},{...fields,routeTo:'bad'},{...fields,inquiryType:'invented'},{...fields,country:'invented'}]) check('invalid or arbitrary fields denied',()=>assert.throws(()=>normalize(x)));
@@ -87,8 +88,8 @@ async function main(){
  check('single mailbox subject body convention preserved',()=>{assert.equal(p.routeTo,'support@lavaall.com');assert(p.subject.startsWith('[Lavaall Website'));assert(p.message.startsWith('New message from the LAVAALL website contact form.\nChannel: website chat'));});
  check('contact adapter is mock only',()=>assert.throws(()=>mockContactTransport({runtime:'production',fetchMock:()=>{}})));
  const res=()=>({headers:{},setHeader(k,v){this.headers[k]=v;return this;},status(n){this.code=n;return this;},send(x){this.body=JSON.parse(x);return this;}});
- for(const config of [{},{runtime:'production',CHAT_ENABLED:true,store:memoryStore(),transport:()=>{}},{runtime:'test',CHAT_ENABLED:true}]){let r=res();await createHandler(config)({method:'POST'},r);check('no durable production adapter remains off',()=>assert.equal(r.code,503));}
- o={...options(),runtime:'test',CHAT_ENABLED:true,trustedOrigins:['https://preview.test'],vendorSecret:'TEST_ONLY_'.repeat(5)};const h=createHandler(o);
+ for(const config of [{},{runtime:'production',CHAT_ENABLED:true,store:memoryStore(),transport:()=>{}},{runtime:'test',CHAT_ENABLED:true}]){let r=res();await createHandler(config)({method:'POST'},r);check('missing required dependencies remains off',()=>assert.equal(r.code,503));}
+ o={...options(),runtime:'test',CHAT_ENABLED:true,deepseekApiKey:'TEST ONLY mock credential',trustedOrigins:['https://preview.test'],vendorSecret:'TEST_ONLY_'.repeat(5)};const h=createHandler(o);
  async function req(action,body,headers={}) {const r=res();await h({method:'POST',query:{action},body,headers:{'content-type':'application/json',origin:'https://preview.test',...headers}},r);return r;}
  check('arbitrary Host cannot authorize Origin',()=>{});assert.equal((await req('session',{}, {origin:'https://evil.test',host:'preview.test'})).code,403);
  assert.equal((await req('draft',{sessionId:'fake',fields,eventId:'test'})).code,403);

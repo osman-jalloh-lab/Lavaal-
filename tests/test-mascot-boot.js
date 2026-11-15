@@ -1,5 +1,5 @@
 'use strict';
-// Homepage mascot mount: only on '/', only when the public config says Preview
+// Homepage mascot mount: only on '/', only when the public config says
 // chat is enabled; the legacy inline assistant is then hidden. No network.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -20,7 +20,7 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
   assert.match(index, /<script type="module" src="\/mascot\/src\/boot\.js"><\/script>\s*<\/body>/);
   assert.equal((index.match(/mascot\/src\/boot\.js/g) || []).length, 1);
   assert.match(index, /<script src="assets\/js\/customer-assistant\.js" defer><\/script>/);
-  // Mascot CSS is loaded by the boot script only after Preview chat is confirmed,
+  // Mascot CSS is loaded by the boot script only after enabled chat is confirmed,
   // so the site's stylesheets are unchanged when the widget is off.
   assert.doesNotMatch(index, /mascot\/src\/tokens\.css/);
   assert.doesNotMatch(index, /mascot-animations\.css/);
@@ -37,8 +37,9 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 
   assert.equal(boot.shouldEnableMascot({ CHAT_ENABLED: true, environment: 'preview' }), true);
   assert.equal(boot.shouldEnableMascot({ CHAT_ENABLED: false, environment: 'preview' }), false);
-  assert.equal(boot.shouldEnableMascot({ CHAT_ENABLED: true, environment: 'production' }), false);
-  assert.equal(boot.shouldEnableMascot({ CHAT_ENABLED: true, environment: 'disabled' }), false);
+  assert.equal(boot.shouldEnableMascot({ CHAT_ENABLED: true, environment: 'production' }), true);
+  assert.equal(boot.shouldEnableMascot({ CHAT_ENABLED: false, environment: 'production' }), false);
+  assert.equal(boot.shouldEnableMascot({ CHAT_ENABLED: 'true', environment: 'production' }), false);
   assert.equal(boot.shouldEnableMascot(null), false);
 
   function el(tag, attrs = {}) {
@@ -144,10 +145,28 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
   assert.equal(hidden.hidden, true);
   assert.ok(previewFetch.calls.some(c => c.url === boot.CONFIG_URL && c.init.method === 'GET'));
 
+  const { doc: prodDoc, assistant: prodLegacy } = fakeDoc();
+  const productionFetch = configFetch({ CHAT_ENABLED: true, environment: 'production' });
+  const productionMount = await boot.mountMascot({
+    document: prodDoc,
+    location: { pathname: '/' },
+    fetch: productionFetch,
+    Controller: FakeController,
+    Panel: FakePanel,
+  });
+  assert.equal(productionMount.mounted, true);
+  assert.equal(productionMount.mode, 'real');
+  assert.equal(productionMount.adapter.isReal, true);
+  assert.equal(productionMount.chatPanel.opts.adapter, productionMount.adapter);
+  assert.equal(productionFetch.calls.length, 2, 'boot and default adapter selection both check enabled config');
+  assert.ok(productionFetch.calls.every(c => c.url === boot.CONFIG_URL && c.init.method === 'GET'));
+  assert.equal(prodLegacy.hidden, true);
+  assert.equal(prodDoc.head.children.length, boot.MASCOT_STYLES.length);
+
   const offCases = [
     { name: 'schedule', location: { pathname: '/schedule' }, fetch: previewFetch, want: 'route' },
-    { name: 'production', location: { pathname: '/' }, fetch: configFetch({ CHAT_ENABLED: true, environment: 'production' }), want: 'not-preview' },
-    { name: 'chat off', location: { pathname: '/' }, fetch: configFetch({ CHAT_ENABLED: false, environment: 'preview' }), want: 'not-preview' },
+    { name: 'production off', location: { pathname: '/' }, fetch: configFetch({ CHAT_ENABLED: false, environment: 'production' }), want: 'chat-disabled' },
+    { name: 'preview off', location: { pathname: '/' }, fetch: configFetch({ CHAT_ENABLED: false, environment: 'preview' }), want: 'chat-disabled' },
     { name: 'config fail', location: { pathname: '/' }, fetch: configFetch({ error: 'chat_disabled' }, { ok: false }), want: 'config-failed' },
   ];
   for (const item of offCases) {
@@ -178,5 +197,5 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
   assert.equal(mockFallback.mounted, false);
   assert.equal(mockFallback.reason, 'server-disabled');
 
-  console.log('ok - mascot boot mounts on Preview homepage only and hides the legacy assistant');
+  console.log('ok - mascot boot mounts on enabled Preview and production homepages and hides the legacy assistant');
 })().catch(error => { console.error(error); process.exitCode = 1; });

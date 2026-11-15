@@ -37,7 +37,7 @@ const { memoryStore } = require('../api/_chat/store');
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = 'http://127.0.0.1:' + server.address().port;
-  const handler = createHandler({ runtime: 'test', localTests: true, CHAT_ENABLED: true, store, transport, chat, trustedOrigins: [origin], salt: 'TEST ONLY salt' });
+  const handler = createHandler({ runtime: 'test', localTests: true, CHAT_ENABLED: true, deepseekApiKey: 'TEST ONLY mock credential', store, transport, chat, trustedOrigins: [origin], salt: 'TEST ONLY salt' });
 
   // Browser-like fetch: same-origin cookie jar + Origin header, relative URLs.
   let cookie = '';

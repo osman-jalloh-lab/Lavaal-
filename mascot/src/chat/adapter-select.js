@@ -4,7 +4,7 @@
  * The real backend is used only when ALL of these hold:
  *   1. flags.MASCOT_REAL_ADAPTER === true (default false; set by the page owner, never by a visitor)
  *   2. the trusted route is the Technology homepage '/' (LAVAALL Web is a stub until A4 is approved)
- *   3. the server's public config says CHAT_ENABLED and environment === 'preview'
+ *   3. the server's public config says CHAT_ENABLED === true
  * Otherwise the existing MockChatAdapter is returned, so the mascot keeps working as a demo.
  */
 import { MockChatAdapter } from './mock-chat-adapter.js';

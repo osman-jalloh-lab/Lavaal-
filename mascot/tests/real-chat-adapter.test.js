@@ -285,12 +285,25 @@ registerAsync(test('F-1: the real adapter is OFF by default and gated on route +
   assertEqual((await selectChatAdapter({ location: { pathname: '/' }, fetch: server.fetch })).mode, 'mock');
   assertEqual((await selectChatAdapter({ flags: on, location: { pathname: '/web' }, fetch: server.fetch })).reason, 'web-not-approved');
   assertEqual((await selectChatAdapter({ flags: on, location: { pathname: '/' }, fetch: fakeServer(() => ({}), { config: { CHAT_ENABLED: false, environment: 'preview' } }).fetch })).reason, 'server-disabled');
-  assertEqual((await selectChatAdapter({ flags: on, location: { pathname: '/' }, fetch: fakeServer(() => ({}), { config: { CHAT_ENABLED: true, environment: 'production' } }).fetch })).reason, 'server-disabled');
+  assertEqual((await selectChatAdapter({ flags: on, location: { pathname: '/' }, fetch: fakeServer(() => ({}), { config: { CHAT_ENABLED: false, environment: 'production' } }).fetch })).reason, 'server-disabled');
+  assertEqual((await selectChatAdapter({ flags: on, location: { pathname: '/' }, fetch: fakeServer(() => ({}), { config: { CHAT_ENABLED: 'true', environment: 'production' } }).fetch })).reason, 'server-disabled');
   assertEqual((await selectChatAdapter({ flags: on, location: { pathname: '/' }, fetch: fakeServer(() => ({}), { config: new TypeError('offline') }).fetch })).reason, 'server-disabled');
   const real = await selectChatAdapter({ flags: on, location: { pathname: '/' }, fetch: server.fetch, crypto: cryptoStub });
   assertEqual(real.mode, 'real');
   assert(real.adapter instanceof RealChatAdapter);
   assert(server.calls.every(c => c.url.endsWith('action=config')), 'selection only reads public config');
+}));
+
+registerAsync(test('F-2: production enabled config selects the real adapter using only public config', async () => {
+  const server = fakeServer(() => ({}), { config: { CHAT_ENABLED: true, environment: 'production' } });
+  const selected = await selectChatAdapter({
+    flags: { MASCOT_REAL_ADAPTER: true }, location: { pathname: '/' }, fetch: server.fetch, crypto: cryptoStub,
+  });
+  assertEqual(selected.mode, 'real');
+  assert(selected.adapter instanceof RealChatAdapter);
+  assertEqual(server.calls.length, 1);
+  assertEqual(server.calls[0].url, '/api/chat-inquiry?action=config');
+  assertEqual(server.calls[0].init.method, 'GET');
 }));
 
 // ── ChatPanel with the real adapter (behaviour only) ─────────────
