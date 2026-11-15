@@ -34,6 +34,16 @@ const BRANCH_CITY = [
 ];
 const OPERATE = /\b(work|operate|serve|cover|based|located|available|active|present)\b/i;
 const BRANCH = /\b(branch(es)?|office|offices|shop|store|showroom|location|locations|address)\b/i;
+function branchIntent(text) {
+  if (!BRANCH.test(text)) return false;
+  // An office is also a product use case. Require a question about our premises.
+  if (/\b(?:new office|office (?:use|of))\b/i.test(text)) return false;
+  const placeAsk = /\b(?:where (?:is|are)|which (?:branch|office|shop|store)|located|nearest|closest|directions|visit)\b/i.test(text);
+  if (!placeAsk && /\b(?:dell|hp|lenovo|samsung|computers?|laptops?|tablets?|printers?|equipment|packages?|packs?)\b/i.test(text)) return false;
+  if (/\b(branch(?:es)?|address|locations?|showroom)\b/i.test(text)) return true;
+  return placeAsk
+    || /\b(?:do you have|is there) (?:an? |any )?(?:office|shop|store)s?\b/i.test(text);
+}
 const HANDLED_ELSEWHERE = /\b(deliver(y|ies)?|ship(ping)?|price|cost|how much|pay(ment)?|refund|invoice|quote|install\w*|open|hours?|talk to|speak to|starlink)\b/i;
 const UNKNOWN_COMPANY = /\b(who owns|owner of|ceo|founder|founded|how many (employees|staff|people)|revenue|turnover|registration number|licen[cs]e number|tax id)\b/i;
 const UNKNOWN_POLICY = /\b(warrant(y|ies)|guarantee[sd]?|return policy|returns? policy|can i return|exchange policy)\b/i;
@@ -49,7 +59,7 @@ function knowledgeReply(rawInput, session = {}, lang = 'en') {
   }
   if (HANDLED_ELSEWHERE.test(text)) return null;
 
-  if (BRANCH.test(text)) {
+  if (branchIntent(text)) {
     const branches = byId('branches');
     if (!branches) return null;
     if (/\bguinea[- ]?bissau\b|\bbissau\b/i.test(text)) {
@@ -99,4 +109,4 @@ function knowledgeReply(rawInput, session = {}, lang = 'en') {
   return null;
 }
 
-module.exports = { knowledgeReply };
+module.exports = { knowledgeReply, branchIntent };

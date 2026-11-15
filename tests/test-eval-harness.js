@@ -4,9 +4,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const cases = require('./eval/cases.json');
 const { hardFails, scoreCase } = require('./eval/run-eval');
-assert.equal(cases.length, 93);
-assert.equal(new Set(cases.map(c => c.id)).size, 93);
+assert.equal(cases.length, 111);
+assert.equal(new Set(cases.map(c => c.id)).size, cases.length);
 assert.equal(cases.filter(c => c.group === 'I').length, 13);
+assert.equal(cases.filter(c => c.group === 'J').length, 18);
+for (let i = 1; i <= 18; i++) assert(cases.some(c => c.id === 'J' + String(i).padStart(2, '0') && c.checks.noModel === true));
 for (const group of 'ABCDEFGH') {
   assert.equal(cases.filter(c => c.group === group).length, 10);
   for (let i = 1; i <= 10; i++) assert(cases.some(c => c.id === group + String(i).padStart(2, '0')));

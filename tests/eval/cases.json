@@ -2029,5 +2029,415 @@
         "Guinea-Bissau"
       ]
     }
+  },
+  {
+    "id": "J01",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Can you supply a package for a new office?"
+    ],
+    "interpretation": "Office package sourcing",
+    "expected": "Clarify the office equipment package without listing branch addresses.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "product|equipment|package|office|need|sourc|form|quote"
+      ],
+      "mustNot": [
+        "Bojon Street|Rogbaneh Road|Main Motor Road|Old Railway Line|Post Office Road",
+        "Galaxy A\\d+"
+      ]
+    }
+  },
+  {
+    "id": "J02",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Do you recommend Dell or HP computers for office use?"
+    ],
+    "interpretation": "Office computer discovery",
+    "expected": "Keep Dell/HP or computer discovery; do not interpret office use as branch intent.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Dell|HP|computer|laptop"
+      ],
+      "mustNot": [
+        "Bojon Street|Rogbaneh Road|Main Motor Road|Old Railway Line|Post Office Road"
+      ]
+    }
+  },
+  {
+    "id": "J03",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Where is your office in Freetown?"
+    ],
+    "interpretation": "Genuine office location",
+    "expected": "Return the verified Freetown branch address.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Freetown",
+        "21 Old Railway Line"
+      ],
+      "mustNot": [
+        "Galaxy A\\d+"
+      ]
+    }
+  },
+  {
+    "id": "J04",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "UPS for a 10-desk office"
+    ],
+    "interpretation": "Power equipment, not a Galaxy A10 model",
+    "expected": "Use power/stabilizer discovery; do not offer Samsung model chips.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "stabiliz|power regulation"
+      ],
+      "state": [
+        "power"
+      ],
+      "mustNot": [
+        "Galaxy A\\d+",
+        "samsung-confirm",
+        "Bojon Street|Rogbaneh Road|Main Motor Road|Old Railway Line|Post Office Road"
+      ]
+    }
+  },
+  {
+    "id": "J05",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Samsung A10"
+    ],
+    "interpretation": "Explicit A-series model request",
+    "expected": "Retain source-first A-series alternatives without inventing an A10 listing.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Galaxy A\\d+"
+      ],
+      "mustNot": [
+        "Yes,? we have \\*\\*Galaxy A10",
+        "\\bin stock\\b"
+      ]
+    }
+  },
+  {
+    "id": "J06",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Galaxy A10"
+    ],
+    "interpretation": "Explicit Galaxy model request",
+    "expected": "Retain the phone discovery path and catalogue A-series alternatives.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "Galaxy A\\d+"
+      ],
+      "mustNot": [
+        "Yes,? we have \\*\\*Galaxy A10"
+      ]
+    }
+  },
+  {
+    "id": "J07",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "tablets for delivery riders"
+    ],
+    "interpretation": "Tablets for workers, not shipping FAQ",
+    "expected": "Offer tablet discovery without a delivery-country FAQ.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "tablet|Samsung|Apple"
+      ],
+      "state": [
+        "tablets"
+      ],
+      "mustNot": [
+        "we deliver in our main markets",
+        "Which city should it go to"
+      ]
+    }
+  },
+  {
+    "id": "J08",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Do you deliver to Freetown?"
+    ],
+    "interpretation": "Genuine destination delivery question",
+    "expected": "Answer delivery from the existing FAQ with quote-confirmed details.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "deliver",
+        "Freetown",
+        "quote"
+      ]
+    }
+  },
+  {
+    "id": "J09",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "What equipment helps with power cuts?"
+    ],
+    "interpretation": "Power equipment discovery",
+    "expected": "Prefer the power/stabilizer catalogue path without unrelated wholesale or coverage grounding.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "stabiliz|power regulation"
+      ],
+      "state": [
+        "power"
+      ],
+      "mustNot": [
+        "Retail and wholesale inquiries are welcome",
+        "Bojon Street|Rogbaneh Road|Main Motor Road|Old Railway Line|Post Office Road"
+      ]
+    }
+  },
+  {
+    "id": "J10",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "I need backup power for the office"
+    ],
+    "interpretation": "Backup-power sourcing",
+    "expected": "Keep power discovery and stabilizer catalogue evidence.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "stabiliz|power regulation"
+      ],
+      "state": [
+        "power"
+      ],
+      "mustNot": [
+        "Retail and wholesale inquiries are welcome",
+        "Bojon Street|Rogbaneh Road|Main Motor Road|Old Railway Line|Post Office Road",
+        "Galaxy A\\d+"
+      ]
+    }
+  },
+  {
+    "id": "J11",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "What is the capital of Mongolia?"
+    ],
+    "interpretation": "Off-topic geography trivia",
+    "expected": "Decline the trivia and offer LAVAALL help without a model call.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "LAVAALL",
+        "help|need|team|person"
+      ],
+      "mustNot": [
+        "Ulaanbaatar|Ulan Bator",
+        "capital (?:is|of Mongolia is)"
+      ]
+    }
+  },
+  {
+    "id": "J12",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Tell me a fun fact about Saturn"
+    ],
+    "interpretation": "Off-topic astronomy trivia",
+    "expected": "Decline rather than answering the fun fact and attaching a form.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "LAVAALL",
+        "help|need|team|person"
+      ],
+      "mustNot": [
+        "sixth planet|gas giant|ring system|second.largest planet"
+      ]
+    }
+  },
+  {
+    "id": "J13",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "How do I make jollof rice?"
+    ],
+    "interpretation": "Off-topic recipe control",
+    "expected": "Continue declining recipes with a LAVAALL-relevant next step.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "LAVAALL",
+        "help|need|team|person"
+      ],
+      "mustNot": [
+        "cups? of|tomato paste|simmer|ingredients|cook the rice"
+      ]
+    }
+  },
+  {
+    "id": "J14",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "What tourist sites should I visit in Mongolia?"
+    ],
+    "interpretation": "Off-topic tourism",
+    "expected": "Decline sightseeing advice and return to LAVAALL help.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "LAVAALL",
+        "help|need|team|person"
+      ],
+      "mustNot": [
+        "Gobi Desert|Gandantegchinlen|Genghis Khan|Ulaanbaatar"
+      ]
+    }
+  },
+  {
+    "id": "J15",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Do you deliver to Liberia?"
+    ],
+    "interpretation": "Legitimate country coverage",
+    "expected": "Keep delivery questions answerable rather than treating a country as trivia.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "deliver",
+        "Liberia",
+        "quote"
+      ],
+      "mustNot": [
+        "not with that topic"
+      ]
+    }
+  },
+  {
+    "id": "J16",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Samsung Galaxy tablets"
+    ],
+    "interpretation": "Normal product control",
+    "expected": "Continue normal tablet discovery.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "tablet|Galaxy Tab|Samsung|Apple"
+      ],
+      "state": [
+        "tablets"
+      ],
+      "mustNot": [
+        "not with that topic"
+      ]
+    }
+  },
+  {
+    "id": "J17",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Who is Taylor Swift?"
+    ],
+    "interpretation": "Off-topic celebrity trivia",
+    "expected": "Decline celebrity trivia without giving biography details.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "LAVAALL",
+        "help|need|team|person"
+      ],
+      "mustNot": [
+        "singer|songwriter|born|Grammy"
+      ]
+    }
+  },
+  {
+    "id": "J18",
+    "group": "J",
+    "groupName": "Go-live routing and off-topic boundaries",
+    "turns": [
+      "Who won the football match yesterday?"
+    ],
+    "interpretation": "Off-topic sports result",
+    "expected": "Decline sports results and return to LAVAALL help.",
+    "checks": {
+      "noModel": true,
+      "minSentences": 1,
+      "maxSentences": 3,
+      "intentAll": [
+        "LAVAALL",
+        "help|need|team|person"
+      ],
+      "mustNot": [
+        "won [0-9]|[0-9][\u2013-][0-9]|Manchester|Liverpool|Arsenal"
+      ]
+    }
   }
 ]

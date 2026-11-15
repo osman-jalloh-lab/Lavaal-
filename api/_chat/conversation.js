@@ -2,6 +2,7 @@
 
 const { searchCatalog, loadCatalog, normalizeInput, purchaseDetails } = require('./catalog');
 const narrow = require('./narrow');
+const { isPowerAsk } = require('./knowledge');
 const EMAIL = 'support@lavaall.com';
 const WHATSAPP = '+1 (737) 704-4182';
 
@@ -10,7 +11,11 @@ const HAVE_ASK = /\b(do you (?:have|carry|sell|stock)|have you got|is there (?:a
 const WANT_ASK = /\b(?:i\s+)?(?:want|need|would like|wanna|looking for|looking to buy|need to (?:get|buy)|want to (?:get|buy|order))|i['’]d like|get me\b/i;
 const HELP_ASK = /^(ask assistant|demander à l['’]assistant|perguntar ao assistente|help|hello|hi|hey)\s*[?.!]*$/i;
 const PRICE_ASK = /\b(price|prices|pricing|cost|costs|how much|Combien|c'est combien|coute|co[uû]te|pre[cç]o|preco|quanto custa|cheapest|discount|offre|prayz|prix)\b/i;
-const DELIVERY_ASK = /\b(deliver(?:y|ies)?|ship(?:ping)?|livr(?:er|aison)|entrega|sierra leone|guinea[- ]bissau|liberia|\bSL\b|\bGN\b|\bLR\b|\bGW\b)\b/i;
+function deliveryAsk(text) {
+  const ask = String(text || '').replace(/\bdelivery\s+(?:riders?|drivers?|staff)\b/ig, '');
+  return /\b(?:deliver(?:y|ies)?\s+(?:to|in|within|across)\s+\S+|ship(?:ping)?\s+(?:to|in)\s+\S+|shipping|delivery\s+(?:costs?|fees?|charges?|options?|service)|(?:costs?|fees?|charges?)\s+(?:of|for)\s+delivery|(?:do|can|could|will) you deliver\b|livr(?:er|aison)|entrega)\b/i.test(ask)
+    || /^(?:(?:to|in)\s+)?(?:sierra leone|guinea(?:[- ]bissau)?|liberia|SL|GN|LR|GW)[?.!]*$/i.test(ask.trim());
+}
 const TIMELINE_ASK = /\b(how long|how soon|lead time|timeline|when (?:can|will|do) (?:i|you|we)|délai|prazo)\b/i;
 const PAY_ASK = /\b(how (?:do|can) (?:i|we) pay|payment|invoice|refund|deposit|wire transfer|paiement|fatura|reembolso)\b/i;
 const SCHOOL_ASK = /\b(school|ngo|non-?profit|classroom|université|escola|ong|government|gov(?:ernment)?)\b/i;
@@ -242,17 +247,19 @@ function slotReply(text, session) {
     const names = uniqueNames(session.lastModel ? [session.lastModel] : session.lastProducts || []);
     return done((quantity ? 'For ' + quantity + ' units, ' : '') + (names.length === 1 ? names[0] + ': would you like to request a quote?' : names.length ? 'which item from that list should the team quote?' : 'which item should the team quote?'), { fields: quantity ? { quantity } : {}, awaiting: null });
   }
-  const samsung = raw.match(/\b(?:samsung\s+)?a\s*(\d{2})\b/i);
+  // Spaced "a 10-desk" is English, not a model; spaced numbers need a brand.
+  const samsung = raw.match(/\b(?:samsung(?:\s+galaxy)?|galaxy)\s+a\s*(\d{2})\b|\ba(\d{2})\b/i);
+  const aModel = samsung && (samsung[1] || samsung[2]);
+  const listedA = aModel && products.some(p => new RegExp('\\bGalaxy A' + aModel + '\\b', 'i').test(p.name));
   if (session.pendingSamsung && /^(?:yes|yes please|correct|confirm|galaxy\s+a\s*\d{2})[.!]?$/i.test(raw)) {
     const reply = narrowingReply(session.pendingSamsung, { ...session, pendingSamsung: null, awaiting: null, narrow: null });
     return reply && { ...reply, pendingSamsung: null };
   }
-  if (samsung && !/\bgalaxy\b/i.test(raw)) {
-    const label = 'Galaxy A' + samsung[1];
-    const listed = products.some(p => new RegExp('\\bGalaxy A' + samsung[1] + '\\b', 'i').test(p.name));
-    if (listed) return done('Do you mean the ' + label + '?', { pendingSamsung: label, chips: [label], lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: 'samsung-confirm' });
-    const nearest = products.filter(p => /\bGalaxy A\d+/i.test(p.name)).sort((a,b) => Math.abs(Number(a.name.match(/A(\d+)/)[1]) - Number(samsung[1])) - Math.abs(Number(b.name.match(/A(\d+)/)[1]) - Number(samsung[1]))).slice(0,3).map(p => p.name);
-    const plausibleTypo = nearest.some(name => Math.abs(Number(name.match(/A(\d+)/)[1]) - Number(samsung[1])) <= 3);
+  if (samsung && (!/\bgalaxy\b/i.test(raw) || !listedA)) {
+    const label = 'Galaxy A' + aModel;
+    if (listedA) return done('Do you mean the ' + label + '?', { pendingSamsung: label, chips: [label], lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: 'samsung-confirm' });
+    const nearest = products.filter(p => /\bGalaxy A\d+/i.test(p.name)).sort((a,b) => Math.abs(Number(a.name.match(/A(\d+)/)[1]) - Number(aModel)) - Math.abs(Number(b.name.match(/A(\d+)/)[1]) - Number(aModel))).slice(0,3).map(p => p.name);
+    const plausibleTypo = nearest.some(name => Math.abs(Number(name.match(/A(\d+)/)[1]) - Number(aModel)) <= 3);
     return done(plausibleTypo ? 'For ' + label + ', the nearest catalogue models are ' + listWords(nearest) + '. Did you mean one of those?' : sourceLine(), { chips: nearest.concat(['Talk to someone']), lastModel: null, selectedVariant: null, narrow: null, lastProducts: [], awaiting: null });
   }
   const place = value.match(/^(?:to\s+|in\s+)?(sierra leone|guinea[- ]bissau|guinea|liberia|conakry|freetown|monrovia|bo|kenema)$/i);
@@ -673,10 +680,11 @@ function topicOf(text, session) {
   if (HAVE_ASK.test(raw) || WANT_ASK.test(raw) || family) {
     return 'product:' + (family ? family.toLowerCase() : (query || raw).toLowerCase().replace(/\s+/g, ' ').slice(0, 48));
   }
+  if (deliveryAsk(raw) && PRICE_ASK.test(raw)) return 'faq-delivery';
   if (PRICE_ASK.test(raw)) return 'faq-price';
   if (PAY_ASK.test(raw) || LEGAL_ASK.test(raw)) return 'faq-pay';
   if (TIMELINE_ASK.test(raw)) return 'faq-timeline';
-  if (DELIVERY_ASK.test(raw)) return 'faq-delivery';
+  if (deliveryAsk(raw)) return 'faq-delivery';
   if (SCHOOL_ASK.test(raw)) return 'faq-school';
   if (TRUST_ASK.test(raw)) return 'faq-trust';
   if (WEBSITE_ASK.test(raw)) return 'faq-website';
@@ -798,8 +806,25 @@ function guidedReply(rawInput, session, lang, flags) {
   const form = guidedForm(String(rawInput || '').trim(), session);
   if (form) return form;
 
+  if (isPowerAsk(text) && !flags.priceAsk && !PAY_ASK.test(text) && !deliveryAsk(text)) {
+    const hit = narrow.resolve('voltage stabilizers');
+    const products = narrow.buildTree(loadCatalog().products).filter(p => hit.ids.includes(p.id));
+    if (products.length) return result('Our catalogue includes voltage stabilizers for voltage regulation; these do not provide backup power during an outage. Our team can confirm suitable equipment and stock with your quote. Which equipment needs power?', ['product-guide'], {
+      lastTopic: 'product:power', narrow: hit, lastProducts: products, matchCount: products.length,
+      chips: hit.labels.slice(0, 4).concat(['Request a quote', 'Talk to someone']), awaiting: null,
+    });
+  }
+
   const commercial = commercialReply(text, session);
   if (commercial) return commercial;
+
+  if (/\boffice\b/i.test(text) && /\b(?:package|packs?|new office|office of \d+|office use|dell|hp|desks?)\b/i.test(text) && !flags.priceAsk && !deliveryAsk(text)) {
+    const products = narrowingReply(text, session);
+    if (products) return products;
+    return result('I can help prepare an equipment package for your office. Which equipment do you need, and for how many people?', ['product-guide', 'product-clarification'], {
+      lastTopic: 'product:office', chips: ['Computers', 'Printers', 'Request a quote'],
+    });
+  }
 
   const intent = serviceIntent(text);
   if (intent) return serviceReply(intent);
@@ -809,7 +834,7 @@ function guidedReply(rawInput, session, lang, flags) {
     return result(question, ['product-guide', 'product-clarification'], { chips: ['Browse catalogue', 'Request a quote'] });
   }
 
-  const skipProduct = PAY_ASK.test(text) || LEGAL_ASK.test(text) || TRUST_ASK.test(text) || WEBSITE_ASK.test(text) || /\b(quote|talk to|speak to|price|cost|how much|install(?:ation|ations|ing)?|deploy(?:ment)?|delivery|deliver|refund|invoice)\b/i.test(text);
+  const skipProduct = PAY_ASK.test(text) || LEGAL_ASK.test(text) || TRUST_ASK.test(text) || WEBSITE_ASK.test(text) || deliveryAsk(text) || /\b(quote|talk to|speak to|price|cost|how much|install(?:ation|ations|ing)?|deploy(?:ment)?|refund|invoice)\b/i.test(text);
   if (!/\b(what models|listed in|how many)\b/i.test(text) && !skipProduct && !flags.priceAsk && (isSlotFill(text, session) || HAVE_ASK.test(text) || WANT_ASK.test(text) || /^(?:(?:can|could|do)\s+)?(?:you|una)\s+(?:have|get|sell|stock)\b/i.test(text) || /^(?:can you |could you )?(?:show|list)\b/i.test(text) || (text.split(/\s+/).length <= 6 && !/^(tell|explain|what|how|why|can|could|where|when)\b/i.test(text)))) {
     const guided = narrowingReply(text, session);
     if (guided) {
@@ -821,6 +846,17 @@ function guidedReply(rawInput, session, lang, flags) {
   }
 
   // Alison FAQ patterns (Starlink is intentionally not handled here).
+  if (deliveryAsk(text) && !TIMELINE_ASK.test(text) && !PAY_ASK.test(text) && !LEGAL_ASK.test(text) && !HAVE_ASK.test(text) && !/\bstarlink\b/i.test(text) && !/\binstall/i.test(text)) {
+    return result(
+      'Yes, we deliver in our main markets: Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Delivery cost and timing come with your quote. Which city should it go to?',
+      ['faq-delivery'],
+      { chips: ['Request a quote', 'Talk to someone'], slots: (() => {
+        const country = text.match(/\b(sierra leone|guinea[- ]bissau|liberia|guinea)\b/i);
+        return country ? { ...(session.slots || {}), deliveryCountry: country[1].replace(/\b\w/g, c => c.toUpperCase()), lastSlot: 'deliveryCountry' } : session.slots;
+      })() }
+    );
+  }
+
   if (flags.priceAsk) {
     const named = familySearch(text);
     const item = named[0] ? ' For the ' + named[0].name + ', our team will confirm stock with your quote.' : ' Our team will confirm stock with your quote.';
@@ -849,18 +885,6 @@ function guidedReply(rawInput, session, lang, flags) {
       { chips: ['Request a quote', 'Talk to someone'] }
     );
   }
-
-  if (DELIVERY_ASK.test(text) && !HAVE_ASK.test(text) && !/\bstarlink\b/i.test(text) && !/\binstall/i.test(text)) {
-    return result(
-      'Yes, we deliver in our main markets: Sierra Leone, Guinea, Liberia, and Guinea-Bissau. Delivery cost and timing come with your quote. Which city should it go to?',
-      ['faq-delivery'],
-      { chips: ['Request a quote', 'Talk to someone'], slots: (() => {
-        const country = text.match(/\b(sierra leone|guinea[- ]bissau|liberia|guinea)\b/i);
-        return country ? { ...(session.slots || {}), deliveryCountry: country[1].replace(/\b\w/g, c => c.toUpperCase()), lastSlot: 'deliveryCountry' } : session.slots;
-      })() }
-    );
-  }
-
   if (SCHOOL_ASK.test(text) && !HAVE_ASK.test(text)) {
     return result(
       "Yes, schools and NGOs are a main area for us, including full packages. Roughly how many users or classrooms are you planning for?",
@@ -895,6 +919,6 @@ function guidedReply(rawInput, session, lang, flags) {
 }
 
 module.exports = {
-  slotReply, hasSlotContext, guidedReply, guidedHandoff, isSlotFill, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK,
+  slotReply, hasSlotContext, guidedReply, guidedHandoff, isSlotFill, productColors, pickModel, CONTACT_ASK, HAVE_ASK, HELP_ASK, deliveryAsk,
   shouldResetContext, topicOf, serviceIntent, categoryDef, SERVICE_SLA, FORM_START, normalizeContactPhone, handoffPrompt, handoffSla, handoffChips, topicChipIndex, TOPIC_CHIPS,
 };

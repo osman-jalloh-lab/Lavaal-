@@ -51,7 +51,11 @@ const QUOTE_ASK = /\b(request a quote|start a quote|get a quote|i (?:want|need|w
 const AGENT_ASK = /\b(?:(?:speak|talk|chat) (?:to|with) (?:someone|somebody|(?:(?:a |an )?(?:real )?)(?:person|human|agent|representative)|customer service|your team|the team)|(?:i (?:need|want)|connect me (?:to|with)|put me through to) (?:(?:a |an )?(?:real )?)(?:person|human|agent|representative)\b(?!\s+(?:resources?|of)\b)|person on (?:the|your) team|someone from (?:the|your) team|call me(?: back)?|can someone call me(?: back)?|falar com (?:uma pessoa|algu[eé]m|um agente)|parler (?:[àa] |avec )?(?:un|une) (?:agent|personne|humain)|t[oɔ]k to (?:wan p[oɔ]sin|s[oɔ]mb[oɔ]di|di tim))\b/i;
 const HOURS_ASK = /\b(hours|opening hours|when are you open|are you open|horaires|heure[s]? d'ouverture|horario|horário|24\/7|reachable)\b/i;
 const BULK_ASK = /\b(bulk|wholesale|gros|en gros|volume|school|ecole|école|escola|office|bureau|empresa|company|deployment|50 |100 |twenty |cinquante |cento )\b/i;
-const OFFTOPIC_HINTS = /\b(weather|poem|po[eè]me|poema|election|politics|recipe|football|soccer|joke|horoscope|movie)\b/i;
+// Trivia needs an explicit decline before weak catalogue tokens (or "tourist site")
+// can send it to product discovery or the website FAQ. A country name alone is
+// not a coverage question; delivery and other business intent keep their routes.
+const OFFTOPIC_HINTS = /\b(weather|poems?|po[eè]mes?|poemas?|elections?|politics|recipes?|recettes?|receitas?|jollof|cook(?:ing)?|football|soccer|cricket|basketball|tennis|sports?|match results?|scores?|world cup|jokes?|horoscopes?|movies?|celebrit(?:y|ies)|taylor swift|beyonc[eé]|rihanna|(?:lionel )?messi|(?:cristiano )?ronaldo|lebron james|actors?|actresses|singers?|musicians?|net worth|touris(?:t|ts|m)|sightseeing|landmarks?|vacations?|holidays?|geography|capitals?|capitales?|countries|population|currenc(?:y|ies)|planets?|saturn|jupiter|neptune|uranus|venus|mercury|mars|astronomy|solar system|mongolia|trivia|fun facts?)\b|\b(?:places? to (?:visit|see)|what .{1,50} (?:famous|known) for|who (?:won|scored)|how (?:old|tall) is|who is (?!your\b|our\b|lavaall\b))/i;
+const OFFTOPIC_BUSINESS = /\b(?:iphones?|ipads?|macbooks?|laptops?|computers?|desktops?|servers?|routers?|switch(?:es)?|cisco|dell|hp|lenovo|samsung|galaxy|apple|microsoft|surface|thinkpad|latitude|elitebook|probook|lg|sony|tcl|hisense|canon|hikvision|phones?|tablets?|tvs?|televisions?|monitors?|printers?|watches|smartwatch(?:es)?|headphones?|earbuds?|speakers?|projectors?|keyboards?|mice|accessories|storage|ssd|hdd|fib(?:er|re)|cabl(?:e|es|ing)|starlink|nintendo|catalyst|ups|stabili[sz]ers?|backup[- ]power|power[- ]cuts?|batter(?:y|ies)|cameras?|security|equipment|hardware|appliances?|refrigerators?|freezers?|air conditioners?|website|online store|apps?|automation|chatbots?|quotes?|sourc(?:e|ing)|orders?|invoices?|purchases?|stock|warrant(?:y|ies)|refunds?|payments?|deliver(?:y|ies)?|shipping|ship|install(?:ation|ing)?|coverage|cover(?:ed)?|markets?|serv(?:e|es|ice|ices)|operat(?:e|es|ing)|branches?|offices?|addresses?|contacts?|support|whatsapp|email|founders?|owners?|ceo)\b/i;
 const TECH_HINTS = /\b(iphone|ipad|macbook|laptop|computer|server|router|switch|cisco|dell|hp|lenovo|samsung|galaxy|phone|tablet|tv|monitor|printer|fiber|fibre|cabling|quote|install|lavaall|order|invoice|delivery|starlink|nintendo|catalyst)\b/i;
 
 const BOT_ASK = /(are you a bot|are you an? ai|are you (an? )?(real )?(person|human)|you a bot|is this a bot|es[- ]tu un (bot|robot)|[eêéEÊÉ]tes[- ]vous un (bot|robot|ia)|voc[eê] [eé] um (bot|rob[oô]|assistente)|[eé] um rob[oô]|yu na bot)\b/i;
@@ -467,6 +471,19 @@ function respond(text, session = {}, request = {}) {
     }[lang], language: lang, events: ['blocked-sensitive:' + sensitive], fields: {}, chips: ['Request a quote', 'Talk to someone'], sensitiveBlocked: true };
   }
 
+  const activeIntake = /^(?:handoff|form)-/.test(session.awaiting || '') && session.awaiting !== 'form-offer';
+  const businessQuestion = /\b(?:you|lavaall)\b.{0,25}\b(?:work|based|located|accept|take)\b|\b(?:currency|currencies)\b.{0,25}\b(?:pay|payment)\b/i.test(rawInput);
+  if (!activeIntake && OFFTOPIC_HINTS.test(rawInput)
+      && !OFFTOPIC_BUSINESS.test(rawInput) && !businessQuestion && !wantsAgent && !hours && !CONTACT_ASK.test(rawInput)) {
+    const line = {
+      en: "I'm here to help with LAVAALL Technology — hardware, installation, or a request for the team — not with that topic. What equipment or service do you need, or would you like to talk to someone?",
+      fr: "Je suis là pour LAVAALL Technology — le matériel, l'installation ou une demande pour l'équipe — et non pour ce sujet. De quel matériel ou service avez-vous besoin, ou souhaitez-vous parler à une personne ?",
+      pt: 'Estou aqui para a LAVAALL Technology — equipamento, instalação ou um pedido para a equipa — e não para esse tema. De que equipamento ou serviço precisa, ou quer falar com uma pessoa?',
+      kr: 'A de ya fɔ ɛp wit LAVAALL Technology — ɛkwipmɛnt, instaleshɔn, ɔ rɛkwɛst fɔ di tim — nɔt dat tɔpik. Wetin yu nid, ɔ yu wan tɔk to wan pɔsin?',
+    }[lang];
+    return attachTopic({ text: line, language: lang, events: ['redirected-offtopic'], fields: {}, chips: ['Talk to someone', 'Browse catalogue'] }, rawInput, context, reset);
+  }
+
   const special = require('./intents').specialIntent(rawInput, lang, session);
   if (special) return attachTopic(special, rawInput, context, reset);
 
@@ -513,16 +530,6 @@ function respond(text, session = {}, request = {}) {
   if (guided) {
     guided.language = lang;
     return attachTopic(guided, rawInput, context, reset);
-  }
-
-  if (OFFTOPIC_HINTS.test(input) && !TECH_HINTS.test(input) && !wantsAgent && !hours) {
-    const line = {
-      en: "I'm here to help with LAVAALL Technology — hardware, installation, or a request for the team — not with that topic.",
-      fr: "Je suis là pour LAVAALL Technology — le matériel, l'installation ou une demande pour l'équipe — et non pour ce sujet.",
-      pt: 'Estou aqui para a LAVAALL Technology — equipamento, instalação ou um pedido para a equipa — e não para esse tema.',
-      kr: 'A de ya fɔ ɛp wit LAVAALL Technology — ɛkwipmɛnt, instaleshɔn, ɔ rɛkwɛst fɔ di tim — nɔt dat tɔpik.',
-    }[lang];
-    return attachTopic({ text: `${line} ${offer(lang, false)}`, language: lang, events: ['redirected-offtopic'], fields: {} }, rawInput, context, reset);
   }
 
   if (botAsk && !TECH_HINTS.test(rawInput) && !TECH_HINTS.test(input) && !priceAsk) {

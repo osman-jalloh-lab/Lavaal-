@@ -12,6 +12,10 @@ const PACK = require('./knowledge/pack.v1.json');
 const { terms } = require('./knowledge/terms');
 const MOUNTED = Object.freeze({ technology: true, web: false });
 
+function isPowerAsk(text) {
+  return /\b(?:power[- ]?(?:cuts?|outages?)|backup[- ]power|back[- ]up power|ups|uninterruptible power|(?:voltage )?stabili[sz]ers?)\b/i.test(String(text || ''));
+}
+
 function section(site = 'technology') {
   const key = site === 'web' ? 'web' : 'technology';
   const data = PACK.sections[key];
@@ -23,6 +27,10 @@ function section(site = 'technology') {
 function selectFacts(text, { site = 'technology', limit = 4 } = {}) {
   const current = section(site);
   if (!current.mounted) return [];
+  // Location/use-case words must not ground a power request in branch or wholesale copy.
+  // Product details still come from the catalogue, not this public-fact summary.
+  if (isPowerAsk(text)) return current.facts.filter(fact => fact.id === 'catalog-power')
+    .slice(0, Math.max(0, limit)).map(fact => ({ id: fact.id, text: fact.text }));
   const asked = new Set(terms(text));
   if (!asked.size) return [];
   const scored = [];
@@ -46,5 +54,6 @@ module.exports = {
   BEHAVIOUR: PACK.behaviour,
   section,
   selectFacts,
+  isPowerAsk,
   missingLine,
 };
