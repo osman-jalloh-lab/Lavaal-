@@ -127,9 +127,20 @@ function visibleInPanel(panel, el) {
     t.barUsable('name question');
     assert.equal(await t.type('Ada Test'), 'What would you like to talk to the team about?');
     t.barUsable('topic question');
-    assert.equal(await t.type('a laptop for our office'), 'Please confirm your details: Name: Ada Test. Contact: +23276123456. Topic: a laptop for our office. Shall I pass this to our team?');
+    assert.equal(await t.type('a laptop for our office'), 'Which country and city are you in? You can skip this.');
+    assert.deepEqual(t.chipLabels(), ['Skip', 'Cancel request']);
+    t.barUsable('location question');
+    assert.equal(await t.type(''), 'What organisation are you with? You can skip this.');
+    assert.deepEqual(t.events, [], 'blank optional location advances without requesting review');
+    t.barUsable('organisation question');
+    assert.equal(await t.type('   '), 'Please confirm your details: Name: Ada Test. Contact: +23276123456. Topic: a laptop for our office. Shall I pass this to our team?');
     assert.deepEqual(t.chipLabels(), ['Confirm', 'Cancel']);
     t.barUsable('Confirm step');
+    const beforeBlankConfirm = t.panel._messageList.children.length;
+    t.panel._textarea.value = '';
+    t.panel._sendBtn.click();
+    assert.equal(t.panel._messageList.children.length, beforeBlankConfirm, 'blank text at Confirm does not send Skip or confirm');
+    assert.equal((await sinks()).length, 0);
     // Showing chips shrinks the list; it re-scrolls so the current question/summary is not hidden behind them.
     t.panel._messageList.scrollTop = 0; t.panel._messageList.scrollHeight = 999;
     t.panel._renderChips(['Confirm', 'Cancel']);
@@ -150,6 +161,7 @@ function visibleInPanel(panel, el) {
     await t.type('ada@example.test');
     await t.type('Ada Test');
     await t.type('a router');
+    await t.chip('Skip'); await t.chip('Skip');
     assert.equal(await t.chip('Confirm'), 'Thank you, someone from our team will reach out to you shortly.');
     assert.deepEqual(t.events, ['request:review', 'request:confirmed']);
     t.barUsable('thank-you after chip');

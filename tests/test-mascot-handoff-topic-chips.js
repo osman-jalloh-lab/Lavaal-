@@ -114,6 +114,14 @@ function visibleInPanel(panel, el) {
   const TOPIC_Q = 'What would you like to talk to the team about?';
   const OTHER_Q = 'What would you like to talk about?';
   const CHIPS = ['Customer service', 'Request a call', 'Get a quote', 'Order help', 'Something else', 'Cancel request'];
+  const LOCATION_Q = 'Which country and city are you in? You can skip this.';
+  const ORGANISATION_Q = 'What organisation are you with? You can skip this.';
+  const skipOptional = async t => {
+    assert.deepEqual(t.chipLabels(), ['Skip', 'Cancel request']);
+    assert.equal(await t.chip('Skip'), ORGANISATION_Q);
+    t.barUsable('organisation question');
+    return t.chip('Skip');
+  };
   const THANKS = 'Thank you, someone from our team will reach out to you shortly.';
   const summary = topic => 'Please confirm your details: Name: Ada Test. Contact: +23276123456. Topic: ' + topic + '. Shall I pass this to our team?';
   const toTopic = async t => {
@@ -131,7 +139,8 @@ function visibleInPanel(panel, el) {
     for (const label of ['Customer service', 'Request a call', 'Get a quote', 'Order help']) {
       const t = makePanel();
       await toTopic(t);
-      assert.equal(await t.chip(label), summary(label));
+      assert.equal(await t.chip(label), LOCATION_Q);
+      assert.equal(await skipOptional(t), summary(label));
       assert.deepEqual(t.chipLabels(), ['Confirm', 'Cancel']);
       t.barUsable(label + ' Confirm step');
       assert.equal((await sinks()).length, 0, 'nothing written before Confirm');
@@ -149,7 +158,8 @@ function visibleInPanel(panel, el) {
     assert.deepEqual(t.chipLabels(), ['Cancel request']);
     t.barUsable('Something else text step');
     assert.equal(await t.type('x'.repeat(301)), OTHER_Q, 'over-long free text is re-asked');
-    assert.equal(await t.type('<b>Solar</b> for our clinic'), summary('<b>Solar</b> for our clinic'));
+    assert.equal(await t.type('<b>Solar</b> for our clinic'), LOCATION_Q);
+    assert.equal(await skipOptional(t), summary('<b>Solar</b> for our clinic'));
     // Plain text in the panel: the bubble holds the text, no markup is parsed.
     const bubble = t.panel._messageList.children.at(-1);
     assert.ok(!/<b>/.test(bubble.innerHTML || ''), 'summary is not rendered as HTML');
@@ -161,12 +171,14 @@ function visibleInPanel(panel, el) {
     // Typing a topic in the bar at the chip step is still accepted.
     t = makePanel();
     await toTopic(t);
-    assert.equal(await t.type('a laptop for our office'), summary('a laptop for our office'));
+    assert.equal(await t.type('a laptop for our office'), LOCATION_Q);
+    assert.equal(await skipOptional(t), summary('a laptop for our office'));
     assert.equal(await t.chip('Confirm'), THANKS);
     // Typed chip text (any case, trailing dot) maps to the fixed server label.
     t = makePanel();
     await toTopic(t);
-    assert.equal(await t.type('order HELP.'), summary('Order help'));
+    assert.equal(await t.type('order HELP.'), LOCATION_Q);
+    assert.equal(await skipOptional(t), summary('Order help'));
     // Cancel request still works from the chip step.
     t = makePanel();
     await toTopic(t);
@@ -191,21 +203,26 @@ function visibleInPanel(panel, el) {
     turn('begin', kind || true); turn('Email'); turn('ada@example.test');
     return { first: turn('Ada Test'), turn, get session() { return session; } };
   };
+  const toReview = (w, text) => {
+    assert.equal(w.turn(text).awaiting, 'handoff-location');
+    assert.equal(w.turn('skip').awaiting, 'handoff-organisation');
+    return w.turn('skip');
+  };
   let w = walk('fr');
   assert.deepEqual(w.first.chips, ['Service client', 'Demander un appel', 'Obtenir un devis', 'Aide pour une commande', 'Autre chose', 'Cancel request']);
   assert.equal(w.turn('Autre chose').text, 'De quoi souhaitez-vous parler ?');
-  assert.match(w.turn('Une imprimante').text, /sujet : Une imprimante\./);
+  assert.match(toReview(w, 'Une imprimante').text, /sujet : Une imprimante\./);
   w = walk('fr');
-  assert.match(w.turn('Service client').text, /sujet : Service client\./);
+  assert.match(toReview(w, 'Service client').text, /sujet : Service client\./);
   w = walk('fr');
-  assert.match(w.turn('Customer service').text, /sujet : Service client\./, 'an English label tap in French stores the French label');
+  assert.match(toReview(w, 'Customer service').text, /sujet : Service client\./, 'an English label tap in French stores the French label');
   w = walk('kr');
   assert.deepEqual(w.first.chips, TOPIC_CHIPS.en.concat('Cancel request'));
   assert.equal(w.turn('Something else').text, 'Wetin yu wan tɔk abawt?');
   w = walk('en', 'quote');
   assert.equal(w.first.text, 'What would you like a quote for?');
   assert.deepEqual(w.first.chips, ['Cancel request'], 'quote flow keeps its free-text question');
-  assert.match(w.turn('Something else').text, /Topic: Something else\./, 'quote flow does not treat chip text specially');
+  assert.match(toReview(w, 'Something else').text, /Topic: Something else\./, 'quote flow does not treat chip text specially');
   w = walk('en');
   assert.deepEqual(w.turn('').chips, TOPIC_CHIPS.en.concat('Cancel request'), 'empty re-ask keeps the chips');
   assert.deepEqual(handoffChips(w.session), TOPIC_CHIPS.en.concat('Cancel request'));

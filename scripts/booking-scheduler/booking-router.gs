@@ -30,6 +30,9 @@
  *     slot is still free, creates the Calendar event (with a Google Meet
  *     link if requested), UPDATES the same lead row to "Scheduled" rather
  *     than creating a new one, and sends the real confirmation emails.
+ * POST { action:'chat-handoff', secret, name, email/whatsapp, ... }
+ *     Sends one support email and appends one All Requests row. See
+ *     APPS-SCRIPT-CHAT-HANDOFF.md for the existing-deployment update steps.
  *
  * ONE-TIME SETUP
  * 1. New Apps Script project ("LAVAALL Booking Scheduler"), paste this file.
@@ -153,7 +156,14 @@ function doPost(e) {
     return jsonOut({ error: 'invalid_json' }, 400);
   }
   try {
-    var secret = PropertiesService.getScriptProperties().getProperty('BOOKING_WEBHOOK_SECRET');
+    var props = PropertiesService.getScriptProperties();
+    if (payload.action === 'chat-handoff') {
+      var chatSecret = props.getProperty('CHAT_HANDOFF_WEBHOOK_SECRET') || props.getProperty('BOOKING_WEBHOOK_SECRET');
+      // Unlike legacy booking actions, chat delivery always requires a secret.
+      if (!chatSecret || payload.secret !== chatSecret) return jsonOut({ error: 'forbidden' }, 403);
+      return handleChatHandoff(payload);
+    }
+    var secret = props.getProperty('BOOKING_WEBHOOK_SECRET');
     if (secret && payload.secret !== secret) return jsonOut({ error: 'forbidden' }, 403);
 
     if (payload.action === 'register') return handleRegister(payload);
@@ -163,6 +173,62 @@ function doPost(e) {
     logError('doPost:' + payload.action, err);
     return jsonOut({ error: 'server_error' }, 500);
   }
+}
+
+// ============================================================================
+// CHAT HANDOFF — internal support delivery only; no customer autoresponder.
+// ============================================================================
+function chatText(value, limit) {
+  return String(value == null ? '' : value).trim().slice(0, limit);
+}
+
+function handleChatHandoff(payload) {
+  // Test/Preview payloads belong in the website's test store, never email.
+  if (payload.test === true) return jsonOut({ error: 'test_delivery_disabled' }, 400);
+  var name = chatText(payload.name, 200);
+  var email = chatText(payload.email, 254);
+  var phone = chatText(payload.whatsapp, 40);
+  if (!name || (!email && !phone)) return jsonOut({ error: 'invalid_chat_handoff' }, 400);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return jsonOut({ error: 'invalid_email' }, 400);
+
+  var now = new Date();
+  var topic = chatText(payload.topic, 200);
+  var ownWords = chatText(payload.ownWords, 6000);
+  var preferred = payload.preferredChannel === 'email' && email ? 'email' : (phone ? 'whatsapp' : 'email');
+  var consent = payload.consent === true;
+  var details = [
+    'Bot summary (deterministic; verify any quoted price, stock or date):\n' + chatText(payload.botSummary, 3000),
+    'Transcript (truncated):\n' + chatText(payload.transcript, 12000),
+    'Time CT (America/Chicago): ' + (chatText(payload.timeCT, 100) || Utilities.formatDate(now, 'America/Chicago', 'yyyy-MM-dd HH:mm:ss z')),
+    'Time GMT (Africa/Freetown): ' + (chatText(payload.timeGMT, 100) || Utilities.formatDate(now, TIMEZONE, 'yyyy-MM-dd HH:mm:ss z')),
+    'Preferred channel: ' + preferred,
+    'City: ' + chatText(payload.city, 200),
+    'Page URL: ' + chatText(payload.pageUrl, 2000),
+    'Consent recorded: ' + (consent ? 'Yes' : 'No'),
+  ].join('\n\n');
+  var body = [
+    'A chatbot handoff was confirmed.', '', 'Name: ' + name,
+    'Email: ' + (email || '(not provided)'), 'WhatsApp: ' + (phone || '(not provided)'),
+    'Country: ' + chatText(payload.country, 200), 'Organisation: ' + chatText(payload.organisation, 300),
+    'Topic: ' + topic, '', 'Visitor request (own words):\n' + ownWords, '', details,
+  ].join('\n');
+  var options = email ? { replyTo: email } : undefined;
+  var sent = safeSendEmail('support@lavaall.com', 'Chatbot handoff: ' + name.replace(/[\r\n]/g, ' '), body, options);
+  var parts = name.split(/\s+/);
+  appendRow('All Requests', ALL_REQUESTS_HEADERS(), {
+    'Request ID': 'CHAT-' + Utilities.getUuid(),
+    'Submitted Date': Utilities.formatDate(now, TIMEZONE, 'yyyy-MM-dd'),
+    'Submitted Time': Utilities.formatDate(now, TIMEZONE, 'HH:mm:ss'),
+    'Customer Timezone': '', 'Website Language': lang(payload.language), 'Request Type': 'Chatbot handoff',
+    'First Name': parts[0], 'Last Name': parts.slice(1).join(' '), 'Full Name': name,
+    'Email': email, 'Phone': phone, 'Company': chatText(payload.organisation, 300),
+    'Country': chatText(payload.country, 200), 'Inquiry Category': topic, 'Product or Service': '',
+    'Subject': 'Chatbot handoff: ' + topic, 'Message': ownWords,
+    'Preferred Response Method': preferred, 'Assigned Team': 'support@lavaall.com',
+    'Status': 'Received', 'Source Page': 'chatbot', 'Consent Recorded': consent ? 'Yes' : 'No',
+    'Notification Status': sent ? 'Sent' : 'Failed', 'Internal Notes': details,
+  });
+  return sent ? jsonOut({ ok: true }) : jsonOut({ error: 'email_failed' }, 500);
 }
 
 // ============================================================================

@@ -95,5 +95,5 @@ assert.doesNotMatch(handoff.text, /epson|printer/i);
 console.log('A2 conversation and FAQ flows passed');
 
 let receipt = respond('talk to someone');
-for (const answer of ['Email', 'mira@example.org', 'Mira Sample', 'office equipment request', 'Confirm']) receipt = respond(answer, receipt);
+for (const answer of ['Email', 'mira@example.org', 'Mira Sample', 'office equipment request', 'skip', 'skip', 'Confirm']) receipt = respond(answer, receipt);
 assert.equal(receipt.text, 'Thank you, someone from our team will reach out to you shortly.');

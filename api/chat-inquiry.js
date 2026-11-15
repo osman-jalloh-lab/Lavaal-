@@ -6,7 +6,7 @@ const ACTION_FIELDS = Object.freeze({
   draft: ['sessionId', 'fields', 'eventId'],
   review: ['sessionId', 'csrf', 'draftId'],
   confirm: ['sessionId', 'csrf', 'draftId', 'token', 'idempotencyKey'],
-  turn: ['sessionId', 'csrf', 'eventId', 'text'],
+  turn: ['sessionId', 'csrf', 'eventId', 'text', 'pageUrl'],
 });
 const OPAQUE_FIELDS = ['sessionId', 'draftId', 'token', 'csrf', 'idempotencyKey'];
 const isOpaque = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -89,7 +89,7 @@ function createHandler(options = {}) {
       const { vendorSecret } = options;
       const chat = options.chat || (args => require('./_chat/llm-gateway').chat({ ...args, env }));
       const { previewDebug, previewLimits, ...serviceOptions } = options;
-      const service = createService({ ...serviceOptions, store, salt, chat,
+      const service = createService({ ...serviceOptions, store, salt, chat, env, runtime: config.preview ? 'preview' : config.runtime, trustedOrigins,
         ...(config.preview ? { previewDebug: true, previewLimits: true } : {}) });
       if (req.query?.action === 'config' && ['GET', 'POST'].includes(req.method)) {
         // Public flags only; no secrets. Session and turns still require Origin.
@@ -127,7 +127,7 @@ function createHandler(options = {}) {
       if (OPAQUE_FIELDS.some(key => allowed.includes(key) && !isOpaque(body[key]))) {
         return reply(res, 400, { error: 'invalid_request' });
       }
-      if (action === 'turn' && config.preview && (typeof body.text !== 'string' || !body.text.trim() || body.text.length > 2000)) return reply(res, 400, { error: 'invalid_request' });
+      if (action === 'turn' && config.preview && (typeof body.text !== 'string' || body.text.length > 2000)) return reply(res, 400, { error: 'invalid_request' });
       if (action === 'draft') {
         return reply(res, 200, await service.draft(body.sessionId, body.fields, body.eventId));
       }
@@ -155,7 +155,7 @@ function createHandler(options = {}) {
         result = await service.confirm(body.sessionId, proof, body.csrf, body.draftId, body.token, body.idempotencyKey);
       } else if (action === 'turn') {
         // Text turns compute their reservation on the server before vendor I/O.
-        result = await service.turn(body.sessionId, proof, body.eventId, options.turnReservationCents, body.csrf, body.text);
+        result = await service.turn(body.sessionId, proof, body.eventId, options.turnReservationCents, body.csrf, body.text, { pageUrl: body.pageUrl });
       }
       return reply(res, 200, result);
     } catch (error) {

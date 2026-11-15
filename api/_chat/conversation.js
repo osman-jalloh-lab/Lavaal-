@@ -440,6 +440,7 @@ const HANDOFF_COPY = {
   en: {
     channel: 'WhatsApp or email?', phone: 'What is your WhatsApp number, with country code?', email: 'What is your email address?',
     invalidPhone: 'Please enter a valid WhatsApp number with country code.', invalidEmail: 'Please enter a valid email address.',
+    location: 'Which country and city are you in? You can skip this.', organisation: 'What organisation are you with? You can skip this.',
     name: 'Could I get your first and last name, please?', topic: 'What would you like to talk to the team about?', quote: 'What would you like a quote for?',
     confirm: d => 'Please confirm your details: Name: ' + d.name + '. Contact: ' + d.contact + '. Topic: ' + d.topic + '. Shall I pass this to our team?',
     receipt: 'Thank you, someone from our team will reach out to you shortly.', cancel: 'Request cancelled. What else can I help with?', sla: SERVICE_SLA,
@@ -447,6 +448,7 @@ const HANDOFF_COPY = {
   fr: {
     channel: 'WhatsApp ou e-mail ?', phone: 'Quel est votre numéro WhatsApp avec indicatif pays ?', email: 'Quelle est votre adresse e-mail ?',
     invalidPhone: 'Veuillez saisir un numéro WhatsApp valide avec indicatif pays.', invalidEmail: 'Veuillez saisir une adresse e-mail valide.',
+    location: 'Dans quel pays et quelle ville êtes-vous ? Vous pouvez passer cette question.', organisation: 'Quelle est votre organisation ? Vous pouvez passer cette question.',
     name: 'Quel est votre prénom et votre nom, s’il vous plaît ?', topic: 'De quoi souhaitez-vous parler avec notre équipe ?', quote: 'Pour quel article souhaitez-vous un devis ?',
     confirm: d => 'Veuillez vérifier vos coordonnées : nom : ' + d.name + ' ; contact : ' + d.contact + ' ; sujet : ' + d.topic + '. Puis-je transmettre cette demande à notre équipe ?',
     receipt: "Merci, quelqu'un de l'équipe vous recontactera sous peu.", cancel: 'Demande annulée. Comment puis-je vous aider ?',
@@ -455,6 +457,7 @@ const HANDOFF_COPY = {
   kr: {
     channel: 'Yu WhatsApp ɔ ɛmail?', phone: 'Yu WhatsApp fon nɔmba wit country code?', email: 'Yu ɛmail?',
     invalidPhone: 'Duya, valid WhatsApp fon nɔmba wit country code?', invalidEmail: 'Duya, valid ɛmail?',
+    location: 'Na wich kɔntri ɛn siti yu de? Yu kin skip dis.', organisation: 'Wich ɔganayzeshɔn yu de wit? Yu kin skip dis.',
     name: 'Duya, yu fɔs ném ɛn las ném?', topic: 'Wetin yu wan tɔk to di tim abawt?', quote: 'Wetin yu nid fɔ quote?',
     confirm: d => 'Rivyu di sɔmari: ném: ' + d.name + '; fon ɔ ɛmail: ' + d.contact + '; rɛkwɛst: ' + d.topic + '. Yu wan sɛn am to di tim?',
     receipt: 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn.', cancel: 'Rɛkwɛst kansul. Wetin yu nid?',
@@ -483,6 +486,7 @@ function handoffChips(session, language) {
   const draft = session.handoffDraft || {};
   if (session.awaiting === 'handoff-confirm') return ['Confirm', 'Cancel'];
   if (session.awaiting === 'handoff-channel') return ['WhatsApp', 'Email'];
+  if (['handoff-location', 'handoff-organisation'].includes(session.awaiting)) return ['Skip', 'Cancel request'];
   if (session.awaiting === 'handoff-topic' && draft.kind !== 'quote' && !draft.topicOther) return topicChips(handoffLanguage(session, language));
   return ['Cancel request'];
 }
@@ -496,7 +500,7 @@ function handoffPrompt(session, language) {
   const draft = session.handoffDraft || {};
   return ({ 'handoff-channel': copy.channel, 'handoff-contact': draft.channel === 'email' ? copy.email : copy.phone,
     'handoff-name': copy.name, 'handoff-topic': draft.kind === 'quote' ? copy.quote : draft.topicOther ? TOPIC_OTHER[handoffLanguage(session, language)] : copy.topic,
-    'handoff-confirm': copy.confirm(draft) })[session.awaiting] || null;
+    'handoff-location': copy.location, 'handoff-organisation': copy.organisation, 'handoff-confirm': copy.confirm(draft) })[session.awaiting] || null;
 }
 
 function guidedHandoff(text, session, start, language) {
@@ -517,11 +521,18 @@ function guidedHandoff(text, session, start, language) {
     return reply((lang === 'en' ? '' : copy.sla + ' ') + copy.channel, {
       language: lang, kind: start === 'quote' ? 'quote' : 'person', name: '', contact: '', topic: handoffTopic(session).slice(0, 300),
       topicKnownFromChat: Boolean(handoffTopic(session)),
-      earlier: String(session.lastUser || (lastUser && lastUser.text) || '').slice(0, 200),
+      earlier: (earlier.filter(turn => turn.role === 'user').slice(-8).map(turn => String(turn.text || '').slice(0, 600)).join('\n') || String(session.lastUser || (lastUser && lastUser.text) || '')).slice(-2400),
+      country: session.slots?.deliveryCountry || session.formDraft?.country || '', city: session.slots?.deliveryCity || '',
+      organisation: session.formDraft?.company || '',
     }, 'handoff-channel', { chips: ['WhatsApp', 'Email'], handoff: { tagOsman: true } });
   }
   const draft = { ...(session.handoffDraft || {}) };
   const confirmation = () => reply(copy.confirm(draft), draft, 'handoff-confirm', { chips: ['Confirm', 'Cancel'] });
+  const optionalDetails = () => {
+    if (!draft.locationAsked && !draft.country && !draft.city) return reply(copy.location, draft, 'handoff-location', { chips: ['Skip', 'Cancel request'] });
+    if (!draft.organisationAsked && !draft.organisation) return reply(copy.organisation, draft, 'handoff-organisation', { chips: ['Skip', 'Cancel request'] });
+    return confirmation();
+  };
   const askTopic = () => draft.kind === 'quote' ? reply(copy.quote, draft, 'handoff-topic')
     : draft.topicOther ? reply(TOPIC_OTHER[lang], draft, 'handoff-topic')
       : reply(copy.topic, draft, 'handoff-topic', { chips: topicChips(lang) });
@@ -557,8 +568,20 @@ function guidedHandoff(text, session, start, language) {
     // Chip values come from the fixed server list, never from the visitor's text.
     draft.topic = chip === -1 ? raw : (TOPIC_CHIPS[lang] || TOPIC_CHIPS.en)[chip];
     delete draft.topicOther;
+  } else if (session.awaiting === 'handoff-location') {
+    draft.locationAsked = true;
+    if (raw && !/^(skip|passer|pase|passe|sote)[.!]?$/i.test(raw)) {
+      const parts = raw.slice(0, 300).split(/[,;\n]/).map(value => value.trim());
+      draft.country = parts[0]; draft.city = parts.slice(1).join(', ');
+    }
+    return optionalDetails();
+  } else if (session.awaiting === 'handoff-organisation') {
+    draft.organisationAsked = true;
+    if (raw && !/^(skip|passer|pase|passe|sote)[.!]?$/i.test(raw)) draft.organisation = raw.slice(0, 300);
+    return optionalDetails();
   }
-  if (session.awaiting !== 'handoff-confirm' || !/^(confirm|yes|yes,? confirm|yes please|correct|ok|okay)[.!]?$/i.test(raw)) return confirmation();
+  if (session.awaiting !== 'handoff-confirm') return optionalDetails();
+  if (!/^(confirm|yes|yes,? confirm|yes please|correct|ok|okay)[.!]?$/i.test(raw)) return confirmation();
   const email = isEmail(draft.contact) ? draft.contact : '';
   const digits = draft.contact.replace(/\D/g, '');
   const phone = email ? '' : draft.contact.startsWith('+') ? '+' + digits
@@ -572,7 +595,8 @@ function guidedHandoff(text, session, start, language) {
       flag: draft.kind === 'quote' ? 'Someone reached out wanting a quote for ' + draft.topic + '.' : 'Someone reached out wanting to talk to you about ' + draft.topic + '.',
       fields: { inquiryType: draft.kind === 'quote' ? 'quote-request' : 'customer-support', name: draft.name, phone, email, preferredResponse,
         subject: ('Chat handoff: ' + draft.topic).slice(0, 300), productOrService: draft.topic, message: summary },
-      summary },
+      country: draft.country || '', city: draft.city || '', organisation: draft.organisation || '',
+      ownWords: [draft.earlier, draft.topic].filter(Boolean).join('\n').slice(-2400), consent: false, summary },
   });
 }
 

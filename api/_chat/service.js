@@ -75,7 +75,48 @@ function normalize(input) {
   return draft;
 }
 
-function handoffPayload(input, time) {
+// Retain bounded recent turns, while preserving the first commercial mention of
+// each kind plus its latest mentions for the whole session. No model call is involved in the summary.
+function recentHistory(history) {
+  let budget = 12000;
+  return (history || []).filter(turn => ['user', 'assistant'].includes(turn.role)).slice(-24).reverse().map(turn => {
+    const text = String(turn.text || '').slice(0, Math.min(2000, budget));
+    budget -= text.length;
+    return { role: turn.role, text };
+  }).filter(turn => turn.text).reverse();
+}
+function assistantMentions(text, previous = {}) {
+  const mentions = { ...previous };
+  const months = '(?:Jan(?:uary|vier)?|Feb(?:ruary)?|févr(?:ier)?|Mar(?:ch|s)?|Apr(?:il)?|avr(?:il)?|May|mai|Jun(?:e)?|juin|Jul(?:y)?|juil(?:let)?|Aug(?:ust)?|août|Sep(?:tember|tembre)?|Oct(?:ober|obre)?|Nov(?:ember|embre)?|Dec(?:ember)?|déc(?:embre)?)';
+  const patterns = {
+    price: /(?:[$€£]\s*\d|\b(?:USD|SLE|SLL|GNF|LRD|EUR|GBP)\s*\d|\d[\d,.]*\s*(?:[$€£]|(?:dollars?|euros?|pounds?|USD|SLE|SLL|GNF|LRD|EUR|GBP)\b)|\b(?:price|prices|pricing|cost|prix|coût|prayz)\b)/i,
+    stock: /\b(?:stock|availability|available|ready to ship|disponible|stok)\b/i,
+    date: new RegExp('\\b(?:\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?|' + months + '\\s+\\d{1,4}|\\d{1,2}\\s+' + months + '|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|today|tomorrow|next week|within \\d+ (?:hours?|days?|weeks?)|\\d+[-–]\\d+ (?:days?|weeks?))\\b', 'i'),
+  };
+  for (const [kind, pattern] of Object.entries(patterns)) {
+    const quotes = mentions[kind] ? mentions[kind].split(' | ') : [];
+    for (const line of String(text || '').split(/(?<=[.!?])\s+|\n/)) {
+      const match = pattern.exec(line);
+      if (!match) continue;
+      const quote = line.slice(Math.max(0, match.index - 60), match.index + 180).replace(/\s+/g, ' ').slice(0, 220);
+      if (!quotes.includes(quote)) quotes.push(quote);
+    }
+    if (quotes.length) mentions[kind] = (quotes.length > 3 ? [quotes[0], ...quotes.slice(-2)] : quotes).join(' | ');
+  }
+  return mentions;
+}
+function sessionMentions(context = {}) {
+  return context.assistantMentions || (context.history || []).filter(turn => turn.role === 'assistant')
+    .reduce((all, turn) => assistantMentions(turn.text, all), {});
+}
+function trustedPageUrl(value, origins) {
+  if (typeof value !== 'string' || value.length > 2048) return '';
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password && origins.includes(url.origin) ? url.href : '';
+  } catch { return ''; }
+}
+function handoffPayload(input, time, context = {}, pageUrl = '') {
   const fields = normalizeFields(input.fields);
   if (!fields.name || fields.name.length > 100
       || !/[\p{L}]/u.test(fields.name)
@@ -86,10 +127,26 @@ function handoffPayload(input, time) {
   } else if (fields.preferredResponse === 'phone') {
     if (fields.email || !/^\+?\d{7,15}$/.test(fields.phone)) fail('invalid_contact');
   } else fail('invalid_response');
+  const ownWords = String(input.ownWords || fields.productOrService).slice(-2400);
+  const mentions = sessionMentions(context);
+  const flags = Object.entries(mentions).map(([kind, quote]) => kind + ': "' + quote + '"').join('; ');
+  const botSummary = ['Topic: ' + fields.productOrService.replace(/\s+/g, ' '),
+    'Visitor request: ' + ownWords.replace(/\s+/g, ' ').slice(0, 400),
+    flags ? 'Bot mentioned (verify with team): ' + flags : 'Bot mentioned no price, stock or date in the retained session.'].join('\n');
+  const stamp = zone => new Intl.DateTimeFormat('en-GB', { timeZone: zone, dateStyle: 'medium', timeStyle: 'long' }).format(new Date(time));
   return {
+    name: fields.name, whatsapp: fields.phone, email: fields.email,
+    country: String(input.country || '').slice(0, 300), city: String(input.city || '').slice(0, 300),
+    organisation: String(input.organisation || '').slice(0, 300), topic: fields.productOrService,
+    ownWords, botSummary,
+    transcript: recentHistory(context.history).map(turn => (turn.role === 'user' ? 'Visitor: ' : 'Assistant: ') + turn.text).join('\n').slice(-6000),
+    timeCT: stamp('America/Chicago'), timeGMT: stamp('Africa/Freetown'),
+    preferredChannel: fields.email ? 'email' : 'whatsapp', consent: input.consent === true,
+    pageUrl, sourcePage: 'chatbot',
+    ...(fields.email ? { replyTo: fields.email } : {}),
     kind: 'chat-handoff', test: true, route: 'customer-success', owner: 'Alison',
     flag: fields.inquiryType === 'quote-request' ? 'Someone reached out wanting a quote for ' + fields.productOrService + '.' : 'Someone reached out wanting to talk to you about ' + fields.productOrService + '.',
-    fields, summary: fields.message, createdAt: new Date(time).toISOString(),
+    fields, summary: botSummary, createdAt: new Date(time).toISOString(),
     topicKnownFromChat: Boolean(input.topicKnownFromChat),
   };
 }
@@ -127,9 +184,12 @@ function compactNarrow(narrow) {
   return state;
 }
 
-function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false, previewLimits = false, handoffSink = 'test-store' }) {
+function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false, previewLimits = false, handoffSink = 'test-store', handoffFetch, env = {}, runtime, trustedOrigins = [] }) {
   if (!store || typeof store.transaction !== 'function'
       || typeof salt !== 'string' || salt.length < 8 || salt.length > 256) fail('unconfigured');
+
+  const liveHandoff = runtime !== 'preview' && env.VERCEL_ENV !== 'preview' && process.env.VERCEL_ENV !== 'preview' &&
+    Boolean(env.CHAT_HANDOFF_WEBHOOK_URL && env.CHAT_HANDOFF_WEBHOOK_SECRET) && typeof handoffFetch === 'function';
 
   const hourMax = previewLimits ? 20 : 3;
   const dayMax = previewLimits ? 30 : 6;
@@ -293,8 +353,8 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
     return bill;
   }
 
-  async function turn(id, proof, eventId, reserveCents, csrf, text) {
-    if (text !== undefined) return chatTurn(id, proof, eventId, csrf, text);
+  async function turn(id, proof, eventId, reserveCents, csrf, text, request = {}) {
+    if (text !== undefined) return chatTurn(id, proof, eventId, csrf, text, request);
     // Retain A1 reservation-only semantics solely for the existing mock tests.
     if (store.kind !== 'mock') fail('fields');
     requireEvent(eventId);
@@ -327,9 +387,10 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
     });
   }
 
-  async function chatTurn(id, proof, eventId, csrf, text) {
+  // Explicit injection only: createHandler() never installs a live fetch transport.
+  async function chatTurn(id, proof, eventId, csrf, text, request) {
     requireEvent(eventId);
-    if (typeof text !== 'string' || !text.trim() || text.length > 2000) fail('fields');
+    if (typeof text !== 'string' || text.length > 2000) fail('fields');
     const { respond } = require('./responder');
     const { shouldSkipModel, buildMessages, respondWithLlm } = require('./llm-responder');
     const { reservationCents, SpendCapError } = require('./llm-gateway');
@@ -345,6 +406,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       }
       if (session.turns >= turnMax) fail('quota');
       const context = session.context || {};
+      if (!text.trim() && !['handoff-location', 'handoff-organisation'].includes(context.awaiting)) fail('fields');
       const rule = respond(text, context);
       const skip = shouldSkipModel(rule);
       if (!skip && typeof chat !== 'function') fail('unconfigured');
@@ -388,18 +450,28 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       provider: ['deepseek', 'gateway'].includes(response.llmProvider) ? response.llmProvider : null,
       skipped: reservation.skip || response.llmSkipped || null,
     };
-    const completed = await transaction((records, time) => {
+    const completion = await transaction((records, time) => {
+      let delivery, receiptKey;
       const event = records.get(eventKey);
       if (!event) fail('session');
-      if (response.handoffPayload && handoffSink === 'test-store' && process.env.VERCEL_ENV !== 'production') {
-        const payload = handoffPayload(response.handoffPayload, time);
-        const sink = 'test-handoff:' + token();
-        records.set(sink, { payload, exp: time + DAY });
-        // Public, PII-free receipt for UI adapters (e.g. the mascot): only after Confirm wrote the test sink.
-        result.handoff = { status: 'received', test: true, route: payload.route };
-        if (previewDebug) {
-          result.debug.handoff = { sink, payload };
+      if (response.handoffPayload) {
+        const pageUrl = trustedPageUrl(request.pageUrl, trustedOrigins);
+        const payload = handoffPayload(response.handoffPayload, time, reservation.context, pageUrl);
+        receiptKey = 'handoff-receipt:' + id + ':' + (reservation.context.handoffId || eventId);
+        const previousReceipt = records.get(receiptKey);
+        if (previousReceipt) {
+          result.handoff = previousReceipt.receipt;
+        } else if (liveHandoff) {
+          // Reserve one attempt before I/O; duplicate turns cannot send again.
+          result.handoff = { status: 'uncertain', test: false, route: payload.route };
+          delivery = { ...payload, test: false, action: 'chat-handoff', secret: env.CHAT_HANDOFF_WEBHOOK_SECRET };
+        } else if (handoffSink === 'test-store') {
+          const sink = 'test-handoff:' + token();
+          records.set(sink, { payload, exp: time + DAY });
+          result.handoff = { status: 'received', test: true, route: payload.route };
+          if (result.debug) result.debug.handoff = { sink, payload };
         }
+        if (result.handoff && !previousReceipt) records.set(receiptKey, { receipt: result.handoff, exp: time + DAY });
       }
       const ledger = records.get(reservation.monthKey);
       if (!reservation.skip && Number.isFinite(response.costUsd) && response.costUsd >= 0) {
@@ -428,12 +500,32 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
           lastTopic: response.lastTopic || null,
           formDraft: response.formDraft || null,
           handoffDraft: response.handoffDraft || null,
+          handoffId: response.handoffDraft ? session.context?.handoffId || token() : null,
           selectedVariant: Object.hasOwn(response, 'selectedVariant') ? response.selectedVariant || null : (!response.reset && session.context?.selectedVariant) || null,
-          history: [{ role: 'user', text: safeUserText }, { role: 'assistant', text: result.text }],
+          history: recentHistory([...(session.context?.history || []), { role: 'user', text: safeUserText }, { role: 'assistant', text: result.text }]),
+          assistantMentions: assistantMentions(result.text, sessionMentions(session.context)),
         };
       }
-      return result;
+      return { result, delivery, receiptKey };
     });
+    const { result: completed, delivery, receiptKey } = completion;
+    if (delivery) {
+      let status = 'uncertain';
+      try {
+        const sent = await handoffFetch(env.CHAT_HANDOFF_WEBHOOK_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(delivery), signal: AbortSignal.timeout(10000),
+        });
+        if (sent.ok && (await sent.json()).ok === true) status = 'received';
+      } catch { /* Never retry: Apps Script may already have delivered. */ }
+      return transaction(records => {
+        const event = records.get(eventKey);
+        if (event?.result) event.result.handoff.status = status;
+        const receipt = records.get(receiptKey);
+        if (receipt) receipt.receipt.status = status;
+        return event?.result || completed;
+      });
+    }
     if (completed.debug?.handoff) {
       const { sink, payload } = completed.debug.handoff;
       console.info('TEST_HANDOFF', JSON.stringify({

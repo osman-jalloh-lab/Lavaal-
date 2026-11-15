@@ -22,7 +22,15 @@ for (const [language, channel, contact, topic, namePattern, receipt] of [
   assert.equal(turn('invalid').awaiting, 'handoff-contact');
   assert.match(turn(contact).text, namePattern);
   assert.equal(turn('Mariam Conteh').awaiting, 'handoff-topic');
-  const summary = turn(topic);
+  const location = turn(topic);
+  assert.equal(location.awaiting, 'handoff-location');
+  assert.match(location.text, language === 'fr' ? /pays.*ville.*passer/i : /kɔntri.*siti.*skip/i);
+  assert.equal(handoffPrompt(session), location.text);
+  const organisation = turn(language === 'fr' ? '' : 'skip');
+  assert.equal(organisation.awaiting, 'handoff-organisation');
+  assert.match(organisation.text, language === 'fr' ? /organisation.*passer/i : /ɔganayzeshɔn.*skip/i);
+  assert.deepEqual(organisation.chips, ['Skip', 'Cancel request']);
+  const summary = turn('skip');
   assert.deepEqual(summary.chips, ['Confirm', 'Cancel']);
   assert.equal(handoffPrompt(session), summary.text);
   const confirmed = turn('Confirm');
@@ -33,6 +41,31 @@ for (const [language, channel, contact, topic, namePattern, receipt] of [
   assert.equal(confirmed.handoffPayload.fields.productOrService, topic);
   assert.equal(confirmed.handoffPayload.fields.email, language === 'fr' ? contact : '');
   if (language === 'kr') assert.equal(confirmed.handoffPayload.fields.phone, '+23277123456');
+}
+// Known location or organisation values bypass their optional questions.
+for (const [slots, company, expected] of [
+  [{ deliveryCountry: 'Liberia' }, 'Example school', 'handoff-confirm'],
+  [{ deliveryCity: 'Freetown' }, 'Example school', 'handoff-confirm'],
+  [{ deliveryCountry: 'Sierra Leone', deliveryCity: 'Bo' }, '', 'handoff-organisation'],
+  [{}, 'Example school', 'handoff-location'],
+]) {
+  let session = { lastLanguage: 'en', slots, formDraft: { company } };
+  const turn = (text, start) => {
+    const reply = guidedHandoff(text, session, start);
+    session = { ...session, awaiting: reply.awaiting, handoffDraft: reply.handoffDraft };
+    return reply;
+  };
+  turn('begin', true); turn('Email'); turn('visitor@example.org'); turn('Mariam Conteh');
+  let reply = turn('Help with our office');
+  assert.equal(reply.awaiting, expected);
+  if (expected !== 'handoff-confirm') {
+    reply = turn('');
+    assert.equal(reply.awaiting, 'handoff-confirm', 'blank answer skips the remaining optional question');
+  }
+  const payload = turn('Confirm').handoffPayload;
+  assert.equal(payload.country, slots.deliveryCountry || '');
+  assert.equal(payload.city, slots.deliveryCity || '');
+  assert.equal(payload.organisation, company);
 }
 assert.equal(handoffPrompt({ awaiting: 'unknown' }), null);
 console.log('PASS French and Sierra Leone Krio channel-first handoff flows');

@@ -566,6 +566,7 @@
     }
     async function sendTextTurn(text) {
       text = String(text || '').trim();
+      if (!text && lastChips && lastChips.indexOf('Skip') !== -1) text = 'Skip';
       if (!text || busy || text.length>2000) return;
       stopRecognition();
       invalidateReview();
@@ -737,7 +738,7 @@
     doc.body.appendChild(panel);
     return panel;
   }
-  function createPreviewTransport(fetcher, browserCrypto) {
+  function createPreviewTransport(fetcher, browserCrypto, pageUrl) {
     var sessionPromise;
     async function post(action, body) {
       var response = await fetcher('/api/chat-inquiry?action=' + action, {
@@ -766,7 +767,7 @@
       if (!browserCrypto || typeof browserCrypto.getRandomValues !== 'function') throw new Error('random_unavailable');
       var bytes = browserCrypto.getRandomValues(new Uint8Array(32));
       var eventId = Array.prototype.map.call(bytes, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
-      return post('turn', {sessionId:session.sessionId, csrf:session.csrf, eventId:eventId, text:payload.text});
+      return post('turn', {sessionId:session.sessionId, csrf:session.csrf, eventId:eventId, text:payload.text, ...(typeof pageUrl === 'string' ? {pageUrl:pageUrl} : {})});
     };
   }
   async function boot(browser) {
@@ -779,7 +780,7 @@
       if (!config || config.CHAT_ENABLED !== true || config.environment !== 'preview') return null;
       config.localTestStub = false;
       config.CHAT_BROWSER_VOICE_ENABLED = false;
-      config.transport = createPreviewTransport(browser.fetch.bind(browser), browser.crypto);
+      config.transport = createPreviewTransport(browser.fetch.bind(browser), browser.crypto, browser.location && browser.location.href);
       return mount(browser.document, browser.location, config);
     } catch (_) { return null; }
   }

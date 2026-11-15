@@ -178,11 +178,11 @@ registerAsync(test('R-8: chips and topic reset are forwarded', async () => {
 
 // Emulates the #83 handoff with an explicit Confirm step (Mark's local work): the sink is written
 // and acknowledged only on the Confirm turn.
-// Mark's #83 handoff: WhatsApp/email chips, then one contact field, name, topic, Confirm/Cancel, then ack.
+// Mark's #83 handoff: WhatsApp/email chips, then one contact field, name, topic, optional location and organisation, Confirm/Cancel, then ack.
 const CHANNEL_Q = 'WhatsApp or email?';
 const CONFIRM_Q = 'Please confirm your details: Name: Ada Test. Contact: +23276000000. Topic: a laptop for our office. Shall I pass this to our team?';
 function handoffTurns() {
-  return ['I want to speak to someone', 'WhatsApp', '+23276000000', 'Ada Test', 'a laptop for our office'];
+  return ['I want to speak to someone', 'WhatsApp', '+23276000000', 'Ada Test', 'a laptop for our office', 'skip', 'skip'];
 }
 function handoffServer({ ackWithoutConfirm = false, ackOnConfirm = true } = {}) {
   let step = 0;
@@ -195,13 +195,15 @@ function handoffServer({ ackWithoutConfirm = false, ackOnConfirm = true } = {}) 
     }
     if (step === 2) { step = 3; return { body: { text: 'Can I get your first and last name?' } }; }
     if (step === 3) { step = 4; return { body: { text: 'What would you like to talk to the team about?' } }; }
-    if (step === 4) {
-      step = 5;
+    if (step === 4) { step = 5; return { body: { text: 'Which country and city are you in? You can skip this.', chips: ['Skip', 'Cancel request'] } }; }
+    if (step === 5) { step = 6; return { body: { text: 'What organisation are you with? You can skip this.', chips: ['Skip', 'Cancel request'] } }; }
+    if (step === 6) {
+      step = 7;
       if (ackWithoutConfirm) return { body: { text: CLOSE, handoff: { status: 'received', test: true, route: 'customer-success' } } };
       return { body: { text: CONFIRM_Q, chips: ['Confirm', 'Cancel'] } };
     }
-    if (step === 5 && /^confirm$/i.test(text)) { step = 0; return { body: ackOnConfirm ? { text: CLOSE, handoff: { status: 'received', test: true, route: 'customer-success' } } : { text: CLOSE } }; }
-    if (step === 5 && /^cancel$/i.test(text)) { step = 0; return { body: { text: 'Request cancelled. What else can I help with?' } }; }
+    if (step === 7 && /^confirm$/i.test(text)) { step = 0; return { body: ackOnConfirm ? { text: CLOSE, handoff: { status: 'received', test: true, route: 'customer-success' } } : { text: CLOSE } }; }
+    if (step === 7 && /^cancel$/i.test(text)) { step = 0; return { body: { text: 'Request cancelled. What else can I help with?' } }; }
     return { body: { text: 'ok', handoff: { status: 'received', test: true, route: 'customer-success' } } };
   });
 }
@@ -216,6 +218,10 @@ registerAsync(test('C-1: request:confirmed fires once, only after Confirm and th
   await turn(a, '+23276000000');
   await turn(a, 'Ada Test');
   await turn(a, 'a laptop for our office');
+  assert(!names(ev).includes('request:review'), 'optional location chips are not a review');
+  await turn(a, 'skip');
+  assert(!names(ev).includes('request:review'), 'optional organisation chips are not a review');
+  await turn(a, 'skip');
   assert(names(ev).includes('request:review'), 'review shown');
   assert(a.reviewPending, 'review pending');
   assert(!names(ev).includes('request:confirmed'), 'not confirmed before Confirm');

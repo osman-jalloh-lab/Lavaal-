@@ -11,6 +11,8 @@ const NAME = 'Can I get your first and last name?';
 const CONTACT = 'What is your email address?';
 const INVALID = 'Please enter a valid email address.';
 const TOPIC = 'What would you like to talk to the team about?';
+const LOCATION = 'Which country and city are you in? You can skip this.';
+const ORGANISATION = 'What organisation are you with? You can skip this.';
 const CLOSE = 'Thank you, someone from our team will reach out to you shortly.';
 const NOW = Date.UTC(2026, 10, 13, 12);
 let modelCalls = 0, transportCalls = 0;
@@ -25,7 +27,7 @@ function checkReply(reply, expected) {
 }
 async function fixture(options = {}) {
   const store = memoryStore();
-  const service = createService({ store, now: () => NOW, salt: 'TEST ONLY salt', chat, transport, previewDebug: true, ...options });
+  const service = createService({ store, now: () => NOW, salt: 'TEST ONLY salt', chat, transport, previewDebug: true, previewLimits: true, ...options });
   const session = await service.start('TEST ONLY visitor');
   let event = 0;
   return { store, session, service, turn: text => service.turn(session.sessionId, session.proof, 'handoff_' + ++event, undefined, session.csrf, text) };
@@ -43,8 +45,9 @@ function checkPayload(payload, topic, email = false) {
   assert.equal(payload.fields.preferredResponse, email ? 'email' : 'phone');
   assert.equal(payload.fields.phone, email ? '' : '+23276000000');
   assert.equal(payload.fields.email, email ? 'ada@example.com' : '');
-  assert.equal(payload.summary, payload.fields.message);
-  assert.ok(payload.summary.length > 0 && payload.summary.length <= 400);
+  assert.equal(payload.summary, payload.botSummary);
+  assert.match(payload.fields.message, /Website chat handoff/);
+  assert.ok(payload.summary.length > 0 && payload.summary.length <= 1400);
   assert.equal(payload.createdAt, new Date(NOW).toISOString());
   for (const [key, value] of Object.entries(payload.fields)) {
     assert.ok(FIELDS.includes(key), key);
@@ -54,14 +57,16 @@ function checkPayload(payload, topic, email = false) {
   assert.doesNotMatch(JSON.stringify(payload), /sessionId|csrf|proof|"ip"|cookie/i);
 }
 async function createReplay(f, text) {
-  return f.service.turn(f.session.sessionId, f.session.proof, 'handoff_6', undefined, f.session.csrf, text);
+  return f.service.turn(f.session.sessionId, f.session.proof, 'handoff_8', undefined, f.session.csrf, text);
 }
 async function basic(f, contact = '+232 76 000 000') {
   checkReply(await f.turn('I want to speak to someone on your team'), CHANNEL);
   checkReply(await f.turn(contact.includes('@') ? 'Email' : 'WhatsApp'), contact.includes('@') ? CONTACT : 'What is your WhatsApp number, with country code?');
   checkReply(await f.turn(contact), NAME);
   checkReply(await f.turn('Ada Test'), TOPIC);
-  const summary = await f.turn('a laptop order for our office');
+  checkReply(await f.turn('a laptop order for our office'), LOCATION);
+  checkReply(await f.turn('Skip'), ORGANISATION);
+  const summary = await f.turn('Skip');
   assert.match(summary.text, /^Please confirm your details:/);
   assert.deepEqual(summary.chips, ['Confirm', 'Cancel']);
   assert.equal((await records(f.store)).length, 0);
@@ -141,7 +146,9 @@ async function main() {
   checkReply(await invalid.turn('ada@example.com'), NAME);
   for (const name of ['1234567', 'ada@example.com', 'A'.repeat(101)]) checkReply(await invalid.turn(name), 'Could I get your first and last name, please?');
   checkReply(await invalid.turn('Ada Test'), TOPIC);
-  assert.match((await invalid.turn('help with a quote')).text, /^Please confirm your details:/);
+  checkReply(await invalid.turn('help with a quote'), LOCATION);
+  checkReply(await invalid.turn('Skip'), ORGANISATION);
+  assert.match((await invalid.turn('Skip')).text, /^Please confirm your details:/);
   checkReply(await invalid.turn('Confirm'), CLOSE);
   checkPayload((await records(invalid.store))[0][1].payload, 'help with a quote', true);
 
@@ -150,7 +157,9 @@ async function main() {
   checkReply(await known.turn('talk to a person'), CHANNEL);
   await known.turn('WhatsApp');
   checkReply(await known.turn('+232 76 000 000'), NAME);
-  assert.match((await known.turn('Ada Test')).text, /^Please confirm your details:/);
+  checkReply(await known.turn('Ada Test'), LOCATION);
+  checkReply(await known.turn('Skip'), ORGANISATION);
+  assert.match((await known.turn('Skip')).text, /^Please confirm your details:/);
   checkReply(await known.turn('Confirm'), CLOSE);
   const knownPayload = (await records(known.store))[0][1].payload;
   assert.match(knownPayload.fields.productOrService, /Galaxy S24/);
@@ -190,7 +199,7 @@ async function main() {
     process.env.VERCEL_ENV = 'production';
     const production = await fixture();
     await basic(production);
-    assert.equal((await records(production.store)).length, 0);
+    assert.equal((await records(production.store)).length, 1, 'missing delivery credentials keep the test sink');
   } finally {
     if (oldProduction === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = oldProduction;
   }
@@ -215,8 +224,8 @@ async function main() {
       return res.body;
     }
     const session = await request('session');
-    const inputs = ['I want to speak to someone on your team', 'WhatsApp', '+232 76 000 000', 'Ada Test', 'a laptop order for our office', 'Confirm'];
-    const expected = [CHANNEL, 'What is your WhatsApp number, with country code?', NAME, TOPIC, 'Please confirm your details: Name: Ada Test. Contact: +232 76 000 000. Topic: a laptop order for our office. Shall I pass this to our team?', CLOSE];
+    const inputs = ['I want to speak to someone on your team', 'WhatsApp', '+232 76 000 000', 'Ada Test', 'a laptop order for our office', 'Skip', 'Skip', 'Confirm'];
+    const expected = [CHANNEL, 'What is your WhatsApp number, with country code?', NAME, TOPIC, LOCATION, ORGANISATION, 'Please confirm your details: Name: Ada Test. Contact: +232 76 000 000. Topic: a laptop order for our office. Shall I pass this to our team?', CLOSE];
     for (let i = 0; i < inputs.length; i++) checkReply(await request('turn', { ...session, eventId: 'handler_' + i, text: inputs[i] }), expected[i]);
     assert.equal((await records(store)).length, 1);
     assert.equal(networkCalls, 0);

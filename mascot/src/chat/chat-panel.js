@@ -315,7 +315,7 @@ export class ChatPanel {
 
   _sendMessage() {
     if (this._busy) return;   // v1.3.1: a reply is in progress
-    const text = this._textarea.value.trim();
+    const text = this._textarea.value.trim() || (this._optionalStep ? 'Skip' : '');
     if (!text) return;
     this._textarea.value = '';
     this._sendText(text);
@@ -546,6 +546,7 @@ export class ChatPanel {
     if (!bar) return;
     while (bar.firstChild) bar.removeChild(bar.firstChild);
     const list = (chips || []).filter(c => typeof c === 'string' && c.trim()).slice(0, 6);
+    this._optionalStep = list.includes('Skip');
     list.forEach(label => {
       const button = document.createElement('button');
       button.setAttribute('type', 'button');

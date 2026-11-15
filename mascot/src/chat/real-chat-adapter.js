@@ -212,7 +212,7 @@ export class RealChatAdapter extends EventTarget {
 
   async _turnOnce(text) {
     const session = await this._ensureSession();
-    return this._post('turn', { sessionId: session.sessionId, csrf: session.csrf, eventId: this._eventId(), text });
+    return this._post('turn', { sessionId: session.sessionId, csrf: session.csrf, eventId: this._eventId(), text, ...(globalThis.location?.href ? { pageUrl: globalThis.location.href } : {}) });
   }
 
   async _ensureSession() {
