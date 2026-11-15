@@ -270,6 +270,36 @@
     followups.className = 'customer-assistant-followups';
     panel.appendChild(followups);
     panel.appendChild(composer);
+    function createPrivacyConsent(className) {
+      var label = createElement('label');
+      label.className = className;
+      label.hidden = true;
+      var checkbox = createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = false;
+      checkbox.name = 'privacyConsent';
+      label.appendChild(checkbox);
+      label.appendChild(createElement('span', 'I agree that LAVAALL may use this request, including my name and WhatsApp number or email, as described in the '));
+      var privacyLink = createElement('a', 'Privacy Policy');
+      privacyLink.href = '/privacy.html';
+      label.appendChild(privacyLink);
+      label.appendChild(createElement('span', ', so the team can follow up.'));
+      return {label:label, checkbox:checkbox};
+    }
+    var turnPrivacy = createPrivacyConsent('customer-assistant-privacy-consent');
+    panel.appendChild(turnPrivacy.label);
+    var awaiting = null;
+    function renderTurnConsent(nextAwaiting) {
+      awaiting = nextAwaiting || null;
+      turnPrivacy.label.hidden = awaiting !== 'handoff-confirm';
+      turnPrivacy.checkbox.checked = false;
+    }
+    function requirePrivacyConsent(control) {
+      if (control.checkbox.checked === true) return true;
+      status.textContent = 'Please agree to the Privacy Policy before confirming your request.';
+      control.checkbox.focus();
+      return false;
+    }
     var started = false, lastChips = null;
     var starterMessages = [
       'What phones and laptops are in the Technology catalogue?',
@@ -503,6 +533,8 @@
     edit.type = 'button';
     send.disabled = true;
     form.appendChild(review);
+    var reviewPrivacy = createPrivacyConsent('customer-assistant-review-privacy-consent');
+    form.appendChild(reviewPrivacy.label);
     form.hidden = true;
     corrections.hidden = true;
     var details = createElement('dl');
@@ -553,6 +585,8 @@
     function invalidateReview() {
       generation++;
       proof = null;
+      reviewPrivacy.label.hidden = true;
+      reviewPrivacy.checkbox.checked = false;
       send.disabled = true;
       details.hidden = true;
       details.textContent = '';
@@ -568,6 +602,9 @@
       text = String(text || '').trim();
       if (!text && lastChips && lastChips.indexOf('Skip') !== -1) text = 'Skip';
       if (!text || busy || text.length>2000) return;
+      var confirmsHandoff = awaiting === 'handoff-confirm' && /^(confirm|yes|yes,? confirm|yes please|correct|ok|okay)[.!]?$/i.test(text);
+      if (confirmsHandoff && !requirePrivacyConsent(turnPrivacy)) return;
+      var privacyConsent = confirmsHandoff && turnPrivacy.checkbox.checked === true;
       stopRecognition();
       invalidateReview();
       status.textContent = '';
@@ -582,6 +619,7 @@
       }
       var current = generation;
       busy = true;
+      turnPrivacy.checkbox.disabled = true;
       renderVoice();
       ask.disabled = true;
       status.textContent = 'LAVAALL Assistant is typing…';
@@ -592,7 +630,7 @@
       log.appendChild(visitorBubble);
       try {
         var result = await config.transport('turn', {
-          text:text, fields:currentFields()
+          text:text, fields:currentFields(), ...(privacyConsent ? {privacyConsent:true} : {})
         });
         if (current !== generation) return;
         if ((!result || typeof result.text !== 'string') && config.localTestStub !== true) throw new Error('reply_unavailable');
@@ -606,6 +644,7 @@
         if (!replyText) replyText = 'You can reach us at support@lavaall.com or WhatsApp +1 (737) 704-4182. How can I help?';
         if (result && result.reset) clearEarlierTurns([first, visitorBubble]);
         appendAssistant(replyText);
+        renderTurnConsent(result.awaiting || (Array.isArray(result.chips) && result.chips.indexOf('Confirm') !== -1 ? 'handoff-confirm' : null));
         lastChips = Array.isArray(result.chips) ? result.chips : null;
         renderFollowups();
         status.textContent = '';
@@ -623,6 +662,7 @@
       }
       finally {
         busy = false;
+        turnPrivacy.checkbox.disabled = false;
         composer.setAttribute('aria-busy', 'false');
         log.scrollTop = log.scrollHeight;
         renderVoice();
@@ -638,7 +678,9 @@
       event.preventDefault();
       return sendTextTurn(composerInput.value);
     });
-    form.addEventListener('input', invalidateReview);
+    form.addEventListener('input', function (event) {
+      if (event.target !== reviewPrivacy.checkbox) invalidateReview();
+    });
     form.addEventListener('invalid', function (event) {
       corrections.open = true;
       if (event.target && typeof event.target.focus === 'function') event.target.focus();
@@ -649,6 +691,7 @@
       voiceState = 'ready';
       lang = copy[languages.value] ? languages.value : 'en';
       invalidateReview();
+      turnPrivacy.checkbox.checked = false;
       renderLanguage();
     });
     edit.addEventListener('click', function () {
@@ -695,6 +738,8 @@
           details.appendChild(createElement('dd', row.value));
         });
         details.hidden = false;
+        reviewPrivacy.label.hidden = false;
+        reviewPrivacy.checkbox.checked = false;
         send.disabled = false;
         status.textContent = '';
       }
@@ -709,8 +754,11 @@
     });
     send.addEventListener('click', async function () {
       if (busy || !proof) return;
+      if (!requirePrivacyConsent(reviewPrivacy)) return;
       stopRecognition();
-      var consent = proof;
+      var consent = Object.assign({}, proof, {privacyConsent:true});
+      reviewPrivacy.label.hidden = true;
+      reviewPrivacy.checkbox.checked = false;
       proof = null;
       busy = true;
       renderVoice();
@@ -767,7 +815,7 @@
       if (!browserCrypto || typeof browserCrypto.getRandomValues !== 'function') throw new Error('random_unavailable');
       var bytes = browserCrypto.getRandomValues(new Uint8Array(32));
       var eventId = Array.prototype.map.call(bytes, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
-      return post('turn', {sessionId:session.sessionId, csrf:session.csrf, eventId:eventId, text:payload.text, ...(typeof pageUrl === 'string' ? {pageUrl:pageUrl} : {})});
+      return post('turn', {sessionId:session.sessionId, csrf:session.csrf, eventId:eventId, text:payload.text, ...(payload.privacyConsent === true ? {privacyConsent:true} : {}), ...(typeof pageUrl === 'string' ? {pageUrl:pageUrl} : {})});
     };
   }
   async function boot(browser) {

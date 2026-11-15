@@ -36,7 +36,7 @@ async function flow(options = {}, email = false, pageUrl = 'https://lavaall.test
     ] };
   });
   let n = 0;
-  const turn = (text, eventId = 'delivery-' + ++n) => service.turn(session.sessionId, session.proof, eventId, undefined, session.csrf, text, { pageUrl });
+  const turn = (text, eventId = 'delivery-' + ++n) => service.turn(session.sessionId, session.proof, eventId, undefined, session.csrf, text, { pageUrl, privacyConsent: text === 'Confirm' });
   for (const text of ['talk to someone', email ? 'Email' : 'WhatsApp', email ? 'ada@example.com' : '076658960', 'Ada Test', 'Repair and buy school laptops', 'Sierra Leone, Freetown', 'School Test']) await turn(text);
   const before = await store.transaction(rows => [...rows].filter(([key]) => key.startsWith('test-handoff:')));
   check(() => assert.equal(before.length, 0));
@@ -71,7 +71,7 @@ async function main() {
     check(() => assert.equal(body.name, 'Ada Test'));
     check(() => assert.equal(body.whatsapp, email ? '' : '+23276658960'));
     check(() => assert.equal(body.preferredChannel, email ? 'email' : 'whatsapp'));
-    check(() => assert.equal(body.consent, false));
+    check(() => assert.equal(body.consent, true));
     check(() => assert.equal(body.sourcePage, 'chatbot'));
     check(() => assert.equal(body.country, 'Sierra Leone'));
     check(() => assert.equal(body.city, 'Freetown'));
@@ -131,7 +131,7 @@ async function main() {
   check(() => assert.equal(state.awaiting, 'handoff-organisation'));
   state = respond('skip', state);
   check(() => assert.equal(state.awaiting, 'handoff-confirm'));
-  check(() => assert.equal(respond('Confirm', state).text, CLOSE));
+  check(() => assert.equal(respond('Confirm', state, { privacyConsent: true }).text, CLOSE));
   // Exercise trusted origins at the HTTP boundary with an injected model and transport.
   const store = memoryStore(); let sent;
   const handler = createHandler({ runtime: 'test', localTests: true, CHAT_ENABLED: true,
@@ -146,7 +146,7 @@ async function main() {
   }
   const session = await request('session', {}), cookie = session.headers['Set-Cookie'].split(';')[0];
   for (const [i, text] of ['talk to someone', 'Email', 'ada@example.com', 'Ada Test', 'School laptops', '', '', 'Confirm'].entries()) {
-    await request('turn', { ...session.body, eventId: 'http-' + i, text, pageUrl: 'https://lavaall.test/catalog' }, cookie);
+    await request('turn', { ...session.body, eventId: 'http-' + i, text, privacyConsent: text === 'Confirm', pageUrl: 'https://lavaall.test/catalog' }, cookie);
   }
   check(() => assert.equal(sent.pageUrl, 'https://lavaall.test/catalog'));
   const ui = require('../assets/js/customer-assistant');

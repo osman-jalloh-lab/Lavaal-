@@ -44,10 +44,10 @@ async function fixture() {
   const doc = {head:new Element('head'), body:new Element('body'), createElement:tag => new Element(tag)};
   const panel = ui.mount(doc, {hostname:'handoff.vercel.app', pathname:'/'}, {
     CHAT_ENABLED:true, environment:'preview', localTestStub:false,
-    transport:async(action, {text}) => {
+    transport:async(action, {text, privacyConsent}) => {
       assert.equal(action, 'turn'); inputs.push(text);
       let result;
-      try { result = await service.turn(session.sessionId, session.proof, 'handoff_v2_' + ++event, undefined, session.csrf, text); } catch (error) { console.error('Service failure:', text, error); throw error; }
+      try { result = await service.turn(session.sessionId, session.proof, 'handoff_v2_' + ++event, undefined, session.csrf, text, {privacyConsent}); } catch (error) { console.error('Service failure:', text, error); throw error; }
       replies.push(result); return result;
     }
   });
@@ -71,7 +71,10 @@ async function fixture() {
   }
   function chips(expected) { assert.deepEqual(walk(byClass(panel, 'customer-assistant-followups')).filter(child => child.tag === 'button').map(child => child.textContent), expected); }
   scan();
-  return {store, panel, inputs, replies, log, type, click, last, chips};
+  const consentLabel = byClass(panel, 'customer-assistant-privacy-consent');
+  const consent = walk(consentLabel).find(node => node.tag === 'input');
+  function agree() { assert.equal(consentLabel.hidden, false); consent.checked = true; }
+  return {store, panel, inputs, replies, log, type, click, last, chips, agree, consentLabel, consent};
 }
 async function start(label, location = 'starters') {
   const f = await fixture();
@@ -96,7 +99,7 @@ async function details(f, quote = false, name = 'Ada Test', contact = 'ada@examp
 function unitFlow(kind = 'person') {
   let state = respond(kind === 'quote' ? 'request a quote' : 'talk to someone');
   assert.equal(state.text, CHANNEL); assert.equal(state.handoffDraft.kind, kind);
-  const turn = text => { state = respond(text, state); assert.ok(state.events.includes('handoff-intake')); assert.ok(shouldSkipModel(state)); return state; };
+  const turn = text => { state = respond(text, state, {privacyConsent:true}); assert.ok(state.events.includes('handoff-intake')); assert.ok(shouldSkipModel(state)); return state; };
   return {turn, get state() { return state; }};
 }
 async function main() {
@@ -117,11 +120,20 @@ async function main() {
   const beforeEmptyConfirm = person.inputs.length;
   await person.type('');
   assert.equal(person.inputs.length, beforeEmptyConfirm, 'blank confirmation cannot submit the request');
+  await person.click('Confirm');
+  assert.equal(person.inputs.length, beforeEmptyConfirm, 'unchecked Confirm chip sends no turn');
+  await person.type('Confirm');
+  assert.equal(person.inputs.length, beforeEmptyConfirm, 'unchecked typed Confirm sends no turn');
+  assert.equal((await records(person.store)).length, 0, 'unchecked confirmation creates no test-sink record');
+  person.agree();
   await person.click('Confirm'); person.last(CLOSE);
+  assert.equal(person.consentLabel.hidden, true);
+  assert.equal(person.consent.checked, false);
   assert.equal((await records(person.store)).length, 1);
   const quote = await start('Request a quote');
   await details(quote, true);
-  await quote.click('Cancel'); quote.last(CANCEL); quote.chips(['Request a quote','Talk to someone']);
+  quote.agree(); await quote.click('Cancel'); quote.last(CANCEL);
+  assert.equal(quote.consentLabel.hidden, true); assert.equal(quote.consent.checked, false); quote.chips(['Request a quote','Talk to someone']);
   assert.equal((await records(quote.store)).length, 0);
   await quote.click('Request a quote'); quote.last(CHANNEL);
   await quote.type('cancel request'); quote.last(CANCEL);
@@ -129,7 +141,7 @@ async function main() {
   for (const input of ['can I talk to someone', "I'd like to get a quote"]) {
     const f = await fixture(); await f.type(input); f.last(CHANNEL);
     await details(f, /quote/.test(input));
-    await f.click('Confirm'); f.last(CLOSE);
+    f.agree(); await f.click('Confirm'); f.last(CLOSE);
     const saved = await records(f.store); assert.equal(saved.length, 1);
     assert.equal(saved[0][1].payload.fields.inquiryType, /quote/.test(input) ? 'quote-request' : 'customer-support');
     if (/quote/.test(input)) assert.equal(saved[0][1].payload.flag, 'Someone reached out wanting a quote for 20 laptops.');
@@ -182,7 +194,7 @@ async function main() {
   await oneLetter.type('x'); oneLetter.last(TOPIC);
   await oneLetter.type('office equipment');
   await oneLetter.click('Skip'); await oneLetter.click('Skip');
-  await oneLetter.click('Confirm'); oneLetter.last(CLOSE);
+  oneLetter.agree(); await oneLetter.click('Confirm'); oneLetter.last(CLOSE);
   assert.equal((await records(oneLetter.store)).length, 1);
   assert.equal(modelCalls, 0); assert.equal(networkCalls, 0); assert.equal(transportCalls, 0);
   const lines = ["Starter: Talk to someone", ...person.inputs.flatMap((input, i) => ['Visitor: ' + input, 'Assistant: ' + person.replies[i].text]), '', 'Starter: Request a quote', ...quote.inputs.slice(0,5).flatMap((input,i) => ['Visitor: ' + input, 'Assistant: ' + quote.replies[i].text])];

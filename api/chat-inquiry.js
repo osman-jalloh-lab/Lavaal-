@@ -5,8 +5,8 @@ const ACTION_FIELDS = Object.freeze({
   session: [],
   draft: ['sessionId', 'fields', 'eventId'],
   review: ['sessionId', 'csrf', 'draftId'],
-  confirm: ['sessionId', 'csrf', 'draftId', 'token', 'idempotencyKey'],
-  turn: ['sessionId', 'csrf', 'eventId', 'text', 'pageUrl'],
+  confirm: ['sessionId', 'csrf', 'draftId', 'token', 'idempotencyKey', 'privacyConsent'],
+  turn: ['sessionId', 'csrf', 'eventId', 'text', 'pageUrl', 'privacyConsent'],
 });
 const OPAQUE_FIELDS = ['sessionId', 'draftId', 'token', 'csrf', 'idempotencyKey'];
 const isOpaque = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -152,14 +152,14 @@ function createHandler(options = {}) {
       if (action === 'review') {
         result = await service.review(body.sessionId, proof, body.csrf, body.draftId);
       } else if (action === 'confirm') {
-        result = await service.confirm(body.sessionId, proof, body.csrf, body.draftId, body.token, body.idempotencyKey);
+        result = await service.confirm(body.sessionId, proof, body.csrf, body.draftId, body.token, body.idempotencyKey, body.privacyConsent);
       } else if (action === 'turn') {
         // Text turns compute their reservation on the server before vendor I/O.
-        result = await service.turn(body.sessionId, proof, body.eventId, options.turnReservationCents, body.csrf, body.text, { pageUrl: body.pageUrl });
+        result = await service.turn(body.sessionId, proof, body.eventId, options.turnReservationCents, body.csrf, body.text, { pageUrl: body.pageUrl, privacyConsent: body.privacyConsent });
       }
       return reply(res, 200, result);
     } catch (error) {
-      const codes = ['quota', 'cost_cap', 'billing_unverified', 'session', 'csrf', 'draft', 'consent', 'event', 'replay', 'fields', 'store_unavailable', 'turn_pending'];
+      const codes = ['quota', 'cost_cap', 'billing_unverified', 'session', 'csrf', 'draft', 'consent', 'privacy_consent', 'event', 'replay', 'fields', 'store_unavailable', 'turn_pending'];
       const code = codes.includes(error.code) ? error.code : 'invalid_request';
       if (config?.preview) console.warn('chat_inquiry', req.query && req.query.action, code);
       return reply(res, code === 'store_unavailable' ? 503 : code === 'quota' || code === 'cost_cap' ? 429 : 400, { error: code });

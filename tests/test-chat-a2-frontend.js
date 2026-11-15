@@ -83,6 +83,10 @@ async function main() {
   assert.equal(requests[1].body.text, 'first');
   assert.match(requests[1].body.eventId, /^[a-f0-9]{64}$/);
   assert.notEqual(requests[1].body.eventId, requests[2].body.eventId);
+  await transport('turn', {text:'Confirm', privacyConsent:true});
+  assert.equal(requests.at(-1).body.privacyConsent, true, 'checked privacy consent reaches the server independently of session credentials');
+  await transport('turn', {text:'other', privacyConsent:'true'});
+  assert.equal(Object.hasOwn(requests.at(-1).body, 'privacyConsent'), false, 'only boolean true is forwarded');
   await assert.rejects(transport('confirm', {}), /text_only/);
   console.log('PASS A2 frontend: Preview gates, public config boot, text-only identity and session-once credentials transport');
 }

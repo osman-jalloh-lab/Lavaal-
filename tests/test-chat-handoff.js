@@ -30,10 +30,11 @@ async function fixture(options = {}) {
   const service = createService({ store, now: () => NOW, salt: 'TEST ONLY salt', chat, transport, previewDebug: true, previewLimits: true, ...options });
   const session = await service.start('TEST ONLY visitor');
   let event = 0;
-  return { store, session, service, turn: text => service.turn(session.sessionId, session.proof, 'handoff_' + ++event, undefined, session.csrf, text) };
+  return { store, session, service, turn: text => service.turn(session.sessionId, session.proof, 'handoff_' + ++event, undefined, session.csrf, text, { privacyConsent: text === 'Confirm' }) };
 }
 function checkPayload(payload, topic, email = false) {
   assert.equal(payload.kind, 'chat-handoff');
+  assert.equal(payload.consent, true);
   assert.equal(payload.test, true);
   assert.equal(payload.route, 'customer-success');
   assert.equal(payload.owner, 'Alison');
@@ -57,7 +58,7 @@ function checkPayload(payload, topic, email = false) {
   assert.doesNotMatch(JSON.stringify(payload), /sessionId|csrf|proof|"ip"|cookie/i);
 }
 async function createReplay(f, text) {
-  return f.service.turn(f.session.sessionId, f.session.proof, 'handoff_8', undefined, f.session.csrf, text);
+  return f.service.turn(f.session.sessionId, f.session.proof, 'handoff_8', undefined, f.session.csrf, text, { privacyConsent: true });
 }
 async function basic(f, contact = '+232 76 000 000') {
   checkReply(await f.turn('I want to speak to someone on your team'), CHANNEL);
@@ -226,7 +227,7 @@ async function main() {
     const session = await request('session');
     const inputs = ['I want to speak to someone on your team', 'WhatsApp', '+232 76 000 000', 'Ada Test', 'a laptop order for our office', 'Skip', 'Skip', 'Confirm'];
     const expected = [CHANNEL, 'What is your WhatsApp number, with country code?', NAME, TOPIC, LOCATION, ORGANISATION, 'Please confirm your details: Name: Ada Test. Contact: +232 76 000 000. Topic: a laptop order for our office. Shall I pass this to our team?', CLOSE];
-    for (let i = 0; i < inputs.length; i++) checkReply(await request('turn', { ...session, eventId: 'handler_' + i, text: inputs[i] }), expected[i]);
+    for (let i = 0; i < inputs.length; i++) checkReply(await request('turn', { ...session, eventId: 'handler_' + i, text: inputs[i], privacyConsent: inputs[i] === 'Confirm' }), expected[i]);
     assert.equal((await records(store)).length, 1);
     assert.equal(networkCalls, 0);
   } finally {

@@ -11,7 +11,7 @@ const fields={name:'TEST ONLY User',phone:'+12025550100',subject:'TEST ONLY'};
 let clock=Date.UTC(2026,10,11),calls=0,alerts=0;
 const options=()=>({store:memoryStore(),now:()=>clock,salt:'TEST ONLY salt',billing:()=>({enforced:true,publicBypass:false,allInCents:0,asOf:clock,month:'2026-11'}),alert:()=>alerts++,transport:async()=>{calls++;return {ok:true,json:async()=>({ok:true})};}});
 async function prepared(s,ip='TEST ONLY IP') {const a=await s.start(ip),d=await s.draft(a.sessionId,fields,'test_event');const r=await s.review(a.sessionId,a.proof,a.csrf,d.draftId);return {...a,...r};}
-const send=(s,a,changes={})=>{a={...a,...changes};return s.confirm(a.sessionId,a.proof,a.csrf,a.draftId,a.token,a.idempotencyKey);};
+const send=(s,a,changes={})=>{a={privacyConsent:true,...a,...changes};return s.confirm(a.sessionId,a.proof,a.csrf,a.draftId,a.token,a.idempotencyKey,a.privacyConsent);};
 async function main(){
  const defaultConfig=await publicConfig();
  check('default flags always off',()=>assert.deepEqual([defaultConfig.CHAT_ENABLED,defaultConfig.CHAT_VOICE_ENABLED,defaultConfig.CHAT_BROWSER_VOICE_ENABLED],[false,false,false]));

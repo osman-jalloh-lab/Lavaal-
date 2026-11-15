@@ -1775,6 +1775,39 @@ class ChatPanel {
       ? this._adapter.footerText
       : 'Demo only — no real messages sent. Powered by LAVAALL mock adapter.';
 
+    if (this._adapter && this._adapter.isReal && footer.textContent.includes('Privacy notice: /privacy.html')) {
+      const [before, after] = footer.textContent.split('Privacy notice: /privacy.html');
+      footer.textContent = '';
+      const text = document.createElement('span');
+      text.textContent = before;
+      const link = this._privacyLink('Privacy notice: /privacy.html');
+      const suffix = document.createElement('span');
+      suffix.textContent = after;
+      footer.appendChild(text);
+      footer.appendChild(link);
+      footer.appendChild(suffix);
+    }
+
+    // Consent is requested only alongside the handoff summary.
+    const consent = document.createElement('div');
+    consent.className = 'chat-privacy-consent';
+    consent.setAttribute('hidden', '');
+    const consentLabel = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.setAttribute('type', 'checkbox');
+    checkbox.checked = false;
+    const consentBefore = document.createElement('span');
+    consentBefore.textContent = 'I agree that LAVAALL may use this request, including my name and WhatsApp number or email, as described in the ';
+    const consentAfter = document.createElement('span');
+    consentAfter.textContent = ', so the team can follow up.';
+    consentLabel.appendChild(checkbox);
+    consentLabel.appendChild(consentBefore);
+    consentLabel.appendChild(this._privacyLink('Privacy Policy'));
+    consentLabel.appendChild(consentAfter);
+    consent.appendChild(consentLabel);
+    this._privacyConsent = checkbox;
+    this._consentArea = consent;
+
     // Assemble panel
     panel.appendChild(header);
     panel.appendChild(status);
@@ -1788,6 +1821,7 @@ class ChatPanel {
     chips.setAttribute('aria-label', 'Suggested replies');
     chips.setAttribute('hidden', '');
     this._chipBar = chips;
+    panel.appendChild(consent);
     panel.appendChild(chips);
     panel.appendChild(inputArea);
     panel.appendChild(footer);
@@ -1807,6 +1841,15 @@ class ChatPanel {
     this._onDocKeydown = (e) => {
       if (e.key === 'Escape' && this._isOpen) { e.preventDefault(); this.close(); }
     };
+  }
+
+  _privacyLink(text) {
+    const link = document.createElement('a');
+    link.textContent = text;
+    link.setAttribute('href', '/privacy.html');
+    link.setAttribute('target', '_blank');
+    link.setAttribute('rel', 'noopener');
+    return link;
   }
 
   // ── Open / Close ────────────────────────────────────────────────
@@ -1901,6 +1944,7 @@ class ChatPanel {
     this._mascot && this._mascot.setState('idle');
     this._mascot && this._mascot.setMessage('');
     this._adapter && this._adapter.close();
+    this._renderChips([]);
 
     window.dispatchEvent(new CustomEvent('mascot:close-chat'));
 
@@ -1917,8 +1961,7 @@ class ChatPanel {
     if (this._busy) return;   // v1.3.1: a reply is in progress
     const text = this._textarea.value.trim() || (this._optionalStep ? 'Skip' : '');
     if (!text) return;
-    this._textarea.value = '';
-    this._sendText(text);
+    if (this._sendText(text)) this._textarea.value = '';
   }
 
   /** Shared by the Send button and suggestion chips. */
@@ -1926,11 +1969,20 @@ class ChatPanel {
     if (this._busy || this._destroyed) return;
     const value = String(text || '').trim();
     if (!value) return;
+    const confirming = this._adapter && typeof this._adapter.isConfirmText === 'function'
+      && this._adapter.isConfirmText(value);
+    const privacyConsent = confirming && this._privacyConsent.checked === true;
+    if (confirming && !privacyConsent) {
+      this._setStatus('Please agree to the Privacy Policy before confirming.');
+      this._privacyConsent.focus();
+      return false;
+    }
     this._renderChips([]);
     this._appendMessage('user', value);
     this._textarea && this._textarea.focus();
     this._setSendEnabled(false);
-    this._adapter && this._adapter.send(value);
+    this._adapter && this._adapter.send(value, { privacyConsent });
+    return true;
   }
 
   _appendMessage(role, text) {
@@ -2073,6 +2125,7 @@ class ChatPanel {
   _handleError(e) {
     if (this._destroyed) return;
     this._setStatus('Error — please try again');
+    if (this._adapter && this._adapter.reviewPending) this._renderChips(['Confirm', 'Cancel']);
     this._showTyping(false);
     this._setSendEnabled(true);
     const msg = e.detail && e.detail.message
@@ -2147,6 +2200,12 @@ class ChatPanel {
     while (bar.firstChild) bar.removeChild(bar.firstChild);
     const list = (chips || []).filter(c => typeof c === 'string' && c.trim()).slice(0, 6);
     this._optionalStep = list.includes('Skip');
+    const review = list.includes('Confirm') && list.includes('Cancel');
+    if (this._consentArea) {
+      if (review) this._consentArea.removeAttribute('hidden');
+      else this._consentArea.setAttribute('hidden', '');
+      this._privacyConsent.checked = false;
+    }
     list.forEach(label => {
       const button = document.createElement('button');
       button.setAttribute('type', 'button');
@@ -2211,8 +2270,8 @@ class ChatPanel {
 
   _trapFocus(e) {
     const focusable = Array.from(
-      this._panel.querySelectorAll('button, textarea, [tabindex="0"]')
-    ).filter(el => !el.hasAttribute('disabled') && !el.hasAttribute('hidden'));
+      this._panel.querySelectorAll('button, textarea, input, a[href], [tabindex="0"]')
+    ).filter(el => !el.hasAttribute('disabled') && !el.hasAttribute('hidden') && !(el.closest && el.closest('[hidden]')));
 
     if (!focusable.length) return;
 

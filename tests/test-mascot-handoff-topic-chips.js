@@ -144,7 +144,8 @@ function visibleInPanel(panel, el) {
       assert.deepEqual(t.chipLabels(), ['Confirm', 'Cancel']);
       t.barUsable(label + ' Confirm step');
       assert.equal((await sinks()).length, 0, 'nothing written before Confirm');
-      assert.equal(await t.chip('Confirm'), THANKS);
+      t.panel._privacyConsent.checked = true;
+    assert.equal(await t.chip('Confirm'), THANKS);
       assert.deepEqual(t.events, ['request:review', 'request:confirmed']);
       assert.ok((await lastSink()).includes('"productOrService":"' + label + '"'), label + ' fills the topic field');
       t.barUsable(label + ' thank-you');
@@ -163,6 +164,7 @@ function visibleInPanel(panel, el) {
     // Plain text in the panel: the bubble holds the text, no markup is parsed.
     const bubble = t.panel._messageList.children.at(-1);
     assert.ok(!/<b>/.test(bubble.innerHTML || ''), 'summary is not rendered as HTML');
+    t.panel._privacyConsent.checked = true;
     assert.equal(await t.type('yes'), THANKS);
     assert.ok((await lastSink()).includes('Solar'));
     t.barUsable('Something else thank-you');
@@ -173,6 +175,7 @@ function visibleInPanel(panel, el) {
     await toTopic(t);
     assert.equal(await t.type('a laptop for our office'), LOCATION_Q);
     assert.equal(await skipOptional(t), summary('a laptop for our office'));
+    t.panel._privacyConsent.checked = true;
     assert.equal(await t.chip('Confirm'), THANKS);
     // Typed chip text (any case, trailing dot) maps to the fixed server label.
     t = makePanel();

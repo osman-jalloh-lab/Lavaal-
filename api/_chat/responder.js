@@ -398,7 +398,7 @@ function attachTopic(reply, rawInput, session, reset) {
   return reply;
 }
 
-function respond(text, session = {}) {
+function respond(text, session = {}, request = {}) {
   const rawInput = String(text || '').trim();
   // Do not copy a previously blocked message into a handoff summary.
   const handoffSession = session.lastUser && (detectSensitive(session.lastUser) || isInjection(session.lastUser))
@@ -470,7 +470,7 @@ function respond(text, session = {}) {
   const special = require('./intents').specialIntent(rawInput, lang, session);
   if (special) return attachTopic(special, rawInput, context, reset);
 
-  const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : /\b(invoice|refund|damaged|legal|lawyer)\b/i.test(rawInput) || (AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput)), lang);
+  const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : /\b(invoice|refund|damaged|legal|lawyer)\b/i.test(rawInput) || (AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput)), lang, request.privacyConsent);
   if (handoff) return handoff;
 
   // Process and safety questions remain answerable even when no exact SKU is named.
@@ -534,7 +534,7 @@ function respond(text, session = {}) {
   const catalogPreview = searchMaybeMulti(input, { limit: 8 });
   const productIntent = TECH_HINTS.test(input) || (catalogPreview.matches.length > 0 && (qty || priceAsk || /\b(iphone|laptop|server|router|dell|hp|cisco|macbook)\b/i.test(input)));
   if (wantsAgent && !productIntent && !priceAsk) {
-    return guidedHandoff(rawInput, handoffSession, true, lang);
+    return guidedHandoff(rawInput, handoffSession, true, lang, request.privacyConsent);
   }
 
   if (hours && !priceAsk && !TECH_HINTS.test(input) && !TECH_HINTS.test(rawInput) && !searchMaybeMulti(String(input).replace(/24\s*\/\s*7/ig, " ").replace(/\b24\s+7\b/g, " ")).matches.length) {

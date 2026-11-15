@@ -12,7 +12,7 @@ function fixture() {
   let session, n = 0;
   return {
     store,
-    async turn(text) { session = session || await service.start('203.0.113.7'); return service.turn(session.sessionId, session.proof, 'rt_' + (n++), undefined, session.csrf, text); },
+    async turn(text) { session = session || await service.start('203.0.113.7'); return service.turn(session.sessionId, session.proof, 'rt_' + (n++), undefined, session.csrf, text, { privacyConsent: text === 'Confirm' }); },
   };
 }
 const sinks = store => store.transaction(rows => [...rows].filter(([key]) => key.startsWith('test-handoff:')).length);

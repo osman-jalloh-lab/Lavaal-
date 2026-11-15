@@ -148,6 +148,7 @@ function visibleInPanel(panel, el) {
     assert.deepEqual(t.events, ['request:review']);
     assert.equal((await sinks()).length, 0, 'nothing written before Confirm');
     // Typing "yes" in the bar at the Confirm step is the same as the Confirm chip.
+    t.panel._privacyConsent.checked = true;
     assert.equal(await t.type('yes'), 'Thank you, someone from our team will reach out to you shortly.');
     assert.deepEqual(t.events, ['request:review', 'request:confirmed']);
     assert.equal((await sinks()).length, 1, 'one Preview test-sink record after Confirm');
@@ -162,6 +163,7 @@ function visibleInPanel(panel, el) {
     await t.type('Ada Test');
     await t.type('a router');
     await t.chip('Skip'); await t.chip('Skip');
+    t.panel._privacyConsent.checked = true;
     assert.equal(await t.chip('Confirm'), 'Thank you, someone from our team will reach out to you shortly.');
     assert.deepEqual(t.events, ['request:review', 'request:confirmed']);
     t.barUsable('thank-you after chip');
@@ -187,6 +189,9 @@ function visibleInPanel(panel, el) {
     const js = fs.readFileSync(path.join(__dirname, '../mascot/src/chat/chat-panel.js'), 'utf8');
     const css = fs.readFileSync(path.join(__dirname, '../mascot/src/chat/chat-panel.css'), 'utf8');
     assert.doesNotMatch(js, /inputArea\.(setAttribute\('hidden'|hidden\s*=|style\.display)/);
+    const chipRule = css.match(/\.chat-panel \.chat-chip\s*\{([^}]+)\}/)[1];
+    assert.match(chipRule, /min-height:\s*44px/);
+    assert.match(chipRule, /min-width:\s*44px/);
     assert.doesNotMatch(css, /\.chat-input-area[^{]*\{[^}]*display:\s*none/);
     assert.equal(modelCalls, 0);
     assert.equal(transportCalls, 0);

@@ -90,7 +90,7 @@ function record(adapter) {
   return events;
 }
 const names = events => events.map(e => e.name);
-async function turn(adapter, text) { adapter.send(text); await wait(15); }
+async function turn(adapter, text, options) { adapter.send(text, options); await wait(15); }
 const make = server => new RealChatAdapter({ fetch: server.fetch, crypto: cryptoStub, listenMs: 0 });
 
 // ── Interface and animation events ───────────────────────────────
@@ -225,7 +225,7 @@ registerAsync(test('C-1: request:confirmed fires once, only after Confirm and th
   assert(names(ev).includes('request:review'), 'review shown');
   assert(a.reviewPending, 'review pending');
   assert(!names(ev).includes('request:confirmed'), 'not confirmed before Confirm');
-  await turn(a, 'Confirm');
+  await turn(a, 'Confirm', { privacyConsent: true });
   const confirmed = ev.filter(e => e.name === 'request:confirmed');
   assertEqual(confirmed.length, 1);
   assertEqual(JSON.stringify(confirmed[0].detail), JSON.stringify({ route: 'customer-success', test: true, channel: 'preview-test-sink' }));
@@ -244,13 +244,13 @@ registerAsync(test('C-2: a server that writes without a Confirm step never trigg
 
 registerAsync(test('C-3: Confirm without a server ack does not fire request:confirmed', async () => {
   const a = make(handoffServer({ ackOnConfirm: false })); const ev = record(a);
-  for (const t of handoffTurns()) await turn(a, t); await turn(a, 'Confirm');
+  for (const t of handoffTurns()) await turn(a, t); await turn(a, 'Confirm', { privacyConsent: true });
   assert(!names(ev).includes('request:confirmed'));
 }));
 
 registerAsync(test('C-4: typing Confirm with no summary on screen does not fire request:confirmed', async () => {
   const a = make(handoffServer()); const ev = record(a);
-  await turn(a, 'Confirm');
+  await turn(a, 'Confirm', { privacyConsent: true });
   assert(!names(ev).includes('request:confirmed'));
 }));
 
@@ -335,7 +335,7 @@ registerAsync(test('P-1: real adapter greeting and footer replace the demo copy'
   const a = make(fakeServer(() => ({ body: { text: 'x' } })));
   const { panel } = panelWith(a);
   panel.open();
-  assertEqual(bubbles(panel)[0].text, "Hi, I'm the LAVAALL Assistant. How can I help you today?");
+  assertEqual(bubbles(panel)[0].text, COPY.greeting.technology);
   const footer = panel._panel.children.find(c => c.className === 'chat-footer');
   assertNotContains(footer.textContent, 'Demo only');
   panel.destroy();
@@ -351,6 +351,7 @@ registerAsync(test('P-2: Confirm chip sends "Confirm"; real ack adds no extra bu
   assert(!panel._chipBar.hasAttribute('hidden'), 'chips visible');
   const summary = bubbles(panel).pop();
   assertEqual(summary.text, CONFIRM_Q);
+  panel._privacyConsent.checked = true;
   chipButtons[0].click(); await wait(15);
   assert(names(ev).includes('request:confirmed'));
   const all = bubbles(panel);
@@ -380,6 +381,96 @@ registerAsync(test('P-4: a server topic reset keeps the greeting and the latest 
   panel.open();
   panel._sendText('old topic'); await wait(15);
   panel._sendText('new topic'); await wait(15);
-  assertEqual(bubbles(panel).map(b => b.text).join(' | '), "Hi, I'm the LAVAALL Assistant. How can I help you today? | new topic | Fresh answer.");
+  assertEqual(bubbles(panel).map(b => b.text).join(' | '), COPY.greeting.technology + ' | new topic | Fresh answer.');
+  panel.destroy();
+})));
+
+registerAsync(test('C-8: unchecked Confirm aliases never send a turn or count it', async () => {
+  const server = handoffServer();
+  const a = make(server); const ev = record(a);
+  for (const t of handoffTurns()) await turn(a, t);
+  const calls = server.calls.length, turns = a.turnCount;
+  for (const text of ['Confirm', 'yes', 'yes please', 'correct', 'ok', 'okay', 'yes, confirm.']) {
+    await turn(a, text);
+    await turn(a, text, { privacyConsent: 'true' });
+  }
+  assertEqual(server.calls.length, calls, 'no request without boolean consent');
+  assertEqual(a.turnCount, turns, 'blocked turn not counted');
+  assert(a.reviewPending, 'review remains available');
+  assert(!names(ev).includes('request:confirmed'));
+  await turn(a, 'Confirm', { privacyConsent: true });
+  const body = server.calls.filter(c => c.url.endsWith('action=turn')).pop().body;
+  assertEqual(body.privacyConsent, true);
+  assert(names(ev).includes('request:confirmed'));
+}));
+
+registerAsync(test('P-5: Confirm consent blocks chips and typing; label and footer link to privacy', () => serial(async () => {
+  const server = handoffServer();
+  const a = make(server); await a.loadConfig();
+  const { panel } = panelWith(a);
+  assert(panel._consentArea.hasAttribute('hidden'), 'hidden outside Confirm');
+  const footer = panel._panel.children.find(c => c.className === 'chat-footer');
+  assertEqual(footer.textContent, COPY.footer + ' (Preview)');
+  const footerLink = footer.children.find(c => c.tagName === 'A');
+  assertEqual(footerLink.getAttribute('href'), '/privacy.html');
+  assertEqual(footerLink.getAttribute('rel'), 'noopener');
+  for (const t of handoffTurns()) { panel._sendText(t); await wait(15); }
+  assert(!panel._consentArea.hasAttribute('hidden'), 'visible on Confirm');
+  assertEqual(panel._privacyConsent.checked, false);
+  const label = panel._consentArea.children[0];
+  assertEqual(label.textContent, 'I agree that LAVAALL may use this request, including my name and WhatsApp number or email, as described in the Privacy Policy, so the team can follow up.');
+  assertEqual(label.children.find(c => c.tagName === 'A').getAttribute('href'), '/privacy.html');
+  const calls = server.calls.length, messages = bubbles(panel).length;
+  panel._chipBar.children[0].click();
+  panel._textarea.value = 'Confirm'; panel._sendMessage();
+  await wait(15);
+  assertEqual(server.calls.length, calls, 'unchecked chip and text send nothing');
+  assertEqual(bubbles(panel).length, messages, 'no false submitted turn');
+  assertEqual(panel._textarea.value, 'Confirm', 'blocked typed text preserved');
+  assert(!panel._chipBar.hasAttribute('hidden'), 'Confirm remains available');
+  panel._privacyConsent.checked = true;
+  panel._sendMessage(); await wait(15);
+  assertEqual(server.calls.at(-1).body.privacyConsent, true);
+  assert(panel._consentArea.hasAttribute('hidden'), 'hidden after handoff');
+  assertEqual(panel._privacyConsent.checked, false, 'consent does not persist');
+  panel.destroy();
+})));
+
+registerAsync(test('F-3: disclosure keeps exact copy and Preview safety only in Preview', async () => {
+  const a = make(fakeServer(() => ({})));
+  await a.loadConfig();
+  assertEqual(a.footerText, COPY.footer + ' (Preview)');
+  const prod = make(fakeServer(() => ({}), { config: { CHAT_ENABLED: true, environment: 'production' } }));
+  await prod.loadConfig();
+  assertEqual(prod.footerText, COPY.footer);
+  assertContains(a.greeting('technology'), 'an AI that can make mistakes.');
+}));
+
+registerAsync(test('P-6: failed Confirm restores an unchecked consent box before retry', () => serial(async () => {
+  const server = handoffServer();
+  let failConfirm = true;
+  const fetch = async (url, init) => {
+    if (failConfirm && url.endsWith('action=turn') && JSON.parse(init.body).text === 'Confirm') {
+      failConfirm = false;
+      throw new TypeError('mock offline');
+    }
+    return server.fetch(url, init);
+  };
+  const a = new RealChatAdapter({ fetch, crypto: cryptoStub, listenMs: 0 });
+  const { panel } = panelWith(a);
+  for (const t of handoffTurns()) { panel._sendText(t); await wait(15); }
+  panel._privacyConsent.checked = true;
+  panel._sendText('Confirm'); await wait(15);
+  assert(a.reviewPending, 'failed confirmation leaves review pending');
+  assert(!panel._consentArea.hasAttribute('hidden'), 'retry consent visible');
+  assertEqual(panel._privacyConsent.checked, false);
+  assertEqual(panel._sendBtn.disabled, false);
+  const calls = server.calls.length;
+  panel._sendText('Confirm'); await wait(15);
+  assertEqual(server.calls.length, calls, 'unchecked retry sends nothing');
+  panel._privacyConsent.checked = true;
+  panel._sendText('Confirm'); await wait(15);
+  assertEqual(bubbles(panel).at(-1).text, CLOSE);
+  assert(panel._consentArea.hasAttribute('hidden'));
   panel.destroy();
 })));

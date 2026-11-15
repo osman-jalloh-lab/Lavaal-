@@ -66,7 +66,7 @@ const organisation = respond('skip', named);
 assert.equal(organisation.awaiting, 'handoff-organisation');
 const summary = respond('skip', organisation);
 assert.deepEqual(summary.chips, ['Confirm', 'Cancel']);
-const done = respond('Confirm', summary);
+const done = respond('Confirm', summary, { privacyConsent: true });
 assert.equal(done.text, 'Thank you, someone from our team will reach out to you shortly.');
 assert.doesNotMatch(done.text, /Preview inquiry delivery is off/i);
 noPrices(done.text);

@@ -191,6 +191,42 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   resolveTurn({text:"What is your email address?", awaiting:'handoff-contact', chips:[]});
   await namePending;
   assert.equal(log.children.at(-1).textContent, "What is your email address?");
+  const turnPrivacy = byClass(panel, 'customer-assistant-privacy-consent');
+  const turnConsent = descendants(turnPrivacy).find(child=>child.tag === 'input');
+  assert.equal(turnPrivacy.hidden, true, 'privacy consent is hidden outside confirmation');
+  input.value = 'ada@example.com';
+  const confirmPrompt = composer.events.submit({preventDefault(){}});
+  resolveTurn({text:'Please confirm your details.', awaiting:'handoff-confirm', chips:['Confirm', 'Cancel']});
+  await confirmPrompt;
+  assert.equal(turnPrivacy.hidden, false, 'confirmation shows privacy consent');
+  assert.equal(turnConsent.checked, false);
+  assert.equal(turnPrivacy.textContent, 'I agree that LAVAALL may use this request, including my name and WhatsApp number or email, as described in the Privacy Policy, so the team can follow up.');
+  assert.ok(descendants(turnPrivacy).some(child=>child.tag === 'a' && child.textContent === 'Privacy Policy' && child.href === '/privacy.html'));
+  const beforeConsent = calls.length, bubblesBeforeConsent = log.children.length;
+  input.value = 'Confirm';
+  await composer.events.submit({preventDefault(){}});
+  assert.equal(calls.length, beforeConsent, 'typed Confirm without checkbox does not send a turn');
+  await descendants(followups).find(child=>child.tag === 'button' && child.textContent === 'Confirm').events.click();
+  assert.equal(calls.length, beforeConsent, 'Confirm chip without checkbox does not send a turn');
+  input.value = 'yes please';
+  await composer.events.submit({preventDefault(){}});
+  assert.equal(calls.length, beforeConsent, 'confirmation synonyms require consent too');
+  assert.equal(log.children.length, bubblesBeforeConsent, 'blocked confirmation adds no chat turn');
+  assert.match(status.textContent, /Privacy Policy/);
+  assert.equal(turnConsent.focused, true);
+  turnConsent.checked = true;
+  input.value = 'Confirm';
+  const acceptedConfirm = composer.events.submit({preventDefault(){}});
+  assert.equal(calls.at(-1).payload.privacyConsent, true);
+  resolveTurn({text:ui.copy.en.accepted, awaiting:null, chips:[]});
+  await acceptedConfirm;
+  assert.equal(turnPrivacy.hidden, true);
+  assert.equal(turnConsent.checked, false, 'consent resets after leaving Confirm');
+  input.value = 'Tell me about laptops';
+  const nextTopic = composer.events.submit({preventDefault(){}});
+  assert.equal(Object.hasOwn(calls.at(-1).payload, 'privacyConsent'), false, 'consent is not attached to other turns');
+  resolveTurn({text:'Here are laptop options.', chips:[]});
+  await nextTopic;
   const failDoc = {createElement:tag=>new Element(tag), body:new Element('body')};
   const failPanel = ui.mount(failDoc, local, {
     ...enabled,
@@ -238,6 +274,32 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   assert.doesNotMatch(resetLog.textContent, /wholesale/);
   assert.match(resetLog.textContent, /confirm product availability/);
   assert.match(resetLog.children.at(-1).innerHTML, /<strong>confirm product availability<\/strong>/);
+
+  const formalNodes = [], formalCalls = [];
+  const formalDoc = {body:new Element('body'), createElement:tag=>{ const node = new Element(tag); formalNodes.push(node); return node; }};
+  ui.mount(formalDoc, local, {...enabled, transport:async(action, payload)=>{
+    formalCalls.push({action, payload});
+    if (action === 'review') return {token:'a'.repeat(64), draftId:'b'.repeat(64), csrf:'c'.repeat(64), sessionId:'d'.repeat(64), idempotencyKey:'e'.repeat(64), summary:{name:'Test User', phone:'+23276658960'}};
+    return {status:'accepted'};
+  }});
+  const formalForm = formalNodes.filter(node=>node.tag === 'form').at(-1);
+  const formalSend = formalNodes.find(node=>node.tag === 'button' && node.textContent === ui.copy.en.send);
+  const formalPrivacy = descendants(formalForm).find(node=>node.className === 'customer-assistant-review-privacy-consent');
+  const formalConsent = descendants(formalPrivacy).find(node=>node.tag === 'input');
+  assert.equal(formalPrivacy.hidden, true);
+  await formalForm.events.submit({preventDefault(){}});
+  assert.equal(formalPrivacy.hidden, false);
+  await formalSend.events.click();
+  assert.equal(formalCalls.length, 1, 'legacy formal confirmation also requires the checkbox');
+  formalConsent.checked = true;
+  formalForm.events.input({target:formalConsent});
+  await formalSend.events.click();
+  assert.equal(formalCalls.length, 2);
+  assert.equal(formalCalls[1].action, 'confirm');
+  assert.equal(formalCalls[1].payload.privacyConsent, true);
+  assert.equal(formalCalls[1].payload.token, 'a'.repeat(64), 'privacy consent remains separate from the expiring draft token');
+  assert.equal(formalPrivacy.hidden, true);
+  assert.equal(formalConsent.checked, false);
 
   const css = fs.readFileSync(require.resolve('../assets/css/customer-assistant.css'),'utf8');
   assert.match(css, /min-height: 44px/);

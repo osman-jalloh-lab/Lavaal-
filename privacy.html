@@ -58,11 +58,11 @@
 <div class="legal-wrap">
 <a href="/" class="legal-back">&larr; Back to LAVAALL</a>
 <h1>Privacy Policy</h1>
-<p class="legal-meta">Effective date: August 31, 2026</p>
+<p class="legal-meta">Effective date: [EFFECTIVE-DATE-TBD]</p>
 
 <section>
 <h2>1. Who we are</h2>
-<p>LAVAALL ("LAVAALL," "we," "us") supplies enterprise IT hardware and solutions to businesses across Sierra Leone, Guinea, and Guinea-Bissau. This policy explains what information lavaall.com collects and how we use it.</p>
+<p>LAVAALL ("LAVAALL," "we," "us") supplies enterprise IT hardware and solutions to businesses across Sierra Leone, Guinea, Liberia, and Guinea-Bissau. This policy explains what information lavaall.com collects and how we use it.</p>
 </section>
 
 <section>
@@ -78,12 +78,12 @@
 
 <section>
 <h2>4. How your information is handled and stored</h2>
-<p>When you submit the form, it's delivered by email into our company's Google Workspace mailboxes. Your message is stored the same way any of our business email is stored, under Google's own security and infrastructure — which may process data on servers outside Sierra Leone, Guinea, or Guinea-Bissau as part of how Google Workspace normally operates. Chat may also use temporary application records as described below.</p>
+<p>When you submit the form, it's delivered by email into our company's Google Workspace mailboxes. Your message is stored the same way any of our business email is stored, under Google's own security and infrastructure — which may process data on servers outside Sierra Leone, Guinea, Liberia, or Guinea-Bissau as part of how Google Workspace normally operates. Chat may also use temporary application records as described below.</p>
 </section>
 
 <section>
 <h2>5. Who we share it with</h2>
-<p>We don't sell, rent, or trade your information. It's seen only by LAVAALL staff who need it to answer your inquiry, by Google as the infrastructure that delivers our email, and, when text chat is available, by the AI and hosting providers that run it, as described below. We do not share inquiry information with third-party marketers or data brokers.</p>
+<p>We don't sell, rent, or trade your information. It's seen only by LAVAALL staff who need it to answer your inquiry, by Google as the infrastructure that delivers our email, and, when text chat is available, by DeepSeek, Vercel (hosting and, if configured, AI Gateway — TO-CONFIRM-BY-OSMAN), and Google Workspace, as described below. We do not share inquiry information with third-party marketers or data brokers.</p>
 </section>
 
 <section>
@@ -98,11 +98,12 @@
 
 <section>
 <h2>Text assistant</h2>
-<p>When available, LAVAALL Assistant is an AI text assistant. You may choose to use the Contact Us form, email, or human WhatsApp instead. An optional, off-by-default browser speech feature may let you dictate a message or hear replies read aloud. The microphone is used only if you tap to start dictation. This uses your browser's built-in speech features. Spoken audio may be processed by the browser vendor; in Chrome, audio is sent to Google. Other browsers may process speech on their own servers. You can keep using text only. Do not share passwords, payment card details, identification documents, or other sensitive information in chat or by voice.</p>
-<p>Chat may include your messages, name, phone number, and any optional inquiry details you choose to provide, such as email, company, location, product details, or an order reference. Your name and a valid phone number are needed to send a chat inquiry. Before sending, you can review all provided and skipped fields and choose a separate Send action. Preparing a draft alone does not send an inquiry to the team.</p>
-<p>When enabled, the AI provider that generates chat replies processes chat messages and may retain them under its own service settings. Its retention period has not yet been verified; we do not promise zero vendor retention. Confirmed inquiries are delivered to LAVAALL through Google Workspace email and follow the correspondence retention policy above. These providers may process information outside your country.</p>
-<p>The proposed application retention is up to 30 minutes for temporary session and draft records, 2 minutes for a review confirmation, and up to 30 minutes for minimal delivery records. Abuse-prevention counters expire at the end of their hourly or daily window. Abuse prevention uses a salted hash of an IP address rather than retaining the raw address. Minimal monthly spending records contain no message text or contact details. Application expiry does not delete an email already sent or a provider transcript.</p>
-<p>To request access, correction, or deletion of chat information, email <a href="mailto:support@lavaall.com">support@lavaall.com</a>. We will explain any records that must be retained and coordinate provider deletion where available. Chat remains unavailable until the notice and provider retention arrangements have been reviewed.</p>
+<p>When it is available, LAVAALL Assistant is an AI text assistant. It can make mistakes. You may use the Contact Us form, email, or human WhatsApp instead. Do not share passwords, payment card details, identification documents, or other sensitive information in chat.</p>
+<p>If you use the assistant, we collect your chat messages (the text you type and the assistant's replies) and, if you ask to send a request to the team, the details you provide for that request: your name; a WhatsApp number or an email address (you choose one); the topic of the request; and a short summary of what you need. Optional details you may also give, when you use the longer inquiry form, are: inquiry type, country, company, subject, message, preferred contact method (email or phone), product or service, model, quantity, budget, delivery location, timeline, order number, issue description, installation type, and project description. For a request sent from the in-chat handoff, your name and either a WhatsApp number or an email address are required, along with the topic. Nothing is emailed to the team until you review the details, agree to the use of your request for follow-up, and confirm. Preparing a draft, or chatting without confirming a request, does not send an inquiry.</p>
+<p>Chat runs on Vercel, which hosts lavaall.com and the chat service. Replies are generated by DeepSeek (model deepseek-flash). If that call cannot be completed, the same messages may be sent to Vercel AI Gateway as a fallback. TO-CONFIRM-BY-OSMAN: whether a Gateway key is configured on the environment that would serve chat and what that fallback retains. When production delivery is later enabled, a confirmed in-chat handoff will send one email to <a href="mailto:support@lavaall.com">support@lavaall.com</a> through Google Workspace and create one private row in LAVAALL Customer Requests / All Requests, with Source Page set to chatbot. Those records follow the correspondence retention in section 6. Preview and unset transport use a temporary test-sink record instead. The Apps Script change in this stack has not been deployed; this notice does not mean production delivery is live today.</p>
+<p>Your chat text is sent to DeepSeek so it can generate a reply. DeepSeek's public Privacy Policy (last update February 10, 2026, <a href="https://cdn.deepseek.com/policies/en-US/deepseek-privacy-policy.html">https://cdn.deepseek.com/policies/en-US/deepseek-privacy-policy.html</a>, fetched November 15, 2026) states: “To provide you with our services, we directly collect, process and store your Personal Data in People's Republic of China.” That is a material fact. The same policy does not publish a fixed retention period: it keeps personal data for as long as necessary to provide the services and for other listed purposes, and it lists improving and training its models as a purpose, with a right to opt out. It also says that policy does not itself cover end users of applications that developers build on DeepSeek's open platform, and that the developer must disclose how personal data is handled — which this page does. No English Open Platform privacy policy was available at the expected URL on this date (that URL returned 404). TO-CONFIRM-BY-OSMAN: the retention and training settings on LAVAALL's DeepSeek API account, which are not visible in the public policy.</p>
+<p>To keep your chat session, the site sets a first-party cookie named <code>lavaall_chat</code>. It holds a secret session proof, not your name or message text. It is HttpOnly, SameSite=Strict, Secure, and scoped to the path <code>/api/chat-inquiry</code>. It lasts 30 minutes (Max-Age=1800). The matching server session, including recent chat text and any draft request, is kept for 30 minutes. A short-lived review token, used only to confirm a request, expires after 2 minutes or when the session ends, whichever is sooner. Rate-limit counters use a salted hash of your IP address, not the raw address, and expire at the end of their hourly or daily window. A confirmed in-chat handoff record, when written to the temporary application store, is kept for 24 hours. A monthly spend counter used to cap chat costs contains no message text or contact details and is kept until the start of the calendar month after next (UTC). Application expiry does not delete a DeepSeek or Gateway transcript, or an email or private request row once one has been sent or created.</p>
+<p>We don't sell, rent, or trade your information. To ask what chat information we hold, to correct it, or to delete it, email <a href="mailto:support@lavaall.com">support@lavaall.com</a>. We will explain any records that must be kept (for example an email already delivered, or a legal obligation) and will request deletion from a provider where that option is available.</p>
 </section>
 
 <section>
@@ -141,7 +142,8 @@
 <h4>Markets</h4>
 <a href="/#coverage">Sierra Leone</a>
 <a href="/#coverage">Guinea</a>
-<a href="/#coverage">West Africa</a>
+<a href="/#coverage">Liberia</a>
+<a href="/#coverage">Guinea-Bissau</a>
 </div>
 <div>
 <h4>Contact Us</h4>

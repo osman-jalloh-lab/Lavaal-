@@ -21,6 +21,6 @@ for (const input of [
 const missing = respond('Could you source an electric label engraver?');
 assert.ok(postEnforce('We cannot carry that item. Is there another choice?', missing).text.includes(SERVICE_SLA));
 let receipt = respond('Request a quote');
-for (const t of ['Email', 'saliu@example.net', 'Saliu Bangura', 'a new office router', 'skip', 'skip', 'Confirm']) receipt = respond(t, receipt);
+for (const t of ['Email', 'saliu@example.net', 'Saliu Bangura', 'a new office router', 'skip', 'skip', 'Confirm']) receipt = respond(t, receipt, { privacyConsent: t === 'Confirm' });
 assert.equal(postEnforce('Extra information. Anything else?', receipt).text, 'Thank you, someone from our team will reach out to you shortly.');
 console.log('Short replies, one question, deduplication and exact receipts passed');

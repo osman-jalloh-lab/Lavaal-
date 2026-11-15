@@ -8,7 +8,7 @@ for (const [language, channel, contact, topic, namePattern, receipt] of [
 ]) {
   let session = { lastLanguage: language };
   const turn = (text, start) => {
-    const reply = guidedHandoff(text, session, start);
+    const reply = guidedHandoff(text, session, start, undefined, text === 'Confirm');
     assert.equal(reply.language, language);
     assert.ok((reply.text.match(/\?/g) || []).length <= 1);
     session = { ...session, awaiting: reply.awaiting, handoffDraft: reply.handoffDraft };
@@ -38,6 +38,7 @@ for (const [language, channel, contact, topic, namePattern, receipt] of [
   assert.equal(confirmed.awaiting, null);
   assert.equal(confirmed.handoff, undefined);
   assert.equal(confirmed.handoffPayload.test, true);
+  assert.equal(confirmed.handoffPayload.consent, true);
   assert.equal(confirmed.handoffPayload.fields.productOrService, topic);
   assert.equal(confirmed.handoffPayload.fields.email, language === 'fr' ? contact : '');
   if (language === 'kr') assert.equal(confirmed.handoffPayload.fields.phone, '+23277123456');
@@ -51,7 +52,7 @@ for (const [slots, company, expected] of [
 ]) {
   let session = { lastLanguage: 'en', slots, formDraft: { company } };
   const turn = (text, start) => {
-    const reply = guidedHandoff(text, session, start);
+    const reply = guidedHandoff(text, session, start, undefined, text === 'Confirm');
     session = { ...session, awaiting: reply.awaiting, handoffDraft: reply.handoffDraft };
     return reply;
   };

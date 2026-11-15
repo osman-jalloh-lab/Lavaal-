@@ -117,6 +117,7 @@ function trustedPageUrl(value, origins) {
   } catch { return ''; }
 }
 function handoffPayload(input, time, context = {}, pageUrl = '') {
+  if (input.consent !== true) fail('privacy_consent');
   const fields = normalizeFields(input.fields);
   if (!fields.name || fields.name.length > 100
       || !/[\p{L}]/u.test(fields.name)
@@ -305,9 +306,10 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
     });
   }
 
-  async function confirm(id, proof, csrf, draftId, consent, key) {
+  async function confirm(id, proof, csrf, draftId, consent, key, privacyConsent) {
     requireOpaque(consent, 'consent');
     requireOpaque(key, 'draft');
+    if (privacyConsent !== true) fail('privacy_consent');
     const reservation = await transaction((records, time) => {
       const session = browserSession(records, id, proof, csrf, time);
       const draft = currentDraft(records, session, id, draftId);
@@ -400,6 +402,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       const session = browserSession(records, id, proof, csrf, time);
       const previous = records.get(eventKey);
       if (previous) {
+        if (previous.privacyConsentRequired && request.privacyConsent !== true) fail('privacy_consent');
         if (previous.digest !== digest) fail('replay');
         if (!previous.result) fail('turn_pending');
         return { result: previous.result };
@@ -407,7 +410,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       if (session.turns >= turnMax) fail('quota');
       const context = session.context || {};
       if (!text.trim() && !['handoff-location', 'handoff-organisation'].includes(context.awaiting)) fail('fields');
-      const rule = respond(text, context);
+      const rule = respond(text, context, request);
       const skip = shouldSkipModel(rule);
       if (!skip && typeof chat !== 'function') fail('unconfigured');
       const estimate = skip ? 0 : reservationCents(buildMessages(text, rule, context));
@@ -423,7 +426,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       if (notify) ledger.alerted = true;
       records.set(monthKey, ledger);
       session.turns++;
-      records.set(eventKey, { digest, exp: session.exp });
+      records.set(eventKey, { digest, privacyConsentRequired: Boolean(rule.handoffPayload), exp: session.exp });
       return { rule, skip, context, estimate, monthKey, spent, reserved: ledger.n, notify };
     });
     if (reservation.result) return reservation.result;
@@ -455,6 +458,8 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       const event = records.get(eventKey);
       if (!event) fail('session');
       if (response.handoffPayload) {
+        if (request.privacyConsent !== true) fail('privacy_consent');
+        event.privacyConsentRequired = true;
         const pageUrl = trustedPageUrl(request.pageUrl, trustedOrigins);
         const payload = handoffPayload(response.handoffPayload, time, reservation.context, pageUrl);
         receiptKey = 'handoff-receipt:' + id + ':' + (reservation.context.handoffId || eventId);

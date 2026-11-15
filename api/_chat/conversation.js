@@ -503,7 +503,7 @@ function handoffPrompt(session, language) {
     'handoff-location': copy.location, 'handoff-organisation': copy.organisation, 'handoff-confirm': copy.confirm(draft) })[session.awaiting] || null;
 }
 
-function guidedHandoff(text, session, start, language) {
+function guidedHandoff(text, session, start, language, privacyConsent) {
   const lang = handoffLanguage(session, language);
   const copy = HANDOFF_COPY[lang];
   const raw = String(text || '').trim();
@@ -582,6 +582,11 @@ function guidedHandoff(text, session, start, language) {
   }
   if (session.awaiting !== 'handoff-confirm') return optionalDetails();
   if (!/^(confirm|yes|yes,? confirm|yes please|correct|ok|okay)[.!]?$/i.test(raw)) return confirmation();
+  if (privacyConsent !== true) {
+    const error = new Error('privacy_consent');
+    error.code = 'privacy_consent';
+    throw error;
+  }
   const email = isEmail(draft.contact) ? draft.contact : '';
   const digits = draft.contact.replace(/\D/g, '');
   const phone = email ? '' : draft.contact.startsWith('+') ? '+' + digits
@@ -596,7 +601,7 @@ function guidedHandoff(text, session, start, language) {
       fields: { inquiryType: draft.kind === 'quote' ? 'quote-request' : 'customer-support', name: draft.name, phone, email, preferredResponse,
         subject: ('Chat handoff: ' + draft.topic).slice(0, 300), productOrService: draft.topic, message: summary },
       country: draft.country || '', city: draft.city || '', organisation: draft.organisation || '',
-      ownWords: [draft.earlier, draft.topic].filter(Boolean).join('\n').slice(-2400), consent: false, summary },
+      ownWords: [draft.earlier, draft.topic].filter(Boolean).join('\n').slice(-2400), consent: privacyConsent === true, summary },
   });
 }
 

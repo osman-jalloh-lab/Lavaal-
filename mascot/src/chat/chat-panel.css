@@ -174,8 +174,8 @@
 }
 
 /* ── Suggestion chips ──────────────────────────────────────────── */
-/* Scoped to the mascot panel so the site's .chat-chip rules (including
-   the 44px min-height) do not leak in. Inset matches .chat-messages. */
+/* Scoped to preserve the panel's chip styling with a 44px minimum touch target.
+   Inset matches .chat-messages. */
 .chat-chips {
   display: flex;
   flex-wrap: wrap;
@@ -198,8 +198,8 @@
   align-items: center;
   justify-content: center;
   width: auto;
-  min-width: 0;
-  min-height: 0;
+  min-width: 44px;
+  min-height: 44px;
   height: auto;
   margin: 0;
   font-family: -apple-system, "Segoe UI", system-ui, sans-serif;

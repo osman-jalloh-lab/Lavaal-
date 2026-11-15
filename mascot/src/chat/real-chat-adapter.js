@@ -9,7 +9,7 @@
  * Contract used (see api/chat-inquiry.js):
  *   GET  ?action=config   → { CHAT_ENABLED, environment }      public flags only
  *   POST ?action=session  → { sessionId, csrf } + HttpOnly proof cookie (credentials: 'include')
- *   POST ?action=turn     { sessionId, csrf, eventId, text } → { text, chips?, reset?, handoff? }
+ *   POST ?action=turn     { sessionId, csrf, eventId, text, privacyConsent? } → { text, chips?, reset?, handoff? }
  *   The formal review/confirm actions stay server-only; this adapter never calls them and never
  *   posts to api/contact or api/web/inquiry. No API key ever reaches the browser.
  *
@@ -34,10 +34,10 @@ export const ENDPOINT = '/api/chat-inquiry';
 export const CONTACT_LINE = 'email support@lavaall.com or WhatsApp +1 (737) 704-4182';
 export const COPY = Object.freeze({
   greeting: {
-    technology: "Hi, I'm the LAVAALL Assistant. How can I help you today?",
-    web: "Hi, I'm the LAVAALL Web assistant. How can I help you today?",
+    technology: "Hi, I'm the LAVAALL Assistant, an AI that can make mistakes. A person from our team follows up on requests. How can I help you today?",
+    web: "Hi, I'm the LAVAALL Web assistant, an AI that can make mistakes. A person from our team follows up on requests. How can I help you today?",
   },
-  footer: 'LAVAALL Assistant (Preview). Please do not share passwords or payment details.',
+  footer: "LAVAALL Assistant is an AI and can make mistakes. Don't share passwords or payment details. A person follows up on requests. Privacy notice: /privacy.html",
   busy: 'This chat is temporarily busy. Please try again shortly, or ' + CONTACT_LINE + '.',
   unavailable: 'I could not complete that just now. Please ' + CONTACT_LINE + '.',
   network: 'I could not reach the LAVAALL Assistant. Please check your connection, or ' + CONTACT_LINE + '.',
@@ -45,7 +45,7 @@ export const COPY = Object.freeze({
 
 const CONFIRM_CHIP = /^(confirm|send|yes,? send( it)?)$/i;
 const CANCEL_CHIP = /^(cancel|cancel request)$/i;
-const CONFIRM_TEXT = /^(confirm|send|send it|yes|yes,? send( it)?|yes,? confirm|looks good)[.!]?$/i;
+const CONFIRM_TEXT = /^(confirm|send|send it|yes|yes,? send( it)?|yes,? confirm|looks good|yes please|correct|ok|okay)[.!]?$/i;
 
 function hex(bytes) {
   return Array.prototype.map.call(bytes, b => b.toString(16).padStart(2, '0')).join('');
@@ -74,13 +74,15 @@ export class RealChatAdapter extends EventTarget {
     this._turnCount = 0;
     this._busy = false;
     this._reviewPending = false;
+    this._environment = 'disabled';
     this._timers = [];
     this.isReal = true;
   }
 
   // ── Copy used by ChatPanel instead of the demo strings ────────────
   greeting(variant) { return COPY.greeting[variant === 'web' ? 'web' : 'technology']; }
-  get footerText() { return COPY.footer; }
+  get footerText() { return COPY.footer + (this._environment === 'preview' ? ' (Preview)' : ''); }
+  isConfirmText(text) { return this._reviewPending && CONFIRM_TEXT.test(String(text || '').trim()); }
   get turnCount() { return this._turnCount; }
   get reviewPending() { return this._reviewPending; }
 
@@ -92,19 +94,25 @@ export class RealChatAdapter extends EventTarget {
       if (!response.ok) return { enabled: false, environment: 'disabled' };
       const config = await response.json();
       const enabled = Boolean(config && config.CHAT_ENABLED === true);
-      return { enabled, environment: config && config.environment };
+      this._environment = config && config.environment;
+      return { enabled, environment: this._environment };
     } catch (_) {
       return { enabled: false, environment: 'disabled' };
     }
   }
 
-  send(userText) {
+  send(userText, { privacyConsent = false } = {}) {
     const text = String(userText || '').trim().slice(0, 2000);
     if (!text || this._busy) return;
+    const confirming = this.isConfirmText(text);
+    if (confirming && privacyConsent !== true) {
+      this._emit('request:consent-required', {});
+      return;
+    }
+    const consent = confirming && privacyConsent === true;
     this._busy = true;
     this._turnCount++;
     const generation = this._generation;
-    const confirming = this._reviewPending && CONFIRM_TEXT.test(text);
     const cancelling = this._reviewPending && CANCEL_CHIP.test(text);
 
     this._emit('turn:start', { text });
@@ -115,7 +123,7 @@ export class RealChatAdapter extends EventTarget {
       if (generation !== this._generation) return null;
       this._emit('turn:thinking', {});
       this._emit('chat:thinking', {});
-      return this._turn(text);
+      return this._turn(text, consent);
     }).then(result => {
       if (generation !== this._generation || result === null) return;
       this._busy = false;
@@ -197,22 +205,22 @@ export class RealChatAdapter extends EventTarget {
     this._emit('chat:error', { message, code: code || 'error' });
   }
 
-  async _turn(text) {
+  async _turn(text, privacyConsent) {
     try {
-      return await this._turnOnce(text);
+      return await this._turnOnce(text, privacyConsent);
     } catch (error) {
       // An expired 30-minute session is renewed once; everything else surfaces as an error.
       if (error && (error.code === 'session' || error.code === 'csrf')) {
         this._session = null;
-        return this._turnOnce(text);
+        return this._turnOnce(text, privacyConsent);
       }
       throw error;
     }
   }
 
-  async _turnOnce(text) {
+  async _turnOnce(text, privacyConsent) {
     const session = await this._ensureSession();
-    return this._post('turn', { sessionId: session.sessionId, csrf: session.csrf, eventId: this._eventId(), text, ...(globalThis.location?.href ? { pageUrl: globalThis.location.href } : {}) });
+    return this._post('turn', { sessionId: session.sessionId, csrf: session.csrf, eventId: this._eventId(), text, ...(privacyConsent === true ? { privacyConsent: true } : {}), ...(globalThis.location?.href ? { pageUrl: globalThis.location.href } : {}) });
   }
 
   async _ensureSession() {

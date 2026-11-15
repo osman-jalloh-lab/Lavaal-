@@ -95,7 +95,7 @@ const { memoryStore } = require('../api/_chat/store');
     const handoffTurn = text => new Promise(resolve => {
       const done = () => { handoffAdapter.removeEventListener('chat:idle', done); handoffAdapter.removeEventListener('chat:error', done); resolve(); };
       handoffAdapter.addEventListener('chat:idle', done); handoffAdapter.addEventListener('chat:error', done);
-      handoffAdapter.send(text);
+      handoffAdapter.send(text, { privacyConsent: text === 'Confirm' });
     });
     const sinksOf = () => store.transaction(rows => [...rows].filter(([key]) => key.startsWith('test-handoff:')));
     await handoffTurn('I want to speak to someone');
