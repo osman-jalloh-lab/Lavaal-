@@ -5,6 +5,11 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+const css = fs.readFileSync(path.join(__dirname, '../assets/css/main.css'), 'utf8');
+assert.ok([...css.matchAll(/^\s*(?:nav)?\.catalog-breadcrumbs\s*\{([^}]*)\}/gm)].some(([, rule]) =>
+  /(?:^|;)\s*position\s*:\s*static\s*(?:;|$)/.test(rule) &&
+  /(?:^|;)\s*z-index\s*:\s*auto\s*(?:;|$)/.test(rule)
+), 'catalog breadcrumbs reset fixed nav positioning and stacking');
 const translationsSource = html.match(/const translations\s*=\s*([\s\S]*?);\s*\/\/ SECURITY FIX: Safe language switching/);
 assert.ok(translationsSource, 'inline translations object exists');
 const translations = vm.runInNewContext('(' + translationsSource[1] + ')');
