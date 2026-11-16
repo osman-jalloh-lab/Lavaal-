@@ -78,7 +78,7 @@ async function main(){
  o=options();s=createService(o);a=await prepared(s);clock+=1800001;
  await rejects('expired session and draft fail closed',()=>send(s,a),'session');
  const fs=require('fs'),vm=require('vm');let mailOptions;
- const router={PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'TEST ONLY secret'})},GmailApp:{sendEmail:(to,subject,body,opts)=>{mailOptions=opts;}},ContentService:{MimeType:{JSON:'json'},createTextOutput:x=>({setMimeType(){return x;}})}};
+ const router={PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'TEST ONLY secret'})},GmailApp:{sendEmail:(to,subject,body,opts)=>{mailOptions=opts;},createDraft:(to,subject,body,opts)=>{mailOptions=opts;return {send(){return {getThread(){throw Error('labels skipped in unit test');}};}};}},ContentService:{MimeType:{JSON:'json'},createTextOutput:x=>({setMimeType(){return x;}})}};
  vm.createContext(router);vm.runInContext(fs.readFileSync(require.resolve('../scripts/email-router/contact-router.gs'),'utf8'),router);
  router.doPost({postData:{contents:JSON.stringify({...payload(normalize(fields),'TEST ONLY id','TEST ONLY secret',clock)})}});
  check('Apps Script phone-only omits replyTo entirely',()=>assert(!Object.hasOwn(mailOptions,'replyTo')));
