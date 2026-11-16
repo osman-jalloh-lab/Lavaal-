@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { createHandoffTransport, HANDOFF_FALLBACK } = require('./handoff-transport');
 const FIELDS = [
   'inquiryType', 'name', 'phone', 'email', 'country', 'company', 'subject',
   'message', 'preferredResponse', 'productOrService', 'model', 'quantity',
@@ -184,7 +185,7 @@ function compactNarrow(narrow) {
   return state;
 }
 
-function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false, previewLimits = false, handoffSink = 'test-store', handoffFetch, env = {}, runtime, trustedOrigins = [] }) {
+function createService({ store, now = Date.now, salt, billing, alert = () => {}, transport, chat, previewDebug = false, previewLimits = false, handoffSink = 'test-store', handoffFetch = createHandoffTransport(), env = {}, runtime, trustedOrigins = [] }) {
   if (!store || typeof store.transaction !== 'function'
       || typeof salt !== 'string' || salt.length < 8 || salt.length > 256) fail('unconfigured');
 
@@ -461,10 +462,16 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
         const previousReceipt = records.get(receiptKey);
         if (previousReceipt) {
           result.handoff = previousReceipt.receipt;
+          if (previousReceipt.receipt.test !== true && previousReceipt.receipt.status !== 'received') {
+            result.text = HANDOFF_FALLBACK;
+          }
         } else if (liveHandoff) {
           // Reserve one attempt before I/O; duplicate turns cannot send again.
+          // Do not claim receipt until the router returns 2xx with ok:true.
+          const receiptText = result.text;
+          result.text = HANDOFF_FALLBACK;
           result.handoff = { status: 'uncertain', test: false, route: payload.route };
-          delivery = { ...payload, test: false, action: 'chat-handoff', secret: env.CHAT_HANDOFF_WEBHOOK_SECRET };
+          delivery = { ...payload, test: false, action: 'chat-handoff', secret: env.CHAT_HANDOFF_WEBHOOK_SECRET, receiptText };
         } else if (handoffSink === 'test-store') {
           const sink = 'test-handoff:' + token();
           records.set(sink, { payload, exp: time + DAY });
@@ -510,17 +517,35 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
     });
     const { result: completed, delivery, receiptKey } = completion;
     if (delivery) {
+      const { receiptText, ...requestBody } = delivery;
+      const requestId = token();
       let status = 'uncertain';
+      let httpStatus = null;
+      const started = Date.now();
       try {
+        // One attempt, no retries: Apps Script may already have delivered.
         const sent = await handoffFetch(env.CHAT_HANDOFF_WEBHOOK_URL, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(delivery), signal: AbortSignal.timeout(10000),
+          body: JSON.stringify(requestBody),
         });
-        if (sent.ok && (await sent.json()).ok === true) status = 'received';
-      } catch { /* Never retry: Apps Script may already have delivered. */ }
+        httpStatus = Number.isFinite(sent && sent.status) ? sent.status : null;
+        let body = null;
+        try { body = await sent.json(); } catch { body = null; }
+        if (sent && sent.ok && body && body.ok === true) status = 'received';
+      } catch { /* Network, timeout, or abort: leave uncertain, do not retry. */ }
+      console.info('CHAT_HANDOFF', JSON.stringify({ id: requestId, status: httpStatus, ms: Date.now() - started }));
       return transaction(records => {
         const event = records.get(eventKey);
-        if (event?.result) event.result.handoff.status = status;
+        if (event?.result) {
+          event.result.handoff.status = status;
+          if (status === 'received' && receiptText) {
+            event.result.text = receiptText;
+            const session = records.get('s:' + id);
+            const history = session && session.context && session.context.history;
+            const last = Array.isArray(history) && history.length ? history[history.length - 1] : null;
+            if (last && last.role === 'assistant') last.text = receiptText;
+          }
+        }
         const receipt = records.get(receiptKey);
         if (receipt) receipt.receipt.status = status;
         return event?.result || completed;
@@ -539,4 +564,4 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
   return { start, draft, review, confirm, turn };
 }
 
-module.exports = { createService, normalize, FIELDS, TYPES, equal, requireOpaque };
+module.exports = { createService, normalize, FIELDS, TYPES, equal, requireOpaque, HANDOFF_FALLBACK };
