@@ -1,0 +1,5 @@
+# Crawl guidance only — not access control.
+# Do not Disallow-list internal apps; they are gated by auth / not in public static output.
+User-agent: *
+Allow: /
+Sitemap: https://www.lavaall.com/sitemap.xml

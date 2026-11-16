@@ -1,0 +1,60 @@
+/* Buying guides extend the existing LAVAALL tokens and card language. */
+.seo-page{padding:116px 6% 72px;min-height:70vh;}
+.seo-wrap{max-width:1160px;margin:0 auto;min-width:0;}
+.seo-page .seo-crumbs{position:static;inset:auto;z-index:auto;display:block;height:auto;padding:0;margin:0 0 30px;background:transparent;backdrop-filter:none;border:0;}
+.seo-page .seo-crumbs ol{display:flex;flex-wrap:wrap;gap:8px;list-style:none;font-size:16px;line-height:1.6;}
+.seo-page .seo-crumbs li+li::before{content:'›';margin-right:8px;color:var(--muted);}
+.seo-page a{color:var(--ink);text-underline-offset:4px;}
+.seo-page a:hover{text-decoration-thickness:2px;}
+.seo-site a:focus-visible,.seo-site button:focus-visible{outline:3px solid var(--ink);outline-offset:4px;}
+.seo-site footer a:focus-visible{outline-color:var(--sun);}
+.seo-hero{background:var(--sky);border:2px solid var(--ink);border-radius:var(--r);padding:40px;margin-bottom:36px;}
+.seo-page .seo-eyebrow{font-size:16px;font-weight:600;letter-spacing:.7px;margin-bottom:14px;}
+.seo-page h1{font-size:clamp(34px,4.4vw,60px);letter-spacing:-1.5px;line-height:1.08;max-width:850px;margin-bottom:22px;}
+.seo-hero>p:not(.seo-eyebrow){font-size:18px;line-height:1.7;max-width:830px;}
+.seo-page .seo-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:26px;}
+.seo-page .seo-cta .bp{color:var(--white);}
+.seo-page .seo-cta .bp:hover{color:var(--ink);}
+.seo-page .seo-cta a{font-size:16px;padding:14px 24px;}
+.seo-page section{padding:0;margin:0 0 32px;}
+.seo-page .seo-panel{background:var(--white);border:2px solid var(--ink);border-radius:var(--r);padding:30px;}
+.seo-page h2,.seo-page h3{font-family:'Clash Display',sans-serif;line-height:1.2;}
+.seo-page h2{font-size:clamp(23px,3vw,30px);letter-spacing:-.4px;margin-bottom:18px;}
+.seo-page h3{font-size:19px;margin-bottom:10px;}
+.seo-page p,.seo-page li{line-height:1.75;}
+.seo-panel p+p{margin-top:14px;}
+.seo-panel ul,.seo-panel ol{padding-left:24px;margin:16px 0;}
+.seo-panel li{padding-left:4px;margin-bottom:8px;}
+.seo-steps li{margin-bottom:14px;}
+.seo-page .seo-trademarks{font-size:16px;color:#39475b;margin:-10px 0 30px;}
+.seo-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;}
+.seo-card{background:var(--white);border:2px solid var(--ink);border-radius:var(--r);overflow:hidden;transition:transform .2s;}
+.seo-card:hover{transform:translateY(-4px);}
+.seo-card img{display:block;width:100%;height:230px;object-fit:contain;background:var(--white);}
+.seo-card>div{padding:24px;border-top:1px solid #d3dce7;}
+.seo-page .seo-card p{color:#39475b;font-size:16px;}
+.seo-faq>div{border-top:1px solid #bcc8d7;padding:20px 0;}
+.seo-faq p{max-width:900px;}
+.seo-related ul{display:flex;flex-wrap:wrap;gap:12px 24px;list-style:none;margin-top:14px;}
+.seo-site footer a,.seo-site .fdesc,.seo-site .fb{color:#bbc5d3;}
+.seo-site footer h4{color:#e5eaf1;}
+.seo-site footer a:hover{color:var(--sky);}
+.seo-site .nav-mobile-drawer{top:76px;}
+@media(max-width:900px){.seo-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.seo-hero{padding:30px;}}
+@media(max-width:600px){.seo-page{padding:96px 5% 48px;}.seo-page .seo-crumbs{margin-bottom:22px;}.seo-hero{padding:24px 20px;}.seo-page h1{font-size:36px;letter-spacing:-1px;}.seo-hero>p:not(.seo-eyebrow){font-size:16px;}.seo-page .seo-panel{padding:24px 20px;}.seo-card-grid{grid-template-columns:minmax(0,1fr);}.seo-page .seo-cta{flex-direction:column;}.seo-page .seo-cta a{text-align:center;padding:13px 16px;}.seo-site .nav-mobile-drawer{top:64px;}.seo-site .nav-r{gap:9px;}.seo-site footer a{overflow-wrap:anywhere;}}
+@media(prefers-reduced-motion:reduce){.seo-card{transition:none;}.seo-card:hover{transform:none;}}
+
+/* Keep footer labels uppercase while meeting the guide text floor. */
+.seo-site footer h2.ft-h{font-family:'Clash Display',sans-serif;font-size:16px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:16px;}
+
+/* Guide-only readable text and touch targets; override shared mobile nav sizes. */
+.seo-site{font-size:16px;}
+.seo-site .nav-links a,.seo-site .nav-cta,.seo-site .drawer-cta,
+.seo-site footer a,.seo-site .fdesc,.seo-site .fb{font-size:16px;}
+.seo-site .nav-links a,.seo-page a,.seo-site footer a{display:inline-block;min-height:44px;padding-block:12px;}
+.seo-site footer a{display:block;}
+.seo-site .nav-cta{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;}
+.seo-site .nav-hamburger{width:44px;height:44px;min-width:44px;flex-shrink:0;}
+.seo-page .seo-cta a,.seo-page .seo-cta .bp{min-height:44px;font-size:16px;}
+
+.seo-site .skip-link{font-size:16px;min-height:44px;padding:12px 20px;}
