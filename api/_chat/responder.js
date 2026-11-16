@@ -180,10 +180,10 @@ function contacts() {
 function offer(lang, wantsAgent) {
   const shortly = wantsAgent
     ? {
-      en: 'Thank you, someone from our team will reach out to you shortly.',
-      fr: "Merci, quelqu'un de l'équipe vous recontactera sous peu.",
-      pt: 'Obrigado, alguém da equipa entrará em contacto consigo em breve.',
-      kr: 'Tɛnki. Sɔmbɔdi frɔm wi tim go rich yu sɔn.',
+      en: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).",
+      fr: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).",
+      pt: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).",
+      kr: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).",
     }[lang]
     : '';
   const body = {

@@ -26,7 +26,7 @@ const handoff = respond('I want to speak to a person on your team, please.', ses
 assert.equal(intentFrom(handoff), 'handoff-intake');
 assert.equal(handoff.handoff.tagOsman, true);
 assert.doesNotMatch(handoff.text + JSON.stringify(handoff.fields), /iphone|epson/i);
-const shortly = 'Thank you, someone from our team will reach out to you shortly.';
+const shortly = "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).";
 assert.equal(handoff.text, 'WhatsApp or email?');
 assert.equal(PHRASES.shortly.en, shortly);
 assert.equal(handoff.awaiting, 'handoff-channel');

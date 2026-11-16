@@ -144,6 +144,20 @@
   border: 1px solid var(--chat-border, var(--ui-line));
 }
 
+/* Consent stays in the conversation and inherits the existing bot bubble. */
+.chat-privacy-consent label {
+  display: block;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.chat-panel .chat-privacy-link,
+.chat-panel .chat-privacy-link:visited {
+  color: var(--mascot-accent, #00C2FF);
+  text-decoration: underline;
+}
+
 /* ── Typing indicator ──────────────────────────────────────────── */
 .chat-typing {
   padding: 6px 16px 0;

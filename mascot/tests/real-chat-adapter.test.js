@@ -58,7 +58,7 @@ const { selectChatAdapter, DEFAULT_FLAGS } = await import('../src/chat/adapter-s
 const { ChatPanel } = await import('../src/chat/chat-panel.js');
 
 const NAME_Q = 'Yes, sure. Can I get your first and last name?';
-const CLOSE = 'Thank you, someone from our team will reach out to you shortly.';
+const CLOSE = "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).";
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const cryptoStub = { getRandomValues: a => { for (let i = 0; i < a.length; i++) a[i] = (i * 37 + 11) & 255; return a; } };
 
@@ -349,7 +349,7 @@ registerAsync(test('P-2: Confirm chip sends "Confirm"; real ack adds no extra bu
   const chipButtons = panel._chipBar.children;
   assertEqual(chipButtons.map(b => b.textContent).join('|'), 'Confirm|Cancel');
   assert(!panel._chipBar.hasAttribute('hidden'), 'chips visible');
-  const summary = bubbles(panel).pop();
+  const summary = bubbles(panel).filter(b => b.node !== panel._consentArea).pop();
   assertEqual(summary.text, CONFIRM_Q);
   panel._privacyConsent.checked = true;
   chipButtons[0].click(); await wait(15);
@@ -414,9 +414,13 @@ registerAsync(test('P-5: Confirm consent blocks chips and typing; label and foot
   const footerLink = footer.children.find(c => c.tagName === 'A');
   assertEqual(footerLink.getAttribute('href'), '/privacy.html');
   assertEqual(footerLink.getAttribute('rel'), 'noopener');
+  assertEqual(footerLink.className, 'chat-privacy-link');
   for (const t of handoffTurns()) { panel._sendText(t); await wait(15); }
   assert(!panel._consentArea.hasAttribute('hidden'), 'visible on Confirm');
   assertEqual(panel._privacyConsent.checked, false);
+  assert(panel._messageList.children.includes(panel._consentMessage), 'consent is in message flow');
+  assertEqual(panel._consentMessage.className, 'chat-message chat-message--bot');
+  assertContains(panel._consentArea.className, 'chat-message-bubble');
   const label = panel._consentArea.children[0];
   assertEqual(label.textContent, 'I agree that LAVAALL may use this request, including my name and WhatsApp number or email, as described in the Privacy Policy, so the team can follow up.');
   assertEqual(label.children.find(c => c.tagName === 'A').getAttribute('href'), '/privacy.html');
@@ -433,6 +437,7 @@ registerAsync(test('P-5: Confirm consent blocks chips and typing; label and foot
   assertEqual(server.calls.at(-1).body.privacyConsent, true);
   assert(panel._consentArea.hasAttribute('hidden'), 'hidden after handoff');
   assertEqual(panel._privacyConsent.checked, false, 'consent does not persist');
+  assert(!panel._messageList.children.includes(panel._consentMessage), 'old consent bubble removed');
   panel.destroy();
 })));
 

@@ -122,7 +122,7 @@ const { memoryStore } = require('../api/_chat/store');
     assert.equal((await sinksOf()).length, 0, 'still no test sink before Confirm');
     await handoffTurn('Confirm');
     const thanks = spoken().pop();
-    assert.equal(thanks, 'Thank you, someone from our team will reach out to you shortly.');
+    assert.equal(thanks, "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).");
     assert.doesNotMatch(thanks, /email support@|call |WhatsApp \+1/i);
     assert.equal(count('request:confirmed'), 1);
     assert.equal(count('request:unconfirmed'), 0);

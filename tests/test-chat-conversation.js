@@ -88,7 +88,7 @@ const handoff = respond('I want to speak to a person on your team, please.');
 assert.equal(handoff.handoff.tagOsman, true);
 assert.equal(handoff.text, 'WhatsApp or email?');
 assert.equal(shouldSkipModel(handoff), 'handoff-intake');
-assert.equal(PHRASES.shortly.en, 'Thank you, someone from our team will reach out to you shortly.');
+assert.equal(PHRASES.shortly.en, "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).");
 assert.equal(handoff.awaiting, 'handoff-channel');
 assert.doesNotMatch(handoff.text, /epson|printer/i);
 
@@ -96,4 +96,4 @@ console.log('A2 conversation and FAQ flows passed');
 
 let receipt = respond('talk to someone');
 for (const answer of ['Email', 'mira@example.org', 'Mira Sample', 'office equipment request', 'skip', 'skip', 'Confirm']) receipt = respond(answer, receipt, { privacyConsent: answer === 'Confirm' });
-assert.equal(receipt.text, 'Thank you, someone from our team will reach out to you shortly.');
+assert.equal(receipt.text, "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).");

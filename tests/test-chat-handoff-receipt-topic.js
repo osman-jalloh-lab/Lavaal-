@@ -29,7 +29,7 @@ async function main() {
     assert.equal(summary.handoff, undefined);
     assert.equal(await sinks(f.store), 0);
     const done = await f.turn('Confirm');
-    assert.equal(done.text, 'Thank you, someone from our team will reach out to you shortly.');
+    assert.equal(done.text, "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).");
     assert.deepEqual(done.handoff, { status: 'received', test: true, route: 'customer-success' });
     assert.doesNotMatch(JSON.stringify(done.handoff), /Ada|232|@/);
     assert.equal(await sinks(f.store), 1);
