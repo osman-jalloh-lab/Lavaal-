@@ -80,9 +80,21 @@ function doPost(e) {
     var mailOptions = { name: 'LAVAALL Website' };
     // Phone-only chat inquiries must not invent or set an empty Reply-To.
     if (payload.email) mailOptions.replyTo = payload.email;
-    GmailApp.sendEmail(routeTo, subject, lines.join('\n'), mailOptions);
+    // Draft.send returns the exact sent message; no Sent search/index delay.
+    // Keep send outside the labelling catch: a failed send must fail delivery.
+    var draft = GmailApp.createDraft(routeTo, subject, lines.join('\n'), mailOptions);
+    var sentMsg = draft.send();
+    var labeled = false;
 
-    return jsonOut({ ok: true });
+    // Self-addressed mail is filed Sent-only; make website leads visible.
+    try {
+      var thread = sentMsg.getThread();
+      thread.moveToInbox();
+      thread.addLabel(GmailApp.getUserLabelByName('Website Leads') || GmailApp.createLabel('Website Leads'));
+      labeled = true;
+    } catch (labelErr) { /* delivery already succeeded; never fail the request on labelling */ }
+
+    return jsonOut({ ok: true, labeled: labeled });
   } catch (err) {
     return jsonOut({ error: 'server_error', message: String(err) }, 500);
   }

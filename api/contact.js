@@ -3,9 +3,7 @@
 // correct department mailbox from the inquiry type, folds whichever
 // conditional fields the customer filled in into the message body, and
 // forwards a single JSON payload to CONTACT_WEBHOOK_URL for delivery (see
-// scripts/email-router/contact-router.gs, unchanged and still the same
-// deployed script -- this file only changes what it's handed, never how
-// contact-router.gs itself works). No npm dependency, no credentials in
+// scripts/email-router/contact-router.gs). No npm dependency, no credentials in
 // client code, never reports "delivered" without a durable handoff.
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,19 +12,19 @@ const MAX_BODY = 14_000;
 const recent = new Map();
 
 // Single source of truth for the 15 inquiry types -> department mailbox,
-// per the routing rules: sales/product/procurement -> sales, support ->
+// per the routing rules: sales/product/procurement -> support (Osman / Alison), support ->
 // support, orders -> orders, partnerships -> contact, general -> info.
 // Keep the <select> in index.html's #inquiry form in sync with these keys.
 const ROUTES = {
-  'sales-quotation':        { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Sales / Quotation]' },
-  'product-availability':   { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Product Availability]' },
-  'equipment-procurement':  { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Equipment Procurement]' },
-  'routers-networking':     { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Routers & Networking]' },
-  'servers-infrastructure': { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Servers & Infrastructure]' },
-  'computers-workstations': { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Computers & Workstations]' },
-  'fiber-optic':            { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Fiber-Optic Products]' },
-  'structured-cabling':     { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Structured Cabling]' },
-  'installation-services':  { to: 'sales@lavaall.com',   tag: '[Lavaall Website – Installation Services]' },
+  'sales-quotation':        { to: 'support@lavaall.com', tag: '[Lavaall Website – Sales / Quotation]' },
+  'product-availability':   { to: 'support@lavaall.com', tag: '[Lavaall Website – Product Availability]' },
+  'equipment-procurement':  { to: 'support@lavaall.com', tag: '[Lavaall Website – Equipment Procurement]' },
+  'routers-networking':     { to: 'support@lavaall.com', tag: '[Lavaall Website – Routers & Networking]' },
+  'servers-infrastructure': { to: 'support@lavaall.com', tag: '[Lavaall Website – Servers & Infrastructure]' },
+  'computers-workstations': { to: 'support@lavaall.com', tag: '[Lavaall Website – Computers & Workstations]' },
+  'fiber-optic':            { to: 'support@lavaall.com', tag: '[Lavaall Website – Fiber-Optic Products]' },
+  'structured-cabling':     { to: 'support@lavaall.com', tag: '[Lavaall Website – Structured Cabling]' },
+  'installation-services':  { to: 'support@lavaall.com', tag: '[Lavaall Website – Installation Services]' },
   'customer-support':       { to: 'support@lavaall.com', tag: '[Lavaall Website – Customer Support]' },
   'technical-support':      { to: 'support@lavaall.com', tag: '[Lavaall Website – Technical Support]' },
   'existing-order':         { to: 'orders@lavaall.com',  tag: '[Lavaall Website – Existing Order]' },
@@ -47,8 +45,7 @@ function json(res, status, body) {
 }
 
 // Folds whichever conditional fields apply for this inquiry type into a
-// readable block appended to the customer's own message. contact-router.gs
-// is never touched -- it just receives a longer, still-plain-text message.
+// readable block appended to the customer's own message for contact-router.gs.
 function buildExtraDetails(type, body) {
   const lines = [];
   const add = (label, val) => { const v = clean(val, 300); if (v) lines.push(`${label}: ${v}`); };
@@ -90,7 +87,7 @@ async function contact(req, res) {
   // Honeypot: real visitors never populate this hidden field.
   if (body.website) return json(res, 200, { accepted: true });
 
-  // Basic per-IP rate limit (in-memory; resets on cold start, same as before).
+  // Per-IP cooldown after confirmed delivery (in-memory; resets on cold start).
   const ip = String(req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
   const now = Date.now();
   const last = recent.get(ip) || 0;
@@ -120,8 +117,6 @@ async function contact(req, res) {
   if (!consent) errors.push('Consent is required.');
   if (errors.length) return json(res, 400, { error: 'invalid_contact_request', errors });
 
-  recent.set(ip, now);
-
   const route = ROUTES[inquiryType];
   const emailSubject = `${route.tag} ${subject}`.slice(0, 180);
   const extra = buildExtraDetails(inquiryType, body);
@@ -129,8 +124,13 @@ async function contact(req, res) {
 
   const webhook = process.env.CONTACT_WEBHOOK_URL;
   if (webhook) {
+    let deliveryStatus = null;
+    let j = null;
+    let deliveryOk = false;
+    let deliveryError = null;
     try {
       const delivery = await fetch(webhook, {
+        signal: AbortSignal.timeout(10000),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,11 +143,31 @@ async function contact(req, res) {
           receivedAt: new Date().toISOString(),
         }),
       });
-      if (delivery.ok) return json(res, 202, { accepted: true, routedTo: route.to });
-    } catch {
-      // fall through to delivery_failed below
+      deliveryStatus = delivery.status ?? null;
+      j = await delivery.json();
+      deliveryOk = !!(delivery.ok && j && j.ok === true);
+      // Only known router error keys may reach logs; arbitrary upstream text
+      // can contain customer details (including Apps Script exception text).
+      deliveryError = j && ['forbidden', 'invalid_route', 'server_error'].includes(j.error)
+        ? j.error : (deliveryOk ? null : 'router_rejected');
+    } catch (error) {
+      deliveryError = error.name === 'TimeoutError' || error.name === 'AbortError'
+        ? 'timeout' : (error.name === 'SyntaxError' ? 'non_json' : 'network');
     }
-    return json(res, 502, { error: 'delivery_failed', message: 'We could not deliver your message. Please try again shortly or email us directly.' });
+    console.log(JSON.stringify({ evt: 'contact', status: deliveryStatus, ok: deliveryOk, err: deliveryError, type: inquiryType }));
+    if (deliveryOk) {
+      recent.set(ip, Date.now());
+      return json(res, 202, { accepted: true, routedTo: route.to });
+    }
+    return json(res, 502, {
+      error: 'delivery_failed',
+      message: "We couldn't confirm your request was sent. Please try again, or contact us directly.",
+      fallback: {
+        email: 'support@lavaall.com',
+        whatsapp: '+1 (737) 704-4182',
+        whatsappUrl: 'https://wa.me/17377044182',
+      },
+    });
   }
 
   return json(res, 503, {

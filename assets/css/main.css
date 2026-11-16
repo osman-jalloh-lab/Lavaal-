@@ -301,6 +301,9 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .sbox p{color:var(--muted);font-size:15px;}
 /* Error message styling */
 .error-message{background:#ff5c5c;color:white;padding:12px 20px;border-radius:8px;margin:12px 0;font-size:14px;font-weight:500;animation:slideIn .3s ease;}
+.error-message.delivery-fallback{background:#3b0a0a;color:#ffffff;font-size:16px;animation:none;}
+.error-message.delivery-fallback p,.error-message.delivery-fallback a{color:#ffffff;font-size:16px;}
+.error-message.delivery-fallback a{text-decoration:underline;}
 @keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 /* SCHEDULE A CALL modal -- reuses .pgal-overlay/.pgal-backdrop/.pgal-panel/
    .pgal-close chrome (single-column override below) so it matches the
