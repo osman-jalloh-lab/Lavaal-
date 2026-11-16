@@ -1,11 +1,24 @@
 'use strict';
 const assert = require('node:assert/strict');
-const { createService } = require('../api/_chat/service');
+const { createService, HANDOFF_FALLBACK } = require('../api/_chat/service');
+const { createHandoffTransport } = require('../api/_chat/handoff-transport');
 const { memoryStore, kvStore } = require('../api/_chat/store');
 const { createHandler } = require('../api/chat-inquiry');
 const { respond } = require('../api/_chat/responder');
 const CLOSE = "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).";
 const webhook = { CHAT_HANDOFF_WEBHOOK_URL: 'https://handoff.invalid/exec', CHAT_HANDOFF_WEBHOOK_SECRET: 'synthetic-handoff-secret' };
+const PII = ['Ada Test', 'ada@example.com', '076658960', '+23276658960', 'Repair and buy school laptops', 'School Test', 'synthetic-handoff-secret', 'Freetown', 'I need 20 laptops'];
+function noPii(logs) {
+  const blob = logs.join(' ');
+  for (const value of PII) assert.ok(!blob.includes(value), 'log leaked ' + value);
+  for (const raw of logs) {
+    const entry = JSON.parse(raw);
+    assert.deepEqual(Object.keys(entry).sort(), ['id', 'ms', 'status']);
+    assert.equal(typeof entry.id, 'string');
+    assert.equal(typeof entry.ms, 'number');
+    assert.ok(entry.ms >= 0);
+  }
+}
 let assertions = 0;
 function check(fn) { fn(); assertions++; }
 async function flow(options = {}, email = false, pageUrl = 'https://lavaall.test/products?item=abc') {
@@ -24,10 +37,21 @@ async function flow(options = {}, email = false, pageUrl = 'https://lavaall.test
       return { ok: true, json: async () => ({ result }) };
     } }) : memoryStore();
   const calls = [];
+  const logs = [];
+  const originalInfo = console.info;
+  console.info = function (...args) {
+    if (args[0] === 'CHAT_HANDOFF') logs.push(String(args[1]));
+    return originalInfo.apply(console, args);
+  };
+  try {
+  const record = fetchImpl => async (...args) => { calls.push(args); return fetchImpl(...args); };
+  const defaultFetch = record(async () => ({ ok: true, status: 200, json: async () => ({ ok: true }) }));
   const service = createService({ store, salt: 'delivery-fixture', previewLimits: true,
     now: () => Date.UTC(2026, 6, 15, 12), trustedOrigins: ['https://lavaall.test'],
-    handoffFetch: async (...args) => { calls.push(args); return { ok: true, json: async () => ({ ok: true }) }; },
-    chat: () => { throw Error('No model permitted'); }, ...options });
+    chat: () => { throw Error('No model permitted'); }, ...options,
+    handoffFetch: Object.hasOwn(options, 'handoffFetch')
+      ? (typeof options.handoffFetch === 'function' ? record(options.handoffFetch) : options.handoffFetch)
+      : defaultFetch });
   const session = await service.start('192.0.2.30');
   await store.transaction(rows => {
     rows.get('s:' + session.sessionId).context = { history: options.history || [
@@ -41,21 +65,26 @@ async function flow(options = {}, email = false, pageUrl = 'https://lavaall.test
   const before = await store.transaction(rows => [...rows].filter(([key]) => key.startsWith('test-handoff:')));
   check(() => assert.equal(before.length, 0));
   const confirmed = options.concurrent ? (await Promise.all([turn('Confirm', 'confirm-once'), turn('Confirm', 'other-confirm')]))[0] : await turn('Confirm', 'confirm-once');
-  check(() => assert.equal(confirmed.text, CLOSE));
+  const expectedText = options.expectedText === undefined ? CLOSE : options.expectedText;
+  check(() => assert.equal(confirmed.text, expectedText));
   await turn('Confirm', 'confirm-once');
   const records = await store.transaction(rows => [...rows].filter(([key]) => key.startsWith('test-handoff:')));
-  return { calls, confirmed, records, service, store, session };
+  return { calls, confirmed, records, service, store, session, logs };
+  } finally {
+    console.info = originalInfo;
+  }
 }
 async function main() {
+  // Env unset, Preview, or only one webhook var: stay on the test sink. Thank-you stays immediate.
   for (const options of [{}, { runtime: 'preview', env: webhook }, { env: { ...webhook, VERCEL_ENV: 'preview' } },
     { runtime: 'production' }, { runtime: 'production', env: { CHAT_HANDOFF_WEBHOOK_URL: webhook.CHAT_HANDOFF_WEBHOOK_URL } },
-    { runtime: 'production', env: { CHAT_HANDOFF_WEBHOOK_SECRET: webhook.CHAT_HANDOFF_WEBHOOK_SECRET } },
-    { runtime: 'production', env: webhook, handoffFetch: undefined }]) {
+    { runtime: 'production', env: { CHAT_HANDOFF_WEBHOOK_SECRET: webhook.CHAT_HANDOFF_WEBHOOK_SECRET } }]) {
     const f = await flow(options);
     check(() => assert.equal(f.calls.length, 0));
     check(() => assert.equal(f.records.length, 1));
     check(() => assert.equal(f.records[0][1].payload.test, true));
     check(() => assert.equal(f.confirmed.handoff.test, true));
+    check(() => assert.equal(f.logs.length, 0));
   }
   for (const email of [false, true]) {
     const f = await flow({ runtime: 'production', env: webhook }, email);
@@ -63,10 +92,13 @@ async function main() {
     check(() => assert.equal(f.records.length, 0));
     const [url, init] = f.calls[0], body = JSON.parse(init.body);
     check(() => assert.equal(url, webhook.CHAT_HANDOFF_WEBHOOK_URL));
+    check(() => assert.ok(!String(url).includes('?')));
+    check(() => assert.ok(!String(url).includes(webhook.CHAT_HANDOFF_WEBHOOK_SECRET)));
     check(() => assert.equal(init.method, 'POST'));
     check(() => assert.deepEqual(init.headers, { 'Content-Type': 'application/json' }));
     check(() => assert.equal(body.action, 'chat-handoff'));
     check(() => assert.equal(body.secret, webhook.CHAT_HANDOFF_WEBHOOK_SECRET));
+    check(() => assert.equal(body.receiptText, undefined));
     check(() => assert.equal(body.test, false));
     check(() => assert.equal(body.name, 'Ada Test'));
     check(() => assert.equal(body.whatsapp, email ? '' : '+23276658960'));
@@ -86,6 +118,9 @@ async function main() {
     check(() => assert.equal(body.pageUrl, 'https://lavaall.test/products?item=abc'));
     check(() => email ? assert.equal(body.replyTo, 'ada@example.com') : assert.equal(Object.hasOwn(body, 'replyTo'), false));
     check(() => assert.equal(f.confirmed.handoff.status, 'received'));
+    check(() => noPii(f.logs));
+    check(() => assert.equal(f.logs.length, 1));
+    check(() => assert.equal(JSON.parse(f.logs[0]).status, 200));
   }
   for (const value of ['https://evil.test/path', 'https://lavaall.test.evil.test', 'javascript:alert(1)', '/relative', 'https://user:pass@lavaall.test/private']) {
     const f = await flow({}, false, value);
@@ -98,9 +133,94 @@ async function main() {
   check(() => assert.equal(persisted.find(([key]) => key.startsWith('handoff-receipt:'))[1].receipt.status, 'received'));
   check(() => assert.ok(!JSON.stringify(persisted).includes(webhook.CHAT_HANDOFF_WEBHOOK_SECRET)));
   let failedAttempts = 0;
-  const failed = await flow({ runtime: 'production', env: webhook, handoffFetch: async () => { failedAttempts++; throw Error('synthetic timeout'); } });
+  const failed = await flow({ runtime: 'production', env: webhook, expectedText: HANDOFF_FALLBACK,
+    handoffFetch: async () => { failedAttempts++; throw Error('synthetic timeout'); } });
   check(() => assert.equal(failed.confirmed.handoff.status, 'uncertain'));
   check(() => assert.equal(failedAttempts, 1));
+  check(() => assert.ok(HANDOFF_FALLBACK.includes('WhatsApp +1 (737) 704-4182')));
+  check(() => assert.ok(!HANDOFF_FALLBACK.includes('076 658 960')));
+  check(() => noPii(failed.logs));
+  check(() => assert.equal(JSON.parse(failed.logs[0]).status, null));
+
+  const serverError = await flow({ runtime: 'production', env: webhook, expectedText: HANDOFF_FALLBACK,
+    handoffFetch: async (...args) => { failedAttempts++; return { ok: false, status: 500, json: async () => ({ error: 'email_failed' }) }; } });
+  check(() => assert.equal(serverError.confirmed.handoff.status, 'uncertain'));
+  check(() => assert.equal(serverError.calls.length, 1));
+  check(() => assert.equal(JSON.parse(serverError.logs[0]).status, 500));
+  check(() => noPii(serverError.logs));
+
+  for (const reply of [
+    { ok: true, status: 200, json: async () => ({ ok: false }) },
+    { ok: true, status: 200, json: async () => { throw Error('invalid json'); } },
+  ]) {
+    const bad = await flow({ runtime: 'production', env: webhook, expectedText: HANDOFF_FALLBACK,
+      handoffFetch: async (...args) => reply });
+    check(() => assert.equal(bad.confirmed.handoff.status, 'uncertain'));
+    check(() => assert.equal(bad.calls.length, 1));
+  }
+
+  // Default transport (no injected handoffFetch): 8s AbortController, one attempt, no retry on timeout.
+  {
+    const previous = globalThis.fetch;
+    let attempts = 0;
+    globalThis.fetch = (url, init) => {
+      attempts += 1;
+      return new Promise((_, reject) => {
+        init.signal.addEventListener('abort', () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        });
+      });
+    };
+    try {
+      const timedOut = await flow({ runtime: 'production', env: webhook, expectedText: HANDOFF_FALLBACK,
+        handoffFetch: createHandoffTransport({ timeoutMs: 40 }) });
+      check(() => assert.equal(timedOut.confirmed.handoff.status, 'uncertain'));
+      check(() => assert.equal(attempts, 1));
+      check(() => noPii(timedOut.logs));
+    } finally {
+      globalThis.fetch = previous;
+    }
+  }
+
+  // Omitted handoffFetch uses globalThis.fetch; secret is only in the JSON body.
+  {
+    const previous = globalThis.fetch;
+    const liveCalls = [];
+    globalThis.fetch = async (url, init) => {
+      liveCalls.push({ url, init });
+      return { ok: true, status: 200, json: async () => ({ ok: true }) };
+    };
+    try {
+      const live = await flow({ runtime: 'production', env: webhook, handoffFetch: undefined });
+      check(() => assert.equal(live.confirmed.handoff.status, 'received'));
+      check(() => assert.equal(live.calls.length, 0));
+      check(() => assert.equal(liveCalls.length, 1));
+      check(() => assert.equal(liveCalls[0].url, webhook.CHAT_HANDOFF_WEBHOOK_URL));
+      check(() => assert.ok(!String(liveCalls[0].url).includes(webhook.CHAT_HANDOFF_WEBHOOK_SECRET)));
+      check(() => assert.ok(!String(liveCalls[0].url).includes('?')));
+      check(() => assert.equal(JSON.parse(liveCalls[0].init.body).secret, webhook.CHAT_HANDOFF_WEBHOOK_SECRET));
+      check(() => assert.equal(JSON.parse(liveCalls[0].init.body).receiptText, undefined));
+      check(() => noPii(live.logs));
+      check(() => assert.equal(JSON.parse(live.logs[0]).status, 200));
+    } finally {
+      globalThis.fetch = previous;
+    }
+  }
+
+  // Transport refuses to put the secret on the URL, and does not call fetch.
+  {
+    let reached = 0;
+    const transport = createHandoffTransport({ fetch: async () => { reached += 1; return { ok: true, status: 200, json: async () => ({ ok: true }) }; } });
+    await assert.rejects(
+      () => transport(webhook.CHAT_HANDOFF_WEBHOOK_URL + '?secret=' + webhook.CHAT_HANDOFF_WEBHOOK_SECRET, {
+        method: 'POST', body: JSON.stringify({ secret: webhook.CHAT_HANDOFF_WEBHOOK_SECRET }),
+      }),
+      /secret_in_url/,
+    );
+    check(() => assert.equal(reached, 0));
+  }
   const huge = await flow({ history: [
     { role: 'assistant', text: 'Price is $450. Stock needs checking for November 20.' },
     ...Array.from({ length: 35 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: 'Long request ' + i + ' ' + 'x'.repeat(1950) })),
@@ -149,6 +269,9 @@ async function main() {
     await request('turn', { ...session.body, eventId: 'http-' + i, text, privacyConsent: text === 'Confirm', pageUrl: 'https://lavaall.test/catalog' }, cookie);
   }
   check(() => assert.equal(sent.pageUrl, 'https://lavaall.test/catalog'));
+  check(() => assert.equal(sent.secret, webhook.CHAT_HANDOFF_WEBHOOK_SECRET));
+  check(() => assert.ok(!Object.values(sent).some(value => typeof value === 'string' && String(value).includes('?secret='))));
+
   const ui = require('../assets/js/customer-assistant');
   const browserBodies = [];
   const browserTransport = ui.createPreviewTransport(async (url, init) => {
