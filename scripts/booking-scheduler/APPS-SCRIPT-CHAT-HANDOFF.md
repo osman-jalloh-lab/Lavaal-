@@ -27,20 +27,29 @@ Do not run a live webhook smoke test as part of the local PR B work.
    always uses the website test sink, even if URL and secret are present; missing
    URL or secret also keeps delivery in the test sink.
 
-The default `createHandler()` intentionally has no live handoff transport. The
-server's `handoffFetch` dependency is explicit and uses the fetch signature;
-local tests inject a mock. A future authorized production composition must inject
-its reviewed transport. Without that dependency, delivery stays in the test sink
-even when both environment names are configured. No existing form transport or
-contact-router is reused.
+`createHandler()` / `createService()` now default to a real `globalThis.fetch`
+transport (`api/_chat/handoff-transport.js`) when both `CHAT_HANDOFF_WEBHOOK_URL`
+and `CHAT_HANDOFF_WEBHOOK_SECRET` are set and the request is not a Preview or
+test-sink request. Local tests inject a mock `handoffFetch` or mock `fetch`.
+This PR does not change or deploy environment variables, and it does not deploy
+Apps Script. No existing form transport or contact-router is reused.
+
+The transport makes one POST and does not retry, including on network errors or
+timeouts, because Apps Script may already have delivered. The timeout is an
+`AbortController` of 8 seconds. Delivery logs only a request id, HTTP status
+code and elapsed milliseconds — no name, contact, message text, secret, or URL.
 
 The authenticated JSON body contains `action: "chat-handoff"`, `secret`,
 `name`, `email`, `whatsapp`, `country`, `city`, `organisation`, `topic`,
 `ownWords`, `botSummary`, `transcript`, `timeCT`, `timeGMT`, `preferredChannel`,
 `consent`, `pageUrl` and `sourcePage: "chatbot"`. The secret is in the body
-because Apps Script Web apps do not reliably expose custom request headers.
+because Apps Script Web apps do not reliably expose custom request headers
+(`doPost` reads `e.postData.contents` and `e.parameter`, not header maps).
 Do not put it in a query parameter. The website validates page URL origins and
-stamps CT/GMT times before delivery. The script rejects test payloads.
+stamps CT/GMT times before delivery. The script rejects test payloads. The
+visitor sees the thank-you closing line only after HTTP 2xx with JSON
+`ok: true`; otherwise the existing uncertain-delivery fallback plus the
+standing WhatsApp/email contact line is shown.
 
 Each accepted delivery attempts one email to **support@lavaall.com** using
 `GmailApp` through `safeSendEmail`, with sender name **LAVAALL Website**. It sets
