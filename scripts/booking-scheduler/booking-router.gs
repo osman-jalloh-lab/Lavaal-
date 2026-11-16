@@ -148,6 +148,26 @@ function doGet(e) {
   }
 }
 
+
+// Length-independent compare for the chat-handoff secret. Apps Script has no
+// timingSafeEqual, so XOR every position up to a fixed bound and never return
+// early on the first mismatch. Length is mixed into the accumulator only.
+function secretsEqual(left, right) {
+  var a = String(left == null ? '' : left);
+  var b = String(right == null ? '' : right);
+  var max = 256;
+  var n = a.length > b.length ? a.length : b.length;
+  if (n > max) max = n;
+  var diff = a.length ^ b.length;
+  var i;
+  for (i = 0; i < max; i++) {
+    var ca = i < a.length ? a.charCodeAt(i) : 0;
+    var cb = i < b.length ? b.charCodeAt(i) : 0;
+    diff = diff | (ca ^ cb);
+  }
+  return diff === 0;
+}
+
 function doPost(e) {
   var payload;
   try {
@@ -160,7 +180,7 @@ function doPost(e) {
     if (payload.action === 'chat-handoff') {
       var chatSecret = props.getProperty('CHAT_HANDOFF_WEBHOOK_SECRET') || props.getProperty('BOOKING_WEBHOOK_SECRET');
       // Unlike legacy booking actions, chat delivery always requires a secret.
-      if (!chatSecret || payload.secret !== chatSecret) return jsonOut({ error: 'forbidden' }, 403);
+      if (!chatSecret || !secretsEqual(payload.secret, chatSecret)) return jsonOut({ error: 'forbidden' }, 403);
       return handleChatHandoff(payload);
     }
     var secret = props.getProperty('BOOKING_WEBHOOK_SECRET');
