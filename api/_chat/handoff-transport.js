@@ -10,8 +10,9 @@ const EMAIL = 'support@lavaall.com';
 const WHATSAPP = '+1 (737) 704-4182';
 // Composed from existing customer-assistant "unknown" copy plus the standing
 // contact line already used in chat fallbacks. Not a new SLA.
-const HANDOFF_FALLBACK = 'Delivery is uncertain. Do not send again; contact the team. Email '
-  + EMAIL + ' or WhatsApp ' + WHATSAPP + '.';
+// Customer-facing wording approved by Osman 2026-11-15.
+const HANDOFF_FALLBACK = "Sorry, we couldn't send your request just now. Please don't resend it. Email "
+  + EMAIL + ' or WhatsApp ' + WHATSAPP + " and we'll pick it up.";
 
 function secretInUrl(url, secret) {
   if (typeof url !== 'string' || typeof secret !== 'string' || !secret) return false;
