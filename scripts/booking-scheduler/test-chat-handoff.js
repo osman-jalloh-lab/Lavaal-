@@ -99,6 +99,19 @@ check('missing or incorrect secret refuses delivery', () => {
     assert.equal(test.emails.length + test.rows.length, 0);
   }
 });
+check('chat-handoff secret compare is length-independent and accepts only an exact match', () => {
+  const test = setup();
+  assert.equal(test.context.secretsEqual('unit-chat-secret', 'unit-chat-secret'), true);
+  assert.equal(test.context.secretsEqual('unit-chat-secret', 'unit-chat-secreu'), false);
+  assert.equal(test.context.secretsEqual('short', 'unit-chat-secret'), false);
+  assert.equal(test.context.secretsEqual('unit-chat-secret', 'unit-chat-secret-extra'), false);
+  assert.equal(test.context.secretsEqual('', 'unit-chat-secret'), false);
+  assert.equal(test.context.secretsEqual(undefined, 'unit-chat-secret'), false);
+  assert.equal(test.post({ ...payload, secret: 'unit-chat-secre' }).error, 'forbidden');
+  assert.equal(test.post({ ...payload, secret: 'unit-chat-secret!' }).error, 'forbidden');
+  assert.deepEqual(test.post(payload), { ok: true });
+  assert.equal(test.emails.length, 1);
+});
 check('test payload cannot email or append a request', () => {
   const test = setup();
   assert.equal(test.post({ ...payload, test: true }).error, 'test_delivery_disabled');
