@@ -5,7 +5,7 @@
 // Apps Script Web apps do not reliably expose custom request headers, so the
 // shared secret is sent in the JSON body (`secret`), never in the URL.
 
-const TIMEOUT_MS = 8000;
+const TIMEOUT_MS = 18000;
 const EMAIL = 'support@lavaall.com';
 const WHATSAPP = '+1 (737) 704-4182';
 // Composed from existing customer-assistant "unknown" copy plus the standing

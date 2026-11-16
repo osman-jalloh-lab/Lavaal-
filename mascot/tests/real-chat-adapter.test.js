@@ -448,7 +448,10 @@ registerAsync(test('F-3: disclosure keeps exact copy and Preview safety only in 
   const prod = make(fakeServer(() => ({}), { config: { CHAT_ENABLED: true, environment: 'production' } }));
   await prod.loadConfig();
   assertEqual(prod.footerText, COPY.footer);
-  assertContains(a.greeting('technology'), 'an AI that can make mistakes.');
+  assertEqual(a.greeting('technology'), "Hi, I'm Lavaal, the AI chatbot. How can I help?");
+  assertEqual(a.greeting('web'), "Hi, I'm Lavaal, LAVAALL Web's AI chatbot. How can I help?");
+  assertContains(a.footerText, 'an AI and can make mistakes');
+  assertContains(a.footerText, '/privacy.html');
 }));
 
 registerAsync(test('P-6: failed Confirm restores an unchecked consent box before retry', () => serial(async () => {
