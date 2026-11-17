@@ -7,6 +7,10 @@ const origin = 'https://www.lavaall.com';
 const categories = ['laptops', 'computers', 'networking-equipment', 'it-procurement', 'phones'];
 const guidePaths = ['/sierra-leone/', ...categories.map(id => `/sierra-leone/${id}/`)];
 const expected = ['/', ...guidePaths, '/privacy.html', '/terms.html'].map(p => origin + p);
+const expectedLastmods = Object.fromEntries(expected.map(url => [url,
+  url === origin + '/' || url === origin + '/terms.html' ? '2026-11-16' :
+    url === origin + '/privacy.html' ? '2026-11-15' : '2026-11-08'
+]));
 let checks = 0;
 function check(condition, message) { assert.ok(condition, message); checks++; }
 function read(file) { return fs.readFileSync(path.join(root, file), 'utf8'); }
@@ -42,7 +46,7 @@ try {
   for (const entry of entries) {
     const loc = entry[1];
     check(loc.startsWith(origin + '/') && !/\/(?:ops|os|api|web|schedule)(?:\/|$)|#|\/index\.html(?:$|[?#])/.test(loc), `${loc}: indexable URL`);
-    check(entry[2] === '2026-11-08', `${loc}: lastmod`);
+    check(entry[2] === expectedLastmods[loc], `${loc}: lastmod`);
     const file = localFile(loc);
     check(fs.existsSync(file) && fs.statSync(file).isFile(), `${loc}: file exists`);
     const html = fs.readFileSync(file, 'utf8');
