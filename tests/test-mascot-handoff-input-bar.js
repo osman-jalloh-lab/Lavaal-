@@ -121,7 +121,7 @@ function visibleInPanel(panel, el) {
     assert.equal(await t.chip('WhatsApp'), 'What is your WhatsApp number, with country code?');
     t.barUsable('contact question');
     // Off-topic text mid-form answers the current question: the backend re-asks it.
-    assert.equal(await t.type('how much is the iPhone 15?'), 'Please enter a valid WhatsApp number with country code.');
+    assert.equal(await t.type('how much is the iPhone 15?'), "That WhatsApp number doesn't look complete. Please enter it again with the country code and the full number of digits.");
     t.barUsable('contact re-ask');
     assert.equal(await t.type('076 123 456'), 'Can I get your first and last name?');
     t.barUsable('name question');

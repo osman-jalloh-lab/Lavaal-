@@ -2,6 +2,7 @@
 
 const { searchCatalog, loadCatalog, normalizeInput, purchaseDetails } = require('./catalog');
 const narrow = require('./narrow');
+const { contactPhone, normalizeContactPhone } = require('./phone');
 const { isPowerAsk } = require('./knowledge');
 const EMAIL = 'support@lavaall.com';
 const WHATSAPP = '+1 (737) 704-4182';
@@ -411,17 +412,6 @@ function guidedForm(text, session) {
   return null;
 }
 
-function normalizeContactPhone(value) {
-  const raw = String(value || '').trim();
-  if (!/^\+?[0-9 () .-]+$/.test(raw)) return null;
-  const digits = raw.replace(/\D/g, '');
-  if (/^\+232/.test(raw)) return /^232[23789]\d{7}$/.test(digits) ? raw : null;
-  if (raw.startsWith('+')) return /^[1-9]\d{7,14}$/.test(digits) ? '+' + digits : null;
-  if (raw.startsWith('00')) return /^[1-9]\d{7,14}$/.test(digits.slice(2)) ? '+' + digits.slice(2) : null;
-  if (/^0[23789]\d{7}$/.test(digits)) return '+232' + digits.slice(1);
-  return null;
-}
-
 // Handoff slots are deterministic and retain the context captured at entry.
 function handoffTopic(session) {
   if (session.lastModel && session.lastModel.name) {
@@ -446,7 +436,9 @@ function handoffTopic(session) {
 const HANDOFF_COPY = {
   en: {
     channel: 'WhatsApp or email?', phone: 'What is your WhatsApp number, with country code?', email: 'What is your email address?',
-    invalidPhone: 'Please enter a valid WhatsApp number with country code.', invalidEmail: 'Please enter a valid email address.',
+    invalidPhone: "That WhatsApp number doesn't look complete. Please enter it again with the country code and the full number of digits.",
+    invalidPhoneLength: c => "That " + c.name + " WhatsApp number doesn't look complete. Please re-enter it with " + c.lengths.join(' or ') + ' digits after +' + c.code + '.',
+    invalidEmail: 'Please enter a valid email address.',
     location: 'Which country and city are you in? You can skip this.', organisation: 'What organisation are you with? You can skip this.',
     name: 'Could I get your first and last name, please?', topic: 'What would you like to talk to the team about?', quote: 'What would you like a quote for?',
     confirm: d => 'Please confirm your details: Name: ' + d.name + '. Contact: ' + d.contact + '. Topic: ' + d.topic + '. Shall I pass this to our team?',
@@ -454,7 +446,9 @@ const HANDOFF_COPY = {
   },
   fr: {
     channel: 'WhatsApp ou e-mail ?', phone: 'Quel est votre numéro WhatsApp avec indicatif pays ?', email: 'Quelle est votre adresse e-mail ?',
-    invalidPhone: 'Veuillez saisir un numéro WhatsApp valide avec indicatif pays.', invalidEmail: 'Veuillez saisir une adresse e-mail valide.',
+    invalidPhone: 'Ce numéro WhatsApp semble incomplet. Veuillez le saisir à nouveau avec l’indicatif pays et tous les chiffres.',
+    invalidPhoneLength: c => 'Ce numéro WhatsApp (' + ({ Guinea: 'Guinée', 'US/Canada': 'États-Unis/Canada' }[c.name] || c.name) + ') semble incomplet. Veuillez le saisir à nouveau avec ' + c.lengths.join(' ou ') + ' chiffres après +' + c.code + '.',
+    invalidEmail: 'Veuillez saisir une adresse e-mail valide.',
     location: 'Dans quel pays et quelle ville êtes-vous ? Vous pouvez passer cette question.', organisation: 'Quelle est votre organisation ? Vous pouvez passer cette question.',
     name: 'Quel est votre prénom et votre nom, s’il vous plaît ?', topic: 'De quoi souhaitez-vous parler avec notre équipe ?', quote: 'Pour quel article souhaitez-vous un devis ?',
     confirm: d => 'Veuillez vérifier vos coordonnées : nom : ' + d.name + ' ; contact : ' + d.contact + ' ; sujet : ' + d.topic + '. Puis-je transmettre cette demande à notre équipe ?',
@@ -463,7 +457,10 @@ const HANDOFF_COPY = {
   },
   kr: {
     channel: 'Yu WhatsApp ɔ ɛmail?', phone: 'Yu WhatsApp fon nɔmba wit country code?', email: 'Yu ɛmail?',
-    invalidPhone: 'Duya, valid WhatsApp fon nɔmba wit country code?', invalidEmail: 'Duya, valid ɛmail?',
+    // PENDING: fluent Sierra Leone Krio review (not Haitian Creole)
+    invalidPhone: 'Duya, ɛnta yu WhatsApp fon nɔmba igen wit country code ɛn ɔl di nɔmba dɛm.',
+    invalidPhoneLength: c => 'Duya, ɛnta yu ' + c.name + ' WhatsApp fon nɔmba igen wit ' + c.lengths.join(' ɔ ') + ' nɔmba afta +' + c.code + '.',
+    invalidEmail: 'Duya, valid ɛmail?',
     location: 'Na wich kɔntri ɛn siti yu de? Yu kin skip dis.', organisation: 'Wich ɔganayzeshɔn yu de wit? Yu kin skip dis.',
     name: 'Duya, yu fɔs ném ɛn las ném?', topic: 'Wetin yu wan tɔk to di tim abawt?', quote: 'Wetin yu nid fɔ quote?',
     confirm: d => 'Rivyu di sɔmari: ném: ' + d.name + '; fon ɔ ɛmail: ' + d.contact + '; rɛkwɛst: ' + d.topic + '. Yu wan sɛn am to di tim?',
@@ -471,6 +468,10 @@ const HANDOFF_COPY = {
     sla: 'Sɔmbɔdi frɔm wi tim go rich yu insay 24 awa.',
   },
 };
+function phoneReask(value, copy) {
+  const { wrongLength } = contactPhone(value);
+  return wrongLength ? copy.invalidPhoneLength(wrongLength) : copy.invalidPhone;
+}
 // Topic chips for the talk-to-someone handoff. Krio mirrors the WhatsApp/Email chips and keeps English labels.
 const TOPIC_CHIPS = {
   en: ['Customer service', 'Request a call', 'Get a quote', 'Order help', 'Something else'],
@@ -550,7 +551,7 @@ function guidedHandoff(text, session, start, language, privacyConsent) {
   }
   if (session.awaiting === 'handoff-contact') {
     const value = draft.channel === 'email' ? (isEmail(raw) ? raw : null) : normalizeContactPhone(raw);
-    if (!value || raw.length > 300) return reply(draft.channel === 'email' ? copy.invalidEmail : copy.invalidPhone, draft, 'handoff-contact');
+    if (!value || raw.length > 300) return reply(draft.channel === 'email' ? copy.invalidEmail : phoneReask(raw, copy), draft, 'handoff-contact');
     draft.contact = value;
     return reply(lang === 'en' ? 'Can I get your first and last name?' : copy.name, draft, 'handoff-name');
   }
@@ -589,12 +590,18 @@ function guidedHandoff(text, session, start, language, privacyConsent) {
   }
   if (session.awaiting !== 'handoff-confirm') return optionalDetails();
   if (!/^(confirm|yes|yes,? confirm|yes please|correct|ok|okay)[.!]?$/i.test(raw)) return confirmation();
+  if (draft.channel !== 'email' && !normalizeContactPhone(draft.contact)) {
+    const message = phoneReask(draft.contact, copy);
+    delete draft.contact;
+    return reply(message, draft, 'handoff-contact');
+  }
   if (privacyConsent !== true) {
     const error = new Error('privacy_consent');
     error.code = 'privacy_consent';
     throw error;
   }
   const email = isEmail(draft.contact) ? draft.contact : '';
+  if (!email) draft.contact = normalizeContactPhone(draft.contact);
   const digits = draft.contact.replace(/\D/g, '');
   const phone = email ? '' : draft.contact.startsWith('+') ? '+' + digits
     : draft.contact.startsWith('00') ? '+' + digits.slice(2) : digits;

@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { normalizeContactPhone } = require('./phone');
 const { createHandoffTransport, HANDOFF_FALLBACK } = require('./handoff-transport');
 const FIELDS = [
   'inquiryType', 'name', 'phone', 'email', 'country', 'company', 'subject',
@@ -68,11 +69,12 @@ function normalizeFields(input) {
 function normalize(input) {
   const draft = normalizeFields(input);
   if (draft.name.length < 2 || draft.name.length > 100
-      || !/^\+[1-9]\d{6,14}$/.test(draft.phone)) fail('invalid_contact');
+      || !normalizeContactPhone(draft.phone)) fail('invalid_contact');
   if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) fail('invalid_email');
   if (draft.inquiryType && !TYPES.includes(draft.inquiryType)) fail('invalid_type');
   if (draft.preferredResponse && !['email', 'phone'].includes(draft.preferredResponse)) fail('invalid_response');
   if (draft.country && !COUNTRIES.includes(draft.country)) fail('invalid_country');
+  draft.phone = normalizeContactPhone(draft.phone);
   return draft;
 }
 
@@ -127,8 +129,9 @@ function handoffPayload(input, time, context = {}, pageUrl = '') {
   if (fields.preferredResponse === 'email') {
     if (fields.phone || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) fail('invalid_contact');
   } else if (fields.preferredResponse === 'phone') {
-    if (fields.email || !/^\+?\d{7,15}$/.test(fields.phone)) fail('invalid_contact');
+    if (fields.email || !normalizeContactPhone(fields.phone)) fail('invalid_contact');
   } else fail('invalid_response');
+  if (fields.preferredResponse === 'phone') fields.phone = '+' + normalizeContactPhone(fields.phone).replace(/\D/g, '');
   const ownWords = String(input.ownWords || fields.productOrService).slice(-2400);
   const mentions = sessionMentions(context);
   const flags = Object.entries(mentions).map(([kind, quote]) => kind + ': "' + quote + '"').join('; ');
@@ -572,4 +575,4 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
   return { start, draft, review, confirm, turn };
 }
 
-module.exports = { createService, normalize, FIELDS, TYPES, equal, requireOpaque, HANDOFF_FALLBACK };
+module.exports = { createService, normalize, handoffPayload, FIELDS, TYPES, equal, requireOpaque, HANDOFF_FALLBACK };
