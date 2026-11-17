@@ -74,11 +74,11 @@ function feedPost(body, extra) {
 
 function item(overrides) {
   return Object.assign({
-    id: '1a0e728d16db5c7f',
-    threadId: '1a0e728d16db5c7f',
+    id: 'f1c7000000000001',
+    threadId: 'f1c7000000000001',
     receivedAt: '2026-09-28T08:36:41Z',
-    from: 'Austin Foster <austin@nexusnode.co.uk>',
-    subject: 'RFQ – NETGEAR APS1000W-100NES | Qty 10',
+    from: 'Test Buyer <test.buyer@example.com>',
+    subject: 'RFQ – Example Access Point EX-1000 | Qty 10',
     unread: true,
     flag: 'Real',
     urgency: 'Urgent',
@@ -132,7 +132,7 @@ async function run() {
     tri.inboxTriageKey() === 'lavaall-ops-inbox-triage-v1'
     && (() => { process.env.VERCEL_ENV = 'preview'; const k = tri.inboxTriageKey(); delete process.env.VERCEL_ENV; return k === 'preview:lavaall-ops-inbox-triage-v1'; })());
   check('gmail link only for hex thread ids',
-    tri.gmailThreadUrl('1a0e728d16db5c7f') === 'https://mail.google.com/mail/?authuser=support%40lavaall.com#all/1a0e728d16db5c7f'
+    tri.gmailThreadUrl('f1c7000000000001') === 'https://mail.google.com/mail/?authuser=support%40lavaall.com#all/f1c7000000000001'
     && tri.gmailThreadUrl('javascript:alert(1)') === '');
 
   {
@@ -240,7 +240,7 @@ async function run() {
     await ops(founderReq(), read);
     const ids = read.body && read.body.items ? read.body.items.map((x) => x.id) : [];
     check('founder GET returns the feed ranked Urgent, Soon, Low',
-      read.statusCode === 200 && ids.join(',') === '1a0e728d16db5c7f,aaaa0000000000a2,aaaa0000000000a1'
+      read.statusCode === 200 && ids.join(',') === 'f1c7000000000001,aaaa0000000000a2,aaaa0000000000a1'
       && read.body.counts.Urgent === 1 && read.body.counts.Soon === 1 && read.body.counts.Low === 1 && read.body.counts.flagged === 0);
     const stranger = mockRes();
     await ops(founderReq({ email: STRANGER }), stranger);
@@ -258,7 +258,7 @@ async function run() {
     const page = mockRes();
     await ops(inboxPageReq(), page);
     const html = page.raw || '';
-    const urgentAt = html.indexOf('RFQ – NETGEAR');
+    const urgentAt = html.indexOf('RFQ – Example Access Point');
     const soonAt = html.indexOf('Security alert');
     const lowAt = html.indexOf('Workspace tips');
     check('Inbox page shows the ranked feed, Urgent before Soon before Low',
@@ -269,7 +269,7 @@ async function run() {
     check('Jev shown as legit/urgency, NOT_RUN shown as not run',
       html.includes('Jev: legit 0.57 · urgency 0.69') && html.includes('Jev: not run'));
     check('Open in Gmail link targets the support@ thread',
-      html.includes('href="https://mail.google.com/mail/?authuser=support%40lavaall.com#all/1a0e728d16db5c7f"')
+      html.includes('href="https://mail.google.com/mail/?authuser=support%40lavaall.com#all/f1c7000000000001"')
       && html.includes('rel="noopener noreferrer"'));
     check('came-in-via and warning note render', html.includes('came in via sales@lavaall.com') && html.includes('sent Bcc to many vendors'));
     check('setup card explains the desk feed instead of "not connected"', html.includes('CEO desk feed') && !html.includes('Live support@ not connected.'));
