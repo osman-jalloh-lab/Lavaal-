@@ -1,92 +1,47 @@
-# HANDOFF — Remove Slack Command Center
+# HANDOFF — Local LAVAALL visual refresh
 
-- Branch: `chore/remove-slack`
-- Base: `origin/main` at `9317148abef9220f0f1691a3ff524ca2b87bec9f`
-- Scope: draft PR only. No merge, deploy, credential rotation, Vercel environment changes, or connector changes.
-- Read `AGENTS.md` and repository `MAGNUM.md` completely (`/MAGNUM.md` is absent). No conflicting Slack requirement in MAGNUM; leave it unchanged.
+Date: 9 November 2026. Base: `48102aca95cbb0fd9cb613b26d88e46c8a108ef0`.
+Scope: design-only public-site refresh in this worktree. Sole builder; no delegated edits.
+Read repository MAGNUM.md and the complete sibling PLAN.md before editing. `/MAGNUM.md` does not exist; repository MAGNUM.md is the brand reference. No production architecture changes.
 
-## Progress
+## Files and result
 
-1. Complete: moved the pure classifier, agent registry, skill registry, and status helpers from `api/slack/_router/` to `api/ops/_router/`. Retargeted Talk, Assign, Routines, and Untrusted imports to `./_router/classify`. The underscore folder keeps helpers out of Vercel HTTP routes. Used filesystem moves because workspace `.git` is read-only.
-2. Complete: deleted the entire remaining `api/slack/` tree: commands, events, interactions, signing/API helpers, approval UI, bridge, and route-task I/O. No Slack HTTP surface remains.
-3. Complete: renamed `SLACK_FALLBACK` to `OPS_FALLBACK`; replaced helper-error Slack guidance with retry guidance in /ops Talk or routines. Fixed obsolete active-Slack comments. Preserved denial of Slack signature/timestamp headers and data-only safety checks.
-4. Complete: replaced `test-slack-handlers.js` with `test-ops-classify.js` (pure classify + status only), replaced the deleted bridge test with the existing data-only `agentPendingItem` path, and updated removed-routine expectations. No `api/slack` imports remain in tests. Full suite recorded below.
-5. Complete: updated live-path docs, example environment config, and removed routine status. Historical decisions unchanged; form backend comment only.
-6. Complete: handoff includes inventory, actual tests, security impact, and founder follow-ups.
-7. Complete: pushed `chore/remove-slack` and opened draft PR https://github.com/osman-jalloh-lab/Lavaal-/pull/81 (no merge/deploy).
+- `assets/css/astryx-adapt.css`: new override stylesheet, loaded last. Preserves Clash Display, Bricolage Grotesque and every MAGNUM core swatch. Keeps the sky hero, sun ticker, ink borders, rounded cards and pill buttons.
+- `index.html`, `privacy.html`, `terms.html`: exactly one stylesheet link added to each head; no other HTML changes.
+- `HANDOFF.md`: replaces the inherited, unrelated Slack branch handoff with this branch's scope and verification.
 
-## Tests
+Tokens: 4px spacing grid (4–96px); 12px labels, 14/16/17/20/24/29/35/42px type steps, larger responsive marketing headings; 125/300/700ms motion with cubic-bezier(.16,1,.3,1). Sections use 96px desktop / 64px mobile padding. Anchors have 100px scroll clearance for the 76px fixed nav. Contact cards have even padding and 18px corners. Quote controls retain every field and use 16px text and at least 44px height; the consent checkbox has a larger label target. Focus, pressed, disabled, error and success states receive local styling. Dark-surface text is lighter; scroll hint and active nav text have stronger contrast. Reduced motion stops animation and hover transforms while preserving positioned layout.
 
-Ran every `tests/test-*.js` exactly once via plain `node` (no package.json), capturing exit codes and each file's reported checks. **42/42 files passed; 0 failed; 2,125/2,125 checks passed.** No local `.env` was loaded.
+## Collision boundaries
 
-Baseline at the base SHA: 42 files, 41 passing / 1 failing; 2,188/2,192 checks. The four failures were classifier helper availability expectations in `test-slack-handlers.js`, caused by inherited API-key presence. The rewritten pure test clears/restores those two environment variables for its unavailable cases, and explicitly tests the connected cases with dummy values. All original pure sample assertions remain; classifier runtime logic and registries are unchanged.
+`main.css` is untouched, including the area where PR #75 adds `.error-message.delivery-fallback`. Error overrides explicitly exclude that class; only its descendants' focus-ring colour is supplied. Its future white-on-dark styling is preserved.
 
-The check count changed because Slack HTTP/signing/bridge/approval UI tests were retired. Talk (chat + CEO + desk), Assign, Routines, Untrusted, /os, auth, and marketplace suites pass.
+965f08b appends touch-target and 16px form rules to main.css. This branch uses a separate last-loaded file with compatible minimum dimensions and text size. Neither branch's form body edits are duplicated here.
 
-| Test file | Passed checks |
-|---|---:|
-| `tests/test-inquiry-and-schedule.js` | 64/64 |
-| `tests/test-ops-assign.js` | 44/44 |
-| `tests/test-ops-auth.js` | 115/115 |
-| `tests/test-ops-calendar.js` | 29/29 |
-| `tests/test-ops-ceo-bridge.js` | 91/91 |
-| `tests/test-ops-chat.js` | 32/32 |
-| `tests/test-ops-classify.js` | 42/42 |
-| `tests/test-ops-desk-talk.js` | 76/76 |
-| `tests/test-ops-founder-polish.js` | 17/17 |
-| `tests/test-ops-founders-dm.js` | 96/96 |
-| `tests/test-ops-google-hint.js` | 20/20 |
-| `tests/test-ops-inbox-triage.js` | 50/50 |
-| `tests/test-ops-inbox.js` | 28/28 |
-| `tests/test-ops-issues.js` | 9/9 |
-| `tests/test-ops-kits.js` | 66/66 |
-| `tests/test-ops-map.js` | 46/46 |
-| `tests/test-ops-memory.js` | 20/20 |
-| `tests/test-ops-office.js` | 25/25 |
-| `tests/test-ops-routine-health.js` | 42/42 |
-| `tests/test-ops-routines.js` | 19/19 |
-| `tests/test-ops-shell.js` | 34/34 |
-| `tests/test-ops-signin-hardening.js` | 41/41 |
-| `tests/test-ops-store.js` | 19/19 |
-| `tests/test-ops-untrusted.js` | 6/6 |
-| `tests/test-os-brain.js` | 70/70 |
-| `tests/test-os-council-spend.js` | 67/67 |
-| `tests/test-os-council.js` | 32/32 |
-| `tests/test-os-data.js` | 66/66 |
-| `tests/test-os-desk-names.js` | 20/20 |
-| `tests/test-os-dev-bypass.js` | 32/32 |
-| `tests/test-os-home.js` | 37/37 |
-| `tests/test-os-ingest.js` | 110/110 |
-| `tests/test-os-mobile.js` | 38/38 |
-| `tests/test-os-notes.js` | 109/109 |
-| `tests/test-os-pack.js` | 66/66 |
-| `tests/test-os-return.js` | 35/35 |
-| `tests/test-os-routines.js` | 44/44 |
-| `tests/test-os-shell.js` | 53/53 |
-| `tests/test-os-talk.js` | 87/87 |
-| `tests/test-os-views.js` | 86/86 |
-| `tests/test-public-contact.js` | 12/12 |
-| `tests/test-web.js` | 130/130 |
+No WhatsApp number or 24/7 reachability sentence added. No copy, i18n, field order, required attributes, validation, handler JavaScript, API, webhook, catalog data or media changes. Existing conditional groups and hidden honeypot retain their behavior.
 
-## Security finding
+## Verification
 
-Removing the Slack HTTP and approval handlers eliminates the code path behind the High finding **"any Slack member can Approve L3/L4"**. The /ops classifier and existing auth/approval boundaries remain in place.
+Ran all `tests/test-*.js`: **42/42 files passed; 2,125/2,125 checks passed**. No tests added or edited. Each file was executed with this environment:
 
-## Remaining founder steps
+```sh
+for test_file in tests/test-*.js; do
+  env -u OPENAI_API_KEY -u ANTHROPIC_API_KEY -u CONTACT_WEBHOOK_URL \
+    NODE_OPTIONS=--require=/workspace/lavaall-astryx-refresh/deny-network.cjs \
+    node "$test_file" || exit 1
+done
+```
 
-- Review and merge the draft PR when ready.
-- Delete Vercel `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` after removal is accepted.
-- Uninstall the Slack app from the workspace.
-- Disconnect Cursor connector `user-Slack--work` / plugin `674`.
+Independent verification (coordinator, 9 Nov 2026, America/Chicago):
 
-These founder steps are not performed by this PR. No box-only files or MCP connectors are changed.
+- Full suite re-run after the CSS change: **42/42 files, 2,125/2,125 checks**, network denied. Same as the pre-change baseline.
+- Local static server `http://127.0.0.1:8795/`. After screenshots at 1440 and 390 in `/workspace/lavaall-astryx-refresh/screens/after/`. MAGNUM fonts loaded (Clash Display / Bricolage Grotesque).
+- Form client-side only: every default field still visible; required set unchanged (inquiry type, name, email, country, subject, message, preferred response, consent); phone and company optional. Inputs 16px / ≥44px. Empty submit was intercepted — `checkValidity()` false, 7 invalid controls, no success state, **no POST / no `/api/contact`**. Focus ring 3px `--sky`. Reduced motion: ticker `animation: none`, reveals visible.
+- Lighthouse 13.6.0 after (local, not production): mobile 83 / 92 / 96 / 100; desktop 100 / 89 / 96 / 100 (perf / a11y / best-practices / SEO). Color-contrast items 31→0 vs the production baseline. Heading-order, main landmark, and select-name remain (markup out of scope).
+- One verifier CSS follow-up: `footer .ct-mail-app` needed higher specificity than `main.css` to finish the planned on-dark contrast fix.
 
-## Publishing environment
+HTML diff: one stylesheet `<link>` on `index.html`, `privacy.html`, `terms.html` only. `main.css` untouched. No WhatsApp number or 24/7 line added (those are not on this `origin/main` base; they live on #75 / 965f08b).
 
-The workspace `.git` is mounted read-only (`git mv` cannot create `.git/index.lock`), and shell Git/`gh` cannot resolve/connect to GitHub. A writable temporary Git checkout at `/tmp/lavaall-remove-slack-publish` is used to stage, verify, and commit the exact repository diff. The authenticated GitHub connector reports account `osman-jalloh-lab`, but its first write (`create_blob`) was refused: "MCP tool call requires approval, but approval policy is never". No remote write succeeded. The workspace files contain the final changes; its read-only Git metadata cannot advance locally.
+## Publication hold and cost
 
-## Draft PR
-- URL: https://github.com/osman-jalloh-lab/Lavaal-/pull/81
-- Commit: `f732265` on `chore/remove-slack`
-- Re-verified suite: 42/42 files, 2125/2125 checks passed (America/Chicago, 2026-11-09).
-- No merge, deploy, Vercel env changes, or connector disconnect performed.
+Local branch `feat/astryx-design-refresh` only. No push, PR, deployment or Preview. Publication remains on hold for Osman's own yes. No packages installed, paid APIs called or purchases made. Cost: **$0 extra on Osman's ChatGPT subscription**.
