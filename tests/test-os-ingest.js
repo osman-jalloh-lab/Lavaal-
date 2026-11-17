@@ -359,9 +359,11 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
       const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
       const pick = (cfg, pred) => (cfg.headers || []).filter(pred);
       const currentFunctions = { ...(current.functions || {}) };
+      const baseFunctions = { ...(base.functions || {}) };
       const chatFn = currentFunctions['api/chat-inquiry.js'];
       delete currentFunctions['api/chat-inquiry.js'];
-      osRoutesIntact = same(currentFunctions, base.functions)
+      delete baseFunctions['api/chat-inquiry.js'];
+      osRoutesIntact = same(currentFunctions, baseFunctions)
         && !!chatFn && chatFn.maxDuration === 20
         && typeof chatFn.includeFiles === 'string'
         && chatFn.includeFiles.includes('assets/js/catalog-data.js')

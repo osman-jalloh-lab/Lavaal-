@@ -56,6 +56,12 @@
       ]
     }
   ],
+  "redirects": [
+    { "source": "/index.html", "destination": "/", "statusCode": 301 },
+    { "source": "/sierra-leone", "destination": "/sierra-leone/", "statusCode": 301 },
+    { "source": "/privacy", "destination": "/privacy.html", "statusCode": 301 },
+    { "source": "/privacy/", "destination": "/privacy.html", "statusCode": 301 }
+  ],
   "rewrites": [
     { "source": "/ops", "destination": "/api/ops" },
     { "source": "/ops/", "destination": "/api/ops" },

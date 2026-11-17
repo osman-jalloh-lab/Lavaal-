@@ -344,6 +344,11 @@ footer{background:var(--ink);border-top:2px solid rgba(255,255,255,.08);padding:
 .flogo-img{height:44px;width:auto;object-fit:contain;display:block;}
 .fdesc{font-size:14px;color:rgba(255,255,255,.45);line-height:1.75;}
 footer h4{font-family:'Clash Display',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:16px;}
+.fbranches{border-top:1px solid rgba(255,255,255,.08);padding-top:24px;margin-bottom:32px;}
+.fbranches-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px 28px;}
+.fbranches address{font-style:normal;font-size:13px;color:rgba(255,255,255,.72);line-height:1.6;}
+.fbranches b{color:rgba(255,255,255,.9);font-weight:600;}
+.fbranches a{display:inline;margin:0;}
 footer a{display:block;font-size:13px;color:rgba(255,255,255,.72);text-decoration:none;margin-bottom:9px;transition:color .2s;}
 footer a:hover{color:var(--sky);}
 .fb{border-top:1px solid rgba(255,255,255,.07);padding-top:26px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:rgba(255,255,255,.3);flex-wrap:wrap;gap:8px;}
@@ -445,6 +450,7 @@ h1{font-size:36px;letter-spacing:-1px;line-height:1.05;margin-bottom:16px;}
 .fg input,.fg select,.fg textarea{padding:10px 12px;font-size:13px;}
 .fsub{padding:13px;font-size:14px;}
 .ft{grid-template-columns:1fr;gap:24px;}
+.fbranches-list{flex-direction:column;gap:6px;}
 footer{padding:40px 5% 30px;}
 .fb{font-size:11px;flex-direction:column;align-items:flex-start;gap:6px;}
 .su-left h2{font-size:28px;letter-spacing:-1px;}
