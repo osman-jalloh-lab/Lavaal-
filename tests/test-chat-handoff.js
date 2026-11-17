@@ -100,7 +100,7 @@ async function main() {
     await phone.turn('talk to someone'); await phone.turn('WhatsApp');
     const invalidPhone = await phone.turn(input);
     assert.equal((await phone.store.transaction(rows => rows.get('s:' + phone.session.sessionId).context)).awaiting, 'handoff-contact');
-    assert.equal(invalidPhone.text, 'Please enter a valid WhatsApp number with country code.');
+    assert.equal(invalidPhone.text, input === '+232 76 12' ? "That Sierra Leone WhatsApp number doesn't look complete. Please re-enter it with 8 digits after +232." : "That WhatsApp number doesn't look complete. Please enter it again with the country code and the full number of digits.");
     assert.equal((await records(phone.store)).length, 0);
   }
   for (const input of ['+231 77 555 1234', '+44 7700 900123', '+232 76 658 960']) {
@@ -109,6 +109,21 @@ async function main() {
     assert.equal(state.awaiting, 'handoff-name');
     assert.equal(state.handoffDraft.contact, input.startsWith('+232') ? input : '+' + input.replace(/\D/g, ''));
   }
+  let forbiddenCalls = 0;
+  const guinea = await fixture({ handoffFetch: async () => { forbiddenCalls++; throw Error('Unexpected webhook'); }, transport: async () => { forbiddenCalls++; throw Error('Unexpected email'); } });
+  await guinea.turn('talk to someone'); await guinea.turn('WhatsApp');
+  for (const input of ['+224123456', '+224 123456', '+224 (12)-3456', 'Confirm']) {
+    const reply = await guinea.turn(input);
+    checkReply(reply, input === 'Confirm'
+      ? "That WhatsApp number doesn't look complete. Please enter it again with the country code and the full number of digits."
+      : "That Guinea WhatsApp number doesn't look complete. Please re-enter it with 9 digits after +224.");
+    const context = await guinea.store.transaction(rows => rows.get('s:' + guinea.session.sessionId).context);
+    assert.equal(context.awaiting, 'handoff-contact');
+    assert.equal(context.handoffDraft.contact, '');
+    assert.equal((await records(guinea.store)).length, 0);
+    assert.equal(forbiddenCalls, 0);
+  }
+  checkReply(await guinea.turn('+224 620123456'), NAME);
   const repeated = await fixture();
   await repeated.turn('talk to a person');
   await repeated.turn('Email'); await repeated.turn('ada@example.com');
