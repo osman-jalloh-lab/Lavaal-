@@ -373,9 +373,9 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
         && same(pick(current, (h) => h.source === '/(.*)'), pick(base, (h) => h.source === '/(.*)'));
       const rootHeader = (current.headers || []).find((h) => h.source === '/');
       const policy = rootHeader && (rootHeader.headers || []).find((h) => h.key === 'Permissions-Policy');
-      osRoutesIntact = osRoutesIntact && !!policy && policy.value === 'camera=(), microphone=(self), geolocation=()';
+      osRoutesIntact = osRoutesIntact && !!policy && policy.value === 'camera=(), microphone=(), geolocation=()';
     }
-    check('/os, /ops and /web vercel routes stay unchanged; homepage may only add a scoped same-origin microphone policy', osRoutesIntact);
+    check('/os, /ops and /web vercel routes stay unchanged; homepage microphone stays disabled', osRoutesIntact);
   } catch { check('vercel.json and the auth code are not changed (git unavailable, skipped)', true); }
 
   const failedChecks = results.filter((r) => !r.pass);

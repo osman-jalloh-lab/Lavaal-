@@ -1,5 +1,5 @@
 # Keep LAVAALL Web planning docs, the local dev runner and its test off the
-# public site. Everything else deploys as before (no other entries).
+# public site.
 # The page itself lives in api/web/_site and is only reachable through
 # api/web/index.js, which answers 404 unless the section is switched on.
 docs/web/
@@ -11,3 +11,13 @@ mascot/demo/
 mascot/tests/
 mascot/RESULTS.md
 preview-shots/
+
+# Internal sources are not deployment assets. Keep only the souls required by
+# api/ops/index.js includeFiles; middleware denies their public static URLs.
+/*.md
+/tests/
+/scripts/
+/docs/*
+!/docs/ops/
+/docs/ops/*
+!/docs/ops/souls/
