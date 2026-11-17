@@ -21,7 +21,10 @@ function memoryStore() {
     return next;
   }
 
-  return { kind: 'mock', transaction };
+  return { kind: 'mock', transaction, async get(key) {
+    await queue;
+    return structuredClone(records.get(key));
+  } };
 }
 
 module.exports = { memoryStore };
@@ -43,7 +46,11 @@ function kvStore({ url, token, fetch: request = globalThis.fetch } = {}) {
       return body.result;
     } catch (_) { const error = new Error('store_unavailable'); error.code = 'store_unavailable'; throw error; }
   }
-  return { kind: 'kv', async transaction(operation) {
+  return { kind: 'kv', async get(recordKey) {
+    const previous = await command(['GET', key]);
+    try { return new Map(previous ? JSON.parse(previous).records : []).get(recordKey); }
+    catch (_) { const error = new Error('store_unavailable'); error.code = 'store_unavailable'; throw error; }
+  }, async transaction(operation) {
     for (let attempt = 0; attempt < 12; attempt++) {
       const previous = await command(['GET', key]);
       let records;

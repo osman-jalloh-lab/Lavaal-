@@ -1,4 +1,5 @@
 'use strict';
+const { requestRateLimit } = require('./_chat/request-rate-limit');
 const { createService, equal } = require('./_chat/service');
 
 const ACTION_FIELDS = Object.freeze({
@@ -63,18 +64,17 @@ async function requestSettings(options) {
   const config = settings(options);
   if (!config.enabled) return config;
   config.store = options.store || require('./_chat/store').kvStore({ url: config.env.KV_REST_API_URL, token: config.env.KV_REST_API_TOKEN });
-  const killed = await config.store.transaction(records => {
-    const record = records.get('chat:kill');
-    if (record && typeof record === 'object' && record.exp <= (options.now || Date.now)()) return false;
-    const value = record && typeof record === 'object' ? record.value : record;
-    return value === true || value === 'true' || value === '1' || value === 'kill';
-  });
+  const record = await config.store.get('chat:kill');
+  const expired = record && typeof record === 'object' && record.exp <= (options.now || Date.now)();
+  const value = record && typeof record === 'object' ? record.value : record;
+  const killed = !expired && [true, 'true', '1', 'kill'].includes(value);
   config.enabled = !killed;
   return config;
 }
 
 async function publicConfig(options = {}) {
   try { return flags(await requestSettings(options)); }
+  // A failed read disables public config; config never needs a write.
   catch (_) { return flags({ ...settings(options), enabled: false }); }
 }
 
@@ -82,6 +82,12 @@ function createHandler(options = {}) {
   return async function handler(req, res) {
     let config;
     try {
+      if (req.query?.action === 'config' && ['GET', 'POST'].includes(req.method)) {
+        const exposed = await publicConfig(options);
+        return exposed.CHAT_ENABLED ? reply(res, 200, exposed) :
+          reply(res, 503, { ...exposed, error: 'chat_disabled' });
+      }
+      if (req.method !== 'POST') return reply(res, 405, { error: 'method_not_allowed' });
       config = await requestSettings(options);
       const exposed = flags(config);
       if (!config.enabled) return reply(res, 503, { ...exposed, error: 'chat_disabled' });
@@ -91,12 +97,13 @@ function createHandler(options = {}) {
       const { previewDebug, previewLimits, ...serviceOptions } = options;
       const service = createService({ ...serviceOptions, store, salt, chat, env, runtime: config.preview ? 'preview' : config.runtime, trustedOrigins,
         ...(config.preview ? { previewDebug: true, previewLimits: true } : {}) });
-      if (req.query?.action === 'config' && ['GET', 'POST'].includes(req.method)) {
-        // Public flags only; no secrets. Session and turns still require Origin.
-        return reply(res, 200, exposed);
-      }
-      if (req.method !== 'POST') return reply(res, 405, { error: 'method_not_allowed' });
       const headers = req.headers || {};
+      const ip = String(headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+      const limit = await requestRateLimit(store, salt, ip, (options.now || Date.now)());
+      if (!limit.allowed) {
+        res.setHeader('Retry-After', String(limit.retryAfter));
+        return reply(res, 429, { error: 'rate_limited', message: 'Please wait a moment and try again.' });
+      }
       if (!/^application\/json(?:\s*;|$)/i.test(headers['content-type'] || '')) {
         return reply(res, 415, { error: 'json_required' });
       }
