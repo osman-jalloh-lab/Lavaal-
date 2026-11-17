@@ -34,8 +34,8 @@ export const ENDPOINT = '/api/chat-inquiry';
 export const CONTACT_LINE = 'email support@lavaall.com or WhatsApp +1 (737) 704-4182';
 export const COPY = Object.freeze({
   greeting: {
-    technology: "Hi, I'm the LAVAALL Assistant, an AI that can make mistakes. A person from our team follows up on requests. How can I help you today?",
-    web: "Hi, I'm the LAVAALL Web assistant, an AI that can make mistakes. A person from our team follows up on requests. How can I help you today?",
+    technology: "Hi, I'm Lavaal, the AI chatbot. How can I help?",
+    web: "Hi, I'm Lavaal, LAVAALL Web's AI chatbot. How can I help?",
   },
   footer: "LAVAALL Assistant is an AI and can make mistakes. Don't share passwords or payment details. A person follows up on requests. Privacy notice: /privacy.html",
   busy: 'This chat is temporarily busy. Please try again shortly, or ' + CONTACT_LINE + '.',

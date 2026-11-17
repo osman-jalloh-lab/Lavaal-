@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 const { createService, HANDOFF_FALLBACK } = require('../api/_chat/service');
-const { createHandoffTransport } = require('../api/_chat/handoff-transport');
+const { createHandoffTransport, TIMEOUT_MS } = require('../api/_chat/handoff-transport');
 const { memoryStore, kvStore } = require('../api/_chat/store');
 const { createHandler } = require('../api/chat-inquiry');
 const { respond } = require('../api/_chat/responder');
@@ -140,7 +140,7 @@ async function main() {
   check(() => assert.ok(HANDOFF_FALLBACK.includes('WhatsApp +1 (737) 704-4182')));
   check(() => assert.ok(!HANDOFF_FALLBACK.includes('076 658 960')));
   check(() => noPii(failed.logs));
-  check(() => assert.equal(JSON.parse(failed.logs[0]).status, null));
+  check(() => assert.equal(JSON.parse(failed.logs[0]).status, 'network'));
 
   const serverError = await flow({ runtime: 'production', env: webhook, expectedText: HANDOFF_FALLBACK,
     handoffFetch: async (...args) => { failedAttempts++; return { ok: false, status: 500, json: async () => ({ error: 'email_failed' }) }; } });
@@ -159,7 +159,9 @@ async function main() {
     check(() => assert.equal(bad.calls.length, 1));
   }
 
-  // Default transport (no injected handoffFetch): 8s AbortController, one attempt, no retry on timeout.
+  check(() => assert.equal(TIMEOUT_MS, 18000));
+
+  // Default transport (no injected handoffFetch): 18s AbortController, one attempt, no retry on timeout.
   {
     const previous = globalThis.fetch;
     let attempts = 0;
@@ -179,6 +181,7 @@ async function main() {
       check(() => assert.equal(timedOut.confirmed.handoff.status, 'uncertain'));
       check(() => assert.equal(attempts, 1));
       check(() => noPii(timedOut.logs));
+      check(() => assert.equal(JSON.parse(timedOut.logs[0]).status, 'timeout'));
     } finally {
       globalThis.fetch = previous;
     }

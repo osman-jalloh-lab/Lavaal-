@@ -525,7 +525,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       const { receiptText, ...requestBody } = delivery;
       const requestId = token();
       let status = 'uncertain';
-      let httpStatus = null;
+      let httpStatus = 'network';
       const started = Date.now();
       try {
         // One attempt, no retries: Apps Script may already have delivered.
@@ -533,11 +533,14 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody),
         });
-        httpStatus = Number.isFinite(sent && sent.status) ? sent.status : null;
+        httpStatus = Number.isFinite(sent && sent.status) ? sent.status : 'network';
         let body = null;
         try { body = await sent.json(); } catch { body = null; }
         if (sent && sent.ok && body && body.ok === true) status = 'received';
-      } catch { /* Network, timeout, or abort: leave uncertain, do not retry. */ }
+      } catch (error) {
+        // Leave delivery uncertain and do not retry: it may already have arrived.
+        httpStatus = error?.name === 'AbortError' ? 'timeout' : 'network';
+      }
       console.info('CHAT_HANDOFF', JSON.stringify({ id: requestId, status: httpStatus, ms: Date.now() - started }));
       return transaction(records => {
         const event = records.get(eventKey);
