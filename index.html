@@ -313,11 +313,11 @@
 
 <!-- LAYER 2 — category browser (Category -> Brand -> Family -> Model), hidden until "Browse Category" is clicked -->
 <div id="catalog-browser" style="display:none;">
-<button type="button" id="catalog-back-btn" class="catalog-back-btn">&larr; Back to overview</button>
+<button type="button" id="catalog-back-btn" class="catalog-back-btn"><span aria-hidden="true">&larr;</span> <span data-i18n="cat.back">Back to overview</span></button>
 <div class="catalog-toolbar reveal">
 <div class="catalog-search-wrap">
 <svg class="catalog-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-<input type="search" id="catalog-search" class="catalog-search" placeholder="Search products — e.g. iPhone 15 Pro, LG OLED, Dell Latitude, Cisco..." autocomplete="off"/>
+<input type="search" id="catalog-search" data-i18n-ph="cat.search.ph" class="catalog-search" placeholder="Search products — e.g. iPhone 15 Pro, LG OLED, Dell Latitude, Cisco..." autocomplete="off"/>
 </div>
 </div>
 <nav class="catalog-breadcrumbs reveal" id="catalog-breadcrumbs" aria-label="Breadcrumb"></nav>
@@ -349,7 +349,7 @@
 <button class="ctry" data-code="gw" onclick="pickCountry(this,'gw')" aria-pressed="false"><span class="flag">&#127468;&#127484;</span><span data-i18n="cov.gw">Guinea-Bissau</span></button>
 <button class="ctry" data-code="lr" onclick="pickCountry(this,'lr')" aria-pressed="false"><span class="flag">&#127473;&#127479;</span><span data-i18n="cov.lr">Liberia</span></button>
 </div>
-<p class="bcloud-hint reveal">Tap a location to see its address</p>
+<p class="bcloud-hint reveal" data-i18n="cov.hint">Tap a location to see its address</p>
 <div class="branch-cloud reveal" id="branch-cloud"></div>
 <div class="branch-detail" id="branch-detail"></div>
 </div>
@@ -527,13 +527,13 @@
 <div class="fg">
 <label data-i18n="ct.lbl.country">Country<span class="req" aria-hidden="true">*</span></label>
 <select name="country" required id="iq-country" aria-required="true">
-<option value="">Select country</option>
-<option>Sierra Leone</option>
-<option>Guinea</option>
-<option>Guinea-Bissau</option>
-<option>Liberia</option>
-<option>Other West Africa</option>
-<option>Other</option>
+<option value="" data-i18n="iq.opt.selectCountry">Select country</option>
+<option value="Sierra Leone" data-i18n="cov.sl">Sierra Leone</option>
+<option value="Guinea" data-i18n="cov.gn">Guinea</option>
+<option value="Guinea-Bissau" data-i18n="cov.gw">Guinea-Bissau</option>
+<option value="Liberia" data-i18n="cov.lr">Liberia</option>
+<option value="Other West Africa" data-i18n="iq.opt.otherWestAfrica">Other West Africa</option>
+<option value="Other" data-i18n="iq.opt.other">Other</option>
 </select>
 </div>
 </div>
@@ -1656,6 +1656,12 @@ let currentLang='en';
 // Complete translation data — EN (100%) + FR (100%)
 const translations={
   en:{
+    "cat.back":"Back to overview",
+    "cat.search.ph":"Search products — e.g. iPhone 15 Pro, LG OLED, Dell Latitude, Cisco...",
+    "cov.hint":"Tap a location to see its address",
+    "sch.close":"Close scheduling",
+    "iq.opt.selectCountry":"Select country",
+    "iq.opt.otherWestAfrica":"Other West Africa",
     "seo.heading":"Buying IT equipment in Sierra Leone",
     "seo.footer":"Sierra Leone guides",
     "seo.laptops":"Laptops",
@@ -1930,6 +1936,12 @@ const translations={
     'ft.copy':'© 2026 LAVAALL. All rights reserved.'
   },
   fr:{
+    "cat.back":"Retour à l’aperçu",
+    "cat.search.ph":"Rechercher des produits — ex. iPhone 15 Pro, LG OLED, Dell Latitude, Cisco...",
+    "cov.hint":"Touchez un emplacement pour voir son adresse",
+    "sch.close":"Fermer la planification",
+    "iq.opt.selectCountry":"Sélectionnez un pays",
+    "iq.opt.otherWestAfrica":"Autre pays d’Afrique de l’Ouest",
     "seo.heading":"Acheter du matériel informatique en Sierra Leone",
     "seo.footer":"Guides pour la Sierra Leone",
     "seo.laptops":"Ordinateurs portables",
@@ -2204,6 +2216,12 @@ const translations={
     'ft.copy':'© 2026 LAVAALL. Tous droits réservés.'
   },
   kr:{
+    "cat.back":"Go bak to di ovaviu",
+    "cat.search.ph":"Luk fɔ prɔdak — lɛk iPhone 15 Pro, LG OLED, Dell Latitude, Cisco...",
+    "cov.hint":"Tap wan ples fɔ si in adrɛs",
+    "sch.close":"Lɔk di skedul",
+    "iq.opt.selectCountry":"Pik wan kɔntri",
+    "iq.opt.otherWestAfrica":"Ɔda ples na Wɛst Afrika",
     // English guide labels pending Krio review.
     "seo.heading":"Buying IT equipment in Sierra Leone",
     "seo.footer":"Sierra Leone guides",
@@ -2482,13 +2500,17 @@ const translations={
 };
 
 // SECURITY FIX: Safe language switching with DOMPurify
-function setLang(l){
+function setLang(l, persist){
   // Validate language parameter
   if (!['en', 'fr', 'kr'].includes(l)) {
     console.error('Invalid language code');
     return;
   }
   
+  if (persist !== false) {
+    try { localStorage.setItem('lavaall.lang', l); } catch (e) {}
+  }
+
   currentLang = l;
   document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',b.getAttribute('data-lang')===l));
   const tr = translations[l];
@@ -2607,8 +2629,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize secure form handler
   new InquiryFormHandler('iq-form');
 
-  // Set default language
-  setLang('en');
+  // Restore a saved language, falling back safely when storage is unavailable.
+  let savedLang = 'en';
+  try {
+    const storedLang = localStorage.getItem('lavaall.lang');
+    if (['en', 'fr', 'kr'].includes(storedLang)) savedLang = storedLang;
+  } catch (e) {}
+  setLang(savedLang, false);
 });
 
 
@@ -2709,7 +2736,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="pgal-overlay sched-overlay" id="sched-overlay" role="dialog" aria-modal="true" aria-labelledby="sched-title">
 <div class="pgal-backdrop" id="sched-backdrop"></div>
 <div class="pgal-panel sched-panel">
-<button class="pgal-close" id="sched-close-btn" aria-label="Close scheduling" type="button">&times;</button>
+<button class="pgal-close" id="sched-close-btn" data-i18n-aria="sch.close" aria-label="Close scheduling" type="button">&times;</button>
 <div class="sched-body">
 
 <div id="sched-step1">

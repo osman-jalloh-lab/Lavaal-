@@ -186,6 +186,7 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(46px,7vw,90px);font-we
 .catalog-search{width:100%;padding:13px 18px 13px 46px;border:2px solid var(--ink);border-radius:100px;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;background:var(--white);outline:none;transition:box-shadow .2s,border-color .2s;}
 .catalog-search:focus{border-color:var(--sky);box-shadow:0 0 0 4px rgba(0,194,255,.15);}
 .catalog-breadcrumbs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:24px;font-size:13px;}
+nav.catalog-breadcrumbs{position:static;inset:auto;z-index:auto;height:auto;padding:0;background:none;backdrop-filter:none;border:0;justify-content:flex-start;}
 .crumb-link{color:var(--muted);font-weight:600;text-decoration:none;transition:color .2s;}
 .crumb-link:hover{color:var(--sky);text-decoration:underline;}
 .crumb-sep{color:rgba(10,10,20,.25);}
