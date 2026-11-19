@@ -7,6 +7,7 @@
  * with the existing FAQ / handoff code.
  */
 const knowledge = require('./knowledge');
+const { resolveCountryAnswer, countryByName } = require('./dialcode');
 
 const QUESTION = /^(do|does|can|could|are|is|where|what|which|who|how|tell|any)\b/i;
 const facts = () => knowledge.section('technology').facts;
@@ -47,6 +48,39 @@ function branchIntent(text) {
 const HANDLED_ELSEWHERE = /\b(deliver(y|ies)?|ship(ping)?|price|cost|how much|pay(ment)?|refund|invoice|quote|install\w*|open|hours?|talk to|speak to|starlink)\b/i;
 const UNKNOWN_COMPANY = /\b(who owns|owner of|ceo|founder|founded|how many (employees|staff|people)|revenue|turnover|registration number|licen[cs]e number|tax id)\b/i;
 const UNKNOWN_POLICY = /\b(warrant(y|ies)|guarantee[sd]?|return policy|returns? policy|can i return|exchange policy)\b/i;
+
+// Reply to "Which country are you in?" (the coverage answer below) with a dialling code such as
+// 232 or +1, resolved from the static table in ./dialcode.js. Zero model calls. Country names typed
+// in reply keep their existing route, except a tap on one of the country chips this offered.
+const COVERAGE_REGION = { SL: 'coverage-sl', GN: 'coverage-gn', LR: 'coverage-lr', GW: 'coverage-gw' };
+function coverageLine(region, name, code) {
+  const id = COVERAGE_REGION[region];
+  if (id) {
+    const fact = split(byId(id));
+    const line = /^Full service/i.test(fact.desc) ? 'Yes, we work in **' + fact.name + '**. ' + fact.desc : 'For **' + fact.name + '**: ' + fact.desc;
+    return reply((code ? '+' + code + ' is ' + fact.name + '. ' : '') + line + ' Which city are you in?', id);
+  }
+  const names = COUNTRY_DISPLAY.map(item => '**' + split(byId(item)).name + '**');
+  return reply((code ? '+' + code + ' is ' : 'You chose ') + name + '. We operate in ' + names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] +
+    '. What can we help you with?', 'coverage', { chips: ['Talk to someone'] });
+}
+function coverageCountryReply(rawInput, session = {}, lang = 'en') {
+  const topic = session && session.lastTopic;
+  if (lang !== 'en' || (session && session.awaiting) || !['knowledge:coverage', 'knowledge:coverage-pick'].includes(topic)) return null;
+  const text = String(rawInput || '').trim();
+  if (topic === 'knowledge:coverage-pick') {
+    const picked = countryByName(text);
+    if (picked) return coverageLine(picked.region, picked.name, '');
+  }
+  const found = resolveCountryAnswer(text);
+  if (found.kind === 'none') return null;
+  if (found.kind === 'country') return coverageLine(found.region, found.name, found.callingCode);
+  if (found.kind === 'ambiguous') {
+    return reply('+' + found.callingCode + ' is used by more than one country. Which one are you in?', 'coverage', {
+      lastTopic: 'knowledge:coverage-pick', chips: found.options.slice(0, 4).map(choice => choice.name).concat('Talk to someone') });
+  }
+  return reply("I couldn't match that number to a country. Could you type your country name, or the country code (for example +232)?", 'coverage');
+}
 
 function knowledgeReply(rawInput, session = {}, lang = 'en') {
   const text = String(rawInput || '').trim();
@@ -109,4 +143,4 @@ function knowledgeReply(rawInput, session = {}, lang = 'en') {
   return null;
 }
 
-module.exports = { knowledgeReply, branchIntent };
+module.exports = { knowledgeReply, branchIntent, coverageCountryReply };
