@@ -2,7 +2,8 @@
 
 const { loadCatalog, searchCatalog, normalize, normalizeInput } = require('./catalog');
 const { SERVICE_SLA, guidedReply, guidedHandoff, handoffPrompt, handoffChips, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
-const { knowledgeReply } = require('./knowledge-answers');
+const { knowledgeReply, coverageCountryReply } = require('./knowledge-answers');
+const { isInternationalNumberAnswer } = require('./dialcode');
 
 const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
 const EMAIL = 'support@lavaall.com';
@@ -419,7 +420,11 @@ function respond(text, session = {}, request = {}) {
   let qty = partQtys.length > 1 ? partQtys : extractQuantity(input);
   if ((qty == null || (Array.isArray(qty) && !qty.length)) && isFollowUp(rawInput) && context.lastQty) qty = context.lastQty;
   const identity = extractIdentity(rawInput);
-  const sensitive = detectSensitive(rawInput);
+  // At the country step a leading +/00 phone-style answer ("+232 76 123456, Bo") is a dialling code,
+  // not a card number; the rest of the message is still checked.
+  const countryPart = rawInput.split(/[,;\n]/)[0];
+  const countryStep = /^handoff-location/.test(session.awaiting || '') && isInternationalNumberAnswer(countryPart);
+  const sensitive = detectSensitive(countryStep ? rawInput.slice(countryPart.length) : rawInput);
   const priceAsk = PRICE_ASK.test(input) || PRICE_ASK.test(rawInput);
   const wantsAgent = AGENT_ASK.test(rawInput);
   const hours = HOURS_ASK.test(rawInput);
@@ -483,6 +488,10 @@ function respond(text, session = {}, request = {}) {
     }[lang];
     return attachTopic({ text: line, language: lang, events: ['redirected-offtopic'], fields: {}, chips: ['Talk to someone', 'Browse catalogue'] }, rawInput, context, reset);
   }
+
+  // A dialling code typed after "Which country are you in?" is resolved before any other route (0 model calls).
+  const coverageCountry = !activeIntake ? coverageCountryReply(rawInput, session, lang) : null;
+  if (coverageCountry) return coverageCountry;
 
   const special = require('./intents').specialIntent(rawInput, lang, session);
   if (special) return attachTopic(special, rawInput, context, reset);

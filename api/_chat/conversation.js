@@ -3,6 +3,7 @@
 const { searchCatalog, loadCatalog, normalizeInput, purchaseDetails } = require('./catalog');
 const narrow = require('./narrow');
 const { isPowerAsk } = require('./knowledge');
+const { resolveCountryAnswer } = require('./dialcode');
 const EMAIL = 'support@lavaall.com';
 const WHATSAPP = '+1 (737) 704-4182';
 
@@ -448,6 +449,10 @@ const HANDOFF_COPY = {
     channel: 'WhatsApp or email?', phone: 'What is your WhatsApp number, with country code?', email: 'What is your email address?',
     invalidPhone: 'Please enter a valid WhatsApp number with country code.', invalidEmail: 'Please enter a valid email address.',
     location: 'Which country and city are you in? You can skip this.', organisation: 'What organisation are you with? You can skip this.',
+    countryConfirm: (code, name) => '+' + code + ' is ' + name + '. Is that right?',
+    countryPick: code => '+' + code + ' is used by more than one country. Which one are you in?',
+    countryName: 'Which country are you in? Please type its name.',
+    countryUnknown: "I couldn't match that number to a country. Could you type your country name, or the country code (for example +232)? You can also skip this.",
     name: 'Could I get your first and last name, please?', topic: 'What would you like to talk to the team about?', quote: 'What would you like a quote for?',
     confirm: d => 'Please confirm your details: Name: ' + d.name + '. Contact: ' + d.contact + '. Topic: ' + d.topic + '. Shall I pass this to our team?',
     receipt: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).", cancel: 'Request cancelled. What else can I help with?', sla: SERVICE_SLA,
@@ -456,6 +461,10 @@ const HANDOFF_COPY = {
     channel: 'WhatsApp ou e-mail ?', phone: 'Quel est votre numéro WhatsApp avec indicatif pays ?', email: 'Quelle est votre adresse e-mail ?',
     invalidPhone: 'Veuillez saisir un numéro WhatsApp valide avec indicatif pays.', invalidEmail: 'Veuillez saisir une adresse e-mail valide.',
     location: 'Dans quel pays et quelle ville êtes-vous ? Vous pouvez passer cette question.', organisation: 'Quelle est votre organisation ? Vous pouvez passer cette question.',
+    countryConfirm: (code, name) => 'L’indicatif +' + code + ' correspond à : ' + name + '. Est-ce exact ?',
+    countryPick: code => 'L’indicatif +' + code + ' est utilisé par plusieurs pays. Dans lequel êtes-vous ?',
+    countryName: 'Dans quel pays êtes-vous ? Veuillez saisir son nom.',
+    countryUnknown: 'Je n’ai pas pu associer ce numéro à un pays. Pouvez-vous saisir le nom de votre pays ou l’indicatif (par exemple +232) ? Vous pouvez aussi passer cette question.',
     name: 'Quel est votre prénom et votre nom, s’il vous plaît ?', topic: 'De quoi souhaitez-vous parler avec notre équipe ?', quote: 'Pour quel article souhaitez-vous un devis ?',
     confirm: d => 'Veuillez vérifier vos coordonnées : nom : ' + d.name + ' ; contact : ' + d.contact + ' ; sujet : ' + d.topic + '. Puis-je transmettre cette demande à notre équipe ?',
     receipt: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).", cancel: 'Demande annulée. Comment puis-je vous aider ?',
@@ -465,6 +474,14 @@ const HANDOFF_COPY = {
     channel: 'Yu WhatsApp ɔ ɛmail?', phone: 'Yu WhatsApp fon nɔmba wit country code?', email: 'Yu ɛmail?',
     invalidPhone: 'Duya, valid WhatsApp fon nɔmba wit country code?', invalidEmail: 'Duya, valid ɛmail?',
     location: 'Na wich kɔntri ɛn siti yu de? Yu kin skip dis.', organisation: 'Wich ɔganayzeshɔn yu de wit? Yu kin skip dis.',
+    // PENDING: fluent Sierra Leone Krio review (not Haitian Creole)
+    countryConfirm: (code, name) => '+' + code + ' na ' + name + '. Na so?',
+    // PENDING: fluent Sierra Leone Krio review (not Haitian Creole)
+    countryPick: code => 'Bɔku kɔntri de yuz +' + code + '. Na wich wan yu de?',
+    // PENDING: fluent Sierra Leone Krio review (not Haitian Creole)
+    countryName: 'Na wich kɔntri yu de? Duya rayt di nem.',
+    // PENDING: fluent Sierra Leone Krio review (not Haitian Creole)
+    countryUnknown: 'A nɔ ebul fɛn kɔntri fɔ da nɔmba. Duya rayt yu kɔntri nem, ɔ di country code (lɛk +232). Yu kin skip dis.',
     name: 'Duya, yu fɔs ném ɛn las ném?', topic: 'Wetin yu wan tɔk to di tim abawt?', quote: 'Wetin yu nid fɔ quote?',
     confirm: d => 'Rivyu di sɔmari: ném: ' + d.name + '; fon ɔ ɛmail: ' + d.contact + '; rɛkwɛst: ' + d.topic + '. Yu wan sɛn am to di tim?',
     receipt: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).", cancel: 'Rɛkwɛst kansul. Wetin yu nid?',
@@ -489,9 +506,21 @@ function topicChipIndex(text) {
   }
   return -1;
 }
+// Country step: a numeric answer is resolved from the static dialling-code table (./dialcode.js).
+// Chip labels are English like Skip / Cancel request; the offered countries are kept in the draft
+// and only a match against that server-side list counts as a choice.
+const COUNTRY_SHOWN = 4;
+function countryChips(draft) {
+  const choices = Array.isArray(draft.countryChoices) ? draft.countryChoices : [];
+  if (choices.length === 1) return ['Yes', 'Another country', 'Skip', 'Cancel request'];
+  // The panel shows at most 6 chips: Skip is dropped when four countries are shown (typing skip still works).
+  const shown = choices.slice(0, COUNTRY_SHOWN).map(choice => choice.name);
+  return shown.concat('Other', ...(shown.length < COUNTRY_SHOWN ? ['Skip'] : []), 'Cancel request');
+}
 function handoffChips(session, language) {
   const draft = session.handoffDraft || {};
   if (session.awaiting === 'handoff-confirm') return ['Confirm', 'Cancel'];
+  if (session.awaiting === 'handoff-location-confirm') return countryChips(draft);
   if (session.awaiting === 'handoff-channel') return ['WhatsApp', 'Email'];
   if (['handoff-location', 'handoff-organisation'].includes(session.awaiting)) return ['Skip', 'Cancel request'];
   if (session.awaiting === 'handoff-topic' && draft.kind !== 'quote' && !draft.topicOther) return topicChips(handoffLanguage(session, language));
@@ -507,7 +536,13 @@ function handoffPrompt(session, language) {
   const draft = session.handoffDraft || {};
   return ({ 'handoff-channel': copy.channel, 'handoff-contact': draft.channel === 'email' ? copy.email : copy.phone,
     'handoff-name': copy.name, 'handoff-topic': draft.kind === 'quote' ? copy.quote : draft.topicOther ? TOPIC_OTHER[handoffLanguage(session, language)] : copy.topic,
-    'handoff-location': copy.location, 'handoff-organisation': copy.organisation, 'handoff-confirm': copy.confirm(draft) })[session.awaiting] || null;
+    'handoff-location': copy.location, 'handoff-organisation': copy.organisation, 'handoff-confirm': copy.confirm(draft),
+    'handoff-location-confirm': countryQuestion(copy, draft) })[session.awaiting] || null;
+}
+function countryQuestion(copy, draft) {
+  const choices = Array.isArray(draft.countryChoices) ? draft.countryChoices : [];
+  if (!choices.length || !draft.countryCode) return copy.location;
+  return choices.length === 1 ? copy.countryConfirm(draft.countryCode, choices[0].name) : copy.countryPick(draft.countryCode);
 }
 
 function guidedHandoff(text, session, start, language, privacyConsent) {
@@ -519,7 +554,8 @@ function guidedHandoff(text, session, start, language, privacyConsent) {
   const reply = (line, draft, awaiting, extra) => result(line, ['handoff-intake'], {
     language: lang, awaiting, handoffDraft: draft, lastTopic: 'handoff-intake', chips: awaiting ? ['Cancel request'] : [], ...extra,
   });
-  if (active && /^(cancel|cancel request|no|no thanks|stop)[.!]?$/i.test(raw)) {
+  const countryNo = session.awaiting === 'handoff-location-confirm' && /^(no|no thanks)[.!]?$/i.test(raw);
+  if (active && !countryNo && /^(cancel|cancel request|no|no thanks|stop)[.!]?$/i.test(raw)) {
     return reply(copy.cancel, null, null, { chips: ['Request a quote', 'Talk to someone'] });
   }
   if (!active) {
@@ -543,6 +579,28 @@ function guidedHandoff(text, session, start, language, privacyConsent) {
   const askTopic = () => draft.kind === 'quote' ? reply(copy.quote, draft, 'handoff-topic')
     : draft.topicOther ? reply(TOPIC_OTHER[lang], draft, 'handoff-topic')
       : reply(copy.topic, draft, 'handoff-topic', { chips: topicChips(lang) });
+  const clearCountryChoice = () => { delete draft.countryChoices; delete draft.countryCode; delete draft.pendingCity; };
+  // Country and city answer. Numbers are resolved deterministically before anything else; nothing is guessed.
+  const takeLocation = value => {
+    draft.locationAsked = true;
+    if (!value || /^(skip|passer|pase|passe|sote)[.!]?$/i.test(value)) return optionalDetails();
+    const parts = value.slice(0, 300).split(/[,;\n]/).map(part => part.trim());
+    const city = parts.slice(1).join(', ');
+    const found = resolveCountryAnswer(parts[0]);
+    if (found.kind === 'none') {
+      draft.country = parts[0]; draft.city = city;
+      return optionalDetails();
+    }
+    if (found.kind === 'unknown') {
+      // Polite re-ask; the digits are never stored as a country.
+      return reply(copy.countryUnknown, draft, 'handoff-location', { chips: ['Skip', 'Cancel request'] });
+    }
+    draft.countryCode = found.callingCode;
+    draft.pendingCity = city;
+    draft.countryChoices = found.kind === 'country' ? [{ region: found.region, name: found.name }]
+      : found.options.map(choice => ({ region: choice.region, name: choice.name }));
+    return reply(countryQuestion(copy, draft), draft, 'handoff-location-confirm', { chips: countryChips(draft) });
+  };
   if (session.awaiting === 'handoff-channel') {
     if (!/^(whatsapp|email|e-mail)$/i.test(raw)) return reply(copy.channel, draft, 'handoff-channel', { chips: ['WhatsApp', 'Email'] });
     draft.channel = /^whatsapp$/i.test(raw) ? 'whatsapp' : 'email';
@@ -576,12 +634,25 @@ function guidedHandoff(text, session, start, language, privacyConsent) {
     draft.topic = chip === -1 ? raw : (TOPIC_CHIPS[lang] || TOPIC_CHIPS.en)[chip];
     delete draft.topicOther;
   } else if (session.awaiting === 'handoff-location') {
-    draft.locationAsked = true;
-    if (raw && !/^(skip|passer|pase|passe|sote)[.!]?$/i.test(raw)) {
-      const parts = raw.slice(0, 300).split(/[,;\n]/).map(value => value.trim());
-      draft.country = parts[0]; draft.city = parts.slice(1).join(', ');
+    return takeLocation(raw);
+  } else if (session.awaiting === 'handoff-location-confirm') {
+    const choices = Array.isArray(draft.countryChoices) ? draft.countryChoices : [];
+    const key = foldChip(raw);
+    const picked = choices.find(choice => foldChip(choice.name) === key)
+      || (choices.length === 1 && /^(yes|yes please|yes,? that'?s right|that'?s right|correct|right|ok|okay|oui|sim|yɛs|na so)$/.test(key) ? choices[0] : null);
+    if (picked) {
+      draft.country = picked.name; draft.city = draft.pendingCity || '';
+      clearCountryChoice();
+      return optionalDetails();
     }
-    return optionalDetails();
+    if (countryNo || /^(other|another country|a different country|autre|autre pays|outro|outro pais|non|nope|wrong)$/.test(key)) {
+      clearCountryChoice();
+      draft.locationAsked = false;
+      return reply(copy.countryName, draft, 'handoff-location', { chips: ['Skip', 'Cancel request'] });
+    }
+    // Anything else (a typed country name, another number, Skip) is a fresh answer to the country question.
+    clearCountryChoice();
+    return takeLocation(raw);
   } else if (session.awaiting === 'handoff-organisation') {
     draft.organisationAsked = true;
     if (raw && !/^(skip|passer|pase|passe|sote)[.!]?$/i.test(raw)) draft.organisation = raw.slice(0, 300);
