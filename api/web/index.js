@@ -51,9 +51,15 @@ const WORK_FOLDERS = [
   /^tools(\/|$)/,
 ];
 
-function send(res, status, body, type) {
+// Only the public listing pages are indexable. Showcase, templates, APIs,
+// 404s and assets stay noindex (meta tags on those HTML files are unchanged).
+const INDEXABLE_PAGES = new Set(['/web/', '/web/work/']);
+
+function send(res, status, body, type, opts) {
   res.statusCode = status;
-  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  if (!opts || !opts.indexable) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  }
   // The page shows templates/ and showcase/ inside same-origin iframes.
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   if (type) res.setHeader('Content-Type', type);
@@ -184,8 +190,9 @@ function serveFile(req, res, hit) {
   if (type.startsWith('text/html')) {
     const body = renderPage(req, fs.readFileSync(hit.file), hit);
     res.setHeader('Cache-Control', 'no-store');
-    if (req.method === 'HEAD') return send(res, 200, '', type);
-    return send(res, 200, body, type);
+    const indexable = INDEXABLE_PAGES.has(hit.canonical);
+    if (req.method === 'HEAD') return send(res, 200, '', type, { indexable });
+    return send(res, 200, body, type, { indexable });
   }
   res.setHeader('Cache-Control', 'public, max-age=3600');
   const size = fs.statSync(hit.file).size;

@@ -117,7 +117,7 @@ converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` chec
 | `assets/work/rec-terra.webp` | `b34c39c7f307d8632a72fc6d4fc424b959eb23f09c6b9c30b3d3581a08a2946b` | identical | site |
 | `assets/work/starlink.jpg` | `cfc250a01f045ec66e0a556b33af138fec738f5ad5373b9a6f014c867c38c4aa` | identical | site |
 | `content/en.json` | `7d5051dc23db2de16f13305634bc693b840b86a866f754a1cf4602f9af8a7d06` | edited | site, CRLF→LF |
-| `index.html` | `2b2e279db801ce52e30fcb551d0b51e94148c8ab64abf8db8db3ab2d4fd210da` | edited | site, CRLF→LF |
+| `index.html` | `3d51137e43db863d21623f32e43c6683f508786975b06336315adb54506f541a` | edited | site, CRLF→LF |
 | `qa/a11y-nav-390.png` | `650aef2345a1db18c1c41f2bdc9b41ac88b168efac82cac7400b45f1e8286e6b` | identical | work (not served) |
 | `qa/ad-argus-0.png` | `0322addec0ccfc8b4b21c21123d768341b220940265cb3a4401a37d14a09ec46` | identical | work (not served) |
 | `qa/ad-argus-1.png` | `facead272ebfaf3eec9a372774373f94341010b6e26e39726bc3db91875f44e3` | identical | work (not served) |
@@ -593,10 +593,11 @@ converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` chec
 | `videos/hotel.html` | `505641739c70caacfc84486878234b36504c71ca1c7640a60720777577eb37c5` | identical | site, CRLF→LF |
 | `videos/restaurant.html` | `e148757f30081bf5185ac6c11fffd77f5282efc6ae4c5802f112af34e343c230` | identical | site, CRLF→LF |
 | `videos/shop.html` | `4ec4676881b66b3ea92e5470bec0ee8f7c860a6aa12fca1b711d132747701270` | identical | site, CRLF→LF |
-| `work/index.html` | `4e69b251b8162e37a4e772106c66d805b7fb181c5740f81f50e3f368db95c87d` | added | site |
+| `work/index.html` | `0534338db124f012929541a25892d640bd11eccf0be67cb6681d2297562ff5a5` | added | site |
 
 ## Integration edits
-- `index.html`: `<meta name="robots" content="noindex, nofollow">` (hidden section, same as Starlink); the
+- `index.html` and `work/index.html`: public listing pages are indexable (`index,follow` meta, self-canonical,
+  Open Graph tags). Showcase and template pages stay noindex. The
   contact cards' `sales@lavaall.com` and `info@lavaall.com` links now go to `support@lavaall.com` (one LAVAALL
   mailbox). The three role headings and mail subjects are unchanged so the team can still tell them apart.
 - `content/en.json`: the same email change in `contact.roles[].email`.
