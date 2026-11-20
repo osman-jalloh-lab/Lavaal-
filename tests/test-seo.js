@@ -6,10 +6,11 @@ const root = path.resolve(__dirname, '..');
 const origin = 'https://www.lavaall.com';
 const categories = ['laptops', 'computers', 'networking-equipment', 'it-procurement', 'phones'];
 const guidePaths = ['/sierra-leone/', ...categories.map(id => `/sierra-leone/${id}/`)];
-const expected = ['/', ...guidePaths, '/privacy.html', '/terms.html'].map(p => origin + p);
+const expected = ['/', ...guidePaths, '/privacy.html', '/terms.html', '/web/', '/web/work/'].map(p => origin + p);
 const expectedLastmods = Object.fromEntries(expected.map(url => [url,
   url === origin + '/' || url === origin + '/terms.html' ? '2026-11-16' :
-    url === origin + '/privacy.html' ? '2026-11-15' : '2026-11-08'
+    url === origin + '/privacy.html' ? '2026-11-15' :
+    url === origin + '/web/' || url === origin + '/web/work/' ? '2026-11-19' : '2026-11-08'
 ]));
 let checks = 0;
 function check(condition, message) { assert.ok(condition, message); checks++; }
@@ -22,6 +23,8 @@ function attrs(tag) {
 function tags(html, name) { return [...html.matchAll(new RegExp(`<${name}\\b[^>]*>`, 'gi'))].map(m => attrs(m[0])); }
 function localFile(url) {
   const pathname = new URL(url, origin + '/').pathname;
+  if (pathname === '/web/') return path.join(root, 'api/web/_site/index.html');
+  if (pathname === '/web/work/') return path.join(root, 'api/web/_site/work/index.html');
   return path.join(root, decodeURIComponent(pathname), pathname.endsWith('/') ? 'index.html' : '');
 }
 function objects(value) {
@@ -38,14 +41,14 @@ try {
   check(/^\s*<\?xml[^?]*\?>\s*<urlset\s+xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">[\s\S]*<\/urlset>\s*$/.test(sitemap), 'sitemap XML envelope');
   const entries = [...sitemap.matchAll(/<url>\s*<loc>([^<]+)<\/loc>\s*<lastmod>([^<]+)<\/lastmod>\s*<\/url>/g)];
   const locs = entries.map(m => m[1]);
-  check(entries.length === 9 && (sitemap.match(/<url>/g) || []).length === entries.length, 'nine well-formed URL entries');
+  check(entries.length === 11 && (sitemap.match(/<url>/g) || []).length === entries.length, 'eleven well-formed URL entries');
   check(sitemap.replace(/^\s*<\?xml[^?]*\?>\s*<urlset[^>]*>/, '').replace(/<\/urlset>\s*$/, '').replace(/<url>\s*<loc>[^<]+<\/loc>\s*<lastmod>[^<]+<\/lastmod>\s*<\/url>/g, '').trim() === '', 'no unexpected sitemap markup');
   check(JSON.stringify([...locs].sort()) === JSON.stringify([...expected].sort()), 'exact canonical sitemap URLs');
   const titles = new Set();
   const descriptions = new Set();
   for (const entry of entries) {
     const loc = entry[1];
-    check(loc.startsWith(origin + '/') && !/\/(?:ops|os|api|web|schedule)(?:\/|$)|#|\/index\.html(?:$|[?#])/.test(loc), `${loc}: indexable URL`);
+    check(loc.startsWith(origin + '/') && !/\/(?:ops|os|api|schedule)(?:\/|$)|#|\/index\.html(?:$|[?#])/.test(loc) && (!/\/web(?:\/|$)/.test(loc) || loc === origin + '/web/' || loc === origin + '/web/work/'), `${loc}: indexable URL`);
     check(entry[2] === expectedLastmods[loc], `${loc}: lastmod`);
     const file = localFile(loc);
     check(fs.existsSync(file) && fs.statSync(file).isFile(), `${loc}: file exists`);

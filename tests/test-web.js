@@ -89,7 +89,8 @@ async function run() {
     check(`/web/${area} serves the same page`, r.status === 200 && r.text.includes('<base href="/web/">') && r.text.includes('id="web-inquiry"'));
   }
   check('page moves the address bar to /web/ so #anchors stay same-document', page.text.includes('var p="/web/";') && page.text.includes('history.replaceState(null,"",p+l.search+l.hash)'));
-  check('page is noindex (meta + header) while hidden', page.text.includes('<meta name="robots" content="noindex, nofollow">') && page.headers['x-robots-tag'] === 'noindex, nofollow');
+  check('page is indexable (index,follow meta and no X-Robots-Tag noindex)', page.text.includes('<meta name="robots" content="index,follow">') && !/noindex/i.test(page.headers['x-robots-tag'] || ''));
+  check('page has self-canonical and Open Graph tags reused from the existing title and description', page.text.includes('<link rel="canonical" href="https://www.lavaall.com/web/">') && page.text.includes('<meta property="og:url" content="https://www.lavaall.com/web/">') && page.text.includes('<meta property="og:image" content="https://www.lavaall.com/images/og-image.jpg">') && page.text.includes('<meta property="og:type" content="website">') && page.text.includes('<meta property="og:title" content="LAVAALL Web | Websites and automation for West African businesses">') && page.text.includes('<meta property="og:description" content="Websites, animated storefronts and AI automation for restaurants, hotels, shops and marketers in Sierra Leone and Liberia.">'));
   check('responses allow same-origin framing (templates/showcase iframes)', page.headers['x-frame-options'] === 'SAMEORIGIN');
   check('page is not cached', page.headers['cache-control'] === 'no-store');
 
@@ -99,6 +100,13 @@ async function run() {
   check('/web/showcase/terra/ serves the same page', terraSlash.status === 200 && terraSlash.text === terra.text);
   const t1 = await call('GET', 'templates/t1.html');
   check('templates/t1.html gets base /web/templates/ and keeps its own path', t1.status === 200 && t1.text.includes('<base href="/web/templates/">') && t1.text.includes('var p="/web/templates/t1.html";'));
+  const artists = await call('GET', 'showcase/salone-artists/');
+  const triple = await call('GET', 'showcase/triple-t/');
+  check('showcase and template pages stay noindex via X-Robots-Tag', [terra, t1, artists, triple].every((r) => r.status === 200 && r.headers['x-robots-tag'] === 'noindex, nofollow'));
+  check('artist and Triple T showcases keep their meta noindex', artists.text.includes('<meta name="robots" content="noindex, nofollow">') && triple.text.includes('<meta name="robots" content="noindex, nofollow">'));
+  const missingPage = await call('GET', 'does-not-exist');
+  const healthHdr = await call('GET', 'api/health');
+  check('API and 404 responses stay noindex', missingPage.status === 404 && missingPage.headers['x-robots-tag'] === 'noindex, nofollow' && healthHdr.headers['x-robots-tag'] === 'noindex, nofollow');
 
   // ---- No 404s: every relative URL the served HTML/CSS asks for exists and is served ----
   const htmlFiles = walk(SITE).map(rel).filter((r) => r.endsWith('.html') && !handler.WORK_FOLDERS.some((re) => re.test(r)));
@@ -185,7 +193,8 @@ async function run() {
   check('no em dashes in visible copy (main page, Our work page, app.js)', !/\u2014|&mdash;/.test(idx + work + appJs));
   check('no prices on the Our work page', !/\b(SLE|SLL|NLe|USD|GNF|LRD)\s?[0-9]|[$€£]\s?[0-9]|\bLe\s?[0-9]/.test(work));
   check('Illustrative demo badges kept on the moved demos', (work.match(/Illustrative demo/g) || []).length >= 4 && idx.includes('<span class="lp-badge">Illustrative demo</span>'));
-  check('main page makes no external requests (fonts self-hosted)', !/<(script|link|img|video|source|iframe)[^>]+(src|href)=["'](https?:)?\/\//i.test(idx));
+  const idxResources = idx.replace(/<link\b[^>]*\brel=["']canonical["'][^>]*>/gi, '');
+  check('main page makes no external requests (fonts self-hosted; canonical is metadata, not a page load)', !/<(script|link|img|video|source|iframe)[^>]+(src|href)=["'](https?:)?\/\//i.test(idxResources));
 
   // ---- Snapshot: byte-identical to Osman's folder except the integration edits ----
   const manifest = fs.readFileSync(path.join(root, 'docs/web/WEB-SOURCE.md'), 'utf8');
@@ -221,7 +230,8 @@ async function run() {
   const wkNoSlash = await call('GET', 'work');
   check('/web/work/ serves the Our work page with base /web/work/', wk.status === 200 && wk.text.includes('<base href="/web/work/">') && wk.text.includes('<title>Our work | LAVAALL Web</title>'));
   check('/web/work (no slash) serves the same page and moves the address bar to /web/work/', wkNoSlash.status === 200 && wkNoSlash.text === wk.text && wk.text.includes('var p="/web/work/";'));
-  check('/web/work/ gets the same LV_WEB config, noindex and SAMEORIGIN', wk.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":"17377044182"}') && wk.headers['x-robots-tag'] === 'noindex, nofollow' && wk.headers['x-frame-options'] === 'SAMEORIGIN');
+  check('/web/work/ gets the same LV_WEB config, is indexable and SAMEORIGIN', wk.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":"17377044182"}') && !/noindex/i.test(wk.headers['x-robots-tag'] || '') && wk.text.includes('<meta name="robots" content="index,follow">') && wk.headers['x-frame-options'] === 'SAMEORIGIN');
+  check('/web/work/ has self-canonical and Open Graph tags reused from the existing title and description', wk.text.includes('<link rel="canonical" href="https://www.lavaall.com/web/work/">') && wk.text.includes('<meta property="og:url" content="https://www.lavaall.com/web/work/">') && wk.text.includes('<meta property="og:image" content="https://www.lavaall.com/images/og-image.jpg">') && wk.text.includes('<meta property="og:title" content="Our work | LAVAALL Web">') && wk.text.includes('<meta property="og:description" content="Sites we have built, live sample templates, and illustrative demos of the automations and agent office LAVAALL Web sets up.">'));
   check('Our work page loads ../styles.css and ../app.js and sets data-root="../" for script-built paths', work.includes('<link rel="stylesheet" href="../styles.css">') && work.includes('<script src="../app.js"></script>') && work.includes('<html lang="en" class="no-js" data-root="../">'));
   const MAIN_KEEP = ['lava', 'for', 'work-teaser', 'how', 'contact'];
   const MOVED = ['work', 'auto', 'os', 'flow', 'artists', 'templates'];

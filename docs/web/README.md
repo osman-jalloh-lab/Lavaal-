@@ -25,8 +25,10 @@ left untouched. Plain static HTML/CSS/JS, no framework, **no backend** (the inqu
 `/web` and `/web/` return `_site/index.html` with `<base href="/web/">`; `/web/<dir>/` returns that
 folder's `index.html` (e.g. `/web/showcase/terra/`) with `<base href="/web/<dir>/">`. A one-line
 script moves the address bar to the canonical path so `#anchors` stay same-document (same as
-Starlink). Videos answer byte ranges (`206`), which Safari needs. Every response carries
-`X-Robots-Tag: noindex, nofollow` and `X-Frame-Options: SAMEORIGIN` (the page shows `templates/`
+Starlink). Videos answer byte ranges (`206`), which Safari needs. `/web/` and `/web/work/` are
+indexable and do not send `X-Robots-Tag: noindex`. Other `/web/` responses (showcase, templates,
+APIs, 404s, assets) still carry `X-Robots-Tag: noindex, nofollow`. Every response carries
+`X-Frame-Options: SAMEORIGIN` (the page shows `templates/`
 and `showcase/triple-t/` in same-origin iframes; the site-wide `DENY` would blank them).
 Only page file types are served (html, css, js, json, images, mp4/webm, woff2, glb). Markdown,
 `.mjs`, dot files (`.env.example`, `.gitignore`, `.vscode/`) are never served.

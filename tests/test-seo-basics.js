@@ -93,10 +93,12 @@ const expectedLastmods = {
   [`${origin}/sierra-leone/it-procurement/`]: '2026-11-08',
   [`${origin}/sierra-leone/phones/`]: '2026-11-08',
   [`${origin}/privacy.html`]: '2026-11-15',
-  [`${origin}/terms.html`]: '2026-11-16'
+  [`${origin}/terms.html`]: '2026-11-16',
+  [`${origin}/web/`]: '2026-11-19',
+  [`${origin}/web/work/`]: '2026-11-19'
 };
 const entries = [...read('sitemap.xml').matchAll(/<url>\s*<loc>([^<]+)<\/loc>\s*<lastmod>([^<]+)<\/lastmod>\s*<\/url>/g)];
-assert.equal(entries.length, 9);
+assert.equal(entries.length, 11);
 assert.deepEqual(Object.fromEntries(entries.map(entry => [entry[1], entry[2]])), expectedLastmods);
 const terms = read('terms.html');
 assert.ok(terms.includes('Sierra Leone, Guinea, Liberia, and Guinea-Bissau'));
