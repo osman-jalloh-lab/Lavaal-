@@ -525,6 +525,19 @@ async function sendMagicLink({ to, loginUrl }) {
   throw err;
 }
 
+async function deliverEmail({ to, subject, text, html }) {
+  const payload = { to, subject, text, html };
+  const resend = await tryResend(payload);
+  if (resend.ok) return resend;
+  const gmail = await tryGmail(payload);
+  if (gmail.ok) return gmail;
+  const attempted = [resend, gmail].some((row) => row.failed);
+  return {
+    ok: false,
+    code: attempted ? 'delivery_failed' : 'delivery_not_configured',
+  };
+}
+
 function resetAuthState() {
   usedMagic.clear();
   recent.clear();
@@ -592,6 +605,7 @@ module.exports = {
   createCsrfToken,
   createMagicToken,
   createSessionToken,
+  deliverEmail,
   deliverMagicLink,
   deliveryConfigured,
   describeDeliveryConfig,

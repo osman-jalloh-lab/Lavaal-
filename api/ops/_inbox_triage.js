@@ -503,6 +503,16 @@ function resetInboxTriage() {
   memory = null;
 }
 
+async function readInboxTriageLandedAt() {
+  try {
+    const record = await readRecord();
+    if (!record || !Number.isFinite(record.receivedAt)) return { landedAt: null };
+    return { landedAt: record.receivedAt };
+  } catch {
+    return { error: 'store_unavailable' };
+  }
+}
+
 module.exports = {
   ENDPOINT,
   FEED_KEY,
@@ -519,6 +529,7 @@ module.exports = {
   inboxTriageKey,
   inboxTriageKind,
   rankItems,
+  readInboxTriageLandedAt,
   readInboxTriageView,
   renderInboxTriage,
   resetInboxTriage,
