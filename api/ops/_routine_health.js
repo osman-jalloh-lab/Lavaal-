@@ -484,6 +484,16 @@ function resetRoutineHealth() {
   memory = null;
 }
 
+async function readRoutineHealthLandedAt() {
+  try {
+    const record = await readRecord();
+    if (!record || !Number.isFinite(record.receivedAt)) return { landedAt: null };
+    return { landedAt: record.receivedAt };
+  } catch {
+    return { error: 'store_unavailable' };
+  }
+}
+
 module.exports = {
   ENDPOINT,
   MAX_REASON,
@@ -494,6 +504,7 @@ module.exports = {
   STATUSES,
   formatChicago,
   handleRoutineHealth,
+  readRoutineHealthLandedAt,
   readRoutineHealthView,
   renderRoutineHealthStrip,
   resetRoutineHealth,

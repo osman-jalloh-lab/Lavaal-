@@ -82,5 +82,8 @@
     { "source": "/web/:path*", "destination": "/api/web?area=:path*" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/schedule", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/no-runs-alarm", "schedule": "0 * * * *" }
   ]
 }
