@@ -30,4 +30,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Test durable goal store with fake KV
-        run: node --require tests/network-guard.js tests/test-harness-goals.js
+        run: node --require ./tests/network-guard.js tests/test-harness-goals.js
