@@ -31,6 +31,19 @@ async function verifyRunEvidence({ repo, branch, sha, prUrl, githubGet }) {
     return true;
   } catch { return false; }
 }
+function validationCommand(repo, work) {
+  if (repo === 'osman-jalloh-lab/Lavaal-') {
+    if (!fs.existsSync(path.join(work, 'tests/run-safe-suite.js'))) throw new Error('required_tests_missing');
+    return { command: 'node', args: ['tests/run-safe-suite.js'], label: 'LAVAALL safe suite passed' };
+  }
+  if (repo === 'osman-jalloh-lab/saloneworks') {
+    if (!fs.existsSync(path.join(work, 'tests/conftest.py')) ||
+        !fs.existsSync(path.join(work, 'requirements.txt'))) throw new Error('required_tests_missing');
+    return { command: 'python3', args: ['-m', 'pytest', 'tests/', '-q', '--tb=short'],
+      label: 'SaloneHire pytest suite passed' };
+  }
+  throw new Error('repository_not_supported');
+}
 function runnerEnabled(env) {
   return env.OS_RUNNER_ENABLED === '1' && !(env.OS_RUNNER_STOP_FILE && fs.existsSync(env.OS_RUNNER_STOP_FILE));
 }
@@ -64,8 +77,11 @@ function realAdapter() {
         if (job.baseSha && !SHA.test(job.baseSha)) throw new Error('invalid_base');
         await run('git', ['-C', clone, 'worktree', 'add', '-b', job.branch, work, base], { timeout, signal });
         await run('codex', ['exec', promptFor(job)], { cwd: work, timeout, signal, env: { PATH: process.env.PATH || '/usr/bin:/bin', HOME: process.env.HOME || os.tmpdir(), LANG: process.env.LANG || 'C.UTF-8' } });
-        let tests = 'Skipped: no safe test suite';
-        if (fs.existsSync(path.join(work, 'tests/run-safe-suite.js'))) { await run('node', ['tests/run-safe-suite.js'], { cwd: work, timeout, signal }); tests = 'Safe suite passed'; }
+        // Every repository must have its explicitly required test suite.
+        // Never publish a PR with "Skipped: no safe test suite".
+        const validation = validationCommand(job.repo, work);
+        await run(validation.command, validation.args, { cwd: work, timeout, signal });
+        const tests = validation.label;
         await run('git', ['add', '-A'], { cwd: work, timeout, signal });
         const changed = await run('git', ['diff', '--cached', '--quiet'], { cwd: work, timeout, signal, accept: [1] });
         if (changed.code === 1) await run('git', ['commit', '-m', 'OS approved run'], { cwd: work, timeout, signal });
@@ -109,4 +125,4 @@ async function tick({ env = process.env, fetchImpl = fetch, adapter = realAdapte
     await save(); return job;
   } finally { await call(['EVAL', 'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end', 1, lock, token]); }
 }
-module.exports = { REPOS, runnerEnabled, validBranch, promptFor, verifyRunEvidence, secretFor, realAdapter, tick };
+module.exports = { validationCommand, REPOS, runnerEnabled, validBranch, promptFor, verifyRunEvidence, secretFor, realAdapter, tick };
