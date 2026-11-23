@@ -499,6 +499,25 @@ async function handleChat(req, res, env, fetchImpl) {
   const store = await loadStore(env, impl);
   const state = projectState(store, project.name);
   const prompt = composePrompt(project, state.messages, message, state.log);
+  if (body.goalId) {
+    const read = await goals.handle({ method: 'GET', query: { id: body.goalId } }, env, impl);
+    if (read.status !== 200 || read.body.goal.project !== project.name) {
+      json(res, 400, { error: 'invalid_goal_for_project' });
+      return true;
+    }
+    const record = read.body.goal;
+    const recent = (read.body.checkpoints || []).slice(-12);
+    prompt.user = [
+      '--- ACTIVE GOAL (durable founder record, not proof of code execution) ---',
+      'Goal ID: ' + record.id,
+      'Objective: ' + record.objective,
+      'Repository: ' + (record.repository || 'not configured'),
+      'Handoff checkpoints (claims may be unverified):',
+      ...recent.map(x => [x.at, x.provider, x.state, x.note,
+        x.evidenceUrl || 'no evidence link'].join(' | ')),
+      prompt.user,
+    ].join('\\n');
+  }
   let result;
   try {
     result = await runHarness(harness, modelPick, prompt, env, impl);
