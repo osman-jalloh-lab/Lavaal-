@@ -42,7 +42,7 @@ jobs:
             if (!task.trim() || task.length > 2000) process.exit(1);
           '
       - name: Run Codex with workspace-only permissions
-        uses: openai/codex-action@v1
+        uses: openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec # pinned v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ":workspace"
@@ -60,11 +60,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git status --porcelain | grep -Eq '(^|[[:space:]])(\.github/|\.env|api/ops/auth|api/ops/_signin_hardening|vercel\.json)'; then
-            echo "Protected file modifications are not allowed"
-            exit 1
-          fi
           git add -N -- .
+          # Do not permit agent patches touching sensitive paths or workflow configuration.
+          while IFS= read -r changed; do
+            case "$changed" in
+              .github/*|.env*|*/.env*|api/ops/auth*|api/ops/_signin_hardening*|api/ops/_harness_execute*|api/ops/_harness_chat*|vercel.json|package.json|package-lock.json)
+                echo "Protected path changed: $changed"; exit 1 ;;
+            esac
+          done < <(git diff --name-only)
           git diff --check
           git diff --binary > /tmp/lavaall-os-code.patch
           if [ ! -s /tmp/lavaall-os-code.patch ]; then
@@ -73,7 +76,7 @@ jobs:
           fi
           test "$(wc -c < /tmp/lavaall-os-code.patch)" -le 500000
       - name: Upload patch for independent inspection
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # pinned v4
         with:
           name: lavaall-os-code-patch
           path: /tmp/lavaall-os-code.patch
@@ -92,7 +95,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Download untrusted code patch
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # pinned v4
         with:
           name: lavaall-os-code-patch
           path: /tmp/os-patch
