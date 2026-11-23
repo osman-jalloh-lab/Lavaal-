@@ -1,6 +1,6 @@
 # OS project intake
 
-`POST /api/os/ingest/project-intake` records a business-assistant intake after verifying a signed founder approval. It creates a planned goal and a proposed first task. It does not create a repository, grant access, call a model, run code, or send mail.
+`POST /api/os/ingest/project-intake` records a business-assistant project intake after it has been approved in Osman's own signed-in OS session. It creates a planned goal and a proposed first task. It does not create a repository, grant access, call a model, run code, or send mail.
 
 ## Environment gate
 
@@ -8,33 +8,34 @@ The route returns `404 not_found` (before auth) unless `VERCEL_ENV` is `preview`
 
 ## KV key prefix (S4)
 
-All goal and intake keys come from one helper, `rootFor(env)` in `api/ops/_harness_goals.js`:
+All goal, intake and approval keys come from one helper, `rootFor(env)` in `api/ops/_harness_goals.js`:
 
 | `VERCEL_ENV` | Root | Example |
 | --- | --- | --- |
 | `production` | `lavaall:goals:v1:` (unchanged from #103) | `lavaall:goals:v1:item:goal-<uuid>` |
 | anything else (preview, development, local, tests) | `lavaall:preview:goals:v1:` | `lavaall:preview:goals:v1:item:goal-<uuid>` |
 
-Kinds under the root: `item`, `events`, `project`, `catalog`, `tasks`, `approvals`, `intake`, `intake-idem`, `intake-rate`. Preview and Production currently share one KV store, so this prefix is what keeps test data out of the live OS; production code never reads the preview root.
+Kinds under the root: `item`, `events`, `project`, `catalog`, `tasks`, `approvals`, `approvals-used`, `intake`, `intake-idem`, `intake-rate`. Preview and Production currently share one KV store, so this prefix keeps test data out of the live OS; production code never reads the preview root, and a preview approval cannot be used in production.
 
-## Authentication and request
+## Flow
 
-Send `Authorization: Bearer <OS_INTAKE_TOKEN>` and a JSON body. The dedicated token must be at least 32 characters and must differ from `OPS_CEO_BRIDGE_SECRET` and `OPS_AUTH_SECRET`. It is accepted only for this intake route and does not establish a session. The request body is limited to 16,384 bytes. Include an `Idempotency-Key` header and/or `idempotency_key` in the body; if both are present they must match. Keys contain 16–128 ASCII letters, digits, `.`, `_`, `:`, or `-`.
+1. The business assistant prepares the intake body (below, without `approval_id`) and shows it to Osman.
+2. **Osman approves in his own signed-in `/os` session** (S2). `POST /ops/harness/approvals` with `{ "action": "intake_create", "payload": <intake body without approval_id> }`. This route sits behind the existing founder session gate, requires a same-origin `Origin`, and only accepts sessions whose email is in `APPROVERS` (`api/ops/_approvals.js`; currently only osmanjalloh104@gmail.com; the sign-in allowlist is unchanged). The server validates the payload, computes its request hash and returns `{ approval_id, request_hash, expires_at }` (15 minutes). A UI button for this is a next step.
+3. The business assistant sends the same body plus `approval_id` to the intake endpoint with `Authorization: Bearer <OS_INTAKE_TOKEN>`.
+4. The intake checks that the approval exists, was minted by a founder session for an approver, has action `intake_create`, matches the request hash, and has not expired, then consumes it once.
 
-The following is a synthetic example. Substitute an email from `INTAKE_APPROVERS` (currently only osmanjalloh104@gmail.com; sign-in allowlist unchanged) and a freshly calculated signature; the placeholders are not credentials.
+The token authenticates the sender only. It cannot mint approvals, does not establish a session, and is accepted by no other route; the other ingest feeds still require `OPS_CEO_BRIDGE_SECRET`.
+
+## Request
+
+Body limit 16,384 bytes. Synthetic example:
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "idempotency_key": "example-intake-0001",
   "source": "business_assistant",
-  "approval": {
-    "approval_id": "example-approval-0001",
-    "approver_email": "<intake approver email>",
-    "approved_at": "2026-11-22T12:00:00Z",
-    "action": "intake_create",
-    "signature": "<64 lowercase hexadecimal characters>"
-  },
+  "approval_id": "appr-00000000-0000-4000-8000-000000000000",
   "project": {
     "name": "Example project",
     "description": "A synthetic project description.",
@@ -51,52 +52,56 @@ The following is a synthetic example. Substitute an email from `INTAKE_APPROVERS
 }
 ```
 
-The top level accepts only the fields shown. `schema_version` must be `1` and `source` must be `business_assistant`. The approval ID uses the same character set as the idempotency key and is 8–128 characters. Its timestamp must be ISO-8601 with `Z` or an explicit offset, and no more than 15 minutes old or 60 seconds in the future. A bare `founder_approved` flag is rejected.
+- Only the fields shown are accepted. Any other field, at the top level or inside `project`, is rejected with `400 unknown_field`, and its name is not echoed (S5). A bare `founder_approved` flag gets `400 unverified_approval_field`.
+- `idempotency_key` (16-128 of `A-Z a-z 0-9 . _ : -`) is required in the body; an `Idempotency-Key` header, if sent, must match.
+- Name max 80 characters; description, business objective and proposed next task required, max 1,200 each. Required functionality and acceptance criteria are non-empty arrays; all arrays max 20 non-empty strings of max 500 characters. Text containing email addresses or phone-like numbers is rejected. Free text can still carry names, so keep intakes to engineering requirements.
+- `existing_repository` is an unverified `owner/repo` claim. `existing_os_project` must name a catalog project in `tools/lavaall-ai/projects.json`.
 
-Project name is required and limited to 80 characters after trimming. Description, business objective, and proposed next task are required and limited to 1,200 characters each. Required functionality and acceptance criteria are nonempty arrays; the optional arrays each allow at most 20 nonempty strings of at most 500 characters. Existing repository is an optional `owner/repo` claim; existing OS project must name a catalog project. Sensitive project keys and email or phone-like content in accepted project strings are rejected. Unknown benign project fields are stripped and reported; unknown top-level fields are rejected. Avoid including personal or confidential information.
-
-## Signature
-
-Compute the signature after all fields are final, including any fields that will be stripped:
+### Request hash
 
 ```text
-unsigned = deep copy of body
-remove unsigned.approval.signature
+unsigned  = body without approval_id
 canonical = JSON with object keys sorted recursively, arrays in order, no whitespace
-message = "lavaall-os-intake-v1\n" + canonical
-signature = lowercase_hex(HMAC_SHA256(OS_INTAKE_TOKEN, UTF8(message)))
+hash      = lowercase_hex(SHA256("lavaall-os-intake-v2\n" + canonical))
 ```
 
-The signature binds the entire unsigned request. Changing any part after signing invalidates it. Keep the token out of logs, URLs, source files and documentation.
+The approval is bound to this hash, so any change to the body after approval fails with `403 approval_mismatch`.
+
+## Project attachment (S3)
+
+The goal attaches to a catalog project only when `existing_os_project` is given. Otherwise a pending stub `catalog:stub-<slug>` is created (or reused) with the claimed repository stored unverified; stub ids never collide with catalog names, and the goal's `repository` stays null.
+
+## Untrusted text in chat (S6)
+
+Goals created by intake carry `source: business_intake`. When such a goal is selected in harness chat, its objective is inserted inside an `UNTRUSTED_INTAKE_TEXT` block labelled as requirement data, not instructions.
 
 ## Result and errors
 
-A new intake returns `201` with `ok`, `project_id`, `project_status` (`catalog` or `pending_stub`), `goal_id`, `intake_id`, `approval_id`, a canonical OS `url`, `stripped_fields`, and a note describing the limited side effects. A matching completed idempotent replay returns `200` with the same response and `replayed: true`. A pending stub records an unverified repository claim; the goal's repository remains unset unless the project has an existing catalog mapping.
-
-Responses are JSON and use `Cache-Control: no-store`:
+A new intake returns `201` with `ok`, `project_id`, `project_status` (`catalog` or `pending_stub`), `goal_id`, `intake_id`, `approval_id`, a canonical OS `url` (`https://www.lavaall.com/os/?project=…&goal=…#harness`) and a note. A completed identical replay returns `200` with the same response and `replayed: true`, even after the approval has expired.
 
 | Status | Error codes |
 | --- | --- |
 | 404 | `not_found` (environment gate) |
-| 400 | `invalid_json`, `idempotency_key_required`, `idempotency_key_mismatch`, `unverified_approval_field`, `unknown_field`, `approval_required`, `invalid_existing_os_project`, `forbidden_field`, `pii_detected`, `invalid_field` |
+| 400 | `invalid_json`, `idempotency_key_required`, `idempotency_key_mismatch`, `unverified_approval_field`, `unknown_field`, `approval_required`, `invalid_existing_os_project`, `pii_detected`, `invalid_field` |
 | 401 | `unauthorized` |
-| 403 | `approver_not_allowed`, `approval_expired`, `approval_signature_invalid` |
+| 403 | `approval_not_found`, `approval_mismatch`, `approval_expired` |
 | 405 | Method must be POST |
 | 409 | `intake_in_progress`, `idempotency_conflict`, `approval_reused` |
 | 413 | `payload_too_large` |
 | 429 | `rate_limited` (more than 30 new intakes per UTC day) |
 | 503 | `intake_store_not_configured`, `intake_store_unavailable` |
 
-Some validation errors include field paths, but errors do not echo request values, credentials, or headers. Replays are checked after the signature but before the approval-window check and the daily rate limit, so an identical completed request can be retried later; a new write always needs a fresh approval. Approval IDs are single-use; use a new signed approval for a new intake.
+Mint route (`POST /ops/harness/approvals`): `401/403` without a founder session, `403 invalid_origin`, `403 approver_not_allowed`, `400 invalid_approval_request` or intake validation errors, `503 approval_store_unavailable`.
 
-## Trust model (read before enabling)
+Errors include allowlisted field paths at most; they never echo request values, unknown field names, credentials or headers.
 
-- The same `OS_INTAKE_TOKEN` authenticates the caller and keys the approval HMAC. The HMAC binds the approval (ID, approver, time) to the exact payload and makes it single-use, so a captured request cannot be replayed or edited. It does **not** prove, on its own, that the founder clicked approve: that check happens on the business-assistant side, which must only sign after an explicit founder approval in chat. Anyone holding the token can mint approvals, so the token is as sensitive as that approval step.
-- Holding the token: store it only in the business assistant's secret vault / environment (never in chat, prompts, memory notes, repo files, or logs). The assistant builds the intake, shows Osman the exact fields, waits for his explicit approval, then signs and sends once with a fresh `approval_id` and `idempotency_key`. Retries reuse the same body and key.
-- Scope: the token is checked only by this handler. It does not create a `lavaall_ops` session, cannot read goals, run chat, dispatch the coding runner, or touch other feeds. Existing ingest feeds still require `OPS_CEO_BRIDGE_SECRET` and reject this token.
-- Preview first. Do not add a Production value until Preview has been tested and Osman says yes. Rotate by replacing the env value (both sides) — no code change needed.
+## Token handling
+
+Keep `OS_INTAKE_TOKEN` only in Vercel (Preview, branch-scoped) and the business assistant's secret store; never in chat, prompts, memory notes, repo files or logs. Pass it to tools from a file, never as a command-line argument. Rotate it after testing. No Production value until Osman approves.
 
 ## Known limits (next steps)
 
-- The `/os` Harness UI does not yet read `?project=&goal=` from the link, and pending stub projects are not yet in the UI project picker or chat (`handleChat` still requires a catalog project). `GET /ops/harness/goals?project=<stub>` does list their goals.
-- Promoting a stub into `tools/lavaall-ai/projects.json` is a reviewed catalog PR, not automatic.
+- No `/os` UI button yet for minting an approval; the endpoint exists.
+- The `/os` Harness UI does not read `?project=&goal=` yet, and stub projects are not yet in the UI picker or chat (`handleChat` requires a catalog project). `GET /ops/harness/goals?project=stub-…` lists their goals.
+- Promoting a stub into `tools/lavaall-ai/projects.json` is a reviewed catalog PR.
+- N2: partial-failure cleanup after the goal is written.
