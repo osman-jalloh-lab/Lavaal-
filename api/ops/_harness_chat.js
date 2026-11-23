@@ -16,6 +16,7 @@ const {
 const { readLiveSession } = require('./_signin_hardening');
 const { normalizeUsage } = require('./_harness_telemetry');
 const coding = require('./_harness_execute');
+const goals = require('./_harness_goals');
 
 const CATALOG = require('../../tools/lavaall-ai/projects.json');
 const RULES_PATH = path.join(__dirname, '../../tools/lavaall-ai/RULES.md');
@@ -45,6 +46,7 @@ function harnessKind(req) {
   if (/harness\/usage/.test(hay)) return 'usage';
   if (/harness\/execute/.test(hay)) return 'execute';
   if (/harness\/runs/.test(hay)) return 'runs';
+  if (/harness\/goals/.test(hay)) return 'goals';
   return '';
 }
 
@@ -542,6 +544,11 @@ async function handleHarnessChat(req, res, opts) {
   const fetchImpl = (opts && opts.fetchImpl) || globalThis.fetch;
   const access = await deny(req, res);
   if (access === true) return true;
+  if (kind === 'goals') {
+    const result = await goals.handle({ ...req, query: queryOf(req), body: readBody(req) }, env, fetchImpl);
+    json(res, result.status, result.body);
+    return true;
+  }
   if (kind === 'execute') {
     const result = await coding.dispatch({ ...req, body: readBody(req) }, env, fetchImpl);
     json(res, result.status, result.body);
