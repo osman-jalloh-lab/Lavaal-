@@ -14,6 +14,7 @@ const {
   looksLikeAgentRequest,
 } = require('./_lib');
 const { readLiveSession } = require('./_signin_hardening');
+const { normalizeUsage } = require('./_harness_telemetry');
 
 const CATALOG = require('../../tools/lavaall-ai/projects.json');
 const RULES_PATH = path.join(__dirname, '../../tools/lavaall-ai/RULES.md');
@@ -227,11 +228,18 @@ function modelFor(harness, requested, env) {
 }
 
 async function httpJson(fetchImpl, url, init) {
-  const response = await fetchImpl(url, init);
-  const text = await response.text();
-  let body = null;
-  try { body = JSON.parse(text); } catch { body = text; }
-  return { status: response.status, ok: response.ok, body };
+  // A single upper bound includes fetching headers and reading the response body.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
+  try {
+    const response = await fetchImpl(url, { ...init, signal: controller.signal });
+    const bodyText = await response.text();
+    let body = null;
+    try { body = JSON.parse(bodyText); } catch { body = null; }
+    return { status: response.status, ok: response.ok, body };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function openaiMessages(prompt) {
@@ -256,11 +264,11 @@ async function callOpenAICompatible(fetchImpl, env, url, key, model, prompt) {
   });
   if (!res.ok) {
     const err = typeof res.body === 'object' ? JSON.stringify(res.body).slice(0, 400) : String(res.body).slice(0, 400);
-    return { error: `provider_http_${res.status}`, detail: redact(err, env) };
+    return { error: `provider_http_${res.status}`, detail: 'The provider rejected this request. Check the configured model, permissions, and provider status.' };
   }
   try {
     const text = res.body.choices[0].message.content;
-    return { text: String(text || ''), model };
+    return { text: String(text || ''), model, usage: normalizeUsage(url.includes('openai.com') ? 'codex' : 'deepseek', res.body) };
   } catch {
     return { error: 'provider_empty', detail: 'The provider returned no message text.' };
   }
@@ -284,11 +292,11 @@ async function callClaude(fetchImpl, env, key, model, prompt) {
   });
   if (!res.ok) {
     const err = typeof res.body === 'object' ? JSON.stringify(res.body).slice(0, 400) : String(res.body).slice(0, 400);
-    return { error: `provider_http_${res.status}`, detail: redact(err, env) };
+    return { error: `provider_http_${res.status}`, detail: 'The provider rejected this request. Check the configured model, permissions, and provider status.' };
   }
   try {
     const text = (res.body.content || []).map((p) => p.text || '').join('');
-    return { text, model };
+    return { text, model, usage: normalizeUsage('claude', res.body) };
   } catch {
     return { error: 'provider_empty', detail: 'The provider returned no message text.' };
   }
@@ -479,7 +487,17 @@ async function handleChat(req, res, env, fetchImpl) {
   const store = await loadStore(env, impl);
   const state = projectState(store, project.name);
   const prompt = composePrompt(project, state.messages, message, state.log);
-  const result = await runHarness(harness, modelPick, prompt, env, impl);
+  let result;
+  try {
+    result = await runHarness(harness, modelPick, prompt, env, impl);
+  } catch (err) {
+    const timedOut = err && (err.name === 'AbortError' || err.name === 'TimeoutError');
+    json(res, timedOut ? 504 : 502, {
+      error: timedOut ? 'provider_timeout' : 'provider_unavailable',
+      detail: timedOut ? 'The model request timed out. Try again.' : 'The model request failed. Try again later.',
+    });
+    return true;
+  }
   if (result.error) {
     json(res, result.error === 'key_missing' ? 409 : 502, {
       error: result.error,
@@ -489,7 +507,7 @@ async function handleChat(req, res, env, fetchImpl) {
   }
   const at = Date.now();
   const userMsg = { role: 'user', text: message, harness, model: modelPick, at };
-  const assistantMsg = { role: 'assistant', text: result.text, harness, model: result.model || modelPick, at };
+  const assistantMsg = { role: 'assistant', text: result.text, harness, model: result.model || modelPick, usage: result.usage || null, at };
   const logLine = `- ${nowCt(at)} — harness: ${harness} — project: ${project.name} — task: ${message.replace(/\s+/g, ' ').slice(0, 200)} — changes: chat reply (hosted API, no local checkout edits)`;
   const saved = await appendTurn(env, impl, project.name, userMsg, assistantMsg, logLine);
   json(res, 200, {
@@ -498,6 +516,8 @@ async function handleChat(req, res, env, fetchImpl) {
     harness,
     model: result.model || modelPick,
     reply: result.text,
+    usage: result.usage || null,
+    billedUsd: null,
     persist: saved.persist,
     logLine,
     messages: saved.state.messages,
