@@ -4,7 +4,11 @@
 // access, calls a model, dispatches a coding run or sends mail. Never logs payloads, tokens or headers.
 'use strict';
 const crypto = require('node:crypto');
-const { header, noStore, timingSafeEqualString, isAllowlisted } = require('./_lib');
+const { header, noStore, timingSafeEqualString } = require('./_lib');
+// Dedicated intake approver list (Osman, 22 Nov 2026 11:15 PM CT). Deliberately separate from the
+// founder sign-in ALLOWLIST in _lib.js, which is unchanged. Change only through a reviewed PR.
+const INTAKE_APPROVERS = Object.freeze(['osmanjalloh104@gmail.com']);
+const isIntakeApprover = email => typeof email === 'string' && INTAKE_APPROVERS.includes(email.trim().toLowerCase());
 const { command, createGoal, ROOT, MAX_GOAL } = require('./_harness_goals');
 const catalog = require('../../tools/lavaall-ai/projects.json');
 const projects = new Set((catalog.projects || []).map(p => p.name));
@@ -77,7 +81,7 @@ async function handleProjectIntake(req, res, opts = {}) {
   if (typeof idem !== 'string' || !/^[A-Za-z0-9._:-]{16,128}$/.test(idem)) return send(res, 400, { error: 'idempotency_key_required' });
   const checked = validateIntake(raw); if (checked.error) return send(res, 400, checked);
   const a = raw.approval;
-  if (!isAllowlisted(a.approver_email)) return send(res, 403, { error: 'approver_not_allowed' });
+  if (!isIntakeApprover(a.approver_email)) return send(res, 403, { error: 'approver_not_allowed' });
   const approved = Date.parse(a.approved_at);
   if (approved > now + 60000 || approved < now - 900000) return send(res, 403, { error: 'approval_expired' });
   if (!timingSafeEqualString(a.signature, signIntake(token, raw))) return send(res, 403, { error: 'approval_signature_invalid' });
@@ -121,4 +125,4 @@ async function handleProjectIntake(req, res, opts = {}) {
     return send(res, 503, { error: 'intake_store_unavailable' });
   }
 }
-module.exports = { handleProjectIntake, canonicalJson, signIntake, validateIntake };
+module.exports = { INTAKE_APPROVERS, handleProjectIntake, canonicalJson, signIntake, validateIntake };

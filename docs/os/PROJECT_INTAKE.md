@@ -6,7 +6,7 @@
 
 Send `Authorization: Bearer <OS_INTAKE_TOKEN>` and a JSON body. The dedicated token must be at least 32 characters and must differ from `OPS_CEO_BRIDGE_SECRET` and `OPS_AUTH_SECRET`. It is accepted only for this intake route and does not establish a session. The request body is limited to 16,384 bytes. Include an `Idempotency-Key` header and/or `idempotency_key` in the body; if both are present they must match. Keys contain 16–128 ASCII letters, digits, `.`, `_`, `:`, or `-`.
 
-The following is a synthetic example. Substitute an allowlisted founder email and a freshly calculated signature; the placeholders are not credentials.
+The following is a synthetic example. Substitute an email from `INTAKE_APPROVERS` (currently only osmanjalloh104@gmail.com; sign-in allowlist unchanged) and a freshly calculated signature; the placeholders are not credentials.
 
 ```json
 {
@@ -15,7 +15,7 @@ The following is a synthetic example. Substitute an allowlisted founder email an
   "source": "business_assistant",
   "approval": {
     "approval_id": "example-approval-0001",
-    "approver_email": "<founder allowlisted email>",
+    "approver_email": "<intake approver email>",
     "approved_at": "2026-11-22T12:00:00Z",
     "action": "intake_create",
     "signature": "<64 lowercase hexadecimal characters>"

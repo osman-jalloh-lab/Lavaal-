@@ -5,6 +5,7 @@ const { handleIngest } = require('../api/ops/_os_ingest');
 const { handleHarnessChat } = require('../api/ops/_harness_chat');
 const goals = require('../api/ops/_harness_goals');
 const { ALLOWLIST } = require('../api/ops/_lib');
+const { INTAKE_APPROVERS } = require('../api/ops/_os_intake');
 const token = 'synthetic-intake-token-1234567890-123456';
 const bridge = 'synthetic-bridge-token-1234567890';
 const env = { OS_INTAKE_TOKEN: token, OPS_CEO_BRIDGE_SECRET: bridge, KV_REST_API_URL: 'https://kv.invalid', KV_REST_API_TOKEN: 'synthetic-kv-token' };
@@ -32,7 +33,7 @@ function response() { return { headers: {}, setHeader(k,v) { this.headers[k] = v
 let serial = 0;
 function payload() {
   const n = ++serial;
-  return { schema_version: 1, idempotency_key: 'synthetic-idempotency-' + n, source: 'business_assistant', approval: { approval_id: 'approval-' + String(n).padStart(8,'0'), approver_email: ALLOWLIST[0], approved_at: new Date(now).toISOString(), action: 'intake_create', signature: '' }, project: { name: 'Sample Project', description: 'A synthetic project', business_objective: 'Improve operations', required_functionality: ['Provide a dashboard'], acceptance_criteria: ['Dashboard works'], proposed_next_task: 'Create a dashboard' } };
+  return { schema_version: 1, idempotency_key: 'synthetic-idempotency-' + n, source: 'business_assistant', approval: { approval_id: 'approval-' + String(n).padStart(8,'0'), approver_email: INTAKE_APPROVERS[0], approved_at: new Date(now).toISOString(), action: 'intake_create', signature: '' }, project: { name: 'Sample Project', description: 'A synthetic project', business_objective: 'Improve operations', required_functionality: ['Provide a dashboard'], acceptance_criteria: ['Dashboard works'], proposed_next_task: 'Create a dashboard' } };
 }
 function signed(p) { p.approval.signature = signIntake(token, p); return p; }
 async function send(body, options = {}) {
@@ -58,6 +59,10 @@ async function expect(body, status, error, opts) { const r = await send(body, op
   p = payload(); delete p.approval; p.founder_approved = true; await expect(p,400,'unverified_approval_field');
   p = payload(); delete p.approval; await expect(p,400,'approval_required');
   p = payload(); p.approval.approver_email = 'synthetic@example.invalid'; await expect(signed(p),403,'approver_not_allowed');
+  // Intake approvers are a dedicated list: only Osman. Other sign-in allowlisted founders cannot approve intake.
+  assert.deepEqual(INTAKE_APPROVERS, ['osmanjalloh104@gmail.com']);
+  for (const other of ALLOWLIST.filter(e => !INTAKE_APPROVERS.includes(e))) { p = payload(); p.approval.approver_email = other; await expect(signed(p),403,'approver_not_allowed'); }
+  assert(ALLOWLIST.includes('abdulhbah55@gmail.com'), 'founder sign-in allowlist must stay unchanged');
   p = payload(); p.approval.approved_at = new Date(now-900001).toISOString(); await expect(signed(p),403,'approval_expired');
   p = payload(); p.approval.approved_at = new Date(now+60001).toISOString(); await expect(signed(p),403,'approval_expired');
   p = payload(); p.approval.signature = '0'.repeat(64); await expect(p,403,'approval_signature_invalid');
