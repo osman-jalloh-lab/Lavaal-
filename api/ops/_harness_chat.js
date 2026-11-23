@@ -516,7 +516,7 @@ async function handleChat(req, res, env, fetchImpl) {
       ...recent.map(x => [x.at, x.provider, x.state, x.note,
         x.evidenceUrl || 'no evidence link'].join(' | ')),
       prompt.user,
-    ].join('\\n');
+    ].join('\n');
   }
   let result;
   try {
