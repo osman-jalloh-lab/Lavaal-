@@ -535,6 +535,7 @@ function harnessFrom(env, pack) {
     { id: 'codex', label: 'Codex', detail: presentKey('OPENAI_API_KEY') ? 'OpenAI API key present' : 'key missing — add OPENAI_API_KEY or use Codex CLI locally', state: presentKey('OPENAI_API_KEY') ? 'ready' : 'missing' },
     { id: 'claude', label: 'Claude', detail: presentKey('ANTHROPIC_API_KEY') ? 'API key present, Sonnet default' : 'key missing — add ANTHROPIC_API_KEY', state: presentKey('ANTHROPIC_API_KEY') ? 'ready' : 'missing' },
     { id: 'deepseek', label: 'DeepSeek', detail: presentKey('DEEPSEEK_API_KEY') ? 'key present' : 'key missing', state: presentKey('DEEPSEEK_API_KEY') ? 'ready' : 'missing' },
+    { id: 'grok', label: 'Grok (xAI)', detail: presentKey('XAI_API_KEY') ? 'xAI API key present' : 'key missing — add XAI_API_KEY', state: presentKey('XAI_API_KEY') ? 'ready' : 'missing' },
   ];
   return {
     projects: list,
