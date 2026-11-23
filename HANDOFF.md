@@ -99,5 +99,9 @@ No paid provider calls were made while building this. Tests mock those HTTP APIs
 
 ## Draft PR
 
-- URL: (filled after the draft PR is opened)
-- Vercel preview, if one builds from the draft PR, will be founder-signed-in only. Chat will stay in the `key_missing` path until the keys are added.
+- URL: https://github.com/osman-jalloh-lab/Lavaal-/pull/100 (draft)
+- Commit: `9a96303` on `feature/os-harness-chat`
+- Vercel preview (deployment protection + founder Google sign-in): https://lavaal-git-feature-os-harness-chat-osman14.vercel.app
+  - /os: https://lavaal-git-feature-os-harness-chat-osman14.vercel.app/os
+  - Inspector: https://vercel.com/osman14/lavaal/8p2SFbSG915hivTWQK3LvyCMQK5o
+- Vercel check: Ready (22 Nov 2026, 8:41 PM CT, America/Chicago). No merge or production deploy. Chat stays on the `key_missing` path until the keys are added in Vercel settings.
