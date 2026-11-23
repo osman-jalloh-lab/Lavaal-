@@ -323,6 +323,7 @@
             return api('chat', { method: 'POST', body: JSON.stringify(payload) }).then(function (res) {
               if (res.ok && res.body.messages) {
                 drawThread(res.body.messages, false);
+                if (input) input.value = '';
               } else {
                 var err = res.body.message || res.body.detail || res.body.error || ('HTTP ' + res.status);
                 messages.push({ role: 'assistant', text: err, harness: selectedHarness });
@@ -334,11 +335,18 @@
             if (OS.toast) OS.toast('The request did not complete.');
           }).then(function () {
             if (send) send.disabled = false;
-            if (input) input.value = '';
           });
         });
       }
 
+      if (input && form) {
+        input.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.isComposing) {
+            event.preventDefault();
+            if (form.requestSubmit) form.requestSubmit();
+          }
+        });
+      }
       renderSetup();
       if (meta) meta.textContent = metaLine(currentProject());
       loadHistory();
