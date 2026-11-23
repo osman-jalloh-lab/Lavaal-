@@ -16,6 +16,7 @@ const {
 const { readLiveSession } = require('./_signin_hardening');
 const { normalizeUsage } = require('./_harness_telemetry');
 const coding = require('./_harness_execute');
+const goals = require('./_harness_goals');
 
 const CATALOG = require('../../tools/lavaall-ai/projects.json');
 const RULES_PATH = path.join(__dirname, '../../tools/lavaall-ai/RULES.md');
@@ -45,6 +46,7 @@ function harnessKind(req) {
   if (/harness\/usage/.test(hay)) return 'usage';
   if (/harness\/execute/.test(hay)) return 'execute';
   if (/harness\/runs/.test(hay)) return 'runs';
+  if (/harness\/goals/.test(hay)) return 'goals';
   return '';
 }
 
@@ -497,6 +499,25 @@ async function handleChat(req, res, env, fetchImpl) {
   const store = await loadStore(env, impl);
   const state = projectState(store, project.name);
   const prompt = composePrompt(project, state.messages, message, state.log);
+  if (body.goalId) {
+    const read = await goals.handle({ method: 'GET', query: { id: body.goalId } }, env, impl);
+    if (read.status !== 200 || read.body.goal.project !== project.name) {
+      json(res, 400, { error: 'invalid_goal_for_project' });
+      return true;
+    }
+    const record = read.body.goal;
+    const recent = (read.body.checkpoints || []).slice(-12);
+    prompt.user = [
+      '--- ACTIVE GOAL (durable founder record, not proof of code execution) ---',
+      'Goal ID: ' + record.id,
+      'Objective: ' + record.objective,
+      'Repository: ' + (record.repository || 'not configured'),
+      'Handoff checkpoints (claims may be unverified):',
+      ...recent.map(x => [x.at, x.provider, x.state, x.note,
+        x.evidenceUrl || 'no evidence link'].join(' | ')),
+      prompt.user,
+    ].join('\n');
+  }
   let result;
   try {
     result = await runHarness(harness, modelPick, prompt, env, impl);
@@ -542,6 +563,11 @@ async function handleHarnessChat(req, res, opts) {
   const fetchImpl = (opts && opts.fetchImpl) || globalThis.fetch;
   const access = await deny(req, res);
   if (access === true) return true;
+  if (kind === 'goals') {
+    const result = await goals.handle({ ...req, query: queryOf(req), body: readBody(req) }, env, fetchImpl);
+    json(res, result.status, result.body);
+    return true;
+  }
   if (kind === 'execute') {
     const result = await coding.dispatch({ ...req, body: readBody(req) }, env, fetchImpl);
     json(res, result.status, result.body);

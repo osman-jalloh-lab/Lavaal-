@@ -1,3 +1,21 @@
+# HANDOFF — PR #103 /goal + handoffs v1 (branch `feature/os-goal-handoffs-v1`)
+
+Status: DRAFT. No merge, no deploy, no env or settings changes. `/goal` = engineering objective inside the OS; `/project` intake is built separately and is not in this branch.
+
+## Done (Nov 22, 2026 fix pass)
+- `api/os/_client/harness.js`: fixed over-escaped `/goal` regexes (`/^\\/goal.../` → `/^\/goal(?:\s|$)/i`) that made app.js fail to compile.
+- Checkpoint UI now has an optional evidence link field and a goal state select; Save sends `state` and `evidenceUrl` (omitted when empty) and reloads the goal list. Goal buttons show the current state.
+- `api/ops/_harness_goals.js` `checkpoint()`: after the append, the goal record is updated (`state`, `updatedAt`, `latestCheckpointId`) with `SET ... XX`; response includes `goal`. Checkpoints remain `verification: 'unverified'`; `execution` is unchanged.
+- `tests/test-harness-goals.js`: fake KV supports `XX`; asserts goal.state/latestCheckpointId update, invalid state rejected without changing the goal, client source compiles and sends evidenceUrl/state.
+
+## Tests
+- Local `node tests/run-safe-suite.js`: TOTAL 90; PASS 90; FAIL 0 (was 88/90).
+
+## Next step
+- Founder reviews CI + preview. Known limit: the goal update is read-modify-write (last writer wins); checkpoints are not verified against GitHub yet — that belongs to the shared-memory / verified-runs work.
+
+---
+
 # HANDOFF — OS harness chat
 
 - Branch: `feature/os-harness-chat`

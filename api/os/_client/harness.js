@@ -111,6 +111,19 @@
               '<textarea class="harness-input" id="harness-input" rows="3" maxlength="8000" placeholder="Type what you want done, for example: add a receipt hold for hired applicants." required></textarea>' +
               '<button type="submit" class="btn pri" id="harness-send">Send</button>' +
             '</form>' +
+            '<section class="harness-execution" id="harness-goals">' +
+              '<h3>Goals & handoffs</h3>' +
+              '<p class="dim">Type <code class="mono">/goal your objective</code> in the Request box and press Send. Select a saved goal to share its checkpoints with any chat provider. No code runs automatically.</p>' +
+              '<div id="harness-goal-status" role="status" aria-live="polite"></div>' +
+              '<div id="harness-goal-list"></div>' +
+              '<label class="harness-field" for="harness-goal-note">Checkpoint note (optional)</label>' +
+              '<textarea id="harness-goal-note" class="harness-input" maxlength="3000" rows="2" placeholder="What changed, what remains, and evidence URL"></textarea>' +
+              '<label class="harness-field" for="harness-goal-evidence">Evidence link (optional)</label>' +
+              '<input type="url" id="harness-goal-evidence" class="harness-input" maxlength="500" placeholder="GitHub PR, commit or Actions run link (optional)">' +
+              '<label class="harness-field" for="harness-goal-state">Goal state</label>' +
+              '<select id="harness-goal-state" class="harness-sel"><option value="planned">planned</option><option value="in_progress" selected>in_progress</option><option value="blocked">blocked</option><option value="awaiting_approval">awaiting_approval</option><option value="completed">completed</option></select>' +
+              '<button type="button" class="btn" id="harness-goal-save">Save checkpoint</button>' +
+            '</section>' +
             '<div class="harness-execution" id="harness-execution">' +
               '<h3>Execute code in GitHub</h3>' +
               '<p class="dim">Runs a separate Codex coding agent on the LAVAALL repository. It writes a reviewable patch and runs tests in GitHub Actions. It does not merge or deploy code, and API usage may be billed.</p>' +
@@ -139,6 +152,13 @@
       var executeBtn = root.querySelector('#harness-execute');
       var executeConfirm = root.querySelector('#harness-execute-confirm');
       var executeResult = root.querySelector('#harness-execute-result');
+      var goalList = root.querySelector('#harness-goal-list');
+      var goalStatus = root.querySelector('#harness-goal-status');
+      var goalNote = root.querySelector('#harness-goal-note');
+      var goalEvidence = root.querySelector('#harness-goal-evidence');
+      var goalState = root.querySelector('#harness-goal-state');
+      var goalSave = root.querySelector('#harness-goal-save');
+      var selectedGoal = '';
       var usageEl = root.querySelector('#harness-usage');
       var usageNote = root.querySelector('#harness-usage-note');
       var home = root.querySelector('#harness-home');
@@ -282,7 +302,61 @@
         });
       }
 
+      function loadGoals() {
+        if (!goalList) return;
+        var p = currentProject();
+        if (!p) return;
+        api('goals?project=' + encodeURIComponent(p.name), { method: 'GET' }).then(function (res) {
+          if (!res.ok) {
+            goalList.textContent = 'Goals unavailable: ' + (res.body.error || res.status);
+            return;
+          }
+          var rows = res.body.goals || [];
+          goalList.innerHTML = rows.length ? rows.map(function (g) {
+            return '<button type="button" class="btn" data-goal-id="' + esc(g.id) +
+              '" aria-pressed="' + (selectedGoal === g.id ? 'true' : 'false') +
+              '">' + esc(g.objective + ' (' + g.state + ')') + '</button>';
+          }).join(' ') : '<p class="dim">No saved goals for this project yet.</p>';
+          if (goalStatus) goalStatus.textContent = selectedGoal
+            ? 'Active goal: ' + selectedGoal : 'Select a goal to include its handoff in provider chat.';
+        }).catch(function () {
+          goalList.textContent = 'Unable to load goals.';
+        });
+      }
+      if (goalList) goalList.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('[data-goal-id]') : null;
+        if (!btn) return;
+        selectedGoal = btn.getAttribute('data-goal-id') || '';
+        loadGoals();
+      });
+      if (goalSave) goalSave.addEventListener('click', function () {
+        var note = goalNote && goalNote.value ? goalNote.value.trim() : '';
+        if (!selectedGoal || !note) {
+          if (goalStatus) goalStatus.textContent = 'Select a goal and type a checkpoint first.';
+          return;
+        }
+        var evidenceUrl = goalEvidence && goalEvidence.value ? goalEvidence.value.trim() : '';
+        var checkpoint = { action: 'checkpoint', id: selectedGoal, provider: 'human',
+          state: goalState ? goalState.value : 'in_progress', note: note };
+        if (evidenceUrl) checkpoint.evidenceUrl = evidenceUrl;
+        goalSave.disabled = true;
+        api('goals', { method: 'POST', body: JSON.stringify(checkpoint) }).then(function (res) {
+          if (goalStatus) goalStatus.textContent = res.ok
+            ? 'Checkpoint saved. It is not automatically verified against GitHub.'
+            : 'Checkpoint not saved: ' + (res.body.error || res.status);
+          if (res.ok) {
+            if (goalNote) goalNote.value = '';
+            if (goalEvidence) goalEvidence.value = '';
+            loadGoals();
+          }
+        }).catch(function () {
+          if (goalStatus) goalStatus.textContent = 'Checkpoint request failed.';
+        }).then(function () { goalSave.disabled = false; });
+      });
+
       function refresh() {
+        selectedGoal = '';
+        loadGoals();
         if (meta) meta.textContent = metaLine(currentProject());
         if (executeBtn) executeBtn.disabled = !currentProject() || currentProject().name !== 'lavaall';
         renderSetup();
@@ -319,6 +393,29 @@
           var proj = currentProject();
           var text = input && input.value ? input.value.trim() : '';
           if (!proj || !text) return;
+          if (/^\/goal(?:\s|$)/i.test(text)) {
+            var objective = text.replace(/^\/goal\s*/i, '').trim();
+            if (!objective) {
+              if (goalStatus) goalStatus.textContent = 'Type /goal followed by an objective.';
+              return;
+            }
+            if (send) send.disabled = true;
+            api('goals', { method: 'POST', body: JSON.stringify({
+              action: 'create', project: proj.name, objective: objective
+            }) }).then(function (res) {
+              if (res.ok && res.body.goal) {
+                selectedGoal = res.body.goal.id;
+                if (input) input.value = '';
+                if (goalStatus) goalStatus.textContent = 'Goal saved: ' + selectedGoal;
+                loadGoals();
+              } else if (goalStatus) {
+                goalStatus.textContent = 'Goal not saved: ' + (res.body.error || res.status);
+              }
+            }).catch(function () {
+              if (goalStatus) goalStatus.textContent = 'Goal request failed.';
+            }).then(function () { if (send) send.disabled = false; });
+            return;
+          }
           if (send) send.disabled = true;
           var existing = [];
           drawThread(existing, true);
@@ -328,6 +425,7 @@
             messages.push({ role: 'user', text: text, harness: selectedHarness });
             drawThread(messages, true);
             var payload = { project: proj.name, harness: selectedHarness, message: text };
+            if (selectedGoal) payload.goalId = selectedGoal;
             if (selectedHarness === 'claude') {
               var modelEl = root.querySelector('#harness-model');
               payload.model = modelEl ? modelEl.value : 'sonnet';
@@ -412,6 +510,7 @@
       renderSetup();
       if (meta) meta.textContent = metaLine(currentProject());
       loadHistory();
+      loadGoals();
     }
   });
 })();
