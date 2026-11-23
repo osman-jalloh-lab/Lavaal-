@@ -15,11 +15,12 @@ const {
 } = require('./_lib');
 const { readLiveSession } = require('./_signin_hardening');
 const { normalizeUsage } = require('./_harness_telemetry');
+const coding = require('./_harness_execute');
 
 const CATALOG = require('../../tools/lavaall-ai/projects.json');
 const RULES_PATH = path.join(__dirname, '../../tools/lavaall-ai/RULES.md');
 const HARNESS_STORE_KEY = 'lavaall-os-harness-v1';
-const VISIBLE_HARNESSES = ['codex', 'claude', 'deepseek'];
+const VISIBLE_HARNESSES = ['codex', 'claude', 'deepseek', 'grok'];
 const MAX_MESSAGE = 8000;
 const MAX_HISTORY = 40;
 const MAX_LOG = 50;
@@ -42,6 +43,8 @@ function harnessKind(req) {
   if (/harness\/chat(?:\/|$|\?)/.test(hay) || /harness\/chat$/.test(hay.trim())) return 'chat';
   if (/harness\/history/.test(hay)) return 'history';
   if (/harness\/usage/.test(hay)) return 'usage';
+  if (/harness\/execute/.test(hay)) return 'execute';
+  if (/harness\/runs/.test(hay)) return 'runs';
   return '';
 }
 
@@ -213,12 +216,14 @@ function keyFor(harness, env) {
   if (harness === 'codex') return present(env, 'OPENAI_API_KEY') ? env.OPENAI_API_KEY : '';
   if (harness === 'claude') return present(env, 'ANTHROPIC_API_KEY') ? env.ANTHROPIC_API_KEY : '';
   if (harness === 'deepseek') return present(env, 'DEEPSEEK_API_KEY') ? env.DEEPSEEK_API_KEY : '';
+  if (harness === 'grok') return present(env, 'XAI_API_KEY') ? env.XAI_API_KEY : '';
   return '';
 }
 
 function modelFor(harness, requested, env) {
   if (harness === 'codex') return (env.OPENAI_HARNESS_MODEL || 'gpt-4.1').trim();
   if (harness === 'deepseek') return (env.DEEPSEEK_MODEL || 'deepseek-flash').trim();
+  if (harness === 'grok') return (env.XAI_MODEL || 'grok-4.7').trim();
   if (harness === 'claude') {
     const pick = String(requested || 'sonnet').toLowerCase();
     if (!CLAUDE_MODELS[pick]) return { error: 'unknown_model' };
@@ -268,7 +273,7 @@ async function callOpenAICompatible(fetchImpl, env, url, key, model, prompt) {
   }
   try {
     const text = res.body.choices[0].message.content;
-    return { text: String(text || ''), model, usage: normalizeUsage(url.includes('openai.com') ? 'codex' : 'deepseek', res.body) };
+    return { text: String(text || ''), model, usage: normalizeUsage(url.includes('openai.com') ? 'codex' : url.includes('api.x.ai') ? 'grok' : 'deepseek', res.body) };
   } catch {
     return { error: 'provider_empty', detail: 'The provider returned no message text.' };
   }
@@ -310,6 +315,9 @@ async function runHarness(harness, model, prompt, env, fetchImpl) {
   }
   if (harness === 'deepseek') {
     return callOpenAICompatible(fetchImpl, env, 'https://api.deepseek.com/chat/completions', key, model, prompt);
+  }
+  if (harness === 'grok') {
+    return callOpenAICompatible(fetchImpl, env, 'https://api.x.ai/v1/chat/completions', key, model, prompt);
   }
   if (harness === 'claude') {
     return callClaude(fetchImpl, env, key, model, prompt);
@@ -392,7 +400,9 @@ async function usageSnapshot(env, fetchImpl) {
     claudeUsage(env),
     deepseekUsage(env, fetchImpl),
   ]);
-  return { providers: [codex, claude, deepseek], note: 'Figures are shown only when a provider returns them. Missing or refused totals are “not available”, never estimated.' };
+  const grok = { id: 'grok', label: 'Grok (xAI)', available: false,
+    reason: present(env, 'XAI_API_KEY') ? 'provider billing/usage total not connected' : 'key missing' };
+  return { providers: [codex, claude, deepseek, grok], note: 'Provider-reported balances only; subscription quotas and API costs are separate. Missing totals are not available.' };
 }
 
 async function deny(req, res) {
@@ -475,7 +485,7 @@ async function handleChat(req, res, env, fetchImpl) {
     return true;
   }
   if (!keyFor(harness, env)) {
-    const needed = harness === 'codex' ? 'OPENAI_API_KEY' : harness === 'claude' ? 'ANTHROPIC_API_KEY' : 'DEEPSEEK_API_KEY';
+    const needed = harness === 'codex' ? 'OPENAI_API_KEY' : harness === 'claude' ? 'ANTHROPIC_API_KEY' : harness === 'grok' ? 'XAI_API_KEY' : 'DEEPSEEK_API_KEY';
     json(res, 409, {
       error: 'key_missing',
       harness,
@@ -532,6 +542,16 @@ async function handleHarnessChat(req, res, opts) {
   const fetchImpl = (opts && opts.fetchImpl) || globalThis.fetch;
   const access = await deny(req, res);
   if (access === true) return true;
+  if (kind === 'execute') {
+    const result = await coding.dispatch({ ...req, body: readBody(req) }, env, fetchImpl);
+    json(res, result.status, result.body);
+    return true;
+  }
+  if (kind === 'runs') {
+    const result = await coding.status({ ...req, query: queryOf(req) }, env, fetchImpl);
+    json(res, result.status, result.body);
+    return true;
+  }
   if (kind === 'usage') return handleUsage(req, res, env, fetchImpl);
   if (kind === 'history') return handleHistory(req, res, env, fetchImpl);
   if (kind === 'chat') return handleChat(req, res, env, fetchImpl);

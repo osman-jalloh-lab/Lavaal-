@@ -10,7 +10,8 @@
   var HARNESSES = [
     { id: 'codex', label: 'OpenAI API' },
     { id: 'claude', label: 'Claude' },
-    { id: 'deepseek', label: 'DeepSeek' }
+    { id: 'deepseek', label: 'DeepSeek' },
+    { id: 'grok', label: 'Grok' }
   ];
   var CLAUDE_MODELS = [
     { id: 'sonnet', label: 'Sonnet' },
@@ -110,6 +111,13 @@
               '<textarea class="harness-input" id="harness-input" rows="3" maxlength="8000" placeholder="Type what you want done, for example: add a receipt hold for hired applicants." required></textarea>' +
               '<button type="submit" class="btn pri" id="harness-send">Send</button>' +
             '</form>' +
+            '<div class="harness-execution" id="harness-execution">' +
+              '<h3>Execute code in GitHub</h3>' +
+              '<p class="dim">Runs a separate Codex coding agent on the LAVAALL repository. It writes a reviewable patch and runs tests in GitHub Actions. It does not merge or deploy code, and API usage may be billed.</p>' +
+              '<label><input type="checkbox" id="harness-execute-confirm"/> I approve a coding run that may incur API charges.</label>' +
+              '<button type="button" class="btn" id="harness-execute">Run code task</button>' +
+              '<div class="note" id="harness-execute-result" role="status" aria-live="polite"></div>' +
+            '</div>' +
           '</div>' +
         '</section>';
     },
@@ -128,6 +136,9 @@
       var form = root.querySelector('#harness-form');
       var input = root.querySelector('#harness-input');
       var send = root.querySelector('#harness-send');
+      var executeBtn = root.querySelector('#harness-execute');
+      var executeConfirm = root.querySelector('#harness-execute-confirm');
+      var executeResult = root.querySelector('#harness-execute-result');
       var usageEl = root.querySelector('#harness-usage');
       var usageNote = root.querySelector('#harness-usage-note');
       var home = root.querySelector('#harness-home');
@@ -273,6 +284,7 @@
 
       function refresh() {
         if (meta) meta.textContent = metaLine(currentProject());
+        if (executeBtn) executeBtn.disabled = !currentProject() || currentProject().name !== 'lavaall';
         renderSetup();
         if (tab === 'chat') loadHistory();
       }
@@ -345,6 +357,56 @@
             event.preventDefault();
             if (form.requestSubmit) form.requestSubmit();
           }
+        });
+      }
+      if (executeBtn) executeBtn.disabled = !currentProject() || currentProject().name !== 'lavaall';
+      if (executeBtn && executeResult) {
+        executeBtn.addEventListener('click', function () {
+          var proj = currentProject();
+          var task = input && input.value ? input.value.trim() : '';
+          if (!proj || proj.name !== 'lavaall') {
+            executeResult.textContent = 'Code execution currently supports only the LAVAALL repository.';
+            return;
+          }
+          if (!task || task.length > 2000) {
+            executeResult.textContent = 'Enter a code task of up to 2,000 characters in the chat composer.';
+            return;
+          }
+          if (!executeConfirm || !executeConfirm.checked) {
+            executeResult.textContent = 'Confirm the possible API charge before starting a coding run.';
+            return;
+          }
+          executeBtn.disabled = true;
+          executeResult.textContent = 'Requesting a GitHub coding run…';
+          api('execute', { method: 'POST',
+            body: JSON.stringify({ project: 'lavaall', task: task, confirm: true }) })
+            .then(function (res) {
+              if (!res.ok) {
+                executeResult.textContent = res.body.error || 'Could not start the coding run.';
+                return;
+              }
+              var runId = res.body.requestId || '';
+              executeResult.innerHTML = 'GitHub accepted this request. <a target="_blank" rel="noopener noreferrer" href="' +
+                esc(res.body.runsUrl || '') + '">Open GitHub Actions</a>' +
+                ' <button type="button" class="btn" id="harness-check-run">Check status</button>' +
+                '<small class="dim">Request ' + esc(runId) + '</small>';
+              var checker = root.querySelector('#harness-check-run');
+              if (checker) checker.addEventListener('click', function () {
+                checker.disabled = true;
+                api('runs?request_id=' + encodeURIComponent(runId), { method: 'GET' })
+                  .then(function (state) {
+                    if (!state.ok) executeResult.textContent = state.body.error || 'Status unavailable';
+                    else {
+                      executeResult.innerHTML = '<b>Status: ' + esc(state.body.status || 'unknown') +
+                        (state.body.conclusion ? ' / ' + esc(state.body.conclusion) : '') + '</b>' +
+                        (state.body.runUrl ? ' <a target="_blank" rel="noopener noreferrer" href="' +
+                        esc(state.body.runUrl) + '">Open run and patch</a>' : '');
+                    }
+                  }).catch(function () { executeResult.textContent = 'Status request failed.'; })
+                  .then(function () { checker.disabled = false; });
+              });
+            }).catch(function () { executeResult.textContent = 'Coding request failed.'; })
+            .then(function () { executeBtn.disabled = false; executeConfirm.checked = false; });
         });
       }
       renderSetup();

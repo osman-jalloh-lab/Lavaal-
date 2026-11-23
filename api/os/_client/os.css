@@ -254,7 +254,7 @@
 .os-root .harness-tabs{display:flex;gap:8px;margin:0 0 16px}
 .os-root .harness-tab.on{border-color:var(--accent);color:var(--text)}
 .os-root .harness-pickers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.os-root .harness-picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.os-root .harness-picks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .os-root .harness-pick{height:auto;min-height:44px;padding:8px 10px;justify-content:flex-start;align-items:flex-start;flex-direction:column;gap:2px;text-align:left}
 .os-root .harness-pick.on{border-color:var(--accent);color:var(--text)}
 .os-root .harness-pick .dot{margin-top:4px}
@@ -300,3 +300,9 @@
  .os-root .harness-picks,.os-root .harness-pickers,.os-root .harness-usage{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){.os-root *{animation:none!important;transition:none!important}}
+
+/* The coding runner is intentionally a separate, approval-gated action. */
+.os-root .harness-execution{border:1px solid var(--line);border-radius:var(--r-card);background:var(--bg2);padding:16px;margin-top:16px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.os-root .harness-execution h3,.os-root .harness-execution p{margin:0}
+.os-root .harness-execution label{display:flex;align-items:center;gap:8px;font-size:13px}
+.os-root .harness-execution .note{max-width:100%;overflow-wrap:anywhere}

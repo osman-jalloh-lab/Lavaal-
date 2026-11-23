@@ -295,9 +295,36 @@ async function run() {
   }
 
   {
+    const fetchImpl = async (url) => {
+      if (String(url).includes('api.x.ai/v1/chat/completions')) {
+        return { ok: true, status: 200, text: async () => JSON.stringify({
+          choices: [{ message: { content: 'Grok received the test request.' } }],
+          usage: { prompt_tokens: 13, completion_tokens: 9 },
+        }) };
+      }
+      throw new Error('unexpected provider endpoint');
+    };
+    const { res } = await call('chat', {
+      body: { project: 'lavaall', harness: 'grok', message: 'Verify xAI routing.' },
+    }, { env: { XAI_API_KEY: 'synthetic-xai-key' }, fetchImpl });
+    check('Grok uses the configured xAI API and returns provider token usage without fabricating charges',
+      res.statusCode === 200 && res.body.harness === 'grok'
+      && res.body.reply === 'Grok received the test request.'
+      && res.body.usage.inputTokens === 13 && res.body.usage.outputTokens === 9
+      && res.body.billedUsd === null);
+  }
+  {
+    const { res } = await call('chat', {
+      body: { project: 'lavaall', harness: 'grok', message: 'Verify disabled connection.' },
+    }, { env: {} });
+    check('Grok with no xAI credential stays disabled', res.statusCode === 409
+      && res.body.error === 'key_missing' && /XAI_API_KEY/.test(res.body.message));
+  }
+
+  {
     const snap = await chat.usageSnapshot({}, async () => { throw new Error('no network'); });
     check('usage without keys is not available, never a number',
-      snap.providers.length === 3
+      snap.providers.length === 4
       && snap.providers.every((p) => p.available === false && p.total == null)
       && snap.providers.every((p) => /key missing|not available/i.test(p.reason)));
   }
@@ -352,7 +379,7 @@ async function run() {
     const page = mockRes();
     await ops(reqFor('usage', {}), page);
     check('ops index serves /ops/harness/usage for a signed-in founder',
-      page.statusCode === 200 && Array.isArray(page.body && page.body.providers) && page.body.providers.length === 3);
+      page.statusCode === 200 && Array.isArray(page.body && page.body.providers) && page.body.providers.length === 4);
   }
 
   const failed = results.filter((r) => !r.pass);

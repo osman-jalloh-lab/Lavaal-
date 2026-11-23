@@ -49,11 +49,11 @@ check('page data never includes the API key value', !JSON.stringify(data.harness
 
 const html = OS.views.harness.render({ id: 'harness', sub: '', data });
 check('page heading is Harness', /<h1>Harness<\/h1>/.test(html));
-check('explains type-and-send and that Gemini is off', /type what you want done/.test(html) && /Gemini is off/.test(html));
+check('explains real capabilities and that Gemini is off', /Connected provider APIs can answer here/.test(html) && /Gemini is off/.test(html));
 check('Home and Chat tabs are present', /data-harness-tab="home"/.test(html) && /data-harness-tab="chat"/.test(html));
 check('group picker lists the four groups', /id="harness-group"/.test(html) && /value="lavaall"/.test(html) && /LAVAALL/.test(html) && /SaloneWorks/.test(html) && /Starlink/.test(html) && /SaloneHire/.test(html));
 check('project dropdown includes SaloneHire', /id="harness-project"/.test(html) && /value="salonehire"/.test(html) && /SaloneHire/.test(html));
-check('three visible harness buttons, Gemini off', /data-harness="codex"/.test(html) && /data-harness="claude"/.test(html) && /data-harness="deepseek"/.test(html) && !/data-harness="gemini"/.test(html));
+check('four visible harness buttons, Gemini off', /data-harness="codex"/.test(html) && /data-harness="claude"/.test(html) && /data-harness="deepseek"/.test(html) && /data-harness="grok"/.test(html) && !/data-harness="gemini"/.test(html));
 check('no copy-command UI', !/id="harness-copy"/.test(html) && !/Copy command/.test(html) && !/lavaall-ai codex/.test(html));
 check('Claude model picker defaults to Sonnet and offers Haiku and Opus', /id="harness-model"/.test(html) && /value="sonnet" selected/.test(html) && /value="haiku"/.test(html) && /value="opus"/.test(html));
 check('composer lets the founder type a request and send it', /id="harness-form"/.test(html) && /id="harness-input"/.test(html) && /id="harness-send">Send</.test(html));
