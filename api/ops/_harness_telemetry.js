@@ -14,7 +14,7 @@ function normalizeUsage(harness, body) {
     output = nonnegative(raw.output_tokens);
     cached = nonnegative(raw.cache_read_input_tokens);
     // Anthropic splits cached reads from uncached input; don't sum these into input.
-  } else if (harness === 'codex' || harness === 'deepseek') {
+  } else if (harness === 'codex' || harness === 'deepseek' || harness === 'grok') {
     input = nonnegative(raw.prompt_tokens);
     output = nonnegative(raw.completion_tokens);
     cached = nonnegative(raw.prompt_tokens_details && raw.prompt_tokens_details.cached_tokens);
