@@ -124,7 +124,7 @@ check('the pack is bundled by literal require() calls', /require\('\.\.\/os\/_da
 const cfg = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
 check('no vercel.json functions entry for api/os is needed or added', !Object.keys(cfg.functions || {}).some((k) => k.startsWith('api/os')));
 check('the pack is never written: no KV or file writes in the adapter or the pack loader', !/writeFile|appendFile|kvSet|writeStore|'SET'|"SET"/.test(adapter + index));
-check('the adapter makes no network or model calls', !/@anthropic|require\(['"]openai|\bXAI_|\bfetch\(/i.test(adapter.replace(/\/\/.*$/gm, '').replace(/function kvGet[\s\S]*?\n}\n/, '')));
+check('the adapter makes no network or model calls', !/@anthropic|require\(['"]openai|process\.env\.(?:ANTHROPIC|OPENAI|XAI_)|\bfetch\(/i.test(adapter.replace(/\/\/.*$/gm, '').replace(/function kvGet[\s\S]*?\n}\n/, '')));
 
 const failedChecks = results.filter((r) => !r.pass);
 results.forEach((r) => console.log(`${r.pass ? 'ok  ' : 'FAIL'} ${r.name}`));
