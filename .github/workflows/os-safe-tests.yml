@@ -2,7 +2,7 @@ name: LAVAALL OS safe tests
 on:
   push:
     branches:
-      - feature/os-codex-actions-runner
+      - 'feature/os-*'
   pull_request:
     paths:
       - 'api/os/**'
@@ -21,3 +21,13 @@ jobs:
           persist-credentials: false
       - name: Run isolated no-network regression suite
         run: node tests/run-safe-suite.js
+
+  goal-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Test durable goal store with fake KV
+        run: node --require ./tests/network-guard.js tests/test-harness-goals.js

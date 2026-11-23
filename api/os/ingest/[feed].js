@@ -4,8 +4,10 @@
 // change is needed). Bearer auth with OPS_CEO_BRIDGE_SECRET; see api/os/_data/INGEST.md.
 // /os itself stays read-only: it only reads what these write.
 
-const { handleIngest } = require('../../ops/_os_ingest');
+const { handleIngest, feedName } = require('../../ops/_os_ingest');
+
+const { handleProjectIntake } = require('../../ops/_os_intake');
 
 module.exports = async function handler(req, res) {
-  return handleIngest(req, res);
+  return feedName(req) === 'project-intake' ? handleProjectIntake(req, res) : handleIngest(req, res);
 };

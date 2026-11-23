@@ -1,3 +1,21 @@
+# HANDOFF — PR #103 /goal + handoffs v1 (branch `feature/os-goal-handoffs-v1`)
+
+Status: DRAFT. No merge, no deploy, no env or settings changes. `/goal` = engineering objective inside the OS; `/project` intake is built separately and is not in this branch.
+
+## Done (Nov 22, 2026 fix pass)
+- `api/os/_client/harness.js`: fixed over-escaped `/goal` regexes (`/^\\/goal.../` → `/^\/goal(?:\s|$)/i`) that made app.js fail to compile.
+- Checkpoint UI now has an optional evidence link field and a goal state select; Save sends `state` and `evidenceUrl` (omitted when empty) and reloads the goal list. Goal buttons show the current state.
+- `api/ops/_harness_goals.js` `checkpoint()`: after the append, the goal record is updated (`state`, `updatedAt`, `latestCheckpointId`) with `SET ... XX`; response includes `goal`. Checkpoints remain `verification: 'unverified'`; `execution` is unchanged.
+- `tests/test-harness-goals.js`: fake KV supports `XX`; asserts goal.state/latestCheckpointId update, invalid state rejected without changing the goal, client source compiles and sends evidenceUrl/state.
+
+## Tests
+- Local `node tests/run-safe-suite.js`: TOTAL 90; PASS 90; FAIL 0 (was 88/90).
+
+## Next step
+- Founder reviews CI + preview. Known limit: the goal update is read-modify-write (last writer wins); checkpoints are not verified against GitHub yet — that belongs to the shared-memory / verified-runs work.
+
+---
+
 # HANDOFF — OS harness chat
 
 - Branch: `feature/os-harness-chat`
@@ -105,3 +123,19 @@ No paid provider calls were made while building this. Tests mock those HTTP APIs
   - /os: https://lavaal-git-feature-os-harness-chat-osman14.vercel.app/os
   - Inspector: https://vercel.com/osman14/lavaal/8p2SFbSG915hivTWQK3LvyCMQK5o
 - Vercel check: Ready (22 Nov 2026, 8:41 PM CT, America/Chicago). No merge or production deploy. Chat stays on the `key_missing` path until the keys are added in Vercel settings.
+
+## OS project intake + provider registry (feature/os-project-intake, draft)
+
+- **Endpoint:** `POST /api/os/ingest/project-intake` (existing dynamic function; no new Vercel function). `OS_INTAKE_TOKEN` bearer (>=32 chars, distinct from bridge/session secrets, constant-time) only authenticates the sender; it creates no session and works on no other route.
+- **Consent (S2 done):** one founder-approval record type in `api/ops/_approvals.js`. Only Osman's signed-in session can mint it: `POST /ops/harness/approvals` (existing founder `deny()` gate + same-origin check; session email must be in `APPROVERS`, currently only osmanjalloh104@gmail.com; sign-in allowlist and cookie behaviour unchanged) with `{ action: 'intake_create', payload: <intake body without approval_id> }`. The server validates the payload and stores `approvals:<appr-uuid>` = `{ action, requestHash, approver, createdVia: 'founder_session', expiresAt (15 min) }`. The intake must send that `approval_id`; it is consumed once via `approvals-used:<id>` (SET NX) and must match action + request hash + expiry. The token alone can no longer mint an approval. Built so plan approval and code runs can add their action names and consume the same record later.
+- **Request hash:** `sha256("lavaall-os-intake-v2\n" + canonicalJson(body without approval_id))`; the idempotency key is inside the hash.
+- **S3 done:** a catalog project is used only when `existing_os_project` is given. Every other intake becomes a pending stub with id `stub-<slug>` (never a catalog name), repository null, claimed repo stored unverified.
+- **S5 done:** any unknown field (top level or project) -> 400 `unknown_field`; field names are not echoed. Email/phone-like text -> 400 `pii_detected`.
+- **S6 done:** goals with `source: business_intake` are inserted into chat prompts inside an `UNTRUSTED_INTAKE_TEXT` block labelled as data, not instructions (`api/ops/_harness_chat.js`). Founder-created goals keep #103's format.
+- **S4 done:** `rootFor(env)` in `api/ops/_harness_goals.js` owns every goals/intake/approval key prefix. Production: `lavaall:goals:v1:<kind>:<id>` (unchanged from #103). Everything else: `lavaall:preview:goals:v1:<kind>:<id>`. Kinds: `item`, `events`, `project`, `catalog`, `tasks`, `approvals`, `approvals-used`, `intake`, `intake-idem`, `intake-rate`. Preview approvals cannot be used in production. Goals created on #103 Previews before S4 sit under the old root and are no longer listed by Preview.
+- **S1 done:** 404 unless `VERCEL_ENV=preview`, or production with `OS_INTAKE_PRODUCTION_ENABLED=1` (not set anywhere). Completed identical requests replay their stored 200 even after the approval expires (N1).
+- **Registry:** `tools/lavaall-ai/providers.json`, `GET /ops/harness/providers` (founder session, `configured` booleans only).
+- **Env / test status (22 Nov 2026, CT):** `OS_INTAKE_TOKEN` is a sensitive Preview var scoped to branch `feature/os-project-intake` only; no Production token. Preview and Production share the same KV variables; S4 keeps the keys apart. No KV-writing live test has run (POST through deployment protection needs `vercel login` on the box or an approved bypass). Rotate/remove the token after testing.
+- **Approve intake UI:** `/os/?intake=<base64url JSON>#harness` (signed in) shows a "Pending project intake" card with the documented fields escaped and an Approve button -> `POST /ops/harness/approvals`; shows approval ID + expiry. Cards with unknown fields show no button.
+- **Live Preview tests (23 Nov 2026, 12:00 AM CT, `vercel curl`, head a04d59c):** no token 401; bare founder_approved 400 `unverified_approval_field`; made-up approval_id 403 `approval_not_found`; unknown field 400 `unknown_field`. Positive 201 needs Osman's Approve click.
+- **Next steps / open:** UI picker wiring for the registry, send-time cost approval, the business-assistant `/project` side, N2 partial-failure cleanup after the goal is written.

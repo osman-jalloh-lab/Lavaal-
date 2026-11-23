@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "reviewed": "2026-11-22",
+  "default_chat_provider": "codex",
+  "disabled_providers": ["gemini"],
+  "providers": [
+    {"id":"codex","label":"Codex","vendor":"OpenAI / Codex","env_key":"OPENAI_API_KEY","enabled":true,"default_model":"gpt-4.1","models":[
+      {"id":"gpt-4.1","label":"GPT-4.1","type":"hosted_chat","execution_environment":"hosted_chat_api","cost_tier":"standard","requires_approval":false,"account_verified":false,"notes":"The OPENAI_HARNESS_MODEL environment variable can override the chat model."},
+      {"id":"github-actions-codex-runner","label":"Codex coding runner (GitHub Actions, PR #102)","type":"coding_agent","execution_environment":"github_actions_codex","cost_tier":"standard","requires_approval":true,"account_verified":false,"notes":"Preview-only for the LAVAALL repo, with a daily cap and patch artifact. Dispatch does not mean verified execution."}
+    ]},
+    {"id":"claude","label":"Claude","vendor":"Anthropic","env_key":"ANTHROPIC_API_KEY","enabled":true,"default_model":"claude-sonnet-4-5","models":[
+      {"id":"claude-sonnet-4-5","alias":"sonnet","label":"Sonnet","type":"hosted_chat","execution_environment":"hosted_chat_api","cost_tier":"standard","requires_approval":false,"account_verified":false,"notes":""},
+      {"id":"claude-haiku-4-5","alias":"haiku","label":"Haiku","type":"hosted_chat","execution_environment":"hosted_chat_api","cost_tier":"low","requires_approval":false,"account_verified":false,"notes":""},
+      {"id":"claude-opus-4-5","alias":"opus","label":"Opus","type":"hosted_chat","execution_environment":"hosted_chat_api","cost_tier":"high","requires_approval":true,"account_verified":false,"notes":"Requires cost approval."}
+    ]},
+    {"id":"deepseek","label":"DeepSeek","vendor":"DeepSeek","env_key":"DEEPSEEK_API_KEY","enabled":true,"default_model":"deepseek-flash","models":[
+      {"id":"deepseek-flash","label":"DeepSeek Flash","type":"hosted_chat","execution_environment":"hosted_chat_api","cost_tier":"low","requires_approval":false,"account_verified":false,"notes":""}
+    ]},
+    {"id":"grok","label":"Grok","vendor":"xAI","env_key":"XAI_API_KEY","enabled":true,"default_model":"grok-4.7","models":[
+      {"id":"grok-4.7","label":"Grok 4.7","type":"hosted_chat","execution_environment":"hosted_chat_api","cost_tier":"standard","requires_approval":false,"account_verified":false,"notes":"OS Grok is an engineering chat option; business HQ stays in the business assistant."},
+      {"id":"grok-4.3","label":"Grok 4.3","type":"hosted_chat","execution_environment":"hosted_chat_api","cost_tier":"standard","requires_approval":false,"account_verified":false,"notes":"Used by the xAI operations integration."}
+    ]}
+  ]
+}
