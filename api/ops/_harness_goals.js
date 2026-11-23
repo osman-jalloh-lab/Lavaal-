@@ -71,28 +71,39 @@ async function detail(env, fetchImpl, id) {
     note: 'Checkpoints are submitted assertions, not verified provider execution.' });
 }
 async function list(env, fetchImpl, project) {
-  if (!PROJECTS.has(project)) return reply(400, { error: 'unknown_project' });
+  if (!await knownProject(env, fetchImpl, project)) return reply(400, { error: 'unknown_project' });
   const ids = await command(env, fetchImpl, ['LRANGE', indexKey(project), 0, 19]);
   const records = await Promise.all((Array.isArray(ids) ? ids : [])
     .map(id => getGoal(env, fetchImpl, id)));
   const goals = records.filter(g => g && g.project === project);
   return reply(200, { project, goals, persist: true });
 }
+async function knownProject(env, fetchImpl, name) {
+  if (PROJECTS.has(name)) return true;
+  // Pending stubs created by the business intake (api/ops/_os_intake.js). Slug shape only.
+  if (typeof name !== 'string' || !/^[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$/.test(name)) return false;
+  return Boolean(await command(env, fetchImpl, ['GET', ROOT + 'catalog:' + name]));
+}
 async function create(env, fetchImpl, body) {
   if (!PROJECTS.has(body.project)) return reply(400, { error: 'unknown_project' });
   const objective = clean(body.objective, MAX_GOAL);
   if (!objective) return reply(400, { error: 'invalid_objective', maxLength: MAX_GOAL });
+  const goal = await createGoal(env, fetchImpl, { project: body.project, objective });
+  return reply(201, { goal, note: 'Goal recorded. No model was called and no coding run started.' });
+}
+async function createGoal(env, fetchImpl, input) {
   const id = 'goal-' + crypto.randomUUID();
-  const goal = { id, project: body.project, objective, state: 'planned',
-    createdAt: new Date().toISOString(), createdBy: 'founder',
-    repository: body.project === 'salonehire' || body.project === 'saloneworks'
-      ? 'osman-jalloh-lab/saloneworks' : body.project === 'lavaall'
+  const goal = { id, project: input.project, objective: input.objective, state: 'planned',
+    createdAt: input.createdAt || new Date().toISOString(), createdBy: input.createdBy || 'founder',
+    repository: input.project === 'salonehire' || input.project === 'saloneworks'
+      ? 'osman-jalloh-lab/saloneworks' : input.project === 'lavaall'
         ? 'osman-jalloh-lab/Lavaal-' : null,
     execution: 'not_started' };
+  if (input.source) Object.assign(goal, { source: input.source, intakeId: input.intakeId, approvalId: input.approvalId, intake: input.intake });
   const result = await command(env, fetchImpl, ['SET', key(id), JSON.stringify(goal), 'NX']);
   if (result !== 'OK') throw new Error('store_unavailable');
   await command(env, fetchImpl, ['LPUSH', indexKey(goal.project), id]);
-  return reply(201, { goal, note: 'Goal recorded. No model was called and no coding run started.' });
+  return goal;
 }
 async function checkpoint(env, fetchImpl, body) {
   const goal = await getGoal(env, fetchImpl, body.id);
@@ -132,4 +143,4 @@ async function handle(req, env, fetchImpl) {
     return reply(400, { error: 'unknown_action' });
   } catch { return reply(503, { error: 'goal_store_unavailable' }); }
 }
-module.exports = { handle, allowedOrigin, allowedUrl, ID_RE, MAX_GOAL };
+module.exports = { handle, allowedOrigin, allowedUrl, ID_RE, MAX_GOAL, command, createGoal, knownProject, ROOT };

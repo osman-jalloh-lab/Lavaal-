@@ -123,3 +123,12 @@ No paid provider calls were made while building this. Tests mock those HTTP APIs
   - /os: https://lavaal-git-feature-os-harness-chat-osman14.vercel.app/os
   - Inspector: https://vercel.com/osman14/lavaal/8p2SFbSG915hivTWQK3LvyCMQK5o
 - Vercel check: Ready (22 Nov 2026, 8:41 PM CT, America/Chicago). No merge or production deploy. Chat stays on the `key_missing` path until the keys are added in Vercel settings.
+
+## OS project intake + provider registry (feature/os-project-intake, draft)
+
+- `POST /api/os/ingest/project-intake` accepts a business-assistant project intake with a dedicated `OS_INTAKE_TOKEN` bearer token and a signed, allowlisted founder approval. The token must be at least 32 characters and distinct from the bridge and session secrets; it does not create a session or authorize other routes.
+- Sign `lavaall-os-intake-v1\n` followed by recursively key-sorted, compact JSON of the complete request with `approval.signature` removed using HMAC-SHA256 and the intake token. Send the lowercase hexadecimal digest as `approval.signature`. Approval timestamps must be within the accepted window and IDs cannot be reused.
+- Intake uses the existing `lavaall:goals:v1:` KV root: `intake-rate:<UTC date>`, `intake-idem:<key hash>`, `approvals:<approval id>`, `catalog:<slug>`, `intake:<intake id>`, and the existing goal item, project index and task keys. Idempotent replay returns the recorded result.
+- A known catalog project is reused; otherwise a pending project stub records the claimed repository without verifying it or granting access. Intake creates a planned goal and proposed task, not a repository or execution.
+- The reviewed provider/model registry is `tools/lavaall-ai/providers.json`, exposed to signed-in founders through `GET /ops/harness/providers`. Provider configuration is reported as a boolean only.
+- UI picker wiring and send-time approval enforcement are next steps. `OS_INTAKE_TOKEN` has not been set anywhere by this work; there is no production token. No model is called, code executed, access granted, repository created, or mail sent by intake. See `docs/os/PROJECT_INTAKE.md` for the contract.

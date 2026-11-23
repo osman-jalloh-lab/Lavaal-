@@ -104,4 +104,4 @@ async function handleIngest(req, res, opts) {
   }
 }
 
-module.exports = { handleIngest };
+module.exports = { handleIngest, feedName };

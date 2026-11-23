@@ -17,6 +17,7 @@ const { readLiveSession } = require('./_signin_hardening');
 const { normalizeUsage } = require('./_harness_telemetry');
 const coding = require('./_harness_execute');
 const goals = require('./_harness_goals');
+const { publicRegistry } = require('./_provider_registry');
 
 const CATALOG = require('../../tools/lavaall-ai/projects.json');
 const RULES_PATH = path.join(__dirname, '../../tools/lavaall-ai/RULES.md');
@@ -41,6 +42,7 @@ function harnessKind(req) {
   const area = String(firstQuery(req, 'area') || '');
   const pathOnly = String(req.url || '').split('?')[0];
   const hay = `${area} ${pathOnly}`.toLowerCase();
+  if (/harness\/providers(?:\/|$|\?)/.test(hay)) return 'providers';
   if (/harness\/chat(?:\/|$|\?)/.test(hay) || /harness\/chat$/.test(hay.trim())) return 'chat';
   if (/harness\/history/.test(hay)) return 'history';
   if (/harness\/usage/.test(hay)) return 'usage';
@@ -563,6 +565,11 @@ async function handleHarnessChat(req, res, opts) {
   const fetchImpl = (opts && opts.fetchImpl) || globalThis.fetch;
   const access = await deny(req, res);
   if (access === true) return true;
+  if (kind === 'providers') {
+    if (req.method !== 'GET') json(res, 405, { error: 'method_not_allowed' });
+    else json(res, 200, publicRegistry(env));
+    return true;
+  }
   if (kind === 'goals') {
     const result = await goals.handle({ ...req, query: queryOf(req), body: readBody(req) }, env, fetchImpl);
     json(res, result.status, result.body);
