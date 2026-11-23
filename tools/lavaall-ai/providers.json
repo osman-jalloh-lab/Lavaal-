@@ -20,5 +20,156 @@
       {"id":"grok-4.7","label":"Grok 4.7","type":"hosted_chat","execution_environment":"hosted_chat_api","cost_tier":"standard","requires_approval":false,"account_verified":false,"notes":"OS Grok is an engineering chat option; business HQ stays in the business assistant."},
       {"id":"grok-4.3","label":"Grok 4.3","type":"hosted_chat","execution_environment":"hosted_chat_api","cost_tier":"standard","requires_approval":false,"account_verified":false,"notes":"Used by the xAI operations integration."}
     ]}
+  ],
+  "agents": [
+    {
+      "id": "codex-engineering",
+      "label": "Codex",
+      "role": "implementation",
+      "providers": ["codex"],
+      "models": ["gpt-4.1", "github-actions-codex-runner"],
+      "tools": ["hosted_chat_api", "github_actions_codex"],
+      "skills": ["codebase-inspection", "test-driven-development", "repo-change-planner", "build-validation-runner", "project-starter"],
+      "cost_class": "standard",
+      "approval_requirements": { "hosted_chat": false, "coding_agent": true, "cost_approval_models": [] },
+      "notes": "Hosted chat uses the OpenAI API key env var. The coding runner is Preview-only, approval-gated, and is not verified execution. Skill IDs are candidate matches, not a claim the runner executes those skills."
+    },
+    {
+      "id": "claude-engineering",
+      "label": "Claude",
+      "role": "design",
+      "providers": ["claude"],
+      "models": ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-5"],
+      "tools": ["hosted_chat_api"],
+      "skills": ["frontend-design", "codebase-inspection", "github-code-review"],
+      "cost_class": "model_specific",
+      "approval_requirements": { "hosted_chat": true, "coding_agent": false, "cost_approval_models": ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-opus-4-5"] },
+      "notes": "Opus, Sonnet and Haiku stay behind cost approval. Skill IDs are candidate matches only. No skill scripts are executed from this registry."
+    },
+    {
+      "id": "deepseek-engineering",
+      "label": "DeepSeek",
+      "role": "implementation",
+      "providers": ["deepseek"],
+      "models": ["deepseek-flash"],
+      "tools": ["hosted_chat_api"],
+      "skills": ["codebase-inspection", "test-driven-development"],
+      "cost_class": "low",
+      "approval_requirements": { "hosted_chat": false, "coding_agent": false, "cost_approval_models": [] },
+      "notes": "Hosted chat only. Skill IDs are candidate matches only."
+    },
+    {
+      "id": "grok-engineering",
+      "label": "Grok",
+      "role": "engineering_chat",
+      "providers": ["grok"],
+      "models": ["grok-4.7", "grok-4.3"],
+      "tools": ["hosted_chat_api"],
+      "skills": ["codebase-inspection", "repo-change-planner"],
+      "cost_class": "standard",
+      "approval_requirements": { "hosted_chat": false, "coding_agent": false, "cost_approval_models": [] },
+      "notes": "OS Grok is an engineering chat option; business HQ stays in the business assistant. Skill IDs are candidate matches only."
+    }
+  ],
+  "skills": [
+    {
+      "id": "codebase-inspection",
+      "name": "codebase-inspection",
+      "purpose": "Inspect codebases with pygount: lines of code, languages, and ratios.",
+      "source": "myos",
+      "source_path": "osman-jalloh-lab/myos/skills/codebase-inspection/SKILL.md",
+      "source_sha": "d42b9a2292a243b14f30d25ee1e1021fd736eef4",
+      "class": "instructions_only",
+      "reviewed": false,
+      "execution_allowed": false
+    },
+    {
+      "id": "frontend-design",
+      "name": "frontend-design",
+      "purpose": "Create distinctive, production-grade frontend interfaces with high design quality.",
+      "source": "myos",
+      "source_path": "osman-jalloh-lab/myos/skills/frontend-design/SKILL.md",
+      "source_sha": "fbfd86244fba8b71fade2ca8ed37d557d1a85fbe",
+      "class": "instructions_only",
+      "reviewed": false,
+      "execution_allowed": false
+    },
+    {
+      "id": "github-code-review",
+      "name": "github-code-review",
+      "purpose": "Review pull requests: diffs and inline comments via gh or the REST API.",
+      "source": "myos",
+      "source_path": "osman-jalloh-lab/myos/skills/github-code-review/SKILL.md",
+      "source_sha": "b58309235126fec4c785fb22ebef5daa53e50e48",
+      "class": "instructions_only",
+      "reviewed": false,
+      "execution_allowed": false
+    },
+    {
+      "id": "test-driven-development",
+      "name": "test-driven-development",
+      "purpose": "Enforce red-green-refactor test-driven development, with tests written before code.",
+      "source": "myos",
+      "source_path": "osman-jalloh-lab/myos/skills/test-driven-development/SKILL.md",
+      "source_sha": "67fd061ea7bcb4181a4251e85db7ddad3ef7aa21",
+      "class": "instructions_only",
+      "reviewed": false,
+      "execution_allowed": false
+    },
+    {
+      "id": "project-starter",
+      "name": "project-starter",
+      "purpose": "Guide a new project from idea through architecture into a first build plan.",
+      "source": "myos",
+      "source_path": "osman-jalloh-lab/myos/skills/project-starter/SKILL.md",
+      "source_sha": "d6596886e9e3e64c987b7a0b9fcdb5eea57c590c",
+      "class": "instructions_only",
+      "reviewed": false,
+      "execution_allowed": false
+    },
+    {
+      "id": "repo-change-planner",
+      "name": "repo-change-planner",
+      "purpose": "Plan safe code changes before edits and keep rollback options explicit.",
+      "source": "myos",
+      "source_path": "osman-jalloh-lab/myos/skills/repo-change-planner/SKILL.md",
+      "source_sha": "39b05f32ae5c8def8e1b6827ae268772ab1db488",
+      "class": "instructions_only",
+      "reviewed": false,
+      "execution_allowed": false
+    },
+    {
+      "id": "build-validation-runner",
+      "name": "build-validation-runner",
+      "purpose": "Run or recommend validation commands after code changes.",
+      "source": "myos",
+      "source_path": "osman-jalloh-lab/myos/skills/build-validation-runner/SKILL.md",
+      "source_sha": "de247cd7bd3c4f3729ae8531f9f16811f7070275",
+      "class": "instructions_only",
+      "reviewed": false,
+      "execution_allowed": false
+    },
+    {
+      "id": "skill-registry-maintenance",
+      "name": "skill-registry-maintenance",
+      "purpose": "Maintain the skill registry, frontmatter metadata, and routing alignment.",
+      "source": "myos",
+      "source_path": "osman-jalloh-lab/myos/skills/skill-registry-maintenance/SKILL.md",
+      "source_sha": "8773b4e08516460e0b405d2b6e3ab09336704784",
+      "class": "instructions_only",
+      "reviewed": false,
+      "execution_allowed": false
+    },
+    {
+      "id": "obsidian",
+      "name": "obsidian",
+      "purpose": "Read, search, create, and edit notes in an Obsidian vault.",
+      "source": "myos",
+      "source_path": "osman-jalloh-lab/myos/skills/obsidian/SKILL.md",
+      "source_sha": "bc3d1f79061c9e24069c9c05f01ce2e99f94875f",
+      "class": "instructions_only",
+      "reviewed": false,
+      "execution_allowed": false
+    }
   ]
 }

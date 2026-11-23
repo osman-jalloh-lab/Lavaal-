@@ -50,7 +50,8 @@ check('page data never includes the API key value', !JSON.stringify(data.harness
 const html = OS.views.harness.render({ id: 'harness', sub: '', data });
 check('page heading is Harness', /<h1>Harness<\/h1>/.test(html));
 check('explains real capabilities and that Gemini is off', /Connected provider APIs can answer here/.test(html) && /Gemini is off/.test(html));
-check('Home and Chat tabs are present', /data-harness-tab="home"/.test(html) && /data-harness-tab="chat"/.test(html));
+check('Usage, Chat and Agents & skills tabs are present', /data-harness-tab="home"/.test(html) && /data-harness-tab="chat"/.test(html) && /data-harness-tab="registry"/.test(html));
+check('registry panel is present', /id="harness-registry"/.test(html));
 check('group picker lists the four groups', /id="harness-group"/.test(html) && /value="lavaall"/.test(html) && /LAVAALL/.test(html) && /SaloneWorks/.test(html) && /Starlink/.test(html) && /SaloneHire/.test(html));
 check('project dropdown includes SaloneHire', /id="harness-project"/.test(html) && /value="salonehire"/.test(html) && /SaloneHire/.test(html));
 check('four visible harness buttons, Gemini off', /data-harness="codex"/.test(html) && /data-harness="claude"/.test(html) && /data-harness="deepseek"/.test(html) && /data-harness="grok"/.test(html) && !/data-harness="gemini"/.test(html));

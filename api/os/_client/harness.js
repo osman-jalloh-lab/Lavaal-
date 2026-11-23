@@ -81,14 +81,16 @@
       }
       return head +
         '<div class="harness-tabs" role="tablist">' +
-          '<button type="button" class="btn harness-tab on" data-harness-tab="home" role="tab" aria-selected="false">Usage</button>' +
+          '<button type="button" class="btn harness-tab" data-harness-tab="home" role="tab" aria-selected="false">Usage</button>' +
           '<button type="button" class="btn harness-tab on" data-harness-tab="chat" role="tab" aria-selected="true">Chat</button>' +
+          '<button type="button" class="btn harness-tab" data-harness-tab="registry" role="tab" aria-selected="false">Agents &amp; skills</button>' +
         '</div>' +
         '<section class="card harness-home hidden" id="harness-home">' +
           '<div class="ch">' + icon('spend') + '<h3>Usage and credit</h3></div>' +
           '<p class="dim" id="harness-usage-note">Loading usage from each provider’s free balance or usage endpoint. Totals are shown only when the provider returns them.</p>' +
           '<div class="harness-usage" id="harness-usage"><div class="empty"><b>Loading usage…</b></div></div>' +
         '</section>' +
+        '<section class="harness-registry hidden" id="harness-registry" aria-live="polite"><div class="empty"><b>Registry not loaded.</b></div></section>' +
         '<section class="harness-chat" id="harness-chat">' +
           '<div class="card harness-card">' +
             '<div class="harness-pickers">' +
@@ -163,6 +165,7 @@
       var usageNote = root.querySelector('#harness-usage-note');
       var home = root.querySelector('#harness-home');
       var chat = root.querySelector('#harness-chat');
+      var registryEl = root.querySelector('#harness-registry');
       if (!groupEl || !projEl) return;
 
       function currentGroup() {
@@ -271,8 +274,64 @@
         }
         if (home) home.classList.toggle('hidden', tab !== 'home');
         if (chat) chat.classList.toggle('hidden', tab !== 'chat');
+        if (registryEl) registryEl.classList.toggle('hidden', tab !== 'registry');
         if (tab === 'chat') loadHistory();
         if (tab === 'home') loadUsage();
+        if (tab === 'registry') loadRegistry();
+      }
+
+      function registryList(values) {
+        return (values || []).map(function (value) { return esc(value); }).join(', ') || 'None';
+      }
+
+      function registrySection(title, rows) {
+        return '<section class="card harness-registry-section"><div class="ch"><h3>' + title + '</h3></div>' +
+          (rows || '<div class="empty"><b>None reported.</b></div>') + '</section>';
+      }
+
+      function loadRegistry() {
+        if (!registryEl) return;
+        registryEl.innerHTML = '<div class="empty"><b>Loading registry…</b></div>';
+        api('providers', { method: 'GET' }).then(function (res) {
+          if (!res.ok) {
+            registryEl.innerHTML = '<div class="empty"><b>Registry could not be loaded.</b><small>' + esc(res.body.error || ('HTTP ' + res.status)) + '</small></div>';
+            return;
+          }
+          var agents = res.body.agents || [];
+          var providers = res.body.providers || [];
+          var skills = res.body.skills || [];
+          var agentRows = agents.map(function (a) {
+            var approval = a.approval_requirements || {};
+            return '<div class="li static harness-registry-row"><div><b>' + esc(a.label) + '</b> <span class="mono">' + esc(a.id) + '</span>' +
+              (approval.cost_approval_models && approval.cost_approval_models.length ? ' <span class="pill flag">Cost approval</span>' : '') +
+              '<p>Role: ' + esc(a.role) + ' · Cost class: ' + esc(a.cost_class) + '</p>' +
+              '<p>Providers: ' + registryList(a.providers) + '<br>Models: ' + registryList(a.models) +
+              '<br>Tools: ' + registryList(a.tools) + '<br>Skills: ' + registryList(a.skills) + '</p>' +
+              '<p>Hosted chat approval: ' + esc(String(approval.hosted_chat)) + ' · Coding agent approval: ' + esc(String(approval.coding_agent)) +
+              '<br>Cost approval models: ' + registryList(approval.cost_approval_models) + '</p></div></div>';
+          }).join('');
+          var modelRows = providers.map(function (p) {
+            var rows = (p.models || []).map(function (m) {
+              var costApproval = agents.some(function (a) {
+                return (a.approval_requirements && a.approval_requirements.cost_approval_models || []).indexOf(m.id) !== -1;
+              });
+              return '<div class="li static harness-registry-row"><div><b>' + esc(m.label || m.id) + '</b> <span class="mono">' + esc(m.id) + '</span>' +
+                (costApproval ? ' <span class="pill flag">Cost approval</span>' : '') +
+                '<p>Cost tier: ' + esc(m.cost_tier) + ' · Requires approval: ' + esc(String(m.requires_approval)) + '</p>' +
+                (m.notes ? '<p>' + esc(m.notes) + '</p>' : '') + '</div></div>';
+            }).join('');
+            return '<div class="harness-registry-provider"><h4>' + esc(p.label || p.id) + '</h4>' + (rows || '<div class="empty"><b>No models reported.</b></div>') + '</div>';
+          }).join('');
+          var skillRows = skills.map(function (s) {
+            return '<div class="li static harness-registry-row"><div><b>' + esc(s.name) + '</b> <span class="pill flag">Unreviewed</span>' +
+              '<p>' + esc(s.purpose) + '</p><p>Class: ' + esc(s.class) + ' · Reviewed: ' + esc(String(s.reviewed)) +
+              '<br>Source: <span class="mono">' + esc(s.source_path) + '</span><br>Pinned SHA: <span class="mono">' + esc(s.source_sha) + '</span></p></div></div>';
+          }).join('');
+          registryEl.innerHTML = registrySection('Agents', agentRows) + registrySection('Models', modelRows) +
+            '<p class="dim">Skills are unreviewed instructions only and are never executed from this page.</p>' + registrySection('Skills', skillRows);
+        }).catch(function () {
+          registryEl.innerHTML = '<div class="empty"><b>Registry could not be loaded.</b></div>';
+        });
       }
 
       function usageCard(p) {

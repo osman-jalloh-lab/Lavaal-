@@ -306,3 +306,10 @@
 .os-root .harness-execution h3,.os-root .harness-execution p{margin:0}
 .os-root .harness-execution label{display:flex;align-items:center;gap:8px;font-size:13px}
 .os-root .harness-execution .note{max-width:100%;overflow-wrap:anywhere}
+.os-root .harness-tabs{flex-wrap:wrap}
+.os-root .harness-registry{display:flex;flex-direction:column;gap:16px}
+.os-root .harness-registry.hidden{display:none}
+.os-root .harness-registry-section{overflow:hidden}
+.os-root .harness-registry-row{align-items:flex-start;overflow-wrap:anywhere}
+.os-root .harness-registry-row p{margin:6px 0;color:var(--tx2);font-size:13px;line-height:1.5}
+.os-root .harness-registry-provider h4{margin:12px 16px}
