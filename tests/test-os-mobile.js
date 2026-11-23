@@ -11,10 +11,10 @@ const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 const results = [];
 function check(name, cond) { results.push({ name, pass: !!cond }); }
 
-function loadOS() {
+function loadOS(data) {
   const sandbox = {
     window: {},
-    document: { querySelector: () => null, querySelectorAll: () => [], documentElement: { setAttribute() {}, getAttribute: () => 'dark' } },
+    document: { querySelector: (s) => s === '#os-data' ? { textContent: JSON.stringify(data || {}) } : null, querySelectorAll: () => [], documentElement: { setAttribute() {}, getAttribute: () => 'dark' } },
     location: { hash: '' }, setTimeout: () => 0, setInterval: () => 0, Intl,
   };
   vm.createContext(sandbox);
@@ -30,10 +30,35 @@ const { osPage } = require(path.join(root, 'api/os/_page.js'));
 // ---- the phone tab bar ----------------------------------------------------------
 const { TABS, MORE } = OS.mobile;
 const ids = OS.nav.map((n) => n.id);
-check('four primary tabs, then More', TABS.join() === 'home,desks,decisions,outreach');
-check('More holds Notes, Brain, AI Council, Spend and Settings', ['notes', 'brain', 'council', 'spend', 'settings'].every((id) => MORE.includes(id)));
-check('Routines moved into More so it stays reachable', MORE.includes('routines') && !TABS.includes('routines'));
-check('every view is reachable on a phone, exactly once', ids.every((id) => TABS.concat(MORE).filter((x) => x === id).length === 1) && TABS.concat(MORE).length === ids.length);
+check('default engineering tabs need no More', TABS.join() === 'harness,settings' && MORE.length === 0);
+const enabled = loadOS({ flags: { businessPages: true } }).mobile;
+check('flag restores four primary tabs, then More', enabled.TABS.join() === 'home,desks,decisions,outreach');
+check('More holds Notes, Brain, AI Council, Spend and Settings', ['notes', 'brain', 'council', 'spend', 'settings'].every((id) => enabled.MORE.includes(id)));
+check('Routines moved into More so it stays reachable', enabled.MORE.includes('routines') && !enabled.TABS.includes('routines'));
+check('every view is reachable on a phone, exactly once', ids.every((id) => enabled.TABS.concat(enabled.MORE).filter((x) => x === id).length === 1) && enabled.TABS.concat(enabled.MORE).length === ids.length);
+function shell(data, hash) {
+  const elements = {};
+  function element(id) {
+    if (!elements[id]) elements[id] = { innerHTML: '', textContent: '', value: '', classList: { add() {}, remove() {}, contains() { return false; } }, setAttribute() {}, addEventListener() {}, focus() {}, querySelector() { return null; } };
+    return elements[id];
+  }
+  element('#os-data').textContent = JSON.stringify(data);
+  const location = { hash, replace(value) { this.hash = value; } };
+  const sandbox = { window: { addEventListener() {} }, location, document: { querySelector: element, querySelectorAll: () => [], documentElement: { setAttribute() {}, getAttribute: () => 'dark' }, addEventListener() {} }, localStorage: { getItem() { return ''; } }, setTimeout(fn) { fn(); }, setInterval() {}, Intl };
+  vm.createContext(sandbox);
+  vm.runInContext(read('api/os/_client/core.js'), sandbox);
+  sandbox.window.OS.openPalette();
+  return { elements, location, OS: sandbox.window.OS };
+}
+const off = shell({}, '#brain/example');
+const hidden = ['home', 'outreach', 'desks', 'talk', 'notes', 'council', 'spend', 'routines', 'decisions', 'brain'];
+check('hidden route is replaced with AI room and crumb', off.location.hash === '#harness' && off.elements['#crumb'].textContent === 'AI room');
+check('default chrome contains only engineering views', hidden.every((id) => !off.elements['#nav'].innerHTML.includes('data-nav="' + id + '"') && !off.elements['#tabbar'].innerHTML.includes('href="#' + id + '"')) && off.elements['#nav'].innerHTML.includes('data-nav="harness"') && off.elements['#nav'].innerHTML.includes('data-nav="settings"') && !off.elements['#plist'].innerHTML.includes('Brain'));
+check('all hidden routes resolve to AI room', hidden.every((id) => { off.location.hash = '#' + id + '/detail'; return off.OS.parseRoute().id === 'harness'; }));
+const landing = shell({}, '');
+check('empty and unknown hashes land in AI room', landing.OS.parseRoute().id === 'harness' && landing.elements['#crumb'].textContent === 'AI room' && (landing.location.hash = '#unknown') && landing.OS.parseRoute().id === 'harness');
+const on = shell({ flags: { businessPages: true } }, '#home');
+check('enabled chrome restores business views and palette', hidden.every((id) => on.elements['#nav'].innerHTML.includes('data-nav="' + id + '"')) && on.elements['#plist'].innerHTML.includes('Open Brain graph'));
 check('tab bar renders a More button wired for assistive tech', ['id="tab-more"', 'aria-haspopup="dialog"', 'aria-expanded="false"', 'aria-controls="sheet"'].every((attr) => core.includes(attr)));
 check('More is marked active when the current view lives in it', /MORE\.indexOf\(cur\) !== -1 \? ' on' : ''/.test(core));
 check('the sheet closes on route change, Escape, scrim tap, second tap on More and widening past phone size', /closeMore\(\);\s*closeDrawer\(\)/.test(core) && /\$\('#sheet'\)\.classList\.contains\('on'\)\) \{ closeMore\(\)/.test(core) && /sheet-back/.test(core) && /if \(\$\('#sheet'\)\.classList\.contains\('on'\)\) closeMore\(\); else openMore\(\)/.test(core) && /innerWidth >= 760\) closeMore\(\)/.test(core));

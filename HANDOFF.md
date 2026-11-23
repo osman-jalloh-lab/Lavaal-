@@ -1,3 +1,13 @@
+## OS engineering-room cleanup (feature/os-engineering-cleanup, draft)
+
+- `OS_BUSINESS_PAGES` defaults off; only `1` or `true` enables the business pages. No environment variable was added in Vercel.
+- Hidden by default: Home, Outreach, Desks, Talk, Notes, AI Council, Spend, Routines, Decisions + Jev, and Brain. AI room (Harness) and Settings remain visible. Decisions + Jev is business HQ's decision log and scoring; Brain maps business desks, rules, skills, routines and decisions. Engineering work is in the AI room.
+- `/os` lands on AI room in both flag modes. The flag restores the previous business navigation and data loading; no business code was deleted and `/ops` business workflows were not changed.
+- Intake QA: intake links focus their approval card; approval confirmation explains what happens after submission; project and goal links select their records; intake stubs appear in the picker; intake response links use a safe request host; submitted intakes appear in the room.
+- S1–S6 and authentication remain unchanged. No secrets are included. `node tests/run-safe-suite.js` on 23 Nov 2026 (America/Chicago): TOTAL 95; PASS 95; FAIL 0 (94 files on the intake base, plus `tests/test-os-engineering-room-client.js`). Coverage includes both flag modes, the AI-room landing, intake-link focus and confirmation, project/goal links, stub projects, intake host and list, and disabled business fetches.
+
+---
+
 # HANDOFF — PR #103 /goal + handoffs v1 (branch `feature/os-goal-handoffs-v1`)
 
 Status: DRAFT. No merge, no deploy, no env or settings changes. `/goal` = engineering objective inside the OS; `/project` intake is built separately and is not in this branch.

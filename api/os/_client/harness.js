@@ -61,7 +61,31 @@
       '<p class="dim">Approving lets the business assistant create this project intake once, within 15 minutes. It creates a planned goal only: no repository, access, model call or code run.</p>' +
       '<button type="button" class="btn pri" id="harness-intake-approve">Approve intake</button>';
   }
-  OS.intakeReview = { decode: decodeIntake, review: reviewIntake, html: intakeCardHtml };
+  function focusCard(el) {
+    if (!el) return;
+    el.classList.add('harness-intake-focus');
+    if (el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+    if (typeof setTimeout === 'function') setTimeout(function () { el.classList.remove('harness-intake-focus'); }, 5000);
+  }
+  function approvalHtml(payload, approval) {
+    return 'Intake approved for <b>' + esc(payload.project.name) + '</b>. Once the business assistant submits it, a planned goal for the proposed next task will be created under this project. No repository, access, model call, or code run will be created. Find the project in this room’s project list and the goal under Goals &amp; handoffs after submission. Approval ID <code class="mono">' + esc(approval.approval_id) + '</code>, expires ' + esc(new Date(approval.expires_at).toLocaleString()) + '. Give this ID to the business assistant.';
+  }
+  function querySelection(search) {
+    var params = new URLSearchParams(search || '');
+    var project = params.get('project') || '', goal = params.get('goal') || '';
+    return { project: /^[A-Za-z0-9][A-Za-z0-9 _.-]{0,127}$/.test(project) ? project : '',
+      goal: /^goal-[A-Za-z0-9-]{1,100}$/.test(goal) ? goal : '' };
+  }
+  function findProject(groups, name) {
+    for (var i = 0; i < groups.length; i++) {
+      var projects = groups[i].projects || [];
+      for (var j = 0; j < projects.length; j++) if (projects[j].name === name) return { group: groups[i].id, project: name };
+    }
+    return null;
+  }
+  function projectLabel(p) { return (p.label || p.name) + (/^stub-/.test(p.name) ? ' — Pending — from intake' : ''); }
+  OS.intakeReview = { decode: decodeIntake, review: reviewIntake, html: intakeCardHtml, focusCard: focusCard, approvalHtml: approvalHtml };
+  OS.harnessSelection = { query: querySelection, findProject: findProject };
 
   function pack(data) {
     return data && data.harness ? data.harness : { projects: [], groups: [], status: [], note: '' };
@@ -103,7 +127,7 @@
         return '<option value="' + esc(g.id) + '"' + (g.id === first.id ? ' selected' : '') + '>' + esc(g.label) + '</option>';
       }).join('');
       var projOpts = (first.projects || []).map(function (p, i) {
-        return '<option value="' + esc(p.name) + '"' + (i === 0 ? ' selected' : '') + '>' + esc(p.label || p.name) + '</option>';
+        return '<option value="' + esc(p.name) + '"' + (i === 0 ? ' selected' : '') + '>' + esc(projectLabel(p)) + '</option>';
       }).join('');
       var buttons = HARNESSES.map(function (h, i) {
         var s = st[h.id] || { detail: '', state: 'missing' };
@@ -117,12 +141,13 @@
       var models = CLAUDE_MODELS.map(function (m, i) {
         return '<option value="' + esc(m.id) + '"' + (i === 0 ? ' selected' : '') + '>' + esc(m.label) + '</option>';
       }).join('');
-      var head = '<div class="ph"><div><h1>Harness</h1><p>Choose a project and send a message. Connected provider APIs can answer here; repository edits and CLI execution require a separately approved coding runner. Gemini is off.</p></div></div>';
+      var head = '<div class="ph"><div><h1>AI room</h1><p>This is your engineering room. Pick a project, then type a request. Connected AI providers can answer here. Running code or opening a repository still needs a separate approval. Gemini is off.</p></div></div>';
       var projectCount = groups.reduce(function (n, g) { return n + ((g.projects || []).length); }, 0);
-      if (!projectCount) {
-        var src = (data.sources && data.sources.harness && data.sources.harness.from) || 'tools/lavaall-ai/projects.json';
-        return head + '<section class="card"><div class="empty"><b>No projects are listed.</b><small>Source: ' + esc(src) + '</small></div></section>';
-      }
+      var emptyProjects = projectCount ? '' : '<div class="empty"><b>No projects are listed.</b><small>Ask the business assistant to send an approved project intake.</small></div>';
+      var intakes = data.intakes || [];
+      var intakeRows = intakes.map(function (item) {
+        return '<button type="button" class="btn" data-intake-project="' + esc(item.projectId || '') + '" data-intake-goal="' + esc(item.goalId || '') + '">' + esc(item.id || '') + ' · ' + esc(item.projectId || '') + ' · ' + esc(item.status || '') + ' · ' + esc(item.goalId || '') + (item.receivedAt ? ' · ' + esc(item.receivedAt) : '') + '</button>';
+      }).join('') || '<p class="dim">No project intakes yet. When the business assistant sends an approved /project request, it will show up here.</p>';
       return head +
         '<div class="harness-tabs" role="tablist">' +
           '<button type="button" class="btn harness-tab on" data-harness-tab="home" role="tab" aria-selected="false">Usage</button>' +
@@ -134,7 +159,7 @@
           '<div class="harness-usage" id="harness-usage"><div class="empty"><b>Loading usage…</b></div></div>' +
         '</section>' +
         '<section class="harness-chat" id="harness-chat">' +
-          '<div class="card harness-card">' +
+          '<div class="card harness-card">' + emptyProjects +
             '<div class="harness-pickers">' +
               '<label class="harness-field">Group' +
                 '<select class="harness-sel" id="harness-group" aria-label="Project group">' + groupOpts + '</select>' +
@@ -155,11 +180,12 @@
               '<textarea class="harness-input" id="harness-input" rows="3" maxlength="8000" placeholder="Type what you want done, for example: add a receipt hold for hired applicants." required></textarea>' +
               '<button type="submit" class="btn pri" id="harness-send">Send</button>' +
             '</form>' +
-            '<section class="harness-execution hidden" id="harness-intake">' +
+            '<section class="harness-execution' + (decodeIntake(window.location && window.location.search) ? '' : ' hidden') + '" id="harness-intake">' +
               '<h3>Pending project intake</h3>' +
               '<div id="harness-intake-body"></div>' +
               '<div class="note" id="harness-intake-result" role="status" aria-live="polite"></div>' +
             '</section>' +
+            '<section class="harness-execution" id="harness-intakes"><h3>Intakes</h3>' + intakeRows + '</section>' +
             '<section class="harness-execution" id="harness-goals">' +
               '<h3>Goals & handoffs</h3>' +
               '<p class="dim">Type <code class="mono">/goal your objective</code> in the Request box and press Send. Select a saved goal to share its checkpoints with any chat provider. No code runs automatically.</p>' +
@@ -230,7 +256,7 @@
       function fillProjects() {
         var list = currentGroup().projects || [];
         projEl.innerHTML = list.map(function (p, i) {
-          return '<option value="' + esc(p.name) + '"' + (i === 0 ? ' selected' : '') + '>' + esc(p.label || p.name) + '</option>';
+          return '<option value="' + esc(p.name) + '"' + (i === 0 ? ' selected' : '') + '>' + esc(projectLabel(p)) + '</option>';
         }).join('');
       }
 
@@ -296,6 +322,7 @@
         if (!proj || !thread) return;
         drawThread([], false);
         api('history?project=' + encodeURIComponent(proj.name), { method: 'GET' }).then(function (res) {
+          if (!currentProject() || currentProject().name !== proj.name) return;
           if (!res.ok) {
             if (res.status === 401) {
               drawThread([], false);
@@ -306,6 +333,7 @@
           }
           drawThread(res.body.messages || [], false);
         }).catch(function () {
+          if (!currentProject() || currentProject().name !== proj.name) return;
           drawThread([], false);
         });
       }
@@ -356,19 +384,22 @@
         var p = currentProject();
         if (!p) return;
         api('goals?project=' + encodeURIComponent(p.name), { method: 'GET' }).then(function (res) {
+          if (!currentProject() || currentProject().name !== p.name) return;
           if (!res.ok) {
             goalList.textContent = 'Goals unavailable: ' + (res.body.error || res.status);
             return;
           }
           var rows = res.body.goals || [];
+          if (selectedGoal && !rows.some(function (g) { return g.id === selectedGoal; })) selectedGoal = '';
           goalList.innerHTML = rows.length ? rows.map(function (g) {
             return '<button type="button" class="btn" data-goal-id="' + esc(g.id) +
               '" aria-pressed="' + (selectedGoal === g.id ? 'true' : 'false') +
               '">' + esc(g.objective + ' (' + g.state + ')') + '</button>';
-          }).join(' ') : '<p class="dim">No saved goals for this project yet.</p>';
+          }).join(' ') : '<p class="dim">No goals yet. Type /goal followed by your objective in the Request box and press Send.</p>';
           if (goalStatus) goalStatus.textContent = selectedGoal
             ? 'Active goal: ' + selectedGoal : 'Select a goal to include its handoff in provider chat.';
         }).catch(function () {
+          if (!currentProject() || currentProject().name !== p.name) return;
           goalList.textContent = 'Unable to load goals.';
         });
       }
@@ -379,14 +410,14 @@
         var intakeResult = root.querySelector('#harness-intake-result');
         intakeBody.innerHTML = intakeCardHtml(reviewIntake(intakePayload));
         intakeCard.classList.remove('hidden');
+        focusCard(intakeCard);
         var approveBtn = root.querySelector('#harness-intake-approve');
         if (approveBtn) approveBtn.addEventListener('click', function () {
           approveBtn.disabled = true;
           intakeResult.textContent = 'Approving…';
           api('approvals', { method: 'POST', body: JSON.stringify({ action: 'intake_create', payload: intakePayload }) }).then(function (res) {
             if (res.ok && res.body.approval_id) {
-              intakeResult.innerHTML = 'Approved. Approval ID <code class="mono">' + esc(res.body.approval_id) +
-                '</code>, expires ' + esc(new Date(res.body.expires_at).toLocaleString()) + '. Give this ID to the business assistant.';
+              intakeResult.innerHTML = approvalHtml(intakePayload, res.body);
             } else {
               intakeResult.textContent = 'Not approved: ' + (res.body.error || ('HTTP ' + res.status));
               approveBtn.disabled = false;
@@ -425,8 +456,8 @@
         }).then(function () { goalSave.disabled = false; });
       });
 
-      function refresh() {
-        selectedGoal = '';
+      function refresh(goal) {
+        selectedGoal = typeof goal === 'string' ? goal : '';
         loadGoals();
         if (meta) meta.textContent = metaLine(currentProject());
         if (executeBtn) executeBtn.disabled = !currentProject() || currentProject().name !== 'lavaall';
@@ -434,7 +465,22 @@
         if (tab === 'chat') loadHistory();
       }
 
+      function selectProject(name, goal) {
+        var found = findProject(groups, name);
+        if (!found) { if (meta) meta.textContent = 'This project was not found in this room.'; return false; }
+        groupEl.value = found.group;
+        fillProjects();
+        projEl.value = found.project;
+        refresh(goal);
+        return true;
+      }
+
       root.addEventListener('click', function (e) {
+        var intakeBtn = e.target.closest ? e.target.closest('[data-intake-project]') : null;
+        if (intakeBtn) {
+          selectProject(intakeBtn.getAttribute('data-intake-project'), intakeBtn.getAttribute('data-intake-goal') || '');
+          return;
+        }
         var tabBtn = e.target.closest ? e.target.closest('[data-harness-tab]') : null;
         if (tabBtn) {
           showTab(tabBtn.getAttribute('data-harness-tab') || 'home');
@@ -456,7 +502,7 @@
         fillProjects();
         refresh();
       });
-      projEl.addEventListener('change', refresh);
+      projEl.addEventListener('change', function () { refresh(); });
 
       if (form) {
         form.addEventListener('submit', function (e) {
@@ -580,8 +626,11 @@
       }
       renderSetup();
       if (meta) meta.textContent = metaLine(currentProject());
-      loadHistory();
-      loadGoals();
+      var selection = querySelection(window.location && window.location.search);
+      if (!selection.project || !selectProject(selection.project, selection.goal)) {
+        loadHistory();
+        loadGoals();
+      }
     }
   });
 })();

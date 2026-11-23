@@ -71,6 +71,13 @@ function stubId(name) {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50).replace(/-$/, '');
   return slug ? 'stub-' + slug : '';
 }
+function intakeOrigin(req) {
+  const host = String(header(req, 'x-forwarded-host') || header(req, 'host') || '').trim().toLowerCase();
+  const match = host.match(/^([a-z0-9.-]+)(?::([0-9]{1,5}))?$/);
+  if (!match || !(match[1] === 'lavaall.com' || match[1].endsWith('.lavaall.com') || match[1].endsWith('.vercel.app')) || !match[1].split('.').every(part => /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(part)) || (match[2] && Number(match[2]) > 65535)) return 'https://www.lavaall.com';
+  const proto = String(header(req, 'x-forwarded-proto') || 'https').toLowerCase();
+  return (proto === 'http' || proto === 'https' ? proto : 'https') + '://' + host;
+}
 async function handleProjectIntake(req, res, opts = {}) {
   const env = opts.env || process.env, fetchImpl = opts.fetchImpl || fetch;
   const now = Number.isFinite(opts.now) ? opts.now : Date.now();
@@ -120,7 +127,7 @@ async function handleProjectIntake(req, res, opts = {}) {
     goalCreated = true;
     await cmd(['RPUSH', ROOT + 'tasks:' + goal.id, JSON.stringify({ id: crypto.randomUUID(), title: p.proposed_next_task, state: 'proposed', source: 'business_intake', createdAt: at })]);
     await cmd(['SET', ROOT + 'intake:' + intakeId, JSON.stringify({ id: intakeId, receivedAt: at, projectId, projectStatus, goalId: goal.id, approvalId, approver: approval.record.approver, idempotencyKeyHash: idemHash, requestHash, project: p })]);
-    const response = { ok: true, project_id: projectId, project_status: projectStatus, goal_id: goal.id, intake_id: intakeId, approval_id: approvalId, url: 'https://www.lavaall.com/os/?project=' + encodeURIComponent(projectId) + '&goal=' + encodeURIComponent(goal.id) + '#harness', note: 'Intake recorded with a founder-session approval. No repository was created, no access was granted, no model was called and no code was executed.' };
+    const response = { ok: true, project_id: projectId, project_status: projectStatus, goal_id: goal.id, intake_id: intakeId, approval_id: approvalId, url: intakeOrigin(req) + '/os/?project=' + encodeURIComponent(projectId) + '&goal=' + encodeURIComponent(goal.id) + '#harness', note: 'Intake recorded with a founder-session approval. No repository was created, no access was granted, no model was called and no code was executed.' };
     await cmd(['SET', idemKey, JSON.stringify({ status: 'done', requestHash, approvalId, at, response }), 'EX', 604800]);
     return send(res, 201, response);
   } catch {
@@ -132,4 +139,4 @@ async function handleProjectIntake(req, res, opts = {}) {
     return send(res, 503, { error: 'intake_store_unavailable' });
   }
 }
-module.exports = { INTAKE_APPROVERS, handleProjectIntake, canonicalJson, intakeRequestHash, validateIntake, stubId };
+module.exports = { INTAKE_APPROVERS, handleProjectIntake, canonicalJson, intakeRequestHash, validateIntake, stubId, intakeOrigin };

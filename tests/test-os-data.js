@@ -135,16 +135,30 @@ const STORE = {
   // 9. With KV: only GET of the existing key, never a write.
   calls.length = 0;
   const live = await osData.loadOsData({
-    env: { KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't' },
+    env: { KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't', OS_BUSINESS_PAGES: '1' },
     fetchImpl: globalThis.fetch,
     health: null,
   });
   check('KV load reads the store', live.storeAvailable && live.kpis.awaitingApproval === 2);
-  check('KV load made seven calls: the store, then one for each of the six feeds', calls.length === 7);
+  check('KV load made nine calls: the store, six feeds, and two scoped scans', calls.length === 9);
   const cmds = calls.map((c) => JSON.parse(c.init.body));
-  check('KV commands are GET only', cmds.every((c) => c[0] === 'GET'));
+  check('KV commands are read only', cmds.every((c) => c[0] === 'GET' || c[0] === 'SCAN'));
   check('KV GETs target lavaall-ops-v2 once and the five lavaall-os-feed-* keys, nothing else', cmds.filter((c) => c[1] === 'lavaall-ops-v2').length === 1 && cmds.filter((c) => /^lavaall-os-feed-(morning-brief|routine-health|spend|outreach-stats|desk-status)-v1$/.test(c[1])).length === 5);
   check('no SET/DEL/EXPIRE anywhere', !cmds.some((c) => /^(SET|DEL|EXPIRE|MSET|HSET|INCR|APPEND)$/i.test(c[0])));
+
+  calls.length = 0;
+  const quiet = await osData.loadOsData({ env: { KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't' }, fetchImpl: globalThis.fetch });
+  check('default flag is off and no business keys are read', !quiet.flags.businessPages && calls.every(c => JSON.parse(c.init.body)[0] === 'SCAN'));
+  const stubKey = 'lavaall:preview:goals:v1:catalog:stub-new-project';
+  const intakeKey = 'lavaall:preview:goals:v1:intake:intake-12345678-1234-1234-1234-123456789abc';
+  const records = { [stubKey]: { id: 'stub-new-project', label: 'New project' }, [intakeKey]: { id: 'intake-12345678-1234-1234-1234-123456789abc', projectId: 'stub-new-project', projectStatus: 'pending_stub', goalId: 'goal-12345678-1234-1234-1234-123456789abc', receivedAt: '2026-11-23' } };
+  const scanned = await osData.loadOsData({ env: { KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't' }, fetchImpl: async (url, init) => {
+    const cmd = JSON.parse(init.body);
+    const result = cmd[0] === 'SCAN' ? ['0', Object.keys(records).filter(k => k.startsWith(cmd[3].replace('*', '')))] : JSON.stringify(records[cmd[1]]);
+    return { ok: true, json: async () => ({ result }) };
+  } });
+  check('stub appears in intake group', scanned.harness.projects.some(p => p.name === 'stub-new-project') && scanned.harness.groups.some(g => g.id === 'intake'));
+  check('intakes expose only safe summary fields', scanned.intakes.length === 1 && scanned.intakes[0].projectId === 'stub-new-project');
 
   // 10. A failing store degrades to null, not a throw or sample data.
   const failing = await osData.loadOsData({

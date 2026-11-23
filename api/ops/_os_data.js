@@ -14,6 +14,8 @@
 //    now/rules/skills, skills and rules. It is bundled with the function by literal require() and is never
 //    written to the KV store (DECISIONS.md #20).
 
+const { businessPagesEnabled } = require('./_os_flags');
+const goals = require('./_harness_goals');
 const fs = require('fs');
 const path = require('path');
 
@@ -502,7 +504,7 @@ function harnessLogLines(text, n) {
 }
 
 // Names only. Never values. No model or /models calls from /os.
-function harnessFrom(env, pack) {
+function harnessFrom(env, pack, stubs) {
   const src = pack !== undefined ? pack : HARNESS_PROJECTS;
   const projects = Array.isArray(src && src.projects) ? src.projects : [];
   const presentKey = (name) => present(env || {}, [name]);
@@ -525,7 +527,11 @@ function harnessFrom(env, pack) {
       logLines: harnessLogLines(snapshot, 10),
     };
   }).filter((p) => p.name);
-  const groupsIn = Array.isArray(src && src.groups) ? src.groups : [];
+  (Array.isArray(stubs) ? stubs : []).forEach((stub) => {
+    if (!list.some((p) => p.name === stub.id)) list.push({ name: stub.id, label: text(stub.label || stub.id, 120), group: 'intake', status: 'Pending — from intake', category: '', summary: '', aliases: '', repo: '', branch: '', handoff: '', logLines: [] });
+  });
+  const groupsIn = (Array.isArray(src && src.groups) ? src.groups : []).slice();
+  if (list.some((p) => p.group === 'intake') && !groupsIn.some((g) => g.id === 'intake')) groupsIn.push({ id: 'intake', label: 'New from intake' });
   const groups = groupsIn.map((g) => ({
     id: text(g && g.id, 80),
     label: text((g && g.label) || (g && g.id), 120),
@@ -615,7 +621,9 @@ function buildOsData(sources, opts) {
     rules: rulesFrom(pack),
     packBuiltAt: pack && pack.builtAt ? pack.builtAt : null,
     settings: settingsFrom(env),
-    harness: harnessFrom(env, opts && opts.harnessPack),
+    flags: { businessPages: businessPagesEnabled(env) },
+    intakes: (sources && sources.intakes) || [],
+    harness: harnessFrom(env, opts && opts.harnessPack, sources && sources.stubs),
   };
   data.sources = Object.keys(SOURCES).reduce((out, key) => {
     const live = key === 'desks' || key === 'settings'
@@ -641,10 +649,21 @@ function buildOsData(sources, opts) {
 }
 
 async function loadOsData(opts) {
-  const store = (opts && opts.store !== undefined) ? opts.store : await readRawStore(opts);
-  const health = await readHealth(opts);
-  const feeds = await readFeeds(opts);
-  return buildOsData({ store, health, feeds }, opts);
+  const env = (opts && opts.env) || process.env;
+  const fetchImpl = (opts && opts.fetchImpl) || globalThis.fetch;
+  const enabled = businessPagesEnabled(env);
+  const injected = (key) => opts && Object.prototype.hasOwnProperty.call(opts, key);
+  let store = null, health = null, feeds = {}, stubs = [], intakes = [];
+  // Skip business store/feed fetches when the pages are asleep, but still honour
+  // injected store/health/feeds so tests and local fixtures keep working.
+  if (enabled || injected('store')) store = injected('store') ? opts.store : await readRawStore(opts);
+  if (enabled || injected('health')) health = await readHealth(opts);
+  if (enabled || injected('feeds')) feeds = await readFeeds(opts);
+  if (env.KV_REST_API_URL && env.KV_REST_API_TOKEN) {
+    try { stubs = await goals.listStubs(env, fetchImpl); } catch { /* unavailable KV */ }
+    try { intakes = await goals.listIntakes(env, fetchImpl); } catch { /* unavailable KV */ }
+  }
+  return buildOsData({ store, health, feeds, stubs, intakes }, opts);
 }
 
 module.exports = {

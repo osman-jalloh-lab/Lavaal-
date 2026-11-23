@@ -28,6 +28,7 @@ function makeKv() {
     cmds.push(cmd);
     if (cmd[0] === 'GET') return { ok: true, json: async () => ({ result: data.has(cmd[1]) ? data.get(cmd[1]) : null }) };
     if (cmd[0] === 'SET') { data.set(cmd[1], cmd[2]); return { ok: true, json: async () => ({ result: 'OK' }) }; }
+    if (cmd[0] === 'SCAN') return { ok: true, json: async () => ({ result: ['0', []] }) };
     return { ok: false, json: async () => ({}) };
   };
   return { data, cmds, fetchImpl };
@@ -275,9 +276,9 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
   const kv = makeKv();
   for (const feed of feeds.FEEDS) await post(feed, GOOD[feed], { kv });
   const getsBefore = kv.cmds.length;
-  const data = await osData.loadOsData({ env: ENV, fetchImpl: kv.fetchImpl, store: {}, health: null, now: NOW });
+  const data = await osData.loadOsData({ env: { ...ENV, OS_BUSINESS_PAGES: '1' }, fetchImpl: kv.fetchImpl, store: {}, health: null, now: NOW });
   const loadCmds = kv.cmds.slice(getsBefore);
-  check('loading /os data after the posts uses GETs only', loadCmds.length === 6 && loadCmds.every((c) => c[0] === 'GET'));
+  check('loading /os data after the posts reads feeds with GETs and only scans the goals root', loadCmds.filter((c) => c[0] === 'GET').length === 6 && loadCmds.filter((c) => c[0] === 'SCAN').length === 2 && loadCmds.every((c) => c[0] === 'GET' || c[0] === 'SCAN'));
 
   check('data: brief is the posted brief', data.brief && data.brief.date === today && /Three things matter/.test(data.brief.text));
   check('data: routine health merged by id onto the pack routines', data.routines.find((r) => r.id === 'sl-daily-leads').health.status === 'ok' && data.routines.find((r) => r.id === 'midnight-closeout').health.status === 'late' && data.routines.find((r) => r.id === 'friday-decide-or-kill').health.tone === 'bad');

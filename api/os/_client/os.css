@@ -306,3 +306,4 @@
 .os-root .harness-execution h3,.os-root .harness-execution p{margin:0}
 .os-root .harness-execution label{display:flex;align-items:center;gap:8px;font-size:13px}
 .os-root .harness-execution .note{max-width:100%;overflow-wrap:anywhere}
+.os-root .harness-intake-focus{outline:2px solid var(--accent);outline-offset:2px}

@@ -88,8 +88,20 @@ void deskThread;
   const tick = () => new Promise((r) => setImmediate(r));
   const flush = async () => { for (let i = 0; i < 6; i += 1) await tick(); };
 
-  // 2a. navigation
-  check('Talk is in the nav with G T, and reachable on a phone (More)', OS.nav.some((n) => n.id === 'talk' && n.hint === 'G T' && n.key === 't') && OS.mobile.MORE.includes('talk') && !OS.mobile.TABS.includes('talk'));
+  // 2a. navigation — Talk stays in the nav catalog; the phone More list includes it only when business pages are on.
+  check('Talk is in the nav with G T', OS.nav.some((n) => n.id === 'talk' && n.hint === 'G T' && n.key === 't'));
+  const talkMobileOn = (() => {
+    const win2 = {};
+    const sandbox2 = {
+      window: win2,
+      document: { querySelector: (sel) => sel === '#os-data' ? { textContent: JSON.stringify({ flags: { businessPages: true } }) } : null, querySelectorAll: () => [], documentElement: { setAttribute() {}, getAttribute: () => 'dark' } },
+      location: { hash: '' }, setTimeout: () => 0, setInterval: () => 0, Intl,
+    };
+    vm.createContext(sandbox2);
+    vm.runInContext(fs.readFileSync(path.join(root, 'api/os/_client/core.js'), 'utf8'), sandbox2, { filename: 'core.js' });
+    return win2.OS.mobile;
+  })();
+  check('Talk is reachable on a phone (More) when business pages are on', talkMobileOn.MORE.includes('talk') && !talkMobileOn.TABS.includes('talk'));
   check('exactly the six talk desks are listed; Scout has no Talk', (() => { const l = OS.talk.listHtml(data, 'sales'); return (l.match(/class="li talkrow/g) || []).length === 6 && !/data-desk="scout"/.test(l); })());
   check('desk ids and short names: CEO, Sales, Technical, Growth, Lifecycle, Researchy', ['CEO', 'Sales', 'Technical', 'Growth', 'Lifecycle', 'Researchy'].every((n) => OS.talk.listHtml(data, 'sales').includes('<div>' + n + '</div>')));
 
