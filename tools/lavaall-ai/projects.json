@@ -1,14 +1,419 @@
 {
   "obsidian_root": "/workspace/obsidian-bridge/staging/LAVAALL",
+  "source": "tools/lavaall-ai/projects-index.md (snapshot of LAVAALL/Projects/INDEX.md)",
+  "groups": [
+    {
+      "id": "lavaall",
+      "label": "LAVAALL",
+      "projects": [
+        {
+          "name": "lavaall",
+          "label": "LAVAALL (all)",
+          "group": "lavaall",
+          "category": "LAVAALL",
+          "summary": "Umbrella project for LAVAALL as a whole. Context comes from the shared harness rules and the Projects index.",
+          "aliases": "Laval, LAVAALL, lava all",
+          "status": "Active",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "sierra-international-academy-demo",
+          "label": "Sierra International Academy Demo",
+          "group": "lavaall",
+          "category": "Client Builds and Prototypes",
+          "summary": "Demo authorized; PR number unverified. 6 Nov: draft Preview PR authorized; local demo export built and re-audited the same morning. No merge or deploy.",
+          "aliases": "SIA, SIA Kenema, school website, school prototype, first client demo",
+          "status": "Demo authorized; PR number unverified",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "clo-clo-s-and-other-client-previews",
+          "label": "Clo Clo's and Other Client Previews",
+          "group": "lavaall",
+          "category": "Client Builds and Prototypes",
+          "summary": "Internal previews only. 30 Oct: Clo Clo's v4 internal preview (Higgsfield clips approved for internal use only); later verify report titled FAIL. 6 Nov: Nunu call-to-deck outline (not outreach).",
+          "aliases": "Clo Clo's, Cloclos cafe, Nunu, Nunu Freetown, client previews",
+          "status": "Internal previews only",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "lavaall-website-chatbot",
+          "label": "LAVAALL Website Chatbot",
+          "group": "lavaall",
+          "category": "LAVAALL Web and Products",
+          "summary": "A2 approved; Preview wiring not confirmed in these files. 12 Nov 5:11 PM CT: Osman approved A2 (Preview only, deepseek-flash, text-only, $25/month cap). CEO desk still to put it on Preview.",
+          "aliases": "chatbot, LAVAALL Assistant, PR 83, DeepSeek A2, customer assistant",
+          "status": "A2 approved; Preview wiring not confirmed in these files",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "lavaall-web-and-site-security",
+          "label": "LAVAALL Web and Site Security",
+          "group": "lavaall",
+          "category": "LAVAALL Web and Products",
+          "summary": "Open; several PRs still draft or conflicting. 10 Nov: #75 form mail reached Inbox + Website Leads; ok:true in the 202 body still unverified. #74 held. SPF/DMARC not live as of 11 Nov.",
+          "aliases": "site security, contact router, PR 75, SPF, DMARC, 2SV, quote fix",
+          "status": "Open; several PRs still draft or conflicting",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "lavaall-os-revamp",
+          "label": "LAVAALL OS Revamp",
+          "group": "lavaall",
+          "category": "LAVAALL Web and Products",
+          "summary": "Stage 1 approved; draft only. 8 Nov: Stage 1 approved (mock data, flag off). Draft PR #73 open, no merge. 10 Nov check-in still had polish waiting behind #75.",
+          "aliases": "OS revamp, Needs You, PR 73, /ops dashboard, Stage 1",
+          "status": "Stage 1 approved; draft only",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "kit-install-crm",
+          "label": "Kit-install CRM",
+          "group": "lavaall",
+          "category": "LAVAALL Web and Products",
+          "summary": "Waiting on Osman. 8 Oct: mockup v2 built. Read-only vs editable, stuck limits, currency, and installers still open.",
+          "aliases": "kit CRM, kit install CRM, install board",
+          "status": "Waiting on Osman",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "website-site-checker",
+          "label": "Website Site-Checker",
+          "group": "lavaall",
+          "category": "LAVAALL Web and Products",
+          "summary": "Spec only; build parked. 4 Oct spec written. Batch 5 (6 Nov) rec park; parks Fri 13 Nov if unanswered.",
+          "aliases": "site checker, site-checker, lead site check",
+          "status": "Spec only; build parked",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "sl-leads-and-outreach",
+          "label": "SL Leads and Outreach",
+          "group": "lavaall",
+          "category": "Sales and Leads",
+          "summary": "Drafts held; nothing new sent. 11 Nov ~7:21-7:35 AM CT: sl-daily-leads drafted a batch; nothing sent. SPF/DMARC still not live.",
+          "aliases": "SL leads, Sierra Leone outreach, daily leads",
+          "status": "Drafts held; nothing new sent",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "customer-acquisition-engine",
+          "label": "Customer Acquisition Engine",
+          "group": "lavaall",
+          "category": "Sales and Leads",
+          "summary": "Approved with cuts; nothing sent. 8 Nov 10:02-10:08 PM CT: GO with cuts (D-2026-11-08-02). Jev 0.89 PASS. Founder checkpoint still ahead.",
+          "aliases": "CAE, acquisition engine, Freetown buyer test",
+          "status": "Approved with cuts; nothing sent",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "accra-and-asbis",
+          "label": "Accra and ASBIS",
+          "group": "lavaall",
+          "category": "Sales and Leads",
+          "summary": "Revived 26 Oct; drafts unsent. 26 Oct: council and ASBIS/MCI path revived; drafts in the shared folder; nothing sent. Still waiting-founder.",
+          "aliases": "Accra, Accra council, ASBIS, MCI, Apple reseller",
+          "status": "Revived 26 Oct; drafts unsent",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "spend-audit-and-finance",
+          "label": "Spend Audit and Finance",
+          "group": "lavaall",
+          "category": "Finance and Governance",
+          "summary": "Audit done 10 Nov; weekly ledger approval unverified by CEO. 10 Nov audit: $836.37 all-time cash found. Weekly spend-ledger yes is marked UNVERIFIED in the decision log (12 Nov).",
+          "aliases": "spend audit, tool spend, weekly spend ledger, Workspace billing, CPA",
+          "status": "Audit done 10 Nov; weekly ledger approval unverified by CEO",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "jev-decision-pipeline-and-ops",
+          "label": "Jev Decision Pipeline and Ops",
+          "group": "lavaall",
+          "category": "Finance and Governance",
+          "summary": "Live; 11 Nov close-out caught up 12 Nov. 12 Nov ~5:21 PM CT: missed Wed close-out catch-up filed; laptop copy still pending.",
+          "aliases": "Jeff, Jev, decision council, midnight close-out, governor, /ops",
+          "status": "Live; 11 Nov close-out caught up 12 Nov",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "market-simulator",
+          "label": "Market Simulator",
+          "group": "lavaall",
+          "category": "Finance and Governance",
+          "summary": "Built, dry-run only. 4 Oct build approved. Batch 5 (6 Nov) rec park the paid run; parks Fri 13 Nov if unanswered.",
+          "aliases": "market sim, market-sim, paid run, TERRA menu",
+          "status": "Built, dry-run only",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "scout-scans",
+          "label": "Scout Scans",
+          "group": "lavaall",
+          "category": "Research and Scans",
+          "summary": "Routines live; 11 Nov scans missed; 9 Nov rec still a draft. 9 Nov: formal Scout recommendation still draft (check date 23 Nov). 11 Nov YouTube catch-up was missing in the close-out.",
+          "aliases": "Scout, X scan, YouTube scan, Scout ECC, directive v4 Scout",
+          "status": "Routines live; 11 Nov scans missed; 9 Nov rec still a draft",
+          "handoff_snapshot": ""
+        },
+        {
+          "name": "voice-note-intake",
+          "label": "Voice-note Intake",
+          "group": "lavaall",
+          "category": "Research and Scans",
+          "summary": "Price approved; WhatsApp go-live not approved. 27 Oct: free-tier path and $20/month or $500 one-time price approved. Local prototype exists. 17 Nov: Deepgram Voice AI Agents guide filed against this hub.",
+          "aliases": "voice note intake, voice-to-PDF, document intake, pharmacy intake",
+          "status": "Price approved; WhatsApp go-live not approved",
+          "handoff_snapshot": ""
+        }
+      ]
+    },
+    {
+      "id": "saloneworks",
+      "label": "SaloneWorks",
+      "projects": [
+        {
+          "name": "saloneworks",
+          "label": "SaloneWorks",
+          "group": "saloneworks",
+          "category": "SaloneWorks",
+          "summary": "Active, real CVs blocked. 12 Nov 6:22 PM CT: ranking-hardening local PASS; stacked draft PRs #9/#10/#11 open, no merge. Public preview is off.",
+          "aliases": "salon walks, Salone Works, SL jobs, CV ranking, SW",
+          "status": "Active, real CVs blocked",
+          "handoff_snapshot": ""
+        }
+      ]
+    },
+    {
+      "id": "starlink",
+      "label": "Starlink",
+      "projects": [
+        {
+          "name": "starlink",
+          "label": "Starlink",
+          "group": "starlink",
+          "category": "Starlink",
+          "summary": "Waiting on Osman; batch 5 parks Fri 13 Nov if unanswered. Local v4 page edits still unpushed (D-2026-10-03-04). Rulebook step 1 still waiting for the CEO-gate close.",
+          "aliases": "star link, Starlink v4, Starlink rulebook, NatCA",
+          "status": "Waiting on Osman; batch 5 parks Fri 13 Nov if unanswered",
+          "handoff_snapshot": ""
+        }
+      ]
+    },
+    {
+      "id": "salonehire",
+      "label": "SaloneHire",
+      "projects": [
+        {
+          "name": "salonehire",
+          "label": "SaloneHire",
+          "group": "salonehire",
+          "category": "SaloneWorks",
+          "summary": "Recruitment MVP on feature/interview-tools. Shared AI handoff is in tools/lavaall-ai/handoffs/salonehire.md.",
+          "aliases": "Salone Hire, salon hire, SL hire",
+          "status": "Active",
+          "handoff_snapshot": "handoffs/salonehire.md",
+          "repo": "/workspace/sw-interview-1121",
+          "branch": "feature/interview-tools",
+          "handoff": "/workspace/salonehire-ai/HANDOFF.md",
+          "obsidian": "Projects/SaloneWorks/SaloneHire/ai-handoff.md"
+        }
+      ]
+    }
+  ],
   "projects": [
+    {
+      "name": "lavaall",
+      "label": "LAVAALL (all)",
+      "group": "lavaall",
+      "category": "LAVAALL",
+      "summary": "Umbrella project for LAVAALL as a whole. Context comes from the shared harness rules and the Projects index.",
+      "aliases": "Laval, LAVAALL, lava all",
+      "status": "Active",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "sierra-international-academy-demo",
+      "label": "Sierra International Academy Demo",
+      "group": "lavaall",
+      "category": "Client Builds and Prototypes",
+      "summary": "Demo authorized; PR number unverified. 6 Nov: draft Preview PR authorized; local demo export built and re-audited the same morning. No merge or deploy.",
+      "aliases": "SIA, SIA Kenema, school website, school prototype, first client demo",
+      "status": "Demo authorized; PR number unverified",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "clo-clo-s-and-other-client-previews",
+      "label": "Clo Clo's and Other Client Previews",
+      "group": "lavaall",
+      "category": "Client Builds and Prototypes",
+      "summary": "Internal previews only. 30 Oct: Clo Clo's v4 internal preview (Higgsfield clips approved for internal use only); later verify report titled FAIL. 6 Nov: Nunu call-to-deck outline (not outreach).",
+      "aliases": "Clo Clo's, Cloclos cafe, Nunu, Nunu Freetown, client previews",
+      "status": "Internal previews only",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "lavaall-website-chatbot",
+      "label": "LAVAALL Website Chatbot",
+      "group": "lavaall",
+      "category": "LAVAALL Web and Products",
+      "summary": "A2 approved; Preview wiring not confirmed in these files. 12 Nov 5:11 PM CT: Osman approved A2 (Preview only, deepseek-flash, text-only, $25/month cap). CEO desk still to put it on Preview.",
+      "aliases": "chatbot, LAVAALL Assistant, PR 83, DeepSeek A2, customer assistant",
+      "status": "A2 approved; Preview wiring not confirmed in these files",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "lavaall-web-and-site-security",
+      "label": "LAVAALL Web and Site Security",
+      "group": "lavaall",
+      "category": "LAVAALL Web and Products",
+      "summary": "Open; several PRs still draft or conflicting. 10 Nov: #75 form mail reached Inbox + Website Leads; ok:true in the 202 body still unverified. #74 held. SPF/DMARC not live as of 11 Nov.",
+      "aliases": "site security, contact router, PR 75, SPF, DMARC, 2SV, quote fix",
+      "status": "Open; several PRs still draft or conflicting",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "lavaall-os-revamp",
+      "label": "LAVAALL OS Revamp",
+      "group": "lavaall",
+      "category": "LAVAALL Web and Products",
+      "summary": "Stage 1 approved; draft only. 8 Nov: Stage 1 approved (mock data, flag off). Draft PR #73 open, no merge. 10 Nov check-in still had polish waiting behind #75.",
+      "aliases": "OS revamp, Needs You, PR 73, /ops dashboard, Stage 1",
+      "status": "Stage 1 approved; draft only",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "kit-install-crm",
+      "label": "Kit-install CRM",
+      "group": "lavaall",
+      "category": "LAVAALL Web and Products",
+      "summary": "Waiting on Osman. 8 Oct: mockup v2 built. Read-only vs editable, stuck limits, currency, and installers still open.",
+      "aliases": "kit CRM, kit install CRM, install board",
+      "status": "Waiting on Osman",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "website-site-checker",
+      "label": "Website Site-Checker",
+      "group": "lavaall",
+      "category": "LAVAALL Web and Products",
+      "summary": "Spec only; build parked. 4 Oct spec written. Batch 5 (6 Nov) rec park; parks Fri 13 Nov if unanswered.",
+      "aliases": "site checker, site-checker, lead site check",
+      "status": "Spec only; build parked",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "sl-leads-and-outreach",
+      "label": "SL Leads and Outreach",
+      "group": "lavaall",
+      "category": "Sales and Leads",
+      "summary": "Drafts held; nothing new sent. 11 Nov ~7:21-7:35 AM CT: sl-daily-leads drafted a batch; nothing sent. SPF/DMARC still not live.",
+      "aliases": "SL leads, Sierra Leone outreach, daily leads",
+      "status": "Drafts held; nothing new sent",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "customer-acquisition-engine",
+      "label": "Customer Acquisition Engine",
+      "group": "lavaall",
+      "category": "Sales and Leads",
+      "summary": "Approved with cuts; nothing sent. 8 Nov 10:02-10:08 PM CT: GO with cuts (D-2026-11-08-02). Jev 0.89 PASS. Founder checkpoint still ahead.",
+      "aliases": "CAE, acquisition engine, Freetown buyer test",
+      "status": "Approved with cuts; nothing sent",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "accra-and-asbis",
+      "label": "Accra and ASBIS",
+      "group": "lavaall",
+      "category": "Sales and Leads",
+      "summary": "Revived 26 Oct; drafts unsent. 26 Oct: council and ASBIS/MCI path revived; drafts in the shared folder; nothing sent. Still waiting-founder.",
+      "aliases": "Accra, Accra council, ASBIS, MCI, Apple reseller",
+      "status": "Revived 26 Oct; drafts unsent",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "spend-audit-and-finance",
+      "label": "Spend Audit and Finance",
+      "group": "lavaall",
+      "category": "Finance and Governance",
+      "summary": "Audit done 10 Nov; weekly ledger approval unverified by CEO. 10 Nov audit: $836.37 all-time cash found. Weekly spend-ledger yes is marked UNVERIFIED in the decision log (12 Nov).",
+      "aliases": "spend audit, tool spend, weekly spend ledger, Workspace billing, CPA",
+      "status": "Audit done 10 Nov; weekly ledger approval unverified by CEO",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "jev-decision-pipeline-and-ops",
+      "label": "Jev Decision Pipeline and Ops",
+      "group": "lavaall",
+      "category": "Finance and Governance",
+      "summary": "Live; 11 Nov close-out caught up 12 Nov. 12 Nov ~5:21 PM CT: missed Wed close-out catch-up filed; laptop copy still pending.",
+      "aliases": "Jeff, Jev, decision council, midnight close-out, governor, /ops",
+      "status": "Live; 11 Nov close-out caught up 12 Nov",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "market-simulator",
+      "label": "Market Simulator",
+      "group": "lavaall",
+      "category": "Finance and Governance",
+      "summary": "Built, dry-run only. 4 Oct build approved. Batch 5 (6 Nov) rec park the paid run; parks Fri 13 Nov if unanswered.",
+      "aliases": "market sim, market-sim, paid run, TERRA menu",
+      "status": "Built, dry-run only",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "scout-scans",
+      "label": "Scout Scans",
+      "group": "lavaall",
+      "category": "Research and Scans",
+      "summary": "Routines live; 11 Nov scans missed; 9 Nov rec still a draft. 9 Nov: formal Scout recommendation still draft (check date 23 Nov). 11 Nov YouTube catch-up was missing in the close-out.",
+      "aliases": "Scout, X scan, YouTube scan, Scout ECC, directive v4 Scout",
+      "status": "Routines live; 11 Nov scans missed; 9 Nov rec still a draft",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "voice-note-intake",
+      "label": "Voice-note Intake",
+      "group": "lavaall",
+      "category": "Research and Scans",
+      "summary": "Price approved; WhatsApp go-live not approved. 27 Oct: free-tier path and $20/month or $500 one-time price approved. Local prototype exists. 17 Nov: Deepgram Voice AI Agents guide filed against this hub.",
+      "aliases": "voice note intake, voice-to-PDF, document intake, pharmacy intake",
+      "status": "Price approved; WhatsApp go-live not approved",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "saloneworks",
+      "label": "SaloneWorks",
+      "group": "saloneworks",
+      "category": "SaloneWorks",
+      "summary": "Active, real CVs blocked. 12 Nov 6:22 PM CT: ranking-hardening local PASS; stacked draft PRs #9/#10/#11 open, no merge. Public preview is off.",
+      "aliases": "salon walks, Salone Works, SL jobs, CV ranking, SW",
+      "status": "Active, real CVs blocked",
+      "handoff_snapshot": ""
+    },
+    {
+      "name": "starlink",
+      "label": "Starlink",
+      "group": "starlink",
+      "category": "Starlink",
+      "summary": "Waiting on Osman; batch 5 parks Fri 13 Nov if unanswered. Local v4 page edits still unpushed (D-2026-10-03-04). Rulebook step 1 still waiting for the CEO-gate close.",
+      "aliases": "star link, Starlink v4, Starlink rulebook, NatCA",
+      "status": "Waiting on Osman; batch 5 parks Fri 13 Nov if unanswered",
+      "handoff_snapshot": ""
+    },
     {
       "name": "salonehire",
       "label": "SaloneHire",
+      "group": "salonehire",
       "category": "SaloneWorks",
+      "summary": "Recruitment MVP on feature/interview-tools. Shared AI handoff is in tools/lavaall-ai/handoffs/salonehire.md.",
+      "aliases": "Salone Hire, salon hire, SL hire",
+      "status": "Active",
+      "handoff_snapshot": "handoffs/salonehire.md",
       "repo": "/workspace/sw-interview-1121",
       "branch": "feature/interview-tools",
       "handoff": "/workspace/salonehire-ai/HANDOFF.md",
-      "handoff_snapshot": "handoffs/salonehire.md",
       "obsidian": "Projects/SaloneWorks/SaloneHire/ai-handoff.md"
     }
   ]

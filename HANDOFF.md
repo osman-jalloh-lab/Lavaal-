@@ -1,49 +1,103 @@
-# HANDOFF — OS harness switcher
+# HANDOFF — OS harness chat
 
-- Branch: `feature/os-harness-switcher`
-- Base: `origin/main` at `1621cc9` (Merge pull request #92, SEO basics)
-- Scope: draft PR only. No merge, deploy, Vercel production env changes, or outbound mail.
-- Auth, layout, brand, and `/ops` sign-in are unchanged. `/os` stays founders-only behind the existing Google sign-in.
+- Branch: `feature/os-harness-chat`
+- Base: `origin/main` at `dc874a7` (Merge pull request #99, harness switcher)
+- Scope: draft PR only. No merge, production deploy, or Vercel env changes.
+- Auth is unchanged. `/os` stays founders-only behind the existing Google sign-in.
+
+## Architecture (honest)
+
+Vercel serverless cannot run the Codex or Claude CLIs, cannot reach the private box, and cannot edit a local checkout. This version therefore uses the simplest path that actually works:
+
+1. The founder-only `/os` Harness page is a type-and-send chat (Home + Chat). It talks only to same-origin `/ops/harness/*` (existing `/ops/:path*` rewrite; `vercel.json` is unchanged).
+2. `/ops/harness/chat` calls the provider HTTP APIs from the deployment:
+   - Codex on the page = OpenAI Chat Completions (`OPENAI_API_KEY`). This is not the Codex CLI and cannot open a ChatGPT login in the browser.
+   - Claude = Anthropic Messages (`ANTHROPIC_API_KEY`), with a Sonnet / Haiku / Opus picker (default Sonnet).
+   - DeepSeek = DeepSeek’s OpenAI-compatible chat API (`DEEPSEEK_API_KEY`).
+   - Gemini is hidden and rejected (`harness_disabled`).
+3. Shared context is still `tools/lavaall-ai/RULES.md` plus the project’s bundled handoff snapshot, composed on the server and also used to append a dated log line in the harness store after each run. The hosted model is told it cannot edit local files.
+4. Chat history is stored under a separate KV key, `lavaall-os-harness-v1` (not the `lavaall-ops-v2` store). If KV is not bound, the reply still returns, but history will not survive a cold start (`persist: false`).
+5. Replies are a single JSON response, not token streaming. The page shows a “Working…” placeholder until the reply arrives.
+6. The local `tools/lavaall-ai` CLI is unchanged for real Codex/Claude CLI work on a computer (`codex login`, Claude CLI). The page no longer offers a copy-command.
 
 ## What landed
 
-1. CLI `tools/lavaall-ai/lavaall-ai` (stdlib Python):
-   - `lavaall-ai status` — free only: CLI versions, key presence, and provider `/models` lists. Never prints keys.
-   - `lavaall-ai projects`
-   - `lavaall-ai <harness> <project> "task"` and `--dry-run` (prints the composed RULES.md + HANDOFF.md + task prompt; no model call, no log append)
-   - Harnesses: `codex` (`codex exec`, ChatGPT login), `claude` (`--model sonnet` only), `deepseek` (stdlib helper, `DEEPSEEK_API_KEY`, default `deepseek-flash`), `gemini` (Gemini CLI if present, otherwise stdlib helper; `GEMINI_API_KEY`, default `gemini-2.0-flash`; status says `key missing` when the key is unset)
-2. `projects.json` is seeded with SaloneHire (`/workspace/sw-interview-1121`, branch `feature/interview-tools`, handoff `/workspace/salonehire-ai/HANDOFF.md`). After a real run the CLI appends a dated log line and mirrors it to Obsidian at `Projects/<Category>/<Project>/ai-handoff.md`, plus a bundled snapshot under `tools/lavaall-ai/handoffs/`.
-3. Founder-only `/os` Harness page (nav item under More, shortcut G A): project dropdown, harness buttons with status dots, last 10 bundled handoff lines, copy-command button. The page does not call models or `/models`. DeepSeek/Gemini status on the page is key presence only; Codex/Claude are labeled as local CLIs.
+1. Chat box: pick group + project + harness, type a request, send, see the reply and per-project history.
+2. Harnesses: Codex (setup path explains `OPENAI_API_KEY` in Vercel and `codex login` on his computer), Claude (model picker, default Sonnet), DeepSeek. Gemini off. No voice.
+3. Project picker groups, from a snapshot of `/workspace/obsidian-bridge/staging/LAVAALL/Projects/INDEX.md` in `tools/lavaall-ai/projects-index.md` / `projects.json`:
+   - LAVAALL — umbrella row plus the 15 INDEX sub-projects
+   - SaloneWorks (there is no “SaloneWeb” row in the vault index)
+   - Starlink
+   - SaloneHire (already seeded in v1; not a table row in INDEX)
+4. The Harness page is just those project tools: Home (usage/credit) and Chat. Other LAVAALL OS clutter was not added to this view.
+5. Home usage is real or “not available”, never estimated:
+   - DeepSeek: free `GET https://api.deepseek.com/user/balance` when `DEEPSEEK_API_KEY` is set.
+   - Codex/OpenAI: usage is usually not readable with a regular API key → “not available”.
+   - Claude: needs `ANTHROPIC_ADMIN_API_KEY`; totals are not wired in this version → “not available”.
 
-## Status observed on this computer (22 Nov 2026, 8:05 PM CT, America/Chicago)
+## Env vars Osman must add (do not put values in the repo)
 
-- `codex: ready (codex-cli 0.159.1)`
-- `claude: ready (2.1.329 (Claude Code)); will use --model sonnet`
-- `deepseek: ready (key present, /models HTTP 200; listed: deepseek-flash, deepseek-v4-pro). Default model: deepseek-flash`
-- `gemini: key missing`
-- Dry-run for all four harnesses on `salonehire` printed the composed prompt and did not append to the SaloneHire handoff. No paid coding calls were made.
+Add these in the Vercel project **lavaal** under Settings → Environment Variables, for Preview (and later Production if he chooses). Do not add them in this PR. This work did not change production or Preview env.
+
+Required for in-page chat:
+
+- `OPENAI_API_KEY` — Codex-style chat on the page (already documented in `.env.example`)
+- `ANTHROPIC_API_KEY` — Claude chat (already documented)
+- `DEEPSEEK_API_KEY` — DeepSeek chat and the balance display (now also listed in `.env.example`)
+
+Already used by `/ops` if the KV store is bound; needed for durable chat history:
+
+- `KV_REST_API_URL`
+- `KV_REST_API_TOKEN`
+
+Optional (names only, not secrets):
+
+- `OPENAI_HARNESS_MODEL` (default `gpt-4.1`)
+- `ANTHROPIC_SONNET_MODEL` (default `claude-sonnet-4-5`)
+- `ANTHROPIC_HAIKU_MODEL` (default `claude-haiku-4-5`)
+- `ANTHROPIC_OPUS_MODEL` (default `claude-opus-4-5`)
+- `DEEPSEEK_MODEL` (default `deepseek-flash`)
+- `ANTHROPIC_ADMIN_API_KEY` — usage totals only; not wired to show numbers yet
+
+Local CLI (not the page): `codex login` for the real Codex CLI; `GEMINI_API_KEY` still only matters to the CLI, because Gemini is off on the page.
+
+## What works vs needs a key or sign-in
+
+Works without new keys (after this branch is on a Preview and Osman is signed in with Google):
+
+- The Harness page itself: groups, project picker, harness buttons, Claude model picker, type/send composer, Home/Chat tabs.
+- Honest status dots (key present / key missing).
+- Usage Home: “key missing” or “not available”, no invented totals.
+- `409 key_missing` from `/ops/harness/chat` that names the env var to add.
+- Local `lavaall-ai` CLI, including Gemini.
+
+Needs a key or a local sign-in:
+
+- In-page Codex chat: `OPENAI_API_KEY` on the Vercel project. ChatGPT/`codex login` is only for the CLI on his computer.
+- In-page Claude chat: `ANTHROPIC_API_KEY`.
+- In-page DeepSeek chat and a real balance figure: `DEEPSEEK_API_KEY`.
+- History that survives reloads/cold starts: the existing KV binding.
+- Founder Google sign-in, same as the rest of `/os` (anonymous `/os` still redirects).
+
+No paid provider calls were made while building this. Tests mock those HTTP APIs. DeepSeek’s balance endpoint is only exercised with a mock.
 
 ## Tests
 
-`node tests/run-safe-suite.js` on this branch: **TOTAL 86; PASS 86; FAIL 0**. That is the previous 84 files plus `tests/test-lavaall-ai.js` (46 checks) and `tests/test-os-harness.js` (23 checks). No local `.env` was loaded. New files cover CLI arg parsing, dry-run composition, handoff append + Obsidian mirror, and the /os Harness view (no secrets, no fetch, last 10 log lines).
+`node tests/run-safe-suite.js` on this branch (22 Nov 2026, 8:41 PM CT, America/Chicago): **TOTAL 87; PASS 87; FAIL 0**. That is the previous 86 files, plus `tests/test-harness-chat.js` (25 checks: auth, Gemini disabled, missing keys, prompt composition, mocked chat, history, usage never fakes numbers, no key leakage). `tests/test-os-harness.js` now covers the chat UI (29 checks). Existing suite files stayed green. No local `.env` was loaded.
 
 ## Constraints honored
 
 - No merge, no production deploy, no Vercel env changes, no `vercel.json` or auth edits.
-- No secrets in the tree. Test fixtures use an obviously fake `sk-test-DO-NOT-PRINT-…` value only to assert it never appears in output.
+- No secrets in the tree. Test fixtures use obviously fake `sk-test-DO-NOT-PRINT-…` values only to assert they never appear in output.
+- Founder-only: `/ops/harness/*` uses the same session as `/os` and rejects agent-looking requests.
 
 ## Founder follow-ups (not done here)
 
-- Review the draft PR. Merge and production deploy stay waiting on Osman's own yes.
-- Optional: set `GEMINI_API_KEY` (or install the Gemini CLI) so the Gemini harness can run for real. Do not paste the key into the repo or this file.
-- Optional: put `tools/lavaall-ai/lavaall-ai` on PATH (`ln -sf … ~/.local/bin/lavaall-ai`).
-- A Vercel preview, if one builds from the draft PR, can be used to look at `/os` (founders only, same Google sign-in). The Harness page still does not call models.
+- Review the draft PR. Merge and production deploy stay waiting on Osman’s own yes.
+- Add the env vars above in Vercel if he wants in-page chat to run on Preview. Do not paste keys into the repo or this file.
+- For real Codex CLI work: `codex login` on his computer, then `lavaall-ai`.
 
 ## Draft PR
 
-- URL: https://github.com/osman-jalloh-lab/Lavaal-/pull/99 (draft)
-- Commit: `36658f8` on `feature/os-harness-switcher`
-- Vercel preview (deployment protection + founder Google sign-in): https://lavaal-git-feature-os-harness-switcher-osman14.vercel.app
-  - /os: https://lavaal-git-feature-os-harness-switcher-osman14.vercel.app/os
-  - Deployment: https://lavaal-iik2eqj4q-osman14.vercel.app
-- Vercel check: success (22 Nov 2026, 8:03 PM CT, America/Chicago). No merge or production deploy.
+- URL: (filled after the draft PR is opened)
+- Vercel preview, if one builds from the draft PR, will be founder-signed-in only. Chat will stay in the `key_missing` path until the keys are added.

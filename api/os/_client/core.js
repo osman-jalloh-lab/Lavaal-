@@ -55,7 +55,7 @@
     { id: 'council', label: 'AI Council', icon: 'council', hint: 'G C', key: 'c', about: 'Drafter and reviewer rounds, read from stored records.', src: 'council' },
     { id: 'spend', label: 'Spend', icon: 'spend', hint: 'G S', key: 's', about: 'AI spend from real records.', src: 'spend' },
     { id: 'settings', label: 'Settings', icon: 'settings', hint: 'G ,', key: ',', about: 'Connection status. Names only, never values.', src: 'settings' },
-    { id: 'harness', label: 'Harness', icon: 'harness', hint: 'G A', key: 'a', about: 'Switch Codex, Claude, DeepSeek or Gemini. Copy a command; this page does not call models.', src: 'harness' }
+    { id: 'harness', label: 'Harness', icon: 'harness', hint: 'G A', key: 'a', about: 'Type a request to Codex, Claude, or DeepSeek for a project. Gemini is off.', src: 'harness' }
   ];
   // Phone tab bar: four views, then "More" for the rest. Routines moves into More so no view is unreachable.
   var TABS = ['home', 'desks', 'decisions', 'outreach'];

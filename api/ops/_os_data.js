@@ -39,7 +39,7 @@ const SOURCES = Object.freeze({
   skills: { label: 'Skills', from: 'skills.json in the LAVAALL OS data pack' },
   rules: { label: 'Founder rules', from: 'rules.json in the LAVAALL OS data pack (matched by FR id)' },
   settings: { label: 'Connections', from: 'presence of existing env var names only' },
-  harness: { label: 'Harness switcher', from: 'tools/lavaall-ai/projects.json and bundled handoff snapshots; status is key presence or local CLI, never a model call' },
+  harness: { label: 'Harness chat', from: 'tools/lavaall-ai/projects.json (grouped from the Projects index snapshot) and bundled handoff snapshots; chat runs through /ops/harness on this deployment' },
 });
 
 // ---- raw readers (GET only) -------------------------------------------------
@@ -514,23 +514,34 @@ function harnessFrom(env, pack) {
     return {
       name,
       label,
+      group: text(raw && raw.group, 80),
       category: text(raw && raw.category, 80),
+      summary: text(raw && raw.summary, 800),
+      aliases: text(raw && raw.aliases, 400),
+      status: text(raw && raw.status, 200),
       repo: text(raw && raw.repo, 400),
       branch: text(raw && raw.branch, 200),
       handoff: text(raw && raw.handoff, 400),
       logLines: harnessLogLines(snapshot, 10),
     };
   }).filter((p) => p.name);
+  const groupsIn = Array.isArray(src && src.groups) ? src.groups : [];
+  const groups = groupsIn.map((g) => ({
+    id: text(g && g.id, 80),
+    label: text((g && g.label) || (g && g.id), 120),
+    projects: list.filter((p) => p.group === text(g && g.id, 80)),
+  })).filter((g) => g.id);
   const status = [
-    { id: 'codex', label: 'Codex', detail: 'local CLI (ChatGPT login)', state: 'local' },
-    { id: 'claude', label: 'Claude', detail: 'local CLI, Sonnet only', state: 'local' },
+    { id: 'codex', label: 'Codex', detail: presentKey('OPENAI_API_KEY') ? 'OpenAI API key present' : 'key missing — add OPENAI_API_KEY or use Codex CLI locally', state: presentKey('OPENAI_API_KEY') ? 'ready' : 'missing' },
+    { id: 'claude', label: 'Claude', detail: presentKey('ANTHROPIC_API_KEY') ? 'API key present, Sonnet default' : 'key missing — add ANTHROPIC_API_KEY', state: presentKey('ANTHROPIC_API_KEY') ? 'ready' : 'missing' },
     { id: 'deepseek', label: 'DeepSeek', detail: presentKey('DEEPSEEK_API_KEY') ? 'key present' : 'key missing', state: presentKey('DEEPSEEK_API_KEY') ? 'ready' : 'missing' },
-    { id: 'gemini', label: 'Gemini', detail: presentKey('GEMINI_API_KEY') ? 'key present' : 'key missing', state: presentKey('GEMINI_API_KEY') ? 'ready' : 'missing' },
   ];
   return {
     projects: list,
+    groups,
     status,
-    note: 'Status on this page is key presence or “local CLI”. It does not call models or list-model endpoints. Run lavaall-ai status on your machine for CLI versions.',
+    hiddenHarnesses: ['gemini'],
+    note: 'Chat on this page uses provider APIs on this deployment. It cannot run the Codex or Claude CLIs or edit files on your computer. History is stored in the ops KV when that store is bound.',
   };
 }
 
