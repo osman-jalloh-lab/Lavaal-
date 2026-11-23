@@ -2,7 +2,7 @@ name: LAVAALL OS safe tests
 on:
   push:
     branches:
-      - feature/os-codex-actions-runner
+      - 'feature/os-*'
   pull_request:
     paths:
       - 'api/os/**'
