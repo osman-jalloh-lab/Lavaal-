@@ -1,0 +1,15 @@
+{
+  "obsidian_root": "/workspace/obsidian-bridge/staging/LAVAALL",
+  "projects": [
+    {
+      "name": "salonehire",
+      "label": "SaloneHire",
+      "category": "SaloneWorks",
+      "repo": "/workspace/sw-interview-1121",
+      "branch": "feature/interview-tools",
+      "handoff": "/workspace/salonehire-ai/HANDOFF.md",
+      "handoff_snapshot": "handoffs/salonehire.md",
+      "obsidian": "Projects/SaloneWorks/SaloneHire/ai-handoff.md"
+    }
+  ]
+}

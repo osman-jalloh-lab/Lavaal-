@@ -35,7 +35,8 @@
     chev: '<path d="m9 18 6-6-6-6"/>',
     more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
     fit: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>',
-    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>'
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+    harness: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><path d="M16 8h2a3 3 0 0 1 3 3v1M8 16H6a3 3 0 0 1-3-3v-1"/>'
   };
   function icon(name) {
     return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
@@ -53,11 +54,12 @@
     { id: 'brain', label: 'Brain', icon: 'brain', hint: 'G B', key: 'b', about: 'How desks, rules, skills, routines and decisions connect.', src: 'desks' },
     { id: 'council', label: 'AI Council', icon: 'council', hint: 'G C', key: 'c', about: 'Drafter and reviewer rounds, read from stored records.', src: 'council' },
     { id: 'spend', label: 'Spend', icon: 'spend', hint: 'G S', key: 's', about: 'AI spend from real records.', src: 'spend' },
-    { id: 'settings', label: 'Settings', icon: 'settings', hint: 'G ,', key: ',', about: 'Connection status. Names only, never values.', src: 'settings' }
+    { id: 'settings', label: 'Settings', icon: 'settings', hint: 'G ,', key: ',', about: 'Connection status. Names only, never values.', src: 'settings' },
+    { id: 'harness', label: 'Harness', icon: 'harness', hint: 'G A', key: 'a', about: 'Switch Codex, Claude, DeepSeek or Gemini. Copy a command; this page does not call models.', src: 'harness' }
   ];
   // Phone tab bar: four views, then "More" for the rest. Routines moves into More so no view is unreachable.
   var TABS = ['home', 'desks', 'decisions', 'outreach'];
-  var MORE = ['talk', 'notes', 'brain', 'council', 'spend', 'settings', 'routines'];
+  var MORE = ['talk', 'notes', 'brain', 'council', 'spend', 'settings', 'routines', 'harness'];
 
   function readData() {
     var node = $('#os-data');

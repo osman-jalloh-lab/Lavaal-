@@ -1,0 +1,577 @@
+#!/usr/bin/env python3
+"""LAVAALL harness switcher: lavaall-ai <harness> <project> "task".
+
+status and projects are free. status never prints keys or makes paid calls.
+--dry-run prints the composed prompt and does not call a model.
+"""
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import urllib.error
+import urllib.request
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+DEFAULT_ROOT = Path(__file__).resolve().parent
+
+
+def ai_root() -> Path:
+    override = os.environ.get("LAVAALL_AI_ROOT", "").strip()
+    return Path(override).resolve() if override else DEFAULT_ROOT
+
+
+def projects_file() -> Path:
+    override = os.environ.get("LAVAALL_AI_PROJECTS", "").strip()
+    return Path(override).resolve() if override else (ai_root() / "projects.json")
+
+
+def rules_file() -> Path:
+    path = ai_root() / "RULES.md"
+    return path if path.is_file() else (DEFAULT_ROOT / "RULES.md")
+
+
+def helper_path(name: str) -> Path:
+    path = ai_root() / name
+    return path if path.is_file() else (DEFAULT_ROOT / name)
+HARNESSES = ("codex", "claude", "deepseek", "gemini")
+CHICAGO = ZoneInfo("America/Chicago")
+
+USAGE = """Usage:
+  lavaall-ai status
+  lavaall-ai projects
+  lavaall-ai <harness> <project> "task"
+  lavaall-ai <harness> <project> --dry-run "task"
+
+Harnesses: {harnesses}
+status is free (versions + key presence + /models). It never prints keys.
+--dry-run prints the composed prompt and does not call a model.
+""".format(harnesses=" | ".join(HARNESSES))
+
+
+def die(msg: str, code: int = 1) -> None:
+    sys.stderr.write(msg.rstrip() + "\n")
+    raise SystemExit(code)
+
+
+def now_ct() -> str:
+    return datetime.now(CHICAGO).strftime("%Y-%m-%d %H:%M CT (America/Chicago)")
+
+
+def load_config() -> dict:
+    path = projects_file()
+    if not path.is_file():
+        die(f"Missing {path}")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        die(f"Invalid projects.json: {e}")
+    if not isinstance(data, dict) or not isinstance(data.get("projects"), list):
+        die("projects.json must have a projects array")
+    return data
+
+
+def obsidian_root(cfg: dict) -> Path:
+    override = os.environ.get("LAVAALL_OBSIDIAN_ROOT", "").strip()
+    if override:
+        return Path(override)
+    return Path(cfg.get("obsidian_root") or "/workspace/obsidian-bridge/staging/LAVAALL")
+
+
+def projects_list(cfg: dict) -> list[dict]:
+    out = []
+    for raw in cfg.get("projects") or []:
+        if not isinstance(raw, dict):
+            continue
+        name = str(raw.get("name") or "").strip()
+        if not name:
+            continue
+        label = str(raw.get("label") or name).strip()
+        category = str(raw.get("category") or "LAVAALL").strip() or "LAVAALL"
+        repo = str(raw.get("repo") or "").strip()
+        branch = str(raw.get("branch") or "").strip()
+        handoff = str(raw.get("handoff") or "").strip()
+        snapshot = str(raw.get("handoff_snapshot") or "").strip()
+        obsidian = str(raw.get("obsidian") or "").strip()
+        if not obsidian:
+            obsidian = f"Projects/{category}/{label}/ai-handoff.md"
+        out.append({
+            "name": name,
+            "label": label,
+            "category": category,
+            "repo": repo,
+            "branch": branch,
+            "handoff": handoff,
+            "handoff_snapshot": snapshot,
+            "obsidian": obsidian,
+        })
+    return out
+
+
+def find_project(cfg: dict, name: str) -> dict:
+    key = name.strip().lower()
+    for proj in projects_list(cfg):
+        if proj["name"].lower() == key or proj["label"].lower() == key:
+            return proj
+    known = ", ".join(p["name"] for p in projects_list(cfg)) or "(none)"
+    die(f"Unknown project: {name}. Known: {known}")
+    raise AssertionError("unreachable")
+
+
+def key_present(name: str) -> bool:
+    return bool(os.environ.get(name, "").strip())
+
+
+def redacted_ok(text: str) -> str:
+    """Drop any env key values from a string before printing."""
+    out = text
+    for key, val in os.environ.items():
+        if not val or len(val) < 8:
+            continue
+        if "KEY" in key.upper() or "TOKEN" in key.upper() or "SECRET" in key.upper():
+            if val in out:
+                out = out.replace(val, "[redacted]")
+    return out
+
+
+def run_cmd(args: list[str], cwd: Path | None = None, timeout: int = 30) -> tuple[int, str]:
+    try:
+        r = subprocess.run(
+            args,
+            cwd=str(cwd) if cwd else None,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        text = (r.stdout or "") + (("\n" + r.stderr) if r.stderr else "")
+        return r.returncode, redacted_ok(text)
+    except FileNotFoundError:
+        return 127, ""
+    except subprocess.TimeoutExpired:
+        return 124, "timed out"
+
+
+def first_line(text: str) -> str:
+    for line in text.splitlines():
+        line = line.strip()
+        if line:
+            return line
+    return ""
+
+
+def http_get(url: str, headers: dict[str, str] | None = None, timeout: int = 8) -> tuple[int, str]:
+    req = urllib.request.Request(url, headers=headers or {}, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = resp.read().decode("utf-8", "replace")
+            return int(resp.status), body
+    except urllib.error.HTTPError as e:
+        return int(e.code), e.read().decode("utf-8", "replace")[:500]
+    except Exception:
+        return 0, "fail"
+
+
+def skip_network() -> bool:
+    return os.environ.get("LAVAALL_AI_STATUS_SKIP_NETWORK", "").strip() == "1"
+
+
+def cmd_projects(cfg: dict) -> int:
+    rows = projects_list(cfg)
+    if not rows:
+        print("No projects in projects.json")
+        return 0
+    for p in rows:
+        print(
+            f"{p['name']}\t{p['label']}\trepo={p['repo']}\tbranch={p['branch']}\thandoff={p['handoff']}"
+        )
+    return 0
+
+
+def deepseek_status() -> str:
+    if not key_present("DEEPSEEK_API_KEY"):
+        return "deepseek: key missing"
+    model = os.environ.get("DEEPSEEK_MODEL", "").strip() or "deepseek-flash"
+    if skip_network():
+        return f"deepseek: key present. Default model: {model}"
+    code, body = http_get(
+        "https://api.deepseek.com/models",
+        headers={"Authorization": "Bearer " + os.environ["DEEPSEEK_API_KEY"]},
+    )
+    body = redacted_ok(body)
+    if code == 200:
+        try:
+            models = ", ".join(m.get("id", "") for m in json.loads(body).get("data", []))
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            models = "(could not parse)"
+        return f"deepseek: ready (key present, /models HTTP 200; listed: {models}). Default model: {model}"
+    return f"deepseek: key present but /models returned HTTP {code or 'fail'}"
+
+
+def gemini_status() -> str:
+    cli = shutil.which("gemini")
+    has_key = key_present("GEMINI_API_KEY")
+    model = os.environ.get("GEMINI_MODEL", "").strip() or "gemini-2.0-flash"
+    parts: list[str] = []
+    if cli:
+        code, out = run_cmd(["gemini", "--version"])
+        ver = first_line(out) or "gemini CLI"
+        parts.append(f"CLI ready ({ver})")
+    if not has_key:
+        parts.append("key missing")
+        if not cli:
+            return "gemini: key missing"
+        return "gemini: " + "; ".join(parts)
+    if skip_network():
+        parts.append(f"key present. Default model: {model}")
+        return "gemini: " + "; ".join(parts)
+    # List models with the key in the query string; never print the URL.
+    code, body = http_get(
+        "https://generativelanguage.googleapis.com/v1beta/models?key="
+        + os.environ["GEMINI_API_KEY"]
+    )
+    body = redacted_ok(body)
+    if code == 200:
+        try:
+            names = []
+            for m in json.loads(body).get("models", []):
+                name = str(m.get("name") or "")
+                if name.startswith("models/"):
+                    name = name[len("models/"):]
+                if name:
+                    names.append(name)
+            listed = ", ".join(names[:12]) or "(none)"
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            listed = "(could not parse)"
+        parts.append(f"key present, /models HTTP 200; listed: {listed}. Default model: {model}")
+    else:
+        parts.append(f"key present but /models returned HTTP {code or 'fail'}")
+    return "gemini: " + "; ".join(parts)
+
+
+def cmd_status(cfg: dict) -> int:
+    rows = projects_list(cfg)
+    print(f"Projects file: {projects_file()}")
+    if not rows:
+        print("Projects: (none)")
+    else:
+        print("Projects:")
+        for p in rows:
+            exists = "yes" if p["repo"] and Path(p["repo"]).is_dir() else "missing"
+            print(
+                f"  - {p['name']} ({p['label']})  repo={p['repo']} ({exists})  "
+                f"branch={p['branch']}  handoff={p['handoff']}"
+            )
+    print(f"Obsidian root: {obsidian_root(cfg)}")
+    print()
+    if shutil.which("codex"):
+        _, out = run_cmd(["codex", "--version"])
+        print(f"codex: ready ({first_line(out) or 'codex'})")
+    else:
+        print("codex: missing (codex not on PATH)")
+    if shutil.which("claude"):
+        _, out = run_cmd(["claude", "--version"])
+        print(f"claude: ready ({first_line(out) or 'claude'}); will use --model sonnet")
+    else:
+        print("claude: missing (Claude Code CLI not on PATH)")
+    print(deepseek_status())
+    print(gemini_status())
+    return 0
+
+
+def rules_text() -> str:
+    path = rules_file()
+    if not path.is_file():
+        die(f"Missing {path}")
+    return path.read_text(encoding="utf-8")
+
+
+def handoff_path(proj: dict) -> Path:
+    raw = proj.get("handoff") or ""
+    if not raw:
+        die(f"Project {proj['name']} has no handoff path")
+    return Path(raw)
+
+
+def read_handoff(proj: dict) -> str:
+    path = handoff_path(proj)
+    if path.is_file():
+        return path.read_text(encoding="utf-8")
+    return (
+        f"# {proj['label']} AI handoff\n\n"
+        f"Shared progress file for Codex, Claude (Sonnet only), DeepSeek, and Gemini.\n\n"
+        f"## Log\n\n"
+    )
+
+
+def compose_prompt(proj: dict, task: str) -> str:
+    return (
+        f"You are coding on {proj['label']} (checkout: {proj['repo']}"
+        + (f", expected branch: {proj['branch']}" if proj.get("branch") else "")
+        + ").\n"
+        "Follow the rules and the project handoff below. "
+        "If you are Claude, stay on Sonnet; never use Opus.\n\n"
+        "--- RULES.md ---\n"
+        f"{rules_text().rstrip()}\n\n"
+        "--- HANDOFF.md ---\n"
+        f"{read_handoff(proj).rstrip()}\n\n"
+        "--- TASK ---\n"
+        f"{task.rstrip()}\n"
+    )
+
+
+def ensure_log_section(text: str) -> str:
+    if "## Log" not in text:
+        if not text.endswith("\n"):
+            text += "\n"
+        text += "\n## Log\n\n"
+    return text
+
+
+def last_log_lines(text: str, n: int = 10) -> list[str]:
+    lines = text.splitlines()
+    start = -1
+    for i, line in enumerate(lines):
+        if line.strip() == "## Log":
+            start = i + 1
+    if start < 0:
+        return []
+    entries = [ln for ln in lines[start:] if ln.lstrip().startswith("- ")]
+    return entries[-n:]
+
+
+def sync_obsidian(cfg: dict, proj: dict, content: str) -> Path:
+    dest = obsidian_root(cfg) / proj["obsidian"]
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(content, encoding="utf-8")
+    return dest
+
+
+def sync_snapshot(proj: dict, content: str) -> Path | None:
+    rel = proj.get("handoff_snapshot") or ""
+    if not rel:
+        return None
+    base = ai_root()
+    dest = (base / rel).resolve()
+    # Stay inside the tools folder.
+    if base not in dest.parents and dest != base:
+        return None
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(content, encoding="utf-8")
+    return dest
+
+
+def append_log(cfg: dict, proj: dict, harness: str, task: str, changes: str, tests: str) -> str:
+    path = handoff_path(proj)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = ensure_log_section(read_handoff(proj))
+    safe_task = " ".join(task.split())[:200]
+    line = (
+        f"- {now_ct()} — harness: {harness} — project: {proj['name']} "
+        f"— task: {safe_task} — changes: {changes} — tests: {tests}"
+    )
+    if not text.endswith("\n"):
+        text += "\n"
+    text += line + "\n"
+    path.write_text(text, encoding="utf-8")
+    sync_obsidian(cfg, proj, text)
+    snap = sync_snapshot(proj, text)
+    print(f"Logged to {path}")
+    if snap:
+        print(f"Snapshot: {snap}")
+    print(line)
+    return line
+
+
+def resolve_repo(proj: dict) -> Path:
+    repo = Path(proj["repo"] or "")
+    if not repo.is_dir():
+        die(f"Repo not found: {repo}")
+    if not (repo / ".git").exists() and not (repo / ".git").is_file():
+        # Allow git worktrees ( .git is a file ) and normal checkouts.
+        die(f"Not a git checkout: {repo}")
+    return repo
+
+
+def git_head(repo: Path) -> str:
+    code, out = run_cmd(["git", "rev-parse", "HEAD"], cwd=repo)
+    return out.strip() if code == 0 else ""
+
+
+def change_summary(repo: Path, old_head: str) -> str:
+    new_head = git_head(repo)
+    chunks: list[str] = []
+    if old_head and new_head and old_head != new_head:
+        _, stat = run_cmd(["git", "diff", "--stat", f"{old_head}..{new_head}"], cwd=repo)
+        if stat.strip():
+            chunks.append(stat)
+    _, dirty = run_cmd(["git", "diff", "--stat", "HEAD"], cwd=repo)
+    if dirty.strip():
+        chunks.append(dirty)
+    _, untracked = run_cmd(["git", "ls-files", "--others", "--exclude-standard"], cwd=repo)
+    files = " ".join(untracked.split())
+    compact = " ".join(" ".join(chunks).split())
+    if files:
+        if compact:
+            compact = f"{compact}; untracked: {files}"
+        else:
+            compact = f"untracked: {files}"
+    return compact or "no file changes"
+
+
+def tests_hint(repo: Path) -> str:
+    # Record whether a conventional test entry looks present; do not run a suite here.
+    if (repo / "tests").is_dir() or (repo / "pytest.ini").is_file():
+        return "not run by switcher (run the project suite after the change)"
+    return "not run by switcher"
+
+
+def run_codex(repo: Path, prompt: str) -> int:
+    if not shutil.which("codex"):
+        die("Codex CLI is not installed or not on PATH.")
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, suffix=".txt") as fh:
+        fh.write(prompt)
+        path = fh.name
+    try:
+        with open(path, encoding="utf-8") as stdin:
+            r = subprocess.run(
+                ["codex", "exec", "-C", str(repo), "-s", "workspace-write", "-"],
+                cwd=str(repo),
+                stdin=stdin,
+            )
+        return r.returncode
+    finally:
+        os.unlink(path)
+
+
+def run_claude(repo: Path, prompt: str) -> int:
+    if not shutil.which("claude"):
+        die("Claude Code CLI is not installed or not on PATH. Not installing.")
+    r = subprocess.run(
+        ["claude", "-p", "--model", "sonnet", "--permission-mode", "acceptEdits", prompt],
+        cwd=str(repo),
+    )
+    return r.returncode
+
+
+def run_helper(helper: Path, repo: Path, prompt: str, out_name: str) -> int:
+    if not helper.is_file():
+        die(f"Missing helper: {helper}")
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, suffix=".txt") as fh:
+        fh.write(prompt)
+        path = fh.name
+    try:
+        r = subprocess.run(
+            [
+                sys.executable,
+                str(helper),
+                "--repo",
+                str(repo),
+                "--prompt-file",
+                path,
+                "--out-patch",
+                str(ai_root() / out_name),
+            ],
+            cwd=str(repo),
+        )
+        return r.returncode
+    finally:
+        os.unlink(path)
+
+
+def run_deepseek(repo: Path, prompt: str) -> int:
+    if not key_present("DEEPSEEK_API_KEY"):
+        die("DEEPSEEK_API_KEY is not set.")
+    return run_helper(helper_path("deepseek_helper.py"), repo, prompt, "last-deepseek.patch")
+
+
+def run_gemini(repo: Path, prompt: str) -> int:
+    if shutil.which("gemini"):
+        r = subprocess.run(["gemini", "-p", prompt], cwd=str(repo))
+        return r.returncode
+    if not key_present("GEMINI_API_KEY"):
+        die("gemini: key missing (Gemini CLI is not on PATH and GEMINI_API_KEY is not set).")
+    return run_helper(helper_path("gemini_helper.py"), repo, prompt, "last-gemini.patch")
+
+
+def run_harness(harness: str, repo: Path, prompt: str) -> int:
+    if harness == "codex":
+        return run_codex(repo, prompt)
+    if harness == "claude":
+        return run_claude(repo, prompt)
+    if harness == "deepseek":
+        return run_deepseek(repo, prompt)
+    if harness == "gemini":
+        return run_gemini(repo, prompt)
+    die(f"Unknown harness: {harness}")
+    return 1
+
+
+def parse_run_args(argv: list[str]) -> tuple[str, str, str, bool]:
+    """Return (harness, project, task, dry_run) or exit with usage."""
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        print(USAGE, end="")
+        raise SystemExit(0)
+    cmd = argv[0]
+    rest = argv[1:]
+    if cmd == "status":
+        if rest and rest != ["--json"]:
+            # --json is reserved; status stays human-readable in v1.
+            if rest[0] not in ("--json",):
+                die("status takes no arguments", 2)
+        return "status", "", "", False
+    if cmd == "projects":
+        if rest:
+            die("projects takes no arguments", 2)
+        return "projects", "", "", False
+    if cmd not in HARNESSES:
+        print(USAGE, end="", file=sys.stderr)
+        die(f"Unknown command: {cmd}", 2)
+    dry = False
+    if "--dry-run" in rest:
+        dry = True
+        rest = [a for a in rest if a != "--dry-run"]
+    if not rest:
+        die("Please pass a project name and a task in quotes.", 2)
+    project = rest[0]
+    task_parts = rest[1:]
+    if not task_parts:
+        die("Please pass a task in quotes.", 2)
+    task = " ".join(task_parts).strip()
+    if not task:
+        die("Please pass a task in quotes.", 2)
+    return cmd, project, task, dry
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    harness, project, task, dry = parse_run_args(args)
+    cfg = load_config()
+    if harness == "status":
+        return cmd_status(cfg)
+    if harness == "projects":
+        return cmd_projects(cfg)
+    proj = find_project(cfg, project)
+    prompt = compose_prompt(proj, task)
+    if dry:
+        print(prompt, end="" if prompt.endswith("\n") else "\n")
+        return 0
+    repo = resolve_repo(proj)
+    old_head = git_head(repo)
+    print(f"Repo: {repo}")
+    print(f"Harness: {harness}")
+    print(f"Project: {proj['name']}")
+    rc = run_harness(harness, repo, prompt)
+    changes = change_summary(repo, old_head)
+    if rc != 0:
+        changes = f"{changes}; run exited {rc}"
+    append_log(cfg, proj, harness, task, changes, tests_hint(repo))
+    return rc
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
