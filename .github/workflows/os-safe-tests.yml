@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - 'feature/os-*'
+      - 'fix/os-runner-*'
   pull_request:
     paths:
       - 'api/os/**'
