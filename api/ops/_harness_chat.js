@@ -400,7 +400,9 @@ async function usageSnapshot(env, fetchImpl) {
     claudeUsage(env),
     deepseekUsage(env, fetchImpl),
   ]);
-  return { providers: [codex, claude, deepseek], note: 'Figures are shown only when a provider returns them. Missing or refused totals are “not available”, never estimated.' };
+  const grok = { id: 'grok', label: 'Grok (xAI)', available: false,
+    reason: present(env, 'XAI_API_KEY') ? 'provider billing/usage total not connected' : 'key missing' };
+  return { providers: [codex, claude, deepseek, grok], note: 'Provider-reported balances only; subscription quotas and API costs are separate. Missing totals are not available.' };
 }
 
 async function deny(req, res) {
