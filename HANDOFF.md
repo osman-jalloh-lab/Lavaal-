@@ -41,4 +41,9 @@
 
 ## Draft PR
 
-- To be filled after push.
+- URL: https://github.com/osman-jalloh-lab/Lavaal-/pull/99 (draft)
+- Commit: `36658f8` on `feature/os-harness-switcher`
+- Vercel preview (deployment protection + founder Google sign-in): https://lavaal-git-feature-os-harness-switcher-osman14.vercel.app
+  - /os: https://lavaal-git-feature-os-harness-switcher-osman14.vercel.app/os
+  - Deployment: https://lavaal-iik2eqj4q-osman14.vercel.app
+- Vercel check: success (22 Nov 2026, 8:03 PM CT, America/Chicago). No merge or production deploy.
