@@ -246,15 +246,30 @@
 .os-root .sheet-i.on svg{color:var(--accent)}
 
 
+.os-root .hidden{display:none}
 .os-root .harness-card{display:flex;flex-direction:column;gap:14px}
 .os-root .harness-field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--tx2)}
 .os-root .harness-sel,.os-root .harness-task{height:36px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--panel);color:var(--text);padding:0 10px;font:inherit;width:100%}
-.os-root .harness-sel:focus,.os-root .harness-task:focus{outline:none;border-color:var(--accent)}
-.os-root .harness-picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.os-root .harness-sel:focus,.os-root .harness-task:focus,.os-root .harness-input:focus{outline:none;border-color:var(--accent)}
+.os-root .harness-tabs{display:flex;gap:8px;margin:0 0 16px}
+.os-root .harness-tab.on{border-color:var(--accent);color:var(--text)}
+.os-root .harness-pickers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.os-root .harness-picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .os-root .harness-pick{height:auto;min-height:44px;padding:8px 10px;justify-content:flex-start;align-items:flex-start;flex-direction:column;gap:2px;text-align:left}
 .os-root .harness-pick.on{border-color:var(--accent);color:var(--text)}
 .os-root .harness-pick .dot{margin-top:4px}
 .os-root .harness-pick small{font-weight:400}
+.os-root .harness-setup{padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--bg2);color:var(--tx2);font-size:13px;line-height:1.45}
+.os-root .harness-setup p{margin:0}
+.os-root .harness-usage{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.os-root .harness-usage .kpi i{display:block;margin-top:6px;font-style:normal;font-size:12px;color:var(--tx3);font-weight:400}
+.os-root .harness-thread{min-height:220px;max-height:min(52vh,480px);overflow:auto;display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--bg2)}
+.os-root .harness-msg{max-width:86%;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);line-height:20px;white-space:pre-wrap;overflow-wrap:anywhere}
+.os-root .harness-msg-user{align-self:flex-end;background:color-mix(in srgb,var(--accent) 16%,var(--panel));border-color:color-mix(in srgb,var(--accent) 35%,var(--line));border-bottom-right-radius:4px}
+.os-root .harness-msg-assistant{align-self:flex-start;border-bottom-left-radius:4px}
+.os-root .harness-msg small{display:block;margin-bottom:4px}
+.os-root .harness-composer{display:flex;flex-direction:column;gap:8px}
+.os-root .harness-input{min-height:88px;resize:vertical;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--panel);color:var(--text);padding:9px 10px;font:inherit;width:100%}
 .os-root .harness-cmdrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .os-root .harness-cmd{flex:1;min-width:0;display:block;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--bg2);white-space:pre-wrap;word-break:break-word}
 .os-root .harness-log{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
@@ -267,7 +282,7 @@
  .os-root #view{padding:16px 16px 88px}
  .os-root .g4{grid-template-columns:repeat(2,minmax(0,1fr))}.os-root .g32,.os-root .g2{grid-template-columns:minmax(0,1fr)}.os-root .cmsg{margin-left:calc(var(--ln)*10px)}.os-root .talk{grid-template-columns:1fr}.os-root .talklist{border-right:0;max-height:none}.os-root .talk.open .talklist{display:none}.os-root .talk:not(.open) .talkpane{display:none}.os-root .talk.open .talkback{display:inline-flex;transform:rotate(180deg)}.os-root .talkpane{max-height:calc(100vh - 150px)}.os-root .bub{max-width:88%}.os-root .composer textarea{font-size:16px}.os-root .dgrid{grid-template-columns:minmax(0,1fr)}.os-root .dfrow>b{width:100%}
  .os-root .btn{height:36px}.os-root .chip{height:36px}.os-root .tchip{height:34px}.os-root .ib{width:36px;height:36px}
- .os-root input.q,.os-root .btool input,.os-root .pbox input,.os-root .harness-sel,.os-root .harness-task{font-size:16px}.os-root .btool input{height:34px}
+ .os-root input.q,.os-root .btool input,.os-root .pbox input,.os-root .harness-sel,.os-root .harness-task,.os-root .harness-input{font-size:16px}.os-root .btool input{height:34px}
  .os-root .kpi b{font-size:22px}
  .os-root .rt-sched,.os-root .rt-last,.os-root .dc-desk{display:none}.os-root .m-only{display:block}
  .os-root .tablewrap td,.os-root .tablewrap th{padding-left:8px;padding-right:8px}.os-root .tablewrap td.wrap{min-width:130px}
@@ -282,6 +297,6 @@
  .os-root .tabbar a.on,.os-root .tabbar .tab.on{color:var(--text)}
  .os-root .sheet.on{display:block}
  .os-root #view{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
- .os-root .harness-picks{grid-template-columns:1fr}
+ .os-root .harness-picks,.os-root .harness-pickers,.os-root .harness-usage{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){.os-root *{animation:none!important;transition:none!important}}

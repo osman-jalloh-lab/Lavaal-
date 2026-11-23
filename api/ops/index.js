@@ -34,6 +34,7 @@ const {
 } = require('./_routine_health');
 const { handleInboxTriage, inboxTriageEnabled, readInboxTriageView, renderInboxTriage } = require('./_inbox_triage');
 const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
+const { handleHarnessChat } = require('./_harness_chat');
 const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
 const {
   confirmInboxSend,
@@ -740,6 +741,7 @@ async function opsDispatch(req, res) {
   if (await handleCeoBridge(req, res)) return;
   if (await handleInboxTriage(req, res)) return;
   if (await handleDeskTalk(req, res)) return;
+  if (await handleHarnessChat(req, res)) return;
   if (await handleKitsApi(req, res)) return;
   if (await handleMapApi(req, res)) return;
 

@@ -170,7 +170,10 @@ const STORE = {
   const code = src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
   check('adapter never calls readStore', !/readStore\s*\(/.test(code));
   check('adapter never calls a store write', !/writeStore|kvSet|persistSeeded|['"](SET|DEL|EXPIRE)['"]/.test(code));
-  check('adapter has no model SDK or key', !/ANTHROPIC|OPENAI|XAI_|@anthropic|require\(['"]openai/.test(code));
+  // Harness status may name OPENAI_API_KEY / ANTHROPIC_API_KEY for presence
+  // dots only. The adapter still must not import an SDK or read those env
+  // vars as model credentials.
+  check('adapter has no model SDK or key', !/@anthropic|require\(['"]openai|require\(['"]@anthropic|XAI_API_KEY|process\.env\.(ANTHROPIC|OPENAI|XAI_)/.test(code));
 
   globalThis.fetch = realFetch;
   const failed = results.filter((r) => !r.pass);

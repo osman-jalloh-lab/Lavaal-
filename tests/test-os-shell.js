@@ -132,9 +132,14 @@ async function call(area, extra) {
   check('clock is Chicago time', js.body.includes('America/Chicago') && js.body.includes("' CT'"));
   check('theme is persisted defensively', /try \{[^}]*localStorage/.test(js.body));
   check('no eval, no new Function, no XHR or beacons', !/\beval\s*\(|new Function\(|XMLHttpRequest|sendBeacon/.test(js.body));
-  // Talk (phase 5) is the one place that calls the server: same origin, the existing /ops Talk endpoints only.
+  // Talk and Harness are the only client fetches: same origin, credentials same-origin, no absolute URLs.
   const talkSrc = fs.readFileSync(path.join(root, 'api/os/_client/talk.js'), 'utf8');
-  check('the only fetch is in talk.js, same origin, to /ops Talk paths', (js.body.match(/fetch\(/g) || []).length === 1 && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && /credentials: 'same-origin'/.test(talkSrc) && !/https?:\/\//.test(talkSrc.replace(/\/\*[\s\S]*?\*\//, '')) && /'\/ops\/ceo-bridge\/'/.test(talkSrc) && /'\/ops\/desk-talk\/'/.test(talkSrc));
+  const harnessSrc = fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8');
+  const fetchCount = (js.body.match(/fetch\(/g) || []).length;
+  const harnessFetches = harnessSrc.match(/window\.fetch\(/g) || [];
+  check('app.js has exactly two fetch call sites: talk.js and harness.js', fetchCount === 2 && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && harnessFetches.length === 1);
+  check('talk.js stays same-origin to /ops Talk paths', /credentials: 'same-origin'/.test(talkSrc) && !/https?:\/\//.test(talkSrc.replace(/\/\*[\s\S]*?\*\//, '')) && /'\/ops\/ceo-bridge\/'/.test(talkSrc) && /'\/ops\/desk-talk\/'/.test(talkSrc));
+  check('harness.js stays same-origin to /ops/harness/', /credentials(?:\s*:\s*|\s*=\s*)'same-origin'/.test(harnessSrc) && /'\/ops\/harness\/'/.test(harnessSrc) && !/https?:\/\//.test(harnessSrc.replace(/\/\*[\s\S]*?\*\//, '')));
 
   // 6. JSON embedding is inert.
   const hostile = embedJson({ t: '</script><script>alert(1)</script>' });

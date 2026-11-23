@@ -1,6 +1,8 @@
 # lavaall-ai
 
-Harness switcher so Osman can keep working on the same project with Codex, Claude (Sonnet), DeepSeek, or Gemini. Every harness reads the same `RULES.md` and the project's `HANDOFF.md`, then appends a dated log line and mirrors it into Obsidian.
+Local harness switcher so Osman can keep working on the same project with Codex, Claude, DeepSeek, or Gemini from this computer. Every harness reads the same `RULES.md` and the project's `HANDOFF.md`, then appends a dated log line and mirrors it into Obsidian.
+
+The founder-only /os Harness page is a type-and-send chat (Codex, Claude with a Sonnet/Haiku/Opus picker, DeepSeek). Gemini is off on that page. The page talks to `/ops/harness` on the website and cannot run these CLIs or edit a local checkout. Use this CLI when you want the real Codex or Claude Code tools after `codex login` or the Claude CLI.
 
 ## Commands
 
@@ -40,4 +42,6 @@ mkdir -p "$HOME/.local/bin"
 ln -sf "$(pwd)/lavaall-ai" "$HOME/.local/bin/lavaall-ai"
 ```
 
-The /os Harness page (founders only) copies these same commands. It does not call models.
+`projects.json` is grouped for the /os page: LAVAALL (all vault sub-projects plus an umbrella row), SaloneWorks, Starlink, and SaloneHire. The CLI still lists the flat `projects` array.
+
+The /os Harness page (founders only) is a type-and-send chat through each provider's API. It does not copy these CLI commands, and it cannot see this computer. Gemini is hidden on the page but still available here.
