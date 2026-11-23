@@ -76,7 +76,7 @@ function realAdapter() {
         const base = job.baseSha || 'HEAD';
         if (job.baseSha && !SHA.test(job.baseSha)) throw new Error('invalid_base');
         await run('git', ['-C', clone, 'worktree', 'add', '-b', job.branch, work, base], { timeout, signal });
-        await run('codex', ['exec', promptFor(job)], { cwd: work, timeout, signal, env: { PATH: process.env.PATH || '/usr/bin:/bin', HOME: process.env.HOME || os.tmpdir(), LANG: process.env.LANG || 'C.UTF-8' } });
+        await run('codex', ['exec', '--sandbox', 'workspace-write', promptFor(job)], { cwd: work, timeout, signal, env: { PATH: process.env.PATH || '/usr/bin:/bin', HOME: process.env.HOME || os.tmpdir(), LANG: process.env.LANG || 'C.UTF-8' } });
         // Every repository must have its explicitly required test suite.
         // Never publish a PR with "Skipped: no safe test suite".
         const validation = validationCommand(job.repo, work);
