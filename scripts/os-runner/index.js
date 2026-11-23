@@ -58,7 +58,8 @@ function secretFor(env) {
 function run(commandName, args, options = {}) {
   return new Promise((resolve, reject) => {
     if (options.signal && options.signal.aborted) return reject(new Error('timeout'));
-    const child = spawn(commandName, args, { cwd: options.cwd, env: options.env || process.env, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'] });
+    if (!options.env) return reject(new Error('missing_command_environment'));
+    const child = spawn(commandName, args, { cwd: options.cwd, env: options.env, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'] });
     let out = ''; child.stdout.on('data', x => { out += x; });
     child.stderr.resume();
     let timedOut = false; const abort = () => { timedOut = true; try { if (process.platform !== 'win32') process.kill(-child.pid, 'SIGKILL'); else child.kill('SIGKILL'); } catch {} }; if (options.signal) options.signal.addEventListener('abort', abort, { once: true });
@@ -67,32 +68,53 @@ function run(commandName, args, options = {}) {
     child.on('close', code => { clearTimeout(timer); if (options.signal) options.signal.removeEventListener('abort', abort); if (timedOut) return reject(new Error('timeout')); if (code === 0 || (options.accept && options.accept.includes(code))) resolve({ code, out: out.trim() }); else reject(new Error('command_failed')); });
   });
 }
-function realAdapter() {
+function realAdapter({ env = process.env } = {}) {
+  const runtime = { PATH: env.PATH || '/usr/bin:/bin', LANG: env.LANG || 'C.UTF-8' };
+  const publisher = { ...runtime };
+  for (const name of ['HOME', 'XDG_CONFIG_HOME', 'GH_CONFIG_DIR', 'GH_TOKEN',
+    'GITHUB_TOKEN', 'GIT_ASKPASS', 'SSH_AUTH_SOCK']) {
+    if (typeof env[name] === 'string') publisher[name] = env[name];
+  }
+  // Use the publisher environment only for Git/GitHub operations. Disable
+  // repository hooks so they cannot run with publishing credentials.
+  const git = (args, options) =>
+    run('git', ['-c', 'core.hooksPath=/dev/null', ...args], { ...options, env: publisher });
+  const github = (args, options) => run('gh', args, { ...options, env: publisher });
   return {
     async execute(job, timeout, signal) {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'os-run-')); const clone = path.join(dir, 'repo'); const work = path.join(dir, 'worktree');
       try {
-        await run('git', ['clone', '--no-checkout', '--', `https://github.com/${job.repo}.git`, clone], { timeout, signal });
+        await git(['clone', '--no-checkout', '--', `https://github.com/${job.repo}.git`, clone], { timeout, signal });
         const base = job.baseSha || 'HEAD';
         if (job.baseSha && !SHA.test(job.baseSha)) throw new Error('invalid_base');
-        await run('git', ['-C', clone, 'worktree', 'add', '-b', job.branch, work, base], { timeout, signal });
-        await run('codex', ['exec', '--sandbox', 'workspace-write', promptFor(job)], { cwd: work, timeout, signal, env: { PATH: process.env.PATH || '/usr/bin:/bin', HOME: process.env.HOME || os.tmpdir(), LANG: process.env.LANG || 'C.UTF-8' } });
+        await git(['-C', clone, 'worktree', 'add', '-b', job.branch, work, base], { timeout, signal });
+        const codexHome = path.join(dir, 'codex-home');
+        fs.mkdirSync(codexHome, { mode: 0o700 });
+        const testHome = path.join(dir, 'test-home');
+        fs.mkdirSync(testHome, { mode: 0o700 });
+        await run('codex', ['exec', '--sandbox', 'workspace-write', promptFor(job)], {
+          cwd: work, timeout, signal,
+          env: { ...runtime, HOME: codexHome, CODEX_HOME: path.join(codexHome, '.codex'), TMPDIR: codexHome },
+        });
         // Every repository must have its explicitly required test suite.
         // Never publish a PR with "Skipped: no safe test suite".
         const validation = validationCommand(job.repo, work);
-        await run(validation.command, validation.args, { cwd: work, timeout, signal });
+        await run(validation.command, validation.args, {
+          cwd: work, timeout, signal,
+          env: { ...runtime, HOME: testHome, TMPDIR: testHome, APP_ENV: 'test', EMAIL_ENABLED: 'false' },
+        });
         const tests = validation.label;
-        await run('git', ['add', '-A'], { cwd: work, timeout, signal });
-        const changed = await run('git', ['diff', '--cached', '--quiet'], { cwd: work, timeout, signal, accept: [1] });
-        if (changed.code === 1) await run('git', ['commit', '-m', 'OS approved run'], { cwd: work, timeout, signal });
+        await git(['add', '-A'], { cwd: work, timeout, signal });
+        const changed = await git(['diff', '--cached', '--quiet'], { cwd: work, timeout, signal, accept: [1] });
+        if (changed.code === 1) await git(['commit', '-m', 'OS approved run'], { cwd: work, timeout, signal });
         else return { sha: '', prUrl: '', tests: tests + '; no changes' };
-        const sha = (await run('git', ['rev-parse', 'HEAD'], { cwd: work, timeout, signal })).out;
-        await run('git', ['push', 'origin', `HEAD:refs/heads/${job.branch}`], { cwd: work, timeout, signal });
-        const prUrl = (await run('gh', ['pr', 'create', '--draft', '--repo', job.repo, '--head', job.branch, '--title', 'OS approved run', '--body', 'Draft from an approved OS job.'], { cwd: work, timeout, signal })).out;
+        const sha = (await git(['rev-parse', 'HEAD'], { cwd: work, timeout, signal })).out;
+        await git(['push', 'origin', `HEAD:refs/heads/${job.branch}`], { cwd: work, timeout, signal });
+        const prUrl = (await github(['pr', 'create', '--draft', '--repo', job.repo, '--head', job.branch, '--title', 'OS approved run', '--body', 'Draft from an approved OS job.'], { cwd: work, timeout, signal })).out;
         return { sha, prUrl, tests };
       } finally { fs.rmSync(dir, { recursive: true, force: true }); }
     },
-    async githubGet(endpoint, signal) { return JSON.parse((await run('gh', ['api', endpoint], { signal })).out); },
+    async githubGet(endpoint, signal) { return JSON.parse((await github(['api', endpoint], { signal })).out); },
   };
 }
 async function tick({ env = process.env, fetchImpl = fetch, adapter = realAdapter(), timeout = 20 * 60 * 1000, executor = 'codex', now = () => Date.now(), enabled = () => runnerEnabled(env) } = {}) {
