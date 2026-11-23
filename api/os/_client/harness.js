@@ -10,7 +10,8 @@
   var HARNESSES = [
     { id: 'codex', label: 'OpenAI API' },
     { id: 'claude', label: 'Claude' },
-    { id: 'deepseek', label: 'DeepSeek' }
+    { id: 'deepseek', label: 'DeepSeek' },
+    { id: 'grok', label: 'Grok' }
   ];
   var CLAUDE_MODELS = [
     { id: 'sonnet', label: 'Sonnet' },
