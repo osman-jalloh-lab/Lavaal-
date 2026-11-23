@@ -11,11 +11,11 @@ const osData = require(path.join(root, 'api/ops/_os_data.js'));
 const results = [];
 function check(name, cond) { results.push({ name, pass: !!cond }); }
 
-function loadOS() {
+function loadOS(businessPages) {
   const win = {};
   const sandbox = {
     window: win,
-    document: { querySelector: () => null, querySelectorAll: () => [], documentElement: { setAttribute() {}, getAttribute: () => 'dark' } },
+    document: { querySelector: (sel) => sel === '#os-data' && businessPages ? { textContent: JSON.stringify({ flags: { businessPages: true } }) } : null, querySelectorAll: () => [], documentElement: { setAttribute() {}, getAttribute: () => 'dark' } },
     location: { hash: '' },
     navigator: {},
     setTimeout: () => 0,
@@ -31,9 +31,11 @@ function loadOS() {
 
 const { OS } = loadOS();
 check('harness is a registered view', Boolean(OS.views.harness && OS.views.harness.render));
-check('harness is in the nav and in More, not in the primary tabs', OS.nav.some((n) => n.id === 'harness') && OS.mobile.MORE.includes('harness') && !OS.mobile.TABS.includes('harness'));
+check('AI room is in the default phone tabs', OS.nav.some((n) => n.id === 'harness') && OS.mobile.TABS.includes('harness') && !OS.mobile.MORE.includes('harness'));
+const flagOn = loadOS(true).OS;
+check('flag on keeps harness in More instead of the primary tabs', flagOn.mobile.MORE.includes('harness') && !flagOn.mobile.TABS.includes('harness'));
 check('harness shortcut is G A', OS.nav.find((n) => n.id === 'harness').hint === 'G A' && OS.nav.find((n) => n.id === 'harness').key === 'a');
-check('nav about is type-and-send, Gemini off', /Type a request/.test(OS.nav.find((n) => n.id === 'harness').about) && !/Gemini/.test(OS.nav.find((n) => n.id === 'harness').about.replace('Gemini is off.', '')));
+check('nav describes the AI room plainly', OS.nav.find((n) => n.id === 'harness').label === 'AI room' && /project/.test(OS.nav.find((n) => n.id === 'harness').about));
 
 const SECRET = 'harness-secret-value-should-never-render-12345';
 const data = osData.buildOsData({ store: {} }, { env: { GEMINI_API_KEY: SECRET, DEEPSEEK_API_KEY: '', OPENAI_API_KEY: SECRET, ANTHROPIC_API_KEY: '' } });
@@ -48,8 +50,8 @@ check('codex shows key present without the secret, claude and deepseek show key 
 check('page data never includes the API key value', !JSON.stringify(data.harness).includes(SECRET));
 
 const html = OS.views.harness.render({ id: 'harness', sub: '', data });
-check('page heading is Harness', /<h1>Harness<\/h1>/.test(html));
-check('explains real capabilities and that Gemini is off', /Connected provider APIs can answer here/.test(html) && /Gemini is off/.test(html));
+check('page heading is AI room', /<h1>AI room<\/h1>/.test(html));
+check('explains real capabilities and that Gemini is off', /Connected AI providers can answer here/.test(html) && /Gemini is off/.test(html));
 check('Home and Chat tabs are present', /data-harness-tab="home"/.test(html) && /data-harness-tab="chat"/.test(html));
 check('group picker lists the four groups', /id="harness-group"/.test(html) && /value="lavaall"/.test(html) && /LAVAALL/.test(html) && /SaloneWorks/.test(html) && /Starlink/.test(html) && /SaloneHire/.test(html));
 check('project dropdown includes SaloneHire', /id="harness-project"/.test(html) && /value="salonehire"/.test(html) && /SaloneHire/.test(html));
@@ -82,7 +84,7 @@ const escaped = OS.views.harness.render({ id: 'harness', sub: '', data: custom }
 check('hostile project and group labels are escaped', /Demo &lt;script&gt;alert\(1\)&lt;\/script&gt;/.test(escaped) && !/Demo <script>/.test(escaped));
 
 const empty = OS.views.harness.render({ id: 'harness', sub: '', data: { harness: { projects: [], groups: [], status: [], note: '' }, sources: { harness: { from: 'tools/lavaall-ai/projects.json', label: 'Harness chat' } } } });
-check('empty project list shows an empty state with the source', /No projects are listed/.test(empty) && /Source: /.test(empty));
+check('empty project list explains the next step', /No projects are listed/.test(empty) && /business assistant/.test(empty));
 
 const logLines = osData.harnessLogLines('# Title\n\n## Log\n\nintro\n- one\n- two\n## Other\n- not a log\n', 10);
 check('log parser keeps dash lines under Log and stops at the next heading', logLines.join('|') === '- one|- two');

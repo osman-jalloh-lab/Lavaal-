@@ -62,6 +62,32 @@ function allowedUrl(value) {
       && ['github.com', 'www.github.com'].includes(u.hostname) ? u.href : null;
   } catch { return null; }
 }
+// Discover existing records as well as newly written ones, scoped to this environment.
+async function scanRecords(env, fetchImpl, prefix, pattern, limit) {
+  if (!configured(env)) return [];
+  const keys = []; let cursor = '0', pages = 0;
+  do {
+    const page = await command(env, fetchImpl, ['SCAN', cursor, 'MATCH', rootFor(env) + prefix + pattern, 'COUNT', 100]);
+    if (!Array.isArray(page) || !Array.isArray(page[1])) break;
+    cursor = String(page[0]); keys.push(...page[1]); pages += 1;
+  } while (cursor !== '0' && keys.length < 1000 && pages < 100);
+  const records = await Promise.all(keys.slice(0, limit).map(async k => {
+    if (typeof k !== 'string' || !k.startsWith(rootFor(env) + prefix)) return null;
+    const raw = await command(env, fetchImpl, ['GET', k]);
+    return typeof raw === 'string' ? jsonRecord(raw) : null;
+  }));
+  return records.filter(Boolean);
+}
+async function listStubs(env, fetchImpl) {
+  const rows = await scanRecords(env, fetchImpl, 'catalog:', 'stub-*', 200);
+  return rows.filter(r => typeof r.id === 'string' && /^stub-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(r.id));
+}
+async function listIntakes(env, fetchImpl) {
+  const rows = await scanRecords(env, fetchImpl, 'intake:', 'intake-*', 200);
+  return rows.filter(r => typeof r.id === 'string' && /^intake-[a-f0-9-]{36}$/.test(r.id))
+    .map(r => ({ id: r.id, projectId: r.projectId, status: r.projectStatus, goalId: r.goalId, receivedAt: r.receivedAt }))
+    .sort((a, b) => String(b.receivedAt || '').localeCompare(String(a.receivedAt || ''))).slice(0, 50);
+}
 async function getGoal(env, fetchImpl, id) {
   if (!ID_RE.test(id || '')) return null;
   const raw = await command(env, fetchImpl, ['GET', key(env, id)]);
@@ -148,4 +174,4 @@ async function handle(req, env, fetchImpl) {
     return reply(400, { error: 'unknown_action' });
   } catch { return reply(503, { error: 'goal_store_unavailable' }); }
 }
-module.exports = { handle, allowedOrigin, allowedUrl, ID_RE, MAX_GOAL, command, createGoal, knownProject, rootFor, PRODUCTION_ROOT, PREVIEW_ROOT };
+module.exports = { listStubs, listIntakes, handle, allowedOrigin, allowedUrl, ID_RE, MAX_GOAL, command, createGoal, knownProject, rootFor, PRODUCTION_ROOT, PREVIEW_ROOT };

@@ -104,6 +104,15 @@ const itemKeys = () => [...kv.keys()].filter(k => k.startsWith(root + 'item:'));
   p = payload(); p.project.requirements = Array(21).fill('item'); await expect(p, 400, 'invalid_field');
   p = payload(); p.project.existing_os_project = 'not-a-catalog-project'; await expect(p, 400, 'invalid_existing_os_project');
   p = await approve(payload()); await expect(p, 503, 'intake_store_not_configured', { env: { ...env, KV_REST_API_URL: '' } });
+  // Preview URLs use a trusted forwarded host; untrusted hosts fall back.
+  const previewPayload = await approve(payload());
+  const preview = await expect(previewPayload, 201, undefined, { headers: { 'x-forwarded-host': 'lavaal-git-feature-os-engineering-cleanup-osman14.vercel.app', 'x-forwarded-proto': 'https' } });
+  assert.match(preview.body.url, /^https:\/\/lavaal-git-feature-os-engineering-cleanup-osman14\.vercel\.app\/os\//);
+  const previewReplay = await expect(previewPayload, 200);
+  assert.equal(previewReplay.body.url, preview.body.url);
+  const evilPayload = await approve(payload());
+  const evil = await expect(evilPayload, 201, undefined, { headers: { host: 'evil.example' } });
+  assert.match(evil.body.url, /^https:\/\/www\.lavaall\.com\/os\//);
   // Happy path, explicit catalog attach.
   p = payload(); p.project.existing_os_project = 'lavaall'; await approve(p);
   const created = await expect(p, 201); assert.equal(created.body.project_id, 'lavaall'); assert.equal(created.body.project_status, 'catalog'); assert.match(created.body.goal_id, /^goal-/); assert.match(created.body.url, /^https:\/\/www\.lavaall\.com\/os\//); assert.equal(created.body.stripped_fields, undefined);

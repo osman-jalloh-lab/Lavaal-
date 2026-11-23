@@ -89,7 +89,14 @@ async function call(area, extra) {
   try { data = JSON.parse(m && m[1]); } catch { data = null; }
   check('data block parses', data && typeof data === 'object');
   check('data block carries the founder email', data && data.me && data.me.email === ALLOWED);
-  check('data block carries the KPIs and an honest live/empty flag per source', data && data.kpis && data.sources && data.sources.decisions.live === true && ['spend', 'council', 'outreach', 'brief', 'hotelBounceRate'].every((k) => data.sources[k].live === false) && data.kpis.hotelBounceRate === null && data.kpis.aiSpendMonth === null);
+  check('business pages are off by default', data && data.flags && data.flags.businessPages === false);
+  process.env.OS_BUSINESS_PAGES = '1';
+  const businessPage = await call('', { email: ALLOWED });
+  delete process.env.OS_BUSINESS_PAGES;
+  const businessMatch = businessPage.body.match(/<script type="application\/json" id="os-data">([\s\S]*?)<\/script>/);
+  let businessData = null;
+  try { businessData = JSON.parse(businessMatch && businessMatch[1]); } catch { businessData = null; }
+  check('flag-on data carries the KPIs and an honest live/empty flag per source', businessData && businessData.flags.businessPages === true && businessData.kpis && businessData.sources && businessData.sources.decisions.live === true && ['spend', 'council', 'outreach', 'brief', 'hotelBounceRate'].every((k) => businessData.sources[k].live === false) && businessData.kpis.hotelBounceRate === null && businessData.kpis.aiSpendMonth === null);
   check('settings carry names only, no secret values', !html.includes('SECRET-MAIL-VALUE-123') && !html.includes('SECRET-RESEND-VALUE-456'));
   check('page made no network call', fetched === 0);
 

@@ -55,11 +55,11 @@
     { id: 'council', label: 'AI Council', icon: 'council', hint: 'G C', key: 'c', about: 'Drafter and reviewer rounds, read from stored records.', src: 'council' },
     { id: 'spend', label: 'Spend', icon: 'spend', hint: 'G S', key: 's', about: 'AI spend from real records.', src: 'spend' },
     { id: 'settings', label: 'Settings', icon: 'settings', hint: 'G ,', key: ',', about: 'Connection status. Names only, never values.', src: 'settings' },
-    { id: 'harness', label: 'Harness', icon: 'harness', hint: 'G A', key: 'a', about: 'Type a request to Codex, Claude, or DeepSeek for a project. Gemini is off.', src: 'harness' }
+    { id: 'harness', label: 'AI room', icon: 'harness', hint: 'G A', key: 'a', about: 'Pick a project and ask a connected AI for help.', src: 'harness' }
   ];
   // Phone tab bar: four views, then "More" for the rest. Routines moves into More so no view is unreachable.
-  var TABS = ['home', 'desks', 'decisions', 'outreach'];
-  var MORE = ['talk', 'notes', 'brain', 'council', 'spend', 'settings', 'routines', 'harness'];
+  var TABS;
+  var MORE;
 
   function readData() {
     var node = $('#os-data');
@@ -67,6 +67,12 @@
   }
 
   OS.data = readData();
+  var businessPages = !!(OS.data.flags && OS.data.flags.businessPages === true);
+  TABS = businessPages ? ['home', 'desks', 'decisions', 'outreach'] : ['harness', 'settings'];
+  MORE = businessPages ? ['talk', 'notes', 'brain', 'council', 'spend', 'settings', 'routines', 'harness'] : [];
+  function visible(n) { return businessPages || n.id === 'harness' || n.id === 'settings'; }
+  var visibleNav = NAV.filter(visible);
+  if (!businessPages) visibleNav.sort(function (a, b) { return (a.id === 'harness' ? 0 : 1) - (b.id === 'harness' ? 0 : 1); });
   OS.nav = NAV;
   OS.esc = esc;
   OS.icon = icon;
@@ -208,16 +214,16 @@
   function tickClock() { var el = $('#clock'); if (el) el.textContent = clockText(); }
 
   // ---- nav ---------------------------------------------------------------
-  var cur = 'home';
+  var cur = 'harness';
   function renderNav() {
-    $('#nav').innerHTML = '<div class="navlbl">Workspace</div>' + NAV.map(function (n) {
+    $('#nav').innerHTML = '<div class="navlbl">Workspace</div>' + visibleNav.map(function (n) {
       return '<a href="#' + n.id + '" data-nav="' + n.id + '"' + (n.id === cur ? ' class="on" aria-current="page"' : '') + '>' +
         icon(n.icon) + esc(n.label) + '<kbd>' + esc(n.hint) + '</kbd></a>';
     }).join('');
     $('#tabbar').innerHTML = TABS.map(function (id) {
       var n = navItem(id);
       return '<a href="#' + id + '"' + (id === cur ? ' class="on" aria-current="page"' : '') + '>' + icon(n.icon) + esc(n.label.split(' ')[0]) + '</a>';
-    }).join('') + '<button type="button" id="tab-more" class="tab' + (MORE.indexOf(cur) !== -1 ? ' on' : '') + '" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet">' + icon('more') + 'More</button>';
+    }).join('') + (MORE.length ? '<button type="button" id="tab-more" class="tab' + (MORE.indexOf(cur) !== -1 ? ' on' : '') + '" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet">' + icon('more') + 'More</button>' : '');
   }
 
   // ---- router ------------------------------------------------------------
@@ -228,8 +234,11 @@
     var id = i < 0 ? raw : raw.slice(0, i);
     var sub = '';
     if (i >= 0) { try { sub = decodeURIComponent(raw.slice(i + 1)); } catch (e) { sub = raw.slice(i + 1); } }
-    return { id: navItem(id) ? id : 'home', sub: sub };
+    var item = navItem(id);
+    if (!item || !visible(item)) return { id: 'harness', sub: '' };
+    return { id: id, sub: sub };
   }
+  OS.parseRoute = parseHash;
   function hashFor(id, sub) {
     return '#' + id + (sub ? '/' + encodeURIComponent(sub).replace(/%3A/gi, ':') : '');
   }
@@ -247,6 +256,9 @@
 
   function render() {
     var route = parseHash();
+    var rawId = location.hash.replace(/^#/, '').split('/')[0];
+    var requested = navItem(rawId);
+    if (requested && !visible(requested)) location.replace('#harness');
     var n = navItem(route.id);
     if (mounted && mounted.unmount) { try { mounted.unmount(); } catch (e) { /* ignore */ } }
     mounted = null;
@@ -268,6 +280,7 @@
 
   // ---- More sheet (phone) ------------------------------------------------
   function openMore() {
+    if (!MORE.length) return;
     var panel = $('#sheet-panel');
     panel.innerHTML = '<div class="sheet-h">More</div>' + MORE.map(function (id) {
       var n = navItem(id);
@@ -312,16 +325,15 @@
   OS.dismissDrawer = dismissDrawer;
 
   // ---- command palette ---------------------------------------------------
-  var CMDS = NAV.map(function (n) {
+  var CMDS = visibleNav.map(function (n) {
     return { label: n.label, icon: n.icon, hint: n.hint, run: function () { OS.go(n.id); } };
-  }).concat([
+  }).concat(businessPages ? [
     { label: 'Open Brain graph', icon: 'brain', hint: 'G B', run: function () { OS.go('brain'); } },
     { label: 'Search Brain…', icon: 'search', hint: '', run: function () {
       OS.go('brain');
       setTimeout(function () { var q = $('#bq'); if (q) q.focus(); }, 250);
-    } },
-    { label: 'Toggle theme', icon: 'theme', hint: 'T', run: toggleTheme }
-  ]);
+    } }
+  ] : []).concat([{ label: 'Toggle theme', icon: 'theme', hint: 'T', run: toggleTheme }]);
   var psel = 0;
   var shown = [];
   function renderPalette() {
@@ -412,8 +424,8 @@
       if (e.key === 't') { toggleTheme(); return; }
       if (e.key === 'g') { gAt = Date.now(); return; }
       if (Date.now() - gAt < 800) {
-        for (var i = 0; i < NAV.length; i++) {
-          if (NAV[i].key === e.key) { gAt = 0; OS.go(NAV[i].id); return; }
+        for (var i = 0; i < visibleNav.length; i++) {
+          if (visibleNav[i].key === e.key) { gAt = 0; OS.go(visibleNav[i].id); return; }
         }
       }
     });

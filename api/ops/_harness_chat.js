@@ -72,6 +72,20 @@ function findProject(name, pack) {
   return projects.find((p) => String(p.name).toLowerCase() === key || String(p.label).toLowerCase() === key) || null;
 }
 
+async function findRoomProject(name, env, fetchImpl) {
+  const catalogProject = findProject(name, CATALOG);
+  if (catalogProject) return catalogProject;
+  const id = String(name || '').trim();
+  if (!/^stub-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) || !kvOn(env) || !fetchImpl) return null;
+  try {
+    const raw = await goals.command(env, fetchImpl, ['GET', goals.rootFor(env) + 'catalog:' + id]);
+    const stub = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!stub || stub.id !== id || stub.source !== 'business_intake') return null;
+    // Intake labels are external text; keep them out of the provider prompt.
+    return { name: id, label: id, status: 'pending' };
+  } catch { return null; }
+}
+
 function present(env, name) {
   return Boolean(env && env[name] && String(env[name]).trim());
 }
@@ -441,7 +455,7 @@ async function handleHistory(req, res, env, fetchImpl) {
     return true;
   }
   const name = String(firstQuery(req, 'project') || '').trim();
-  const project = findProject(name, CATALOG);
+  const project = await findRoomProject(name, env, fetchImpl || globalThis.fetch);
   if (!project) {
     json(res, 404, { error: 'unknown_project' });
     return true;
@@ -472,7 +486,7 @@ async function handleChat(req, res, env, fetchImpl) {
     json(res, 400, { error: 'unknown_harness' });
     return true;
   }
-  const project = findProject(body.project, CATALOG);
+  const project = await findRoomProject(body.project, env, fetchImpl || globalThis.fetch);
   if (!project) {
     json(res, 400, { error: 'unknown_project' });
     return true;

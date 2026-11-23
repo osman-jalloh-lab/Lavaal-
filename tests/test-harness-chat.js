@@ -210,6 +210,23 @@ async function run() {
   }
 
   {
+    const env = { KV_REST_API_URL: 'https://kv.example.test', KV_REST_API_TOKEN: FAKE_KV };
+    const keys = [];
+    const fetchImpl = async (url, init) => {
+      const args = JSON.parse(init.body);
+      keys.push(args[1]);
+      const value = args[1] === 'lavaall:preview:goals:v1:catalog:stub-example'
+        ? { id: 'stub-example', label: 'Example', source: 'business_intake' }
+        : { projects: { 'stub-example': { messages: [{ role: 'user', text: 'Earlier' }], log: [] } } };
+      return { ok: true, json: async () => ({ result: JSON.stringify(value) }) };
+    };
+    const hist = await call('history', { query: { project: 'stub-example' } }, { env, fetchImpl });
+    check('intake stub history uses its id and the preview catalog root', hist.res.statusCode === 200
+      && hist.res.body.project === 'stub-example' && hist.res.body.messages[0].text === 'Earlier'
+      && keys.includes('lavaall:preview:goals:v1:catalog:stub-example'));
+  }
+
+  {
     const kv = { projects: {} };
     const fetchImpl = async (url, init) => {
       const href = String(url);
