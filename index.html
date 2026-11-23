@@ -1069,6 +1069,7 @@ class ScheduleModal {
     this.trigger = null;
     this.lead = null; // { leadId, token, firstName, wantsMeet, hasEmail, method }
     this.selectedMethod = '';
+    this.availabilityRequest = 0;
     this.init();
   }
 
@@ -1112,6 +1113,7 @@ class ScheduleModal {
   }
 
   close() {
+    this.availabilityRequest++;
     this.overlay.classList.remove('show');
     document.body.style.overflow = '';
     if (this.trigger && this.trigger.focus) this.trigger.focus();
@@ -1127,6 +1129,7 @@ class ScheduleModal {
   }
 
   showStep(n) {
+    if (n !== 2) this.availabilityRequest++;
     this.step1.hidden = n !== 1;
     this.step2.hidden = n !== 2;
     this.confirmStep.hidden = n !== 3;
@@ -1331,6 +1334,65 @@ class ScheduleModal {
     }
   }
 
+  async recover(leadId, token) {
+    this.open();
+    this.regSubmitBtn.disabled = true;
+    try {
+      const response = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'lookup', leadId, token }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.ok) {
+        this.showStep1Error(this.tr('sch.err.recovery', 'This booking link could not be opened. Please contact LAVAALL or start a new request.'));
+        return;
+      }
+      this.lead = {
+        leadId, token, firstName: body.firstName, lastName: body.lastName,
+        reason: body.reason, method: body.preferredContactMethod,
+        wantsMeet: body.preferredContactMethod === 'email', hasEmail: body.hasEmail,
+      };
+      if (body.bookingStatus === 'Scheduled') {
+        if (!body.start) {
+          this.showStep1Error(this.tr('sch.err.recovery', 'This booking link could not be opened. Please contact LAVAALL or start a new request.'));
+          return;
+        }
+        const start = new Date(body.start).toISOString();
+        this.showConfirmation(start.slice(0, 10), start.slice(11, 16), body);
+      } else {
+        this.enterStep2();
+      }
+    } catch {
+      this.showStep1Error(this.tr('sch.err.recovery', 'This booking link could not be opened. Please contact LAVAALL or start a new request.'));
+    } finally {
+      this.regSubmitBtn.disabled = false;
+    }
+  }
+
+  updateCalendarDownload(body, title) {
+    const link = document.getElementById('sched-calendar-download');
+    if (this.calendarUrl) URL.revokeObjectURL(this.calendarUrl);
+    this.calendarUrl = null;
+    link.hidden = true;
+    const start = new Date(body.start);
+    const end = new Date(body.end);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) return;
+    const escape = value => String(value || '').replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/[,;]/g, '\\$&');
+    const stamp = date => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+    const lines = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//LAVAALL//Bookings//EN',
+      'BEGIN:VEVENT', 'UID:' + escape(this.lead.leadId) + '@lavaall.com',
+      'DTSTAMP:' + stamp(new Date()), 'DTSTART:' + stamp(start), 'DTEND:' + stamp(end),
+      'SUMMARY:' + escape('LAVAALL call: ' + title),
+      'DESCRIPTION:' + escape(body.meetLink || this.lead.leadId),
+      'END:VEVENT', 'END:VCALENDAR', '',
+    ];
+    this.calendarUrl = URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' }));
+    link.href = this.calendarUrl;
+    link.hidden = false;
+  }
+
   enterStep2() {
     this.showStep(2);
     const sub = SCHED_STRINGS[currentLang] || SCHED_STRINGS.en;
@@ -1346,6 +1408,7 @@ class ScheduleModal {
   }
 
   async loadAvailability() {
+    const request = ++this.availabilityRequest;
     const date = this.dateInput.value;
     if (!date) return;
     this.slotsEl.innerHTML = '';
@@ -1354,6 +1417,7 @@ class ScheduleModal {
     try {
       const response = await fetch('/api/schedule?action=availability&date=' + encodeURIComponent(date));
       const body = await response.json().catch(() => ({}));
+      if (request !== this.availabilityRequest || date !== this.dateInput.value) return;
       this.loadingEl.hidden = true;
       if (!response.ok || !body.ok) {
         this.showStep2Error(body.message || 'Could not load availability. Please try another date.');
@@ -1372,6 +1436,7 @@ class ScheduleModal {
         this.slotsEl.appendChild(btn);
       });
     } catch (error) {
+      if (request !== this.availabilityRequest || date !== this.dateInput.value) return;
       console.error('Availability load error:', error);
       this.loadingEl.hidden = true;
       this.showStep2Error('Could not load availability. Please try another date.');
@@ -1438,8 +1503,9 @@ class ScheduleModal {
 
     const emailNoteEl = document.getElementById('sched-confirm-email-note');
     const saveNoteEl = document.getElementById('sched-confirm-save-note');
-    if (emailNoteEl) emailNoteEl.hidden = !this.lead.hasEmail;
-    if (saveNoteEl) saveNoteEl.hidden = !!this.lead.hasEmail;
+    if (emailNoteEl) emailNoteEl.hidden = body.emailSent !== true;
+    if (saveNoteEl) saveNoteEl.hidden = body.emailSent === true;
+    this.updateCalendarDownload(body, what);
   }
 }
 
@@ -1448,7 +1514,7 @@ const SCHED_STRINGS = {
     step2sub: (name) => `Hi ${name}, choose a date and time (Mon-Fri, 9am-5pm, Africa/Freetown time).`,
     confirmDetail: (when, method, meetLink) => {
       let tail = ' -- LAVAALL will call you at the number you provided.';
-      if (method === 'email') tail = meetLink ? ' -- a Google Meet link is in your confirmation email.' : ' -- a Google Meet invitation will be sent to your email.';
+      if (method === 'email') tail = meetLink ? ' -- Google Meet: ' + meetLink : ' -- Google Meet details are unavailable. Please contact LAVAALL with your booking reference.';
       else if (method === 'whatsapp') tail = ' -- LAVAALL will reach you on WhatsApp at the number you provided.';
       else if (method === 'messenger') tail = ' -- LAVAALL will reach you on Facebook Messenger.';
       return `${when} (Africa/Freetown time)` + tail;
@@ -1458,7 +1524,7 @@ const SCHED_STRINGS = {
     step2sub: (name) => `Bonjour ${name}, choisissez une date et une heure (Lun-Ven, 9h-17h, heure d'Afrique/Freetown).`,
     confirmDetail: (when, method, meetLink) => {
       let tail = ' -- LAVAALL vous appellera au numéro fourni.';
-      if (method === 'email') tail = meetLink ? ' -- un lien Google Meet se trouve dans votre e-mail de confirmation.' : ' -- une invitation Google Meet sera envoyée à votre e-mail.';
+      if (method === 'email') tail = meetLink ? ' -- Google Meet : ' + meetLink : ' -- Les détails Google Meet sont indisponibles. Contactez LAVAALL avec votre référence de réservation.';
       else if (method === 'whatsapp') tail = ' -- LAVAALL vous contactera sur WhatsApp au numéro fourni.';
       else if (method === 'messenger') tail = ' -- LAVAALL vous contactera via Facebook Messenger.';
       return `${when} (heure d'Afrique/Freetown)` + tail;
@@ -1468,7 +1534,7 @@ const SCHED_STRINGS = {
     step2sub: (name) => `Adu ${name}, pik wan det ɛn taem (Mɔnde to Fraede, 9am-5pm, Africa/Freetown taem).`,
     confirmDetail: (when, method, meetLink) => {
       let tail = ' -- LAVAALL go kɔl yu na di nɔmba we yu gi wi.';
-      if (method === 'email') tail = meetLink ? ' -- Google Meet link de na yu kɔnfɔmeshon imel.' : ' -- wi go sɛn wan Google Meet invitehon go na yu imel.';
+      if (method === 'email') tail = meetLink ? ' -- Google Meet: ' + meetLink : ' -- Google Meet ditel nɔ de. Kɔntakt LAVAALL wit yu bukin rɛfrɛns.';
       else if (method === 'whatsapp') tail = ' -- LAVAALL go rich yu na WhatsApp na di nɔmba we yu gi wi.';
       else if (method === 'messenger') tail = ' -- LAVAALL go rich yu na Facebook Messenger.';
       return `${when} (Africa/Freetown taem)` + tail;
@@ -1925,7 +1991,9 @@ const translations={
     'sch.confirm.h2':'Call Scheduled!',
     'sch.confirm.note':'A confirmation email is on its way to you. To reschedule or cancel, just reply to that email or contact us directly.',
     'sch.confirm.reference':'Booking reference',
-    'sch.confirm.saveNote':'Please save or take a screenshot of this confirmation for your records -- we were not able to email it to you.',
+    'sch.confirm.saveNote':'Please save this confirmation. Email delivery has not been confirmed.',
+    'sch.confirm.calendar':'Add to calendar',
+    'sch.err.recovery':'This booking link could not be opened. Please contact LAVAALL or start a new request.',
     'sch.confirm.done':'Done',
     'ft.copy':'© 2026 LAVAALL. All rights reserved.'
   },
@@ -2199,7 +2267,9 @@ const translations={
     'sch.confirm.h2':'Appel Planifié !',
     'sch.confirm.note':'Un e-mail de confirmation est en route. Pour reprogrammer ou annuler, répondez simplement à cet e-mail ou contactez-nous directement.',
     'sch.confirm.reference':'Référence de réservation',
-    'sch.confirm.saveNote':'Veuillez enregistrer ou faire une capture d\'écran de cette confirmation pour vos dossiers -- nous n\'avons pas pu vous l\'envoyer par e-mail.',
+    'sch.confirm.saveNote':'Veuillez enregistrer cette confirmation. L’envoi par e-mail n’est pas confirmé.',
+    'sch.confirm.calendar':'Ajouter au calendrier',
+    'sch.err.recovery':'Ce lien de réservation est indisponible. Contactez LAVAALL ou créez une nouvelle demande.',
     'sch.confirm.done':'Terminé',
     'ft.copy':'© 2026 LAVAALL. Tous droits réservés.'
   },
@@ -2475,7 +2545,9 @@ const translations={
     'sch.confirm.h2':'Kɔl Dɔn Skedul!',
     'sch.confirm.note':'Wan kɔnfɔmeshon imel de kam to yu. Fɔ chenj ɔ kansɔl, jɔs ansa dat imel ɔ kɔntakt wi direkt.',
     'sch.confirm.reference':'Bukin rɛfrɛns',
-    'sch.confirm.saveNote':'Duya sev ɔ tek skrinshɔt fɔ dis kɔnfɔmeshon fɔ yu rɛkɔd -- wi nɔ ebul sɛn am to yu bay imel.',
+    'sch.confirm.saveNote':'Duya sev dis kɔnfɔmeshon. Wi nɔ konfɛm se di imel dɔn sɛn.',
+    'sch.confirm.calendar':'Ad na kalɛnda',
+    'sch.err.recovery':'Wi nɔ ebul opun dis bukin link. Kɔntakt LAVAALL ɔ stat wan nyu rikwest.',
     'sch.confirm.done':'Dɔn',
     'ft.copy':'© 2026 LAVAALL. Ɔl Rayt Risɔvd.'
   }
@@ -2608,7 +2680,19 @@ document.addEventListener('DOMContentLoaded', function() {
   new InquiryFormHandler('iq-form');
 
   // Set default language
-  setLang('en');
+  const bookingParams = new URLSearchParams(location.search);
+  const bookingLang = bookingParams.get('lang');
+  setLang(['en', 'fr', 'kr'].includes(bookingLang) ? bookingLang : 'en');
+  if (/^\/schedule\/?$/.test(location.pathname)) {
+    window.openScheduleModal();
+    const leadId = bookingParams.get('leadId');
+    const token = bookingParams.get('token');
+    if (leadId && token) {
+      // Keep the recovery token out of subsequent history entries and copied URLs.
+      history.replaceState(null, '', location.pathname);
+      scheduleModalInstance.recover(leadId, token);
+    }
+  }
 });
 
 
@@ -2835,7 +2919,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <p id="sched-confirm-detail"></p>
 <p id="sched-confirm-reference"></p>
 <p class="fnote" id="sched-confirm-email-note" data-i18n="sch.confirm.note">A confirmation email is on its way to you. To reschedule or cancel, just reply to that email or contact us directly.</p>
-<p id="sched-confirm-save-note" data-i18n="sch.confirm.saveNote" hidden>Please save or take a screenshot of this confirmation for your records -- we were not able to email it to you.</p>
+<a id="sched-calendar-download" class="bs" data-i18n="sch.confirm.calendar" download="lavaall-call.ics" hidden>Add to calendar</a>
+<p id="sched-confirm-save-note" data-i18n="sch.confirm.saveNote" hidden>Please save this confirmation. Email delivery has not been confirmed.</p>
 <button type="button" class="fsub" id="sched-done-btn" data-i18n="sch.confirm.done">Done</button>
 </div>
 

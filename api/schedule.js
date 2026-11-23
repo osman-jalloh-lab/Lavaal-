@@ -83,6 +83,14 @@ async function schedule(req, res) {
   const body = req.body || {};
   if (body.website) return json(res, 200, { accepted: true }); // honeypot
 
+  if (action === 'lookup') {
+    const leadId = clean(body.leadId, 60);
+    const token = clean(body.token, 80);
+    if (!leadId || !token) return json(res, 400, { error: 'missing_lead_or_token' });
+    const result = await callBackend('lookup', { leadId, token }, true);
+    return json(res, result.status, result.body);
+  }
+
   if (action === 'register') {
     const firstName = clean(body.firstName, 60);
     const lastName = clean(body.lastName, 60);
@@ -192,7 +200,7 @@ async function schedule(req, res) {
     }
 
     const result = await callBackend('book', { leadId, token, date, time }, true);
-    if (result.ok && result.body && result.body.ok) {
+    if (result.ok && result.body && result.body.ok && !result.body.replayed) {
       try {
         const mirrored = await recordPublicBooking({
           leadId,
