@@ -28,3 +28,15 @@ assert.equal(OS.harnessSelection.findProject(data.harness.groups, query.project)
 assert.equal(OS.harnessSelection.findProject(data.harness.groups, 'missing'), null);
 assert.equal(OS.harnessSelection.query('?project=%3Cbad%3E&goal=bad').project, '');
 console.log('test-os-engineering-room-client: PASS');
+
+assert(html.includes('id="harness-run-approve"'));
+assert(html.includes('Approve and run'));
+assert(html.includes('box runner job using Codex only'));
+assert(html.includes('does not run on Vercel, merge, or deploy'));
+assert(OS.runEvidenceHtml(null).includes('Select a goal, then Approve and run'));
+const unverified = OS.runEvidenceHtml({ state: 'succeeded', result: { sha: 'secret-sha', prUrl: 'secret-pr', verified: false, tests: 'passed' } });
+assert(!unverified.includes('secret-sha') && !unverified.includes('secret-pr'));
+assert(unverified.includes('not passed') && unverified.includes('passed'));
+const verified = OS.runEvidenceHtml({ state: 'succeeded', result: { sha: 'abc123', prUrl: 'draft-pr', verified: true, tests: 'passed' } });
+assert(verified.includes('abc123') && verified.includes('draft-pr') && verified.includes('verification: passed'));
+assert(!OS.runEvidenceHtml({state:'<script>', result:{verified:true, sha:'<script>'}}).includes('<script>'));

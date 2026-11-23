@@ -20,6 +20,7 @@ const goals = require('./_harness_goals');
 const { publicRegistry } = require('./_provider_registry');
 const approvals = require('./_approvals');
 const intakeContract = require('./_os_intake');
+const jobs = require('./_harness_jobs');
 
 const CATALOG = require('../../tools/lavaall-ai/projects.json');
 const RULES_PATH = path.join(__dirname, '../../tools/lavaall-ai/RULES.md');
@@ -46,6 +47,7 @@ function harnessKind(req) {
   const hay = `${area} ${pathOnly}`.toLowerCase();
   if (/harness\/providers(?:\/|$|\?)/.test(hay)) return 'providers';
   if (/harness\/approvals(?:\/|$|\?)/.test(hay)) return 'approvals';
+  if (/harness\/jobs(?:\/|$|\?)/.test(hay)) return 'jobs';
   if (/harness\/chat(?:\/|$|\?)/.test(hay) || /harness\/chat$/.test(hay.trim())) return 'chat';
   if (/harness\/history/.test(hay)) return 'history';
   if (/harness\/usage/.test(hay)) return 'usage';
@@ -594,6 +596,17 @@ async function handleHarnessChat(req, res, opts) {
     if (req.method !== 'POST') { json(res, 405, { error: 'method_not_allowed' }); return true; }
     if (!goals.allowedOrigin(req)) { json(res, 403, { error: 'invalid_origin' }); return true; }
     const body = readBody(req) || {};
+    if (body.action === 'code_run') {
+      const checked = jobs.validatePayload(body.payload);
+      if (checked.error) { json(res, 400, checked); return true; }
+      if (jobs.containsSecret(checked.value, env)) { json(res, 400, { error: 'sensitive_payload' }); return true; }
+      try {
+        if (!await jobs.checkGoal(env, fetchImpl, checked.value)) { json(res, 400, { error: 'goal_not_runnable' }); return true; }
+        const minted = await approvals.mintApproval(env, fetchImpl, access, { action: 'code_run', requestHash: jobs.requestHash(checked.value), summary: 'Code run for ' + checked.value.goalId });
+        json(res, minted.status, minted.body);
+      } catch { json(res, 503, { error: 'approval_store_unavailable' }); }
+      return true;
+    }
     if (body.action !== 'intake_create') { json(res, 400, { error: 'invalid_approval_request' }); return true; }
     // Osman approves the exact intake payload; the server computes the hash the intake must match.
     const checked = intakeContract.validateIntake(body.payload, { requireApproval: false });
@@ -603,6 +616,11 @@ async function handleHarnessChat(req, res, opts) {
         requestHash: intakeContract.intakeRequestHash(body.payload), summary: checked.value.name });
       json(res, minted.status, minted.body);
     } catch { json(res, 503, { error: 'approval_store_unavailable' }); }
+    return true;
+  }
+  if (kind === 'jobs') {
+    const result = await jobs.handle({ ...req, query: queryOf(req), body: readBody(req) }, env, fetchImpl);
+    json(res, result.status, result.body);
     return true;
   }
   if (kind === 'providers') {
