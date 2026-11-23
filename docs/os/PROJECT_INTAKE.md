@@ -6,6 +6,17 @@
 
 The route returns `404 not_found` (before auth) unless `VERCEL_ENV` is `preview`, or `VERCEL_ENV` is `production` and `OS_INTAKE_PRODUCTION_ENABLED` is exactly `1`. Local/development runs are refused too.
 
+## KV key prefix (S4)
+
+All goal and intake keys come from one helper, `rootFor(env)` in `api/ops/_harness_goals.js`:
+
+| `VERCEL_ENV` | Root | Example |
+| --- | --- | --- |
+| `production` | `lavaall:goals:v1:` (unchanged from #103) | `lavaall:goals:v1:item:goal-<uuid>` |
+| anything else (preview, development, local, tests) | `lavaall:preview:goals:v1:` | `lavaall:preview:goals:v1:item:goal-<uuid>` |
+
+Kinds under the root: `item`, `events`, `project`, `catalog`, `tasks`, `approvals`, `intake`, `intake-idem`, `intake-rate`. Preview and Production currently share one KV store, so this prefix is what keeps test data out of the live OS; production code never reads the preview root.
+
 ## Authentication and request
 
 Send `Authorization: Bearer <OS_INTAKE_TOKEN>` and a JSON body. The dedicated token must be at least 32 characters and must differ from `OPS_CEO_BRIDGE_SECRET` and `OPS_AUTH_SECRET`. It is accepted only for this intake route and does not establish a session. The request body is limited to 16,384 bytes. Include an `Idempotency-Key` header and/or `idempotency_key` in the body; if both are present they must match. Keys contain 16–128 ASCII letters, digits, `.`, `_`, `:`, or `-`.

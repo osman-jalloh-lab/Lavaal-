@@ -1,6 +1,6 @@
 // api/ops/_os_intake.js — POST /api/os/ingest/project-intake (routed by api/os/ingest/[feed].js).
 // Business assistant -> LAVAALL OS project intake. Scoped OS_INTAKE_TOKEN bearer + HMAC-bound founder
-// approval record. Writes only under #103's lavaall:goals:v1: root. Never creates repositories, grants
+// approval record. Writes only under #103's goals root from rootFor(env) (lavaall:goals:v1: in production, lavaall:preview:goals:v1: elsewhere). Never creates repositories, grants
 // access, calls a model, dispatches a coding run or sends mail. Never logs payloads, tokens or headers.
 'use strict';
 const crypto = require('node:crypto');
@@ -9,7 +9,7 @@ const { header, noStore, timingSafeEqualString } = require('./_lib');
 // founder sign-in ALLOWLIST in _lib.js, which is unchanged. Change only through a reviewed PR.
 const INTAKE_APPROVERS = Object.freeze(['osmanjalloh104@gmail.com']);
 const isIntakeApprover = email => typeof email === 'string' && INTAKE_APPROVERS.includes(email.trim().toLowerCase());
-const { command, createGoal, ROOT, MAX_GOAL } = require('./_harness_goals');
+const { command, createGoal, rootFor, MAX_GOAL } = require('./_harness_goals');
 const catalog = require('../../tools/lavaall-ai/projects.json');
 const projects = new Set((catalog.projects || []).map(p => p.name));
 const allowed = ['name', 'description', 'business_objective', 'proposed_next_task', 'required_functionality', 'acceptance_criteria', 'requirements', 'constraints', 'priorities', 'existing_repository', 'existing_os_project'];
@@ -89,6 +89,7 @@ async function handleProjectIntake(req, res, opts = {}) {
   const approved = Date.parse(a.approved_at);
   const approvalFresh = !(approved > now + 60000 || approved < now - 900000);
   if (!env.KV_REST_API_URL || !env.KV_REST_API_TOKEN) return send(res, 503, { error: 'intake_store_not_configured' });
+  const ROOT = rootFor(env);
   const requestHash = hash(canonicalJson(signingBody(raw))), idemHash = hash(idem), idemKey = ROOT + 'intake-idem:' + idemHash;
   const at = new Date(now).toISOString();
   let reserved = false, approvalWritten = false, goalCreated = false;

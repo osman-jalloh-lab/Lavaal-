@@ -10,7 +10,7 @@ const token = 'synthetic-intake-token-1234567890-123456';
 const bridge = 'synthetic-bridge-token-1234567890';
 const env = { VERCEL_ENV: 'preview', OS_INTAKE_TOKEN: token, OPS_CEO_BRIDGE_SECRET: bridge, KV_REST_API_URL: 'https://kv.invalid', KV_REST_API_TOKEN: 'synthetic-kv-token' };
 const now = Date.parse('2026-11-22T12:00:00Z');
-const root = 'lavaall:goals:v1:';
+const root = goals.PREVIEW_ROOT; // S4: non-production writes use the preview root
 const kv = new Map(), urls = [];
 async function fetchImpl(url, opts) {
   urls.push(url); assert.equal(url, env.KV_REST_API_URL);
@@ -117,6 +117,34 @@ async function expect(body, status, error, opts) { const r = await send(body, op
   } finally {
     for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
   }
+  // S4: prefix scheme. One helper; production names byte-identical to #103; preview never overlaps.
+  assert.equal(goals.PRODUCTION_ROOT, 'lavaall:goals:v1:');
+  assert.equal(goals.PREVIEW_ROOT, 'lavaall:preview:goals:v1:');
+  assert.equal(goals.rootFor({VERCEL_ENV:'production'}), 'lavaall:goals:v1:');
+  for (const v of ['preview','development','',undefined]) assert.equal(goals.rootFor({VERCEL_ENV:v}), 'lavaall:preview:goals:v1:');
+  assert(!goals.PREVIEW_ROOT.startsWith(goals.PRODUCTION_ROOT));
+  // Everything the preview runs above wrote is under the preview root; nothing under the production root.
+  assert([...kv.keys()].some(k=>k.startsWith(goals.PREVIEW_ROOT+'item:')));
+  assert(![...kv.keys()].some(k=>k.startsWith(goals.PRODUCTION_ROOT)), 'preview wrote a production key');
+  // Production cannot list or read preview records.
+  const prodEnv = {...env, VERCEL_ENV:'production'};
+  const prodStubList = await goals.handle({method:'GET',headers:{},query:{project:'new-synthetic-project'}},prodEnv,fetchImpl);
+  assert.equal(prodStubList.status,400); assert.equal(prodStubList.body.error,'unknown_project');
+  const prodLavaall = await goals.handle({method:'GET',headers:{},query:{project:'lavaall'}},prodEnv,fetchImpl);
+  assert.equal(prodLavaall.status,200); assert.equal(prodLavaall.body.goals.length,0);
+  const prodDetail = await goals.handle({method:'GET',headers:{},query:{id:goal.id}},prodEnv,fetchImpl);
+  assert.equal(prodDetail.status,404);
+  // Production intake (only with the explicit flag) writes #103's unprefixed names unchanged.
+  const prodP = payload(); prodP.project.existing_os_project = 'lavaall'; signed(prodP);
+  const prodRes = await expect(prodP,201,undefined,{env:{...prodEnv,OS_INTAKE_PRODUCTION_ENABLED:'1'}});
+  assert(kv.has('lavaall:goals:v1:item:'+prodRes.body.goal_id));
+  assert(kv.has('lavaall:goals:v1:approvals:'+prodP.approval.approval_id));
+  assert(kv.has('lavaall:goals:v1:intake:'+prodRes.body.intake_id));
+  assert(kv.get('lavaall:goals:v1:project:lavaall').includes(prodRes.body.goal_id));
+  assert(!kv.has(goals.PREVIEW_ROOT+'item:'+prodRes.body.goal_id));
+  // And preview listing does not see the production goal.
+  const previewLavaall = await goals.handle({method:'GET',headers:{},query:{project:'lavaall'}},env,fetchImpl);
+  assert(!previewLavaall.body.goals.some(g=>g.id===prodRes.body.goal_id));
   // Stub lookups only accept slug-shaped names.
   assert.equal(await goals.knownProject(env, fetchImpl, '../catalog'), false);
   console.log('test-os-intake: PASS (isolated fake KV)');

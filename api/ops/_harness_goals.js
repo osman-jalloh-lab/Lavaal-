@@ -11,7 +11,12 @@ const PROJECTS = new Set((CATALOG.projects || []).map(x => x.name));
 const PROVIDERS = new Set(['human', 'grok', 'claude', 'codex', 'deepseek']);
 const STATES = new Set(['planned', 'in_progress', 'blocked', 'awaiting_approval', 'completed']);
 const ID_RE = /^goal-[a-f0-9-]{36}$/;
-const ROOT = 'lavaall:goals:v1:';
+// S4: one helper owns the KV prefix. Production keeps #103's key names byte-identical; every other
+// environment (preview, development, local, tests) writes and reads a separate root, so Preview data can
+// never appear in the live OS (production never reads the preview root, and the roots do not overlap).
+const PRODUCTION_ROOT = 'lavaall:goals:v1:';
+const PREVIEW_ROOT = 'lavaall:preview:goals:v1:';
+function rootFor(env) { return env && env.VERCEL_ENV === 'production' ? PRODUCTION_ROOT : PREVIEW_ROOT; }
 
 function allowedOrigin(req) {
   const origin = req && req.headers && req.headers.origin;
@@ -41,9 +46,9 @@ function clean(v, cap) {
   const str = typeof v === 'string' ? v.trim() : '';
   return str && str.length <= cap ? str : '';
 }
-function key(id) { return ROOT + 'item:' + id; }
-function eventsKey(id) { return ROOT + 'events:' + id; }
-function indexKey(project) { return ROOT + 'project:' + project; }
+function key(env, id) { return rootFor(env) + 'item:' + id; }
+function eventsKey(env, id) { return rootFor(env) + 'events:' + id; }
+function indexKey(env, project) { return rootFor(env) + 'project:' + project; }
 function jsonRecord(v) {
   try { const o = JSON.parse(v); return o && typeof o === 'object' ? o : null; }
   catch { return null; }
@@ -59,20 +64,20 @@ function allowedUrl(value) {
 }
 async function getGoal(env, fetchImpl, id) {
   if (!ID_RE.test(id || '')) return null;
-  const raw = await command(env, fetchImpl, ['GET', key(id)]);
+  const raw = await command(env, fetchImpl, ['GET', key(env, id)]);
   return typeof raw === 'string' ? jsonRecord(raw) : null;
 }
 async function detail(env, fetchImpl, id) {
   const goal = await getGoal(env, fetchImpl, id);
   if (!goal) return reply(404, { error: 'goal_not_found' });
-  const lines = await command(env, fetchImpl, ['LRANGE', eventsKey(id), 0, MAX_CHECKPOINTS - 1]);
+  const lines = await command(env, fetchImpl, ['LRANGE', eventsKey(env, id), 0, MAX_CHECKPOINTS - 1]);
   const checkpoints = (Array.isArray(lines) ? lines : []).map(jsonRecord).filter(Boolean);
   return reply(200, { goal, checkpoints, latest: checkpoints[checkpoints.length - 1] || null,
     note: 'Checkpoints are submitted assertions, not verified provider execution.' });
 }
 async function list(env, fetchImpl, project) {
   if (!await knownProject(env, fetchImpl, project)) return reply(400, { error: 'unknown_project' });
-  const ids = await command(env, fetchImpl, ['LRANGE', indexKey(project), 0, 19]);
+  const ids = await command(env, fetchImpl, ['LRANGE', indexKey(env, project), 0, 19]);
   const records = await Promise.all((Array.isArray(ids) ? ids : [])
     .map(id => getGoal(env, fetchImpl, id)));
   const goals = records.filter(g => g && g.project === project);
@@ -82,7 +87,7 @@ async function knownProject(env, fetchImpl, name) {
   if (PROJECTS.has(name)) return true;
   // Pending stubs created by the business intake (api/ops/_os_intake.js). Slug shape only.
   if (typeof name !== 'string' || !/^[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$/.test(name)) return false;
-  return Boolean(await command(env, fetchImpl, ['GET', ROOT + 'catalog:' + name]));
+  return Boolean(await command(env, fetchImpl, ['GET', rootFor(env) + 'catalog:' + name]));
 }
 async function create(env, fetchImpl, body) {
   if (!PROJECTS.has(body.project)) return reply(400, { error: 'unknown_project' });
@@ -100,9 +105,9 @@ async function createGoal(env, fetchImpl, input) {
         ? 'osman-jalloh-lab/Lavaal-' : null,
     execution: 'not_started' };
   if (input.source) Object.assign(goal, { source: input.source, intakeId: input.intakeId, approvalId: input.approvalId, intake: input.intake });
-  const result = await command(env, fetchImpl, ['SET', key(id), JSON.stringify(goal), 'NX']);
+  const result = await command(env, fetchImpl, ['SET', key(env, id), JSON.stringify(goal), 'NX']);
   if (result !== 'OK') throw new Error('store_unavailable');
-  await command(env, fetchImpl, ['LPUSH', indexKey(goal.project), id]);
+  await command(env, fetchImpl, ['LPUSH', indexKey(env, goal.project), id]);
   return goal;
 }
 async function checkpoint(env, fetchImpl, body) {
@@ -118,10 +123,10 @@ async function checkpoint(env, fetchImpl, body) {
   const checkpoint = { id: crypto.randomUUID(), at: new Date().toISOString(),
     provider, state, note, evidenceUrl,
     verification: 'unverified', submittedBy: 'founder' };
-  await command(env, fetchImpl, ['RPUSH', eventsKey(goal.id), JSON.stringify(checkpoint)]);
+  await command(env, fetchImpl, ['RPUSH', eventsKey(env, goal.id), JSON.stringify(checkpoint)]);
   const updated = { ...goal, state: checkpoint.state, updatedAt: checkpoint.at,
     latestCheckpointId: checkpoint.id };
-  const result = await command(env, fetchImpl, ['SET', key(goal.id), JSON.stringify(updated), 'XX']);
+  const result = await command(env, fetchImpl, ['SET', key(env, goal.id), JSON.stringify(updated), 'XX']);
   if (result !== 'OK') throw new Error('store_unavailable');
   return reply(201, { goalId: goal.id, goal: updated, checkpoint,
     note: 'Handoff saved, but no external run or commit was independently verified.' });
@@ -143,4 +148,4 @@ async function handle(req, env, fetchImpl) {
     return reply(400, { error: 'unknown_action' });
   } catch { return reply(503, { error: 'goal_store_unavailable' }); }
 }
-module.exports = { handle, allowedOrigin, allowedUrl, ID_RE, MAX_GOAL, command, createGoal, knownProject, ROOT };
+module.exports = { handle, allowedOrigin, allowedUrl, ID_RE, MAX_GOAL, command, createGoal, knownProject, rootFor, PRODUCTION_ROOT, PREVIEW_ROOT };
