@@ -19,6 +19,50 @@
     { id: 'opus', label: 'Opus' }
   ];
 
+  // Approve intake (PR #105): a pending business-assistant intake arrives as ?intake=<base64url JSON>.
+  // Only the documented fields are shown (escaped); Approve asks the founder-session route to mint a
+  // single-use approval bound to this exact payload. Nothing is sent to the intake endpoint from here.
+  var INTAKE_TOP = ['schema_version', 'idempotency_key', 'source', 'project'];
+  var INTAKE_FIELDS = [
+    ['name', 'Project'], ['description', 'Description'], ['business_objective', 'Business objective'],
+    ['required_functionality', 'Required functionality'], ['requirements', 'Requirements'],
+    ['acceptance_criteria', 'Acceptance criteria'], ['constraints', 'Constraints'], ['priorities', 'Priorities'],
+    ['proposed_next_task', 'Proposed next task'], ['existing_repository', 'Existing repository (unverified claim)'],
+    ['existing_os_project', 'Existing OS project']
+  ];
+  function decodeIntake(search) {
+    var m = /[?&]intake=([A-Za-z0-9_-]{1,24000})(?:&|$)/.exec(String(search || ''));
+    if (!m) return null;
+    try {
+      var b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      var bin = window.atob(b64), bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      var obj = JSON.parse(new TextDecoder().decode(bytes));
+      return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : { invalid: true };
+    } catch (e) { return { invalid: true }; }
+  }
+  function reviewIntake(obj) {
+    if (!obj || obj.invalid || !obj.project || typeof obj.project !== 'object') return { ok: false, reason: 'This intake link could not be read.' };
+    var names = INTAKE_FIELDS.map(function (f) { return f[0]; });
+    var extra = Object.keys(obj).some(function (k) { return INTAKE_TOP.indexOf(k) === -1; }) ||
+      Object.keys(obj.project).some(function (k) { return names.indexOf(k) === -1; });
+    if (extra) return { ok: false, reason: 'This intake has fields the OS does not accept, so it cannot be approved.' };
+    var rows = INTAKE_FIELDS.filter(function (f) { var v = obj.project[f[0]]; return v != null && v !== '' && !(Array.isArray(v) && !v.length); })
+      .map(function (f) { var v = obj.project[f[0]]; return { label: f[1], value: Array.isArray(v) ? v.map(String) : String(v) }; });
+    return { ok: true, rows: rows };
+  }
+  function intakeCardHtml(review) {
+    if (!review.ok) return '<p class="dim">' + esc(review.reason) + '</p>';
+    return '<dl>' + review.rows.map(function (r) {
+      var v = Array.isArray(r.value) ? '<ul>' + r.value.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : esc(r.value);
+      return '<dt>' + esc(r.label) + '</dt><dd>' + v + '</dd>';
+    }).join('') + '</dl>' +
+      '<p class="dim">Approving lets the business assistant create this project intake once, within 15 minutes. It creates a planned goal only: no repository, access, model call or code run.</p>' +
+      '<button type="button" class="btn pri" id="harness-intake-approve">Approve intake</button>';
+  }
+  OS.intakeReview = { decode: decodeIntake, review: reviewIntake, html: intakeCardHtml };
+
   function pack(data) {
     return data && data.harness ? data.harness : { projects: [], groups: [], status: [], note: '' };
   }
@@ -111,6 +155,11 @@
               '<textarea class="harness-input" id="harness-input" rows="3" maxlength="8000" placeholder="Type what you want done, for example: add a receipt hold for hired applicants." required></textarea>' +
               '<button type="submit" class="btn pri" id="harness-send">Send</button>' +
             '</form>' +
+            '<section class="harness-execution hidden" id="harness-intake">' +
+              '<h3>Pending project intake</h3>' +
+              '<div id="harness-intake-body"></div>' +
+              '<div class="note" id="harness-intake-result" role="status" aria-live="polite"></div>' +
+            '</section>' +
             '<section class="harness-execution" id="harness-goals">' +
               '<h3>Goals & handoffs</h3>' +
               '<p class="dim">Type <code class="mono">/goal your objective</code> in the Request box and press Send. Select a saved goal to share its checkpoints with any chat provider. No code runs automatically.</p>' +
@@ -321,6 +370,28 @@
             ? 'Active goal: ' + selectedGoal : 'Select a goal to include its handoff in provider chat.';
         }).catch(function () {
           goalList.textContent = 'Unable to load goals.';
+        });
+      }
+      var intakeCard = root.querySelector('#harness-intake');
+      var intakePayload = decodeIntake(window.location && window.location.search);
+      if (intakeCard && intakePayload) {
+        var intakeBody = root.querySelector('#harness-intake-body');
+        var intakeResult = root.querySelector('#harness-intake-result');
+        intakeBody.innerHTML = intakeCardHtml(reviewIntake(intakePayload));
+        intakeCard.classList.remove('hidden');
+        var approveBtn = root.querySelector('#harness-intake-approve');
+        if (approveBtn) approveBtn.addEventListener('click', function () {
+          approveBtn.disabled = true;
+          intakeResult.textContent = 'Approving…';
+          api('approvals', { method: 'POST', body: JSON.stringify({ action: 'intake_create', payload: intakePayload }) }).then(function (res) {
+            if (res.ok && res.body.approval_id) {
+              intakeResult.innerHTML = 'Approved. Approval ID <code class="mono">' + esc(res.body.approval_id) +
+                '</code>, expires ' + esc(new Date(res.body.expires_at).toLocaleString()) + '. Give this ID to the business assistant.';
+            } else {
+              intakeResult.textContent = 'Not approved: ' + (res.body.error || ('HTTP ' + res.status));
+              approveBtn.disabled = false;
+            }
+          }).catch(function () { intakeResult.textContent = 'Approval request failed.'; approveBtn.disabled = false; });
         });
       }
       if (goalList) goalList.addEventListener('click', function (e) {

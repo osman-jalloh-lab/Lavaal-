@@ -20,7 +20,7 @@ Kinds under the root: `item`, `events`, `project`, `catalog`, `tasks`, `approval
 ## Flow
 
 1. The business assistant prepares the intake body (below, without `approval_id`) and shows it to Osman.
-2. **Osman approves in his own signed-in `/os` session** (S2). `POST /ops/harness/approvals` with `{ "action": "intake_create", "payload": <intake body without approval_id> }`. This route sits behind the existing founder session gate, requires a same-origin `Origin`, and only accepts sessions whose email is in `APPROVERS` (`api/ops/_approvals.js`; currently only osmanjalloh104@gmail.com; the sign-in allowlist is unchanged). The server validates the payload, computes its request hash and returns `{ approval_id, request_hash, expires_at }` (15 minutes). A UI button for this is a next step.
+2. **Osman approves in his own signed-in `/os` session** (S2). `POST /ops/harness/approvals` with `{ "action": "intake_create", "payload": <intake body without approval_id> }`. This route sits behind the existing founder session gate, requires a same-origin `Origin`, and only accepts sessions whose email is in `APPROVERS` (`api/ops/_approvals.js`; currently only osmanjalloh104@gmail.com; the sign-in allowlist is unchanged). The server validates the payload, computes its request hash and returns `{ approval_id, request_hash, expires_at }` (15 minutes). In the UI: open `https://<os host>/os/?intake=<base64url(JSON of the intake body without approval_id)>#harness` while signed in. The Harness view shows a "Pending project intake" card with only the documented fields (escaped) and an **Approve intake** button, which calls this route and shows the approval ID and expiry. Sign in first: the sign-in redirect returns to `/os` without the query.
 3. The business assistant sends the same body plus `approval_id` to the intake endpoint with `Authorization: Bearer <OS_INTAKE_TOKEN>`.
 4. The intake checks that the approval exists, was minted by a founder session for an approver, has action `intake_create`, matches the request hash, and has not expired, then consumes it once.
 
@@ -101,7 +101,6 @@ Keep `OS_INTAKE_TOKEN` only in Vercel (Preview, branch-scoped) and the business 
 
 ## Known limits (next steps)
 
-- No `/os` UI button yet for minting an approval; the endpoint exists.
 - The `/os` Harness UI does not read `?project=&goal=` yet, and stub projects are not yet in the UI picker or chat (`handleChat` requires a catalog project). `GET /ops/harness/goals?project=stub-…` lists their goals.
 - Promoting a stub into `tools/lavaall-ai/projects.json` is a reviewed catalog PR.
 - N2: partial-failure cleanup after the goal is written.
