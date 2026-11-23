@@ -8,7 +8,7 @@ const { command, rootFor } = require('./_harness_goals');
 
 // Dedicated approver list (Osman, 22 Nov 2026 11:15 PM CT). Separate from the sign-in ALLOWLIST in _lib.js.
 const APPROVERS = Object.freeze(['osmanjalloh104@gmail.com']);
-const ACTIONS = Object.freeze(['intake_create']); // add 'plan_approve', 'code_run' when those consumers exist
+const ACTIONS = Object.freeze(['intake_create', 'code_run']);
 const TTL_MS = 15 * 60 * 1000;
 const ID_RE = /^appr-[a-f0-9-]{36}$/;
 const HASH_RE = /^[a-f0-9]{64}$/;

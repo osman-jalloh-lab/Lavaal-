@@ -84,6 +84,19 @@
     return null;
   }
   function projectLabel(p) { return (p.label || p.name) + (/^stub-/.test(p.name) ? ' — Pending — from intake' : ''); }
+  function runEvidenceHtml(job) {
+    if (!job) return 'No job yet. Select a goal, then Approve and run.';
+    var result = job.result || {};
+    var out = '<p>Job state: ' + esc(job.state || 'unknown') + ' · GitHub verification: ' + (result.verified === true ? 'passed' : 'not passed') + '</p>';
+    if (result.tests) out += '<p>Tests: ' + esc(typeof result.tests === 'string' ? result.tests : JSON.stringify(result.tests)) + '</p>';
+    if (result.error) out += '<p>' + esc(result.error) + '</p>';
+    if (result.verified === true) {
+      if (result.sha) out += '<p>Commit: <code class="mono">' + esc(result.sha) + '</code></p>';
+      if (result.prUrl) out += '<p>Draft PR: ' + esc(result.prUrl) + '</p>';
+    }
+    return out;
+  }
+  OS.runEvidenceHtml = runEvidenceHtml;
   OS.intakeReview = { decode: decodeIntake, review: reviewIntake, html: intakeCardHtml, focusCard: focusCard, approvalHtml: approvalHtml };
   OS.harnessSelection = { query: querySelection, findProject: findProject };
 
@@ -191,6 +204,12 @@
               '<p class="dim">Type <code class="mono">/goal your objective</code> in the Request box and press Send. Select a saved goal to share its checkpoints with any chat provider. No code runs automatically.</p>' +
               '<div id="harness-goal-status" role="status" aria-live="polite"></div>' +
               '<div id="harness-goal-list"></div>' +
+              '<label class="harness-field" for="harness-run-repo">Repository</label>' +
+              '<select id="harness-run-repo" class="harness-sel"><option value="osman-jalloh-lab/Lavaal-">Lavaal-</option><option value="osman-jalloh-lab/saloneworks">saloneworks</option></select>' +
+              '<p class="dim">Approve and run queues one box runner job using Codex only. It does not run on Vercel, merge, or deploy.</p>' +
+              '<button type="button" class="btn" id="harness-run-approve" disabled>Approve and run</button>' +
+              '<button type="button" class="btn" id="harness-run-refresh">Refresh job status</button>' +
+              '<div id="harness-run-status" role="status" aria-live="polite">Select a goal, then Approve and run.</div>' +
               '<label class="harness-field" for="harness-goal-note">Checkpoint note (optional)</label>' +
               '<textarea id="harness-goal-note" class="harness-input" maxlength="3000" rows="2" placeholder="What changed, what remains, and evidence URL"></textarea>' +
               '<label class="harness-field" for="harness-goal-evidence">Evidence link (optional)</label>' +
@@ -234,6 +253,11 @@
       var goalState = root.querySelector('#harness-goal-state');
       var goalSave = root.querySelector('#harness-goal-save');
       var selectedGoal = '';
+      var selectedGoalRecord = null;
+      var runRepo = root.querySelector('#harness-run-repo');
+      var runApprove = root.querySelector('#harness-run-approve');
+      var runRefresh = root.querySelector('#harness-run-refresh');
+      var runStatus = root.querySelector('#harness-run-status');
       var usageEl = root.querySelector('#harness-usage');
       var usageNote = root.querySelector('#harness-usage-note');
       var home = root.querySelector('#harness-home');
@@ -391,6 +415,9 @@
           }
           var rows = res.body.goals || [];
           if (selectedGoal && !rows.some(function (g) { return g.id === selectedGoal; })) selectedGoal = '';
+          selectedGoalRecord = rows.filter(function (g) { return g.id === selectedGoal; })[0] || null;
+          if (runApprove) runApprove.disabled = !selectedGoalRecord || ['planned', 'in_progress'].indexOf(selectedGoalRecord.state) === -1;
+          loadJobs();
           goalList.innerHTML = rows.length ? rows.map(function (g) {
             return '<button type="button" class="btn" data-goal-id="' + esc(g.id) +
               '" aria-pressed="' + (selectedGoal === g.id ? 'true' : 'false') +
@@ -403,6 +430,35 @@
           goalList.textContent = 'Unable to load goals.';
         });
       }
+      function loadJobs() {
+        var p = currentProject(), id = selectedGoal;
+        if (!runStatus) return;
+        if (!p || !id) { runStatus.textContent = 'Select a goal, then Approve and run.'; return; }
+        api('jobs?goalId=' + encodeURIComponent(id) + '&project=' + encodeURIComponent(p.name), { method: 'GET' }).then(function (res) {
+          if (selectedGoal !== id || !currentProject() || currentProject().name !== p.name) return;
+          runStatus.innerHTML = res.ok ? runEvidenceHtml((res.body.jobs || [])[0]) : 'Job status unavailable: ' + esc(res.body.error || res.status);
+        }).catch(function () { if (selectedGoal === id) runStatus.textContent = 'Job status request failed.'; });
+      }
+      if (runRefresh) runRefresh.addEventListener('click', loadJobs);
+      if (runApprove) runApprove.addEventListener('click', function () {
+        var p = currentProject(), goal = selectedGoalRecord;
+        if (!p || !goal || ['planned', 'in_progress'].indexOf(goal.state) === -1) return;
+        var payload = { goalId: goal.id, project: p.name, repo: runRepo.value, branch: 'feature/os-run-' + Date.now().toString(36), objective: goal.objective };
+        runApprove.disabled = true;
+        runStatus.textContent = 'Requesting approval…';
+        api('approvals', { method: 'POST', body: JSON.stringify({ action: 'code_run', payload: payload }) }).then(function (approval) {
+          if (!approval.ok || !approval.body.approval_id) throw new Error('Approval failed: ' + (approval.body.error || approval.status));
+          runStatus.textContent = 'Approval granted. Queueing job…';
+          var job = Object.assign({}, payload, { approvalId: approval.body.approval_id });
+          return api('jobs', { method: 'POST', body: JSON.stringify(job) }).then(function (res) {
+            if (!res.ok) throw new Error('Queue failed: ' + (res.body.error || res.status));
+            runStatus.textContent = 'Job queued for the box runner; it has not necessarily started.';
+            loadJobs();
+          });
+        }).catch(function (err) { runStatus.textContent = err.message || 'Approval or queue request failed.'; }).then(function () {
+          runApprove.disabled = !selectedGoalRecord || ['planned', 'in_progress'].indexOf(selectedGoalRecord.state) === -1;
+        });
+      });
       var intakeCard = root.querySelector('#harness-intake');
       var intakePayload = decodeIntake(window.location && window.location.search);
       if (intakeCard && intakePayload) {
@@ -429,6 +485,8 @@
         var btn = e.target.closest ? e.target.closest('[data-goal-id]') : null;
         if (!btn) return;
         selectedGoal = btn.getAttribute('data-goal-id') || '';
+        selectedGoalRecord = null;
+        if (runApprove) runApprove.disabled = true;
         loadGoals();
       });
       if (goalSave) goalSave.addEventListener('click', function () {
@@ -458,6 +516,9 @@
 
       function refresh(goal) {
         selectedGoal = typeof goal === 'string' ? goal : '';
+        selectedGoalRecord = null;
+        if (runApprove) runApprove.disabled = true;
+        loadJobs();
         loadGoals();
         if (meta) meta.textContent = metaLine(currentProject());
         if (executeBtn) executeBtn.disabled = !currentProject() || currentProject().name !== 'lavaall';
