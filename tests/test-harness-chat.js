@@ -245,6 +245,56 @@ async function run() {
   }
 
   {
+    const fetchImpl = async (url) => {
+      if (String(url).includes('api.openai.com/v1/chat/completions')) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({
+            choices: [{ message: { content: 'Review complete.' } }],
+            usage: { prompt_tokens: 123, completion_tokens: 33,
+              prompt_tokens_details: { cached_tokens: 20 } },
+          }),
+        };
+      }
+      throw new Error('unexpected provider URL');
+    };
+    const { res } = await call('chat', {
+      body: { project: 'salonehire', harness: 'codex', message: 'Review a synthetic issue.' },
+    }, { env: { OPENAI_API_KEY: FAKE_OPENAI }, fetchImpl });
+    check('provider-reported token usage is displayed per chat reply, not charged as a fabricated dollar amount',
+      res.statusCode === 200
+      && res.body.usage.source === 'provider_response'
+      && res.body.usage.inputTokens === 123
+      && res.body.usage.outputTokens === 33
+      && res.body.usage.cachedInputTokens === 20
+      && res.body.billedUsd === null
+      && res.body.messages[1].usage.billedUsd === null);
+  }
+  {
+    const fetchImpl = async () => { throw new Error('synthetic provider transport failure'); };
+    const { res } = await call('chat', {
+      body: { project: 'salonehire', harness: 'codex', message: 'Check transport failure.' },
+    }, { env: { OPENAI_API_KEY: FAKE_OPENAI }, fetchImpl });
+    check('provider transport failure is safely reported without leaking internals',
+      res.statusCode === 502
+      && res.body.error === 'provider_unavailable'
+      && !JSON.stringify(res.body).includes('synthetic provider transport failure'));
+  }
+  {
+    const fetchImpl = async () => {
+      const err = new Error('synthetic timeout');
+      err.name = 'AbortError';
+      throw err;
+    };
+    const { res } = await call('chat', {
+      body: { project: 'salonehire', harness: 'codex', message: 'Check timeout.' },
+    }, { env: { OPENAI_API_KEY: FAKE_OPENAI }, fetchImpl });
+    check('provider timeout is safely converted into HTTP 504',
+      res.statusCode === 504 && res.body.error === 'provider_timeout');
+  }
+
+  {
     const snap = await chat.usageSnapshot({}, async () => { throw new Error('no network'); });
     check('usage without keys is not available, never a number',
       snap.providers.length === 3
