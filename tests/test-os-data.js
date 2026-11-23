@@ -173,7 +173,7 @@ const STORE = {
   // Harness status may name OPENAI_API_KEY / ANTHROPIC_API_KEY for presence
   // dots only. The adapter still must not import an SDK or read those env
   // vars as model credentials.
-  check('adapter has no model SDK or key', !/@anthropic|require\(['"]openai|require\(['"]@anthropic|XAI_API_KEY|process\.env\.(ANTHROPIC|OPENAI|XAI_)/.test(code));
+  check('adapter has no model SDK or key', !/@anthropic|require\(['"]openai|require\(['"]@anthropic|process\.env\.(ANTHROPIC|OPENAI|XAI_)/.test(code));
 
   globalThis.fetch = realFetch;
   const failed = results.filter((r) => !r.pass);
