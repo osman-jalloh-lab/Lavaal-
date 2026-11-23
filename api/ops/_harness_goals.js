@@ -72,12 +72,10 @@ async function detail(env, fetchImpl, id) {
 }
 async function list(env, fetchImpl, project) {
   if (!PROJECTS.has(project)) return reply(400, { error: 'unknown_project' });
-  const ids = await command(env, fetchImpl, ['LRANGE', indexKey(project), 0, 49]);
-  const goals = [];
-  for (const id of (Array.isArray(ids) ? ids : [])) {
-    const g = await getGoal(env, fetchImpl, id);
-    if (g && g.project === project) goals.push(g);
-  }
+  const ids = await command(env, fetchImpl, ['LRANGE', indexKey(project), 0, 19]);
+  const records = await Promise.all((Array.isArray(ids) ? ids : [])
+    .map(id => getGoal(env, fetchImpl, id)));
+  const goals = records.filter(g => g && g.project === project);
   return reply(200, { project, goals, persist: true });
 }
 async function create(env, fetchImpl, body) {
