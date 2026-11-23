@@ -1,6 +1,9 @@
 // No network, no real secrets: validate durable /goal records and ownership checks.
 'use strict';
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const goal = require('../api/ops/_harness_goals');
 const kv = new Map();
 const calls = [];
@@ -14,7 +17,7 @@ async function fetchImpl(url, opts) {
   switch (cmd) {
     case 'GET': value = kv.get(key) || null; break;
     case 'SET':
-      if (b === 'NX' && kv.has(key)) value = null;
+      if ((b === 'NX' && kv.has(key)) || (b === 'XX' && !kv.has(key))) value = null;
       else { kv.set(key, a); value = 'OK'; }
       break;
     case 'LPUSH': {
@@ -56,15 +59,26 @@ const send = (method, body, query, h) => goal.handle({ method, body, query, head
     evidenceUrl:'https://github.com/osman-jalloh-lab/saloneworks/pull/42'});
   assert.equal(checkpoint.status, 201);
   assert.equal(checkpoint.body.checkpoint.verification, 'unverified');
+  assert.equal(checkpoint.body.goal.state, 'blocked');
   assert.equal((await send('POST',{action:'checkpoint',id,note:'no external links',
     evidenceUrl:'https://untrusted.example/path'})).status, 400);
   const retrieved = await send('GET', null, {id});
   assert.equal(retrieved.status, 200);
   assert.equal(retrieved.body.goal.project, 'salonehire');
+  assert.equal(retrieved.body.goal.state, 'blocked');
+  assert.equal(retrieved.body.goal.latestCheckpointId, checkpoint.body.checkpoint.id);
   assert.equal(retrieved.body.checkpoints.length, 1);
   assert.equal(retrieved.body.latest.state, 'blocked');
+  assert.equal((await send('POST', {action:'checkpoint',id,state:'shipped',note:'invalid'})).status, 400);
+  assert.equal((await send('GET', null, {id})).body.goal.state, 'blocked');
   assert.equal((await send('GET', null, {id:'goal-invalid'})).status, 404);
   assert.equal((await goal.handle({method:'POST',body:{action:'create',project:'lavaall',objective:'foo'},headers}, {},fetchImpl)).status,503);
   assert(calls.includes('LPUSH') && calls.includes('RPUSH'));
+  const src = fs.readFileSync(path.join(__dirname, '../api/os/_client/harness.js'), 'utf8');
+  assert.doesNotThrow(() => new vm.Script(src));
+  assert(src.includes('harness-goal-evidence'));
+  assert(src.includes('harness-goal-state'));
+  assert.match(src, /action:\s*'checkpoint'[\s\S]*?evidenceUrl/);
+  assert(!src.includes('\\\\/goal'));
   console.log('test-harness-goals: PASS (isolated fake KV)');
 })().catch(e => { console.error(e); process.exitCode=1; });

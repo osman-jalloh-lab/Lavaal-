@@ -118,6 +118,10 @@
               '<div id="harness-goal-list"></div>' +
               '<label class="harness-field" for="harness-goal-note">Checkpoint note (optional)</label>' +
               '<textarea id="harness-goal-note" class="harness-input" maxlength="3000" rows="2" placeholder="What changed, what remains, and evidence URL"></textarea>' +
+              '<label class="harness-field" for="harness-goal-evidence">Evidence link (optional)</label>' +
+              '<input type="url" id="harness-goal-evidence" class="harness-input" maxlength="500" placeholder="GitHub PR, commit or Actions run link (optional)">' +
+              '<label class="harness-field" for="harness-goal-state">Goal state</label>' +
+              '<select id="harness-goal-state" class="harness-sel"><option value="planned">planned</option><option value="in_progress" selected>in_progress</option><option value="blocked">blocked</option><option value="awaiting_approval">awaiting_approval</option><option value="completed">completed</option></select>' +
               '<button type="button" class="btn" id="harness-goal-save">Save checkpoint</button>' +
             '</section>' +
             '<div class="harness-execution" id="harness-execution">' +
@@ -151,6 +155,8 @@
       var goalList = root.querySelector('#harness-goal-list');
       var goalStatus = root.querySelector('#harness-goal-status');
       var goalNote = root.querySelector('#harness-goal-note');
+      var goalEvidence = root.querySelector('#harness-goal-evidence');
+      var goalState = root.querySelector('#harness-goal-state');
       var goalSave = root.querySelector('#harness-goal-save');
       var selectedGoal = '';
       var usageEl = root.querySelector('#harness-usage');
@@ -309,7 +315,7 @@
           goalList.innerHTML = rows.length ? rows.map(function (g) {
             return '<button type="button" class="btn" data-goal-id="' + esc(g.id) +
               '" aria-pressed="' + (selectedGoal === g.id ? 'true' : 'false') +
-              '">' + esc(g.objective) + '</button>';
+              '">' + esc(g.objective + ' (' + g.state + ')') + '</button>';
           }).join(' ') : '<p class="dim">No saved goals for this project yet.</p>';
           if (goalStatus) goalStatus.textContent = selectedGoal
             ? 'Active goal: ' + selectedGoal : 'Select a goal to include its handoff in provider chat.';
@@ -329,15 +335,20 @@
           if (goalStatus) goalStatus.textContent = 'Select a goal and type a checkpoint first.';
           return;
         }
+        var evidenceUrl = goalEvidence && goalEvidence.value ? goalEvidence.value.trim() : '';
+        var checkpoint = { action: 'checkpoint', id: selectedGoal, provider: 'human',
+          state: goalState ? goalState.value : 'in_progress', note: note };
+        if (evidenceUrl) checkpoint.evidenceUrl = evidenceUrl;
         goalSave.disabled = true;
-        api('goals', { method: 'POST', body: JSON.stringify({
-          action: 'checkpoint', id: selectedGoal, provider: 'human',
-          state: 'in_progress', note: note
-        }) }).then(function (res) {
+        api('goals', { method: 'POST', body: JSON.stringify(checkpoint) }).then(function (res) {
           if (goalStatus) goalStatus.textContent = res.ok
             ? 'Checkpoint saved. It is not automatically verified against GitHub.'
             : 'Checkpoint not saved: ' + (res.body.error || res.status);
-          if (res.ok && goalNote) goalNote.value = '';
+          if (res.ok) {
+            if (goalNote) goalNote.value = '';
+            if (goalEvidence) goalEvidence.value = '';
+            loadGoals();
+          }
         }).catch(function () {
           if (goalStatus) goalStatus.textContent = 'Checkpoint request failed.';
         }).then(function () { goalSave.disabled = false; });
@@ -382,8 +393,8 @@
           var proj = currentProject();
           var text = input && input.value ? input.value.trim() : '';
           if (!proj || !text) return;
-          if (/^\\/goal(?:\\s|$)/i.test(text)) {
-            var objective = text.replace(/^\\/goal\\s*/i, '').trim();
+          if (/^\/goal(?:\s|$)/i.test(text)) {
+            var objective = text.replace(/^\/goal\s*/i, '').trim();
             if (!objective) {
               if (goalStatus) goalStatus.textContent = 'Type /goal followed by an objective.';
               return;

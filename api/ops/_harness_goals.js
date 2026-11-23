@@ -108,7 +108,11 @@ async function checkpoint(env, fetchImpl, body) {
     provider, state, note, evidenceUrl,
     verification: 'unverified', submittedBy: 'founder' };
   await command(env, fetchImpl, ['RPUSH', eventsKey(goal.id), JSON.stringify(checkpoint)]);
-  return reply(201, { goalId: goal.id, checkpoint,
+  const updated = { ...goal, state: checkpoint.state, updatedAt: checkpoint.at,
+    latestCheckpointId: checkpoint.id };
+  const result = await command(env, fetchImpl, ['SET', key(goal.id), JSON.stringify(updated), 'XX']);
+  if (result !== 'OK') throw new Error('store_unavailable');
+  return reply(201, { goalId: goal.id, goal: updated, checkpoint,
     note: 'Handoff saved, but no external run or commit was independently verified.' });
 }
 async function handle(req, env, fetchImpl) {
