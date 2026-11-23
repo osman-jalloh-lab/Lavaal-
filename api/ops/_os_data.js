@@ -39,6 +39,7 @@ const SOURCES = Object.freeze({
   skills: { label: 'Skills', from: 'skills.json in the LAVAALL OS data pack' },
   rules: { label: 'Founder rules', from: 'rules.json in the LAVAALL OS data pack (matched by FR id)' },
   settings: { label: 'Connections', from: 'presence of existing env var names only' },
+  harness: { label: 'Harness switcher', from: 'tools/lavaall-ai/projects.json and bundled handoff snapshots; status is key presence or local CLI, never a model call' },
 });
 
 // ---- raw readers (GET only) -------------------------------------------------
@@ -472,6 +473,67 @@ function settingsFrom(env) {
   ];
 }
 
+
+const HARNESS_PROJECTS = require('../../tools/lavaall-ai/projects.json');
+
+function readHarnessSnapshot(rel) {
+  switch (rel) {
+    case 'handoffs/salonehire.md':
+      return fs.readFileSync(path.join(__dirname, '../../tools/lavaall-ai/handoffs/salonehire.md'), 'utf8');
+    default:
+      return '';
+  }
+}
+
+function harnessLogLines(text, n) {
+  const lines = String(text || '').split(/\r?\n/);
+  let start = -1;
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i].trim() === '## Log') start = i + 1;
+  }
+  if (start < 0) return [];
+  const entries = [];
+  for (let i = start; i < lines.length; i += 1) {
+    const ln = lines[i];
+    if (/^##\s+/.test(ln.trim()) && ln.trim() !== '## Log') break;
+    if (ln.trim().startsWith('- ')) entries.push(ln);
+  }
+  return entries.slice(-1 * (n || 10));
+}
+
+// Names only. Never values. No model or /models calls from /os.
+function harnessFrom(env, pack) {
+  const src = pack !== undefined ? pack : HARNESS_PROJECTS;
+  const projects = Array.isArray(src && src.projects) ? src.projects : [];
+  const presentKey = (name) => present(env || {}, [name]);
+  const list = projects.map((raw) => {
+    const name = text(raw && raw.name, 80);
+    const label = text((raw && raw.label) || name, 120);
+    const snapshotRel = text(raw && raw.handoff_snapshot, 200);
+    const snapshot = snapshotRel ? readHarnessSnapshot(snapshotRel) : '';
+    return {
+      name,
+      label,
+      category: text(raw && raw.category, 80),
+      repo: text(raw && raw.repo, 400),
+      branch: text(raw && raw.branch, 200),
+      handoff: text(raw && raw.handoff, 400),
+      logLines: harnessLogLines(snapshot, 10),
+    };
+  }).filter((p) => p.name);
+  const status = [
+    { id: 'codex', label: 'Codex', detail: 'local CLI (ChatGPT login)', state: 'local' },
+    { id: 'claude', label: 'Claude', detail: 'local CLI, Sonnet only', state: 'local' },
+    { id: 'deepseek', label: 'DeepSeek', detail: presentKey('DEEPSEEK_API_KEY') ? 'key present' : 'key missing', state: presentKey('DEEPSEEK_API_KEY') ? 'ready' : 'missing' },
+    { id: 'gemini', label: 'Gemini', detail: presentKey('GEMINI_API_KEY') ? 'key present' : 'key missing', state: presentKey('GEMINI_API_KEY') ? 'ready' : 'missing' },
+  ];
+  return {
+    projects: list,
+    status,
+    note: 'Status on this page is key presence or “local CLI”. It does not call models or list-model endpoints. Run lavaall-ai status on your machine for CLI versions.',
+  };
+}
+
 // The routine-health feed wins over the older routine-health record, routine by routine.
 function mergeHealth(legacy, fed) {
   if (!fed) return legacy || null;
@@ -541,6 +603,7 @@ function buildOsData(sources, opts) {
     rules: rulesFrom(pack),
     packBuiltAt: pack && pack.builtAt ? pack.builtAt : null,
     settings: settingsFrom(env),
+    harness: harnessFrom(env, opts && opts.harnessPack),
   };
   data.sources = Object.keys(SOURCES).reduce((out, key) => {
     const live = key === 'desks' || key === 'settings'
@@ -557,7 +620,8 @@ function buildOsData(sources, opts) {
                   : key === 'spend' ? spend !== null
                     : key === 'skills' ? data.skills !== null
                       : key === 'rules' ? data.rules !== null
-                        : false;
+                        : key === 'harness' ? Boolean(data.harness && data.harness.projects && data.harness.projects.length)
+                          : false;
     out[key] = Object.assign({ live }, SOURCES[key]);
     return out;
   }, {});
@@ -588,5 +652,7 @@ module.exports = {
   routinesFrom,
   rulesFrom,
   settingsFrom,
+  harnessFrom,
+  harnessLogLines,
   skillsFrom,
 };
