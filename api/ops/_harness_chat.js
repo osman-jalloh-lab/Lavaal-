@@ -15,6 +15,7 @@ const {
 } = require('./_lib');
 const { readLiveSession } = require('./_signin_hardening');
 const { normalizeUsage } = require('./_harness_telemetry');
+const coding = require('./_harness_execute');
 
 const CATALOG = require('../../tools/lavaall-ai/projects.json');
 const RULES_PATH = path.join(__dirname, '../../tools/lavaall-ai/RULES.md');
@@ -42,6 +43,8 @@ function harnessKind(req) {
   if (/harness\/chat(?:\/|$|\?)/.test(hay) || /harness\/chat$/.test(hay.trim())) return 'chat';
   if (/harness\/history/.test(hay)) return 'history';
   if (/harness\/usage/.test(hay)) return 'usage';
+  if (/harness\/execute/.test(hay)) return 'execute';
+  if (/harness\/runs/.test(hay)) return 'runs';
   return '';
 }
 
@@ -532,6 +535,16 @@ async function handleHarnessChat(req, res, opts) {
   const fetchImpl = (opts && opts.fetchImpl) || globalThis.fetch;
   const access = await deny(req, res);
   if (access === true) return true;
+  if (kind === 'execute') {
+    const result = await coding.dispatch({ ...req, body: readBody(req) }, env, fetchImpl);
+    json(res, result.status, result.body);
+    return true;
+  }
+  if (kind === 'runs') {
+    const result = await coding.status({ ...req, query: queryOf(req) }, env, fetchImpl);
+    json(res, result.status, result.body);
+    return true;
+  }
   if (kind === 'usage') return handleUsage(req, res, env, fetchImpl);
   if (kind === 'history') return handleHistory(req, res, env, fetchImpl);
   if (kind === 'chat') return handleChat(req, res, env, fetchImpl);
