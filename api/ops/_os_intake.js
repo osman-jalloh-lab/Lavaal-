@@ -31,7 +31,7 @@ function validateIntake(body, cat = catalog) {
   const unknown = Object.keys(body).filter(k => !['schema_version', 'idempotency_key', 'source', 'approval', 'project'].includes(k));
   if (unknown.length) return fail('unknown_field', { fields: unknown });
   const a = body.approval;
-  if (!object(a) || Object.keys(a).sort().join(',') !== ['action','approval_id','approved_at','approver_email','signature'].sort().join(',') || typeof a.approval_id !== 'string' || !/^[A-Za-z0-9._:-]{8,128}$/.test(a.approval_id) || typeof a.approver_email !== 'string' || typeof a.approved_at !== 'string' || !/^\d{4}-\d\d-\d\dT/.test(a.approved_at) || !Number.isFinite(Date.parse(a.approved_at)) || a.action !== 'intake_create' || typeof a.signature !== 'string' || !/^[a-f0-9]{64}$/.test(a.signature)) return fail('approval_required');
+  if (!object(a) || Object.keys(a).sort().join(',') !== ['action','approval_id','approved_at','approver_email','signature'].sort().join(',') || typeof a.approval_id !== 'string' || !/^[A-Za-z0-9._:-]{8,128}$/.test(a.approval_id) || typeof a.approver_email !== 'string' || typeof a.approved_at !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,6})?)?(?:Z|[+-]\d\d:\d\d)$/.test(a.approved_at) || !Number.isFinite(Date.parse(a.approved_at)) || a.action !== 'intake_create' || typeof a.signature !== 'string' || !/^[a-f0-9]{64}$/.test(a.signature)) return fail('approval_required');
   if (!object(p)) return fail('invalid_field', { fields: ['project'] });
   const blocked = Object.keys(p).filter(k => forbidden.test(k)).map(k => 'project.' + k);
   if (blocked.length) return fail('forbidden_field', { fields: blocked });
@@ -66,6 +66,9 @@ const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 async function handleProjectIntake(req, res, opts = {}) {
   const env = opts.env || process.env, fetchImpl = opts.fetchImpl || fetch;
   const now = Number.isFinite(opts.now) ? opts.now : Date.now();
+  // S1: environment gate. Only Preview deployments serve intake unless Production is explicitly enabled.
+  const vercelEnv = String(env.VERCEL_ENV || '');
+  if (!(vercelEnv === 'preview' || (vercelEnv === 'production' && env.OS_INTAKE_PRODUCTION_ENABLED === '1'))) return send(res, 404, { error: 'not_found' });
   const token = env.OS_INTAKE_TOKEN;
   const match = String(header(req, 'authorization') || '').match(/^\s*Bearer\s+(\S+)\s*$/i);
   if (typeof token !== 'string' || token.length < 32 || token === env.OPS_CEO_BRIDGE_SECRET || token === env.OPS_AUTH_SECRET || !match || !timingSafeEqualString(match[1], token)) return send(res, 401, { error: 'unauthorized' });
@@ -82,9 +85,9 @@ async function handleProjectIntake(req, res, opts = {}) {
   const checked = validateIntake(raw); if (checked.error) return send(res, 400, checked);
   const a = raw.approval;
   if (!isIntakeApprover(a.approver_email)) return send(res, 403, { error: 'approver_not_allowed' });
-  const approved = Date.parse(a.approved_at);
-  if (approved > now + 60000 || approved < now - 900000) return send(res, 403, { error: 'approval_expired' });
   if (!timingSafeEqualString(a.signature, signIntake(token, raw))) return send(res, 403, { error: 'approval_signature_invalid' });
+  const approved = Date.parse(a.approved_at);
+  const approvalFresh = !(approved > now + 60000 || approved < now - 900000);
   if (!env.KV_REST_API_URL || !env.KV_REST_API_TOKEN) return send(res, 503, { error: 'intake_store_not_configured' });
   const requestHash = hash(canonicalJson(signingBody(raw))), idemHash = hash(idem), idemKey = ROOT + 'intake-idem:' + idemHash;
   const at = new Date(now).toISOString();
@@ -92,7 +95,9 @@ async function handleProjectIntake(req, res, opts = {}) {
   try {
     const cmd = args => command(env, fetchImpl, args);
     const replay = async () => { const v = await cmd(['GET', idemKey]); if (!v) return null; let record; try { record = JSON.parse(v); } catch { throw Error('invalid record'); } if (record.requestHash !== requestHash) return [409, { error: 'idempotency_conflict' }]; if (record.status === 'done') return [200, { ...record.response, replayed: true }]; return [409, { error: 'intake_in_progress' }]; };
+    // N1: an identical, already-completed signed request replays its stored result even after the approval window.
     let prior = await replay(); if (prior) return send(res, ...prior);
+    if (!approvalFresh) return send(res, 403, { error: 'approval_expired' });
     if (await cmd(['SET', idemKey, JSON.stringify({ status: 'pending', requestHash, at }), 'NX', 'EX', 300]) !== 'OK') { prior = await replay(); if (!prior) throw Error('reservation'); return send(res, ...prior); }
     reserved = true;
     const rateKey = ROOT + 'intake-rate:' + at.slice(0,10), count = Number(await cmd(['INCR', rateKey]));

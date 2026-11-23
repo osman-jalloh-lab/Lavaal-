@@ -8,7 +8,7 @@ const { ALLOWLIST } = require('../api/ops/_lib');
 const { INTAKE_APPROVERS } = require('../api/ops/_os_intake');
 const token = 'synthetic-intake-token-1234567890-123456';
 const bridge = 'synthetic-bridge-token-1234567890';
-const env = { OS_INTAKE_TOKEN: token, OPS_CEO_BRIDGE_SECRET: bridge, KV_REST_API_URL: 'https://kv.invalid', KV_REST_API_TOKEN: 'synthetic-kv-token' };
+const env = { VERCEL_ENV: 'preview', OS_INTAKE_TOKEN: token, OPS_CEO_BRIDGE_SECRET: bridge, KV_REST_API_URL: 'https://kv.invalid', KV_REST_API_TOKEN: 'synthetic-kv-token' };
 const now = Date.parse('2026-11-22T12:00:00Z');
 const root = 'lavaall:goals:v1:';
 const kv = new Map(), urls = [];
@@ -39,12 +39,18 @@ function signed(p) { p.approval.signature = signIntake(token, p); return p; }
 async function send(body, options = {}) {
   const res = response();
   const req = { method: options.method || 'POST', headers: { authorization: 'Bearer ' + (options.bearer || token), ...(options.headers || {}) }, body };
-  await handleProjectIntake(req, res, { env: options.env || env, fetchImpl: options.fetchImpl || fetchImpl, now });
+  await handleProjectIntake(req, res, { env: options.env || env, fetchImpl: options.fetchImpl || fetchImpl, now: options.now || now });
   assert.equal(res.headers['Cache-Control'], 'no-store'); return res;
 }
 async function expect(body, status, error, opts) { const r = await send(body, opts); assert.equal(r.statusCode, status); if (error) assert.equal(r.body.error, error); return r; }
 (async () => {
-  await expect({},401,'unauthorized',{env:{}});
+  // S1: environment gate (404 before auth) unless Preview, or Production with the explicit flag.
+  await expect(signed(payload()),404,'not_found',{env:{...env,VERCEL_ENV:'production'}});
+  await expect(signed(payload()),404,'not_found',{env:{...env,VERCEL_ENV:'development'}});
+  { const e = {...env}; delete e.VERCEL_ENV; await expect(signed(payload()),404,'not_found',{env:e}); }
+  await expect({},401,'unauthorized',{env:{...env,VERCEL_ENV:'production',OS_INTAKE_PRODUCTION_ENABLED:'1'},bearer:'wrong'});
+  await expect({},404,'not_found',{env:{...env,VERCEL_ENV:'production',OS_INTAKE_PRODUCTION_ENABLED:'true'}});
+  await expect({},401,'unauthorized',{env:{VERCEL_ENV:'preview'}});
   await expect({},401,'unauthorized',{env:{...env,OS_INTAKE_TOKEN:'short'}});
   await expect({},401,'unauthorized',{env:{...env,OS_INTAKE_TOKEN:bridge}});
   await expect({},401,'unauthorized',{bearer:'wrong'});
@@ -65,6 +71,8 @@ async function expect(body, status, error, opts) { const r = await send(body, op
   assert(ALLOWLIST.includes('abdulhbah55@gmail.com'), 'founder sign-in allowlist must stay unchanged');
   p = payload(); p.approval.approved_at = new Date(now-900001).toISOString(); await expect(signed(p),403,'approval_expired');
   p = payload(); p.approval.approved_at = new Date(now+60001).toISOString(); await expect(signed(p),403,'approval_expired');
+  // N3: approved_at must carry an explicit zone.
+  p = payload(); p.approval.approved_at = '2026-11-22T12:00:00'; await expect(signed(p),400,'approval_required');
   p = payload(); p.approval.signature = '0'.repeat(64); await expect(p,403,'approval_signature_invalid');
   p = signed(payload()); p.project.description = 'Changed after signing'; await expect(p,403,'approval_signature_invalid');
   p = signed(payload()); p.extra = true; await expect(p,400,'unknown_field');
@@ -80,6 +88,8 @@ async function expect(body, status, error, opts) { const r = await send(body, op
   assert(kv.has(root+'approvals:'+p.approval.approval_id)); const intake = JSON.parse(kv.get(root+'intake:'+created.body.intake_id)); assert.equal(intake.project.extra_detail,undefined); assert.equal(JSON.parse(kv.get(root+'tasks:'+goal.id)[0]).state,'proposed'); assert(kv.get(root+'project:lavaall').includes(goal.id));
   const count = [...kv.keys()].filter(k=>k.startsWith(root+'item:')).length;
   const replay = await expect(p,200); assert.equal(replay.body.replayed,true); assert.equal(replay.body.goal_id,goal.id); assert.equal([...kv.keys()].filter(k=>k.startsWith(root+'item:')).length,count);
+  // N1: a completed identical request still replays after the approval window has passed.
+  const late = await expect(p,200,undefined,{now:now+16*60*1000}); assert.equal(late.body.replayed,true); assert.equal(late.body.goal_id,goal.id);
   const conflict = structuredClone(p); conflict.project.description = 'Another description'; signed(conflict); await expect(conflict,409,'idempotency_conflict');
   const reused = payload(); reused.approval.approval_id = p.approval.approval_id; await expect(signed(reused),409,'approval_reused');
   p = payload(); p.project.name = 'New Synthetic Project'; p.project.existing_repository = 'example/synthetic'; signed(p); const stub = await expect(p,201); assert.equal(stub.body.project_status,'pending_stub'); const stubRecord = JSON.parse(kv.get(root+'catalog:new-synthetic-project')); assert.equal(stubRecord.claimedRepository,'example/synthetic'); assert.equal(stubRecord.status,'pending'); assert.equal(JSON.parse(kv.get(root+'item:'+stub.body.goal_id)).repository,null);
@@ -98,8 +108,8 @@ async function expect(body, status, error, opts) { const r = await send(body, op
   const retried = await expect(flaky,201); assert.equal(retried.body.project_id,'lavaall');
   // The deployed dynamic function routes only the project-intake feed to this handler.
   const feedHandler = require('../api/os/ingest/[feed].js');
-  const saved = { OS_INTAKE_TOKEN: process.env.OS_INTAKE_TOKEN, OPS_CEO_BRIDGE_SECRET: process.env.OPS_CEO_BRIDGE_SECRET };
-  process.env.OS_INTAKE_TOKEN = token; process.env.OPS_CEO_BRIDGE_SECRET = bridge;
+  const saved = { VERCEL_ENV: process.env.VERCEL_ENV, OS_INTAKE_TOKEN: process.env.OS_INTAKE_TOKEN, OPS_CEO_BRIDGE_SECRET: process.env.OPS_CEO_BRIDGE_SECRET };
+  process.env.OS_INTAKE_TOKEN = token; process.env.OPS_CEO_BRIDGE_SECRET = bridge; process.env.VERCEL_ENV = 'preview';
   try {
     res = response(); await feedHandler({method:'POST',url:'/api/os/ingest/project-intake',query:{feed:'project-intake'},headers:{authorization:'Bearer '+token},body:'{'},res); assert.equal(res.statusCode,400); assert.equal(res.body.error,'invalid_json');
     res = response(); await feedHandler({method:'POST',url:'/api/os/ingest/project-intake',query:{feed:'project-intake'},headers:{authorization:'Bearer '+bridge},body:'{'},res); assert.equal(res.statusCode,401);

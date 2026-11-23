@@ -2,6 +2,10 @@
 
 `POST /api/os/ingest/project-intake` records a business-assistant intake after verifying a signed founder approval. It creates a planned goal and a proposed first task. It does not create a repository, grant access, call a model, run code, or send mail.
 
+## Environment gate
+
+The route returns `404 not_found` (before auth) unless `VERCEL_ENV` is `preview`, or `VERCEL_ENV` is `production` and `OS_INTAKE_PRODUCTION_ENABLED` is exactly `1`. Local/development runs are refused too.
+
 ## Authentication and request
 
 Send `Authorization: Bearer <OS_INTAKE_TOKEN>` and a JSON body. The dedicated token must be at least 32 characters and must differ from `OPS_CEO_BRIDGE_SECRET` and `OPS_AUTH_SECRET`. It is accepted only for this intake route and does not establish a session. The request body is limited to 16,384 bytes. Include an `Idempotency-Key` header and/or `idempotency_key` in the body; if both are present they must match. Keys contain 16–128 ASCII letters, digits, `.`, `_`, `:`, or `-`.
@@ -36,7 +40,7 @@ The following is a synthetic example. Substitute an email from `INTAKE_APPROVERS
 }
 ```
 
-The top level accepts only the fields shown. `schema_version` must be `1` and `source` must be `business_assistant`. The approval ID uses the same character set as the idempotency key and is 8–128 characters. Its timestamp must be no more than 15 minutes old or 60 seconds in the future. A bare `founder_approved` flag is rejected.
+The top level accepts only the fields shown. `schema_version` must be `1` and `source` must be `business_assistant`. The approval ID uses the same character set as the idempotency key and is 8–128 characters. Its timestamp must be ISO-8601 with `Z` or an explicit offset, and no more than 15 minutes old or 60 seconds in the future. A bare `founder_approved` flag is rejected.
 
 Project name is required and limited to 80 characters after trimming. Description, business objective, and proposed next task are required and limited to 1,200 characters each. Required functionality and acceptance criteria are nonempty arrays; the optional arrays each allow at most 20 nonempty strings of at most 500 characters. Existing repository is an optional `owner/repo` claim; existing OS project must name a catalog project. Sensitive project keys and email or phone-like content in accepted project strings are rejected. Unknown benign project fields are stripped and reported; unknown top-level fields are rejected. Avoid including personal or confidential information.
 
@@ -62,6 +66,7 @@ Responses are JSON and use `Cache-Control: no-store`:
 
 | Status | Error codes |
 | --- | --- |
+| 404 | `not_found` (environment gate) |
 | 400 | `invalid_json`, `idempotency_key_required`, `idempotency_key_mismatch`, `unverified_approval_field`, `unknown_field`, `approval_required`, `invalid_existing_os_project`, `forbidden_field`, `pii_detected`, `invalid_field` |
 | 401 | `unauthorized` |
 | 403 | `approver_not_allowed`, `approval_expired`, `approval_signature_invalid` |
@@ -71,7 +76,7 @@ Responses are JSON and use `Cache-Control: no-store`:
 | 429 | `rate_limited` (more than 30 new intakes per UTC day) |
 | 503 | `intake_store_not_configured`, `intake_store_unavailable` |
 
-Some validation errors include field paths, but errors do not echo request values, credentials, or headers. Replays are checked before the daily rate limit. Approval IDs are single-use; use a new signed approval for a new intake.
+Some validation errors include field paths, but errors do not echo request values, credentials, or headers. Replays are checked after the signature but before the approval-window check and the daily rate limit, so an identical completed request can be retried later; a new write always needs a fresh approval. Approval IDs are single-use; use a new signed approval for a new intake.
 
 ## Trust model (read before enabling)
 
