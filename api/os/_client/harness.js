@@ -8,7 +8,7 @@
   var icon = OS.icon;
 
   var HARNESSES = [
-    { id: 'codex', label: 'Codex' },
+    { id: 'codex', label: 'OpenAI API' },
     { id: 'claude', label: 'Claude' },
     { id: 'deepseek', label: 'DeepSeek' }
   ];
@@ -72,7 +72,7 @@
       var models = CLAUDE_MODELS.map(function (m, i) {
         return '<option value="' + esc(m.id) + '"' + (i === 0 ? ' selected' : '') + '>' + esc(m.label) + '</option>';
       }).join('');
-      var head = '<div class="ph"><div><h1>Harness</h1><p>Pick a project, pick Codex, Claude, or DeepSeek, then type what you want done. Gemini is off. This chat runs on this website through each provider’s API. It cannot sign into ChatGPT for you or edit files on your computer.</p></div></div>';
+      var head = '<div class="ph"><div><h1>Harness</h1><p>Choose a project and send a message. Connected provider APIs can answer here; repository edits and CLI execution require a separately approved coding runner. Gemini is off.</p></div></div>';
       var projectCount = groups.reduce(function (n, g) { return n + ((g.projects || []).length); }, 0);
       if (!projectCount) {
         var src = (data.sources && data.sources.harness && data.sources.harness.from) || 'tools/lavaall-ai/projects.json';
@@ -80,15 +80,15 @@
       }
       return head +
         '<div class="harness-tabs" role="tablist">' +
-          '<button type="button" class="btn harness-tab on" data-harness-tab="home" role="tab" aria-selected="true">Home</button>' +
-          '<button type="button" class="btn harness-tab" data-harness-tab="chat" role="tab" aria-selected="false">Chat</button>' +
+          '<button type="button" class="btn harness-tab on" data-harness-tab="home" role="tab" aria-selected="false">Usage</button>' +
+          '<button type="button" class="btn harness-tab on" data-harness-tab="chat" role="tab" aria-selected="true">Chat</button>' +
         '</div>' +
-        '<section class="card harness-home" id="harness-home">' +
+        '<section class="card harness-home hidden" id="harness-home">' +
           '<div class="ch">' + icon('spend') + '<h3>Usage and credit</h3></div>' +
           '<p class="dim" id="harness-usage-note">Loading usage from each provider’s free balance or usage endpoint. Totals are shown only when the provider returns them.</p>' +
           '<div class="harness-usage" id="harness-usage"><div class="empty"><b>Loading usage…</b></div></div>' +
         '</section>' +
-        '<section class="harness-chat hidden" id="harness-chat">' +
+        '<section class="harness-chat" id="harness-chat">' +
           '<div class="card harness-card">' +
             '<div class="harness-pickers">' +
               '<label class="harness-field">Group' +
@@ -118,7 +118,7 @@
       var groups = groupsOf(data);
       var st = statusById(data);
       var selectedHarness = 'codex';
-      var tab = 'home';
+      var tab = 'chat';
       var groupEl = root.querySelector('#harness-group');
       var projEl = root.querySelector('#harness-project');
       var meta = root.querySelector('#harness-meta');
@@ -180,8 +180,12 @@
       }
 
       function bubble(msg) {
-        var who = msg.role === 'user' ? 'You' : (msg.harness || 'Assistant');
-        return '<div class="harness-msg harness-msg-' + esc(msg.role) + '"><small class="dim">' + esc(who) + '</small><div>' + esc(msg.text || '') + '</div></div>';
+        var who = msg.role === 'user' ? 'You' : (msg.harness === 'codex' ? 'OpenAI API' : (msg.harness || 'Assistant'));
+        var u = msg.role !== 'user' && msg.usage;
+        var count = u && (u.inputTokens != null || u.outputTokens != null)
+          ? '<small class="dim">Reported tokens: ' + esc(u.inputTokens == null ? '?' : u.inputTokens) + ' in / ' + esc(u.outputTokens == null ? '?' : u.outputTokens) + ' out · Cost not available</small>'
+          : '';
+        return '<div class="harness-msg harness-msg-' + esc(msg.role) + '"><small class="dim">' + esc(who) + '</small><div>' + esc(msg.text || '') + '</div>' + count + '</div>';
       }
 
       function drawThread(messages, pending) {
@@ -337,7 +341,7 @@
 
       renderSetup();
       if (meta) meta.textContent = metaLine(currentProject());
-      loadUsage();
+      loadHistory();
     }
   });
 })();
