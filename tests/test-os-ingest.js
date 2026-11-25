@@ -369,9 +369,10 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
         && chatFn.includeFiles.includes('assets/js/catalog-data.js')
         && same(current.rewrites, base.rewrites)
         && same(pick(current, (h) => /^\/os/.test(h.source)), pick(base, (h) => /^\/os/.test(h.source)))
-        && same(pick(current, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'), pick(base, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'))
+        && same(pick(current, (h) => h.source === '/ops(.*)'), pick(base, (h) => h.source === '/ops(.*)'))
+        && same(pick(current, (h) => h.source === '/web/(.*)' && !(h.headers.length === 1 && h.headers[0].key === 'Content-Security-Policy')), pick(base, (h) => h.source === '/web/(.*)'))
         && same(pick(current, (h) => h.source === '/(.*)'), pick(base, (h) => h.source === '/(.*)'));
-      const rootHeader = (current.headers || []).find((h) => h.source === '/');
+      const rootHeader = (current.headers || []).find((h) => h.source === '/' && (h.headers || []).some((entry) => entry.key === 'Permissions-Policy'));
       const policy = rootHeader && (rootHeader.headers || []).find((h) => h.key === 'Permissions-Policy');
       osRoutesIntact = osRoutesIntact && !!policy && policy.value === 'camera=(), microphone=(self), geolocation=()';
     }

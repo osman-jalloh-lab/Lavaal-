@@ -247,7 +247,7 @@ const submit = { preventDefault() {} };
 
   const vercel = JSON.parse(fs.readFileSync(require.resolve('../vercel.json'), 'utf8'));
   const policy = source => {
-    const rule = vercel.headers.find(entry => entry.source === source);
+    const rule = vercel.headers.find(entry => entry.source === source && entry.headers.some(item => item.key === 'Permissions-Policy'));
     const header = rule && rule.headers.find(item => item.key === 'Permissions-Policy');
     return header && header.value;
   };
