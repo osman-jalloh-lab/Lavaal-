@@ -363,9 +363,10 @@ function shellPage({ title, email, area, body, notice, error, scripts, head, pri
 <meta name="robots" content="noindex,nofollow"/>
 ${typeof head === 'string' ? head : ''}
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self';"/>
+<link rel="stylesheet" href="/assets/css/fonts.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@600;700&family=Bricolage+Grotesque:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>${shellStyles()}</style>
 </head>
 <body>
