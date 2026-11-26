@@ -55,6 +55,7 @@ function osPage({ email, data }) {
   </div>
   <button class="search" id="side-search" type="button">${'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>'}Search or jump to<kbd>&#8984;K</kbd></button>
   <nav class="nav" id="nav" aria-label="LAVAALL OS"></nav>
+  <button class="agentcard" id="agentcard" type="button" aria-label="Talk to Jarvis"></button>
   <div class="me">
     <div class="av" id="me-av" aria-hidden="true"></div>
     <div class="me-id"><div class="me-email" title="${safeEmail}">${safeEmail}</div><div class="me-sub">Founder</div></div>

@@ -24,7 +24,7 @@ function loadOS(data, stored) {
     location: { hash: '' }, navigator: {}, setTimeout: () => 0, setInterval: () => 0, Intl,
   };
   vm.createContext(sandbox);
-  ['core.js', 'home.js', 'google.js', 'inbox.js', 'saved.js', 'recap.js', 'build.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(root, 'api/os/_client', f), 'utf8'), sandbox, { filename: f }));
+  ['core.js', 'home.js', 'google.js', 'inbox.js', 'saved.js', 'recap.js', 'build.js', 'cortex.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(root, 'api/os/_client', f), 'utf8'), sandbox, { filename: f }));
   return win.OS;
 }
 
@@ -162,6 +162,18 @@ function loadOS(data, stored) {
   const ov = OS.businessOverviewHtml({ build: { receivedAt: now, items } });
   check('overview: one card per business with progress, counts and what is left', /data-biz="salonehire"/.test(ov) && /data-biz="lavaall"/.test(ov) && /aria-valuenow="33"/.test(ov) && /<b class="num">1<\/b> need you/.test(ov));
   check('overview: what is left lists needs-you first, escaped, and the launch countdown shows', ov.indexOf('Pick the logo') < ov.indexOf('Tailwind') && /Tailwind &lt;build&gt; step/.test(ov) && /5 days to launch/.test(ov) && /Launching 1 Dec/.test(ov));
+  // ---- Visual cortex and sidebar agent card ----
+  {
+    const O = loadOS({ notes: [{ id: 'n1' }, { id: 'n2' }], decisions: [{ id: 'd1' }], desks: [], skills: [], routines: [], build: { receivedAt: 1, items: [{ id: 'x', project: 'salonehire', status: 'active', title: 'Tailwind <step>' }] } });
+    O.setSavedState({ goals: [{ id: 'g-aaaaaaaaaaaa', title: 't', horizon: 'week', project: 'lavaall', progress: 0 }], memories: [{ id: 'm-aaaaaaaaaaaa', text: 'x', tags: [], createdAt: 1 }] });
+    const counts = O.cortexCounts().reduce((o, r) => { o[r.src.id] = r.n; return o; }, {});
+    check('cortex: counts come only from real data (2 notes, 1 decision, 1 saved, 1 build item, 1 goal, 0 desks)', counts.notes === 2 && counts.decisions === 1 && counts.saved === 1 && counts.build === 1 && counts.goals === 1 && counts.desks === 0);
+    const cx = O.cortexHtml();
+    check('cortex: one dot per item, sectors only for sources with data, and a sources panel with switches', (cx.match(/<circle cx="[\d.]+" cy="[\d.]+" r="[\d.]+" fill="#/g) || []).length === 6 && /NOTES <tspan class="cx-n">2/.test(cx) && !/DESKS <tspan/.test(cx) && (cx.match(/class="cx-sw"/g) || []).length === 10 && /6 items/.test(cx));
+    const card = O.agentCardHtml({ build: { items: [{ project: 'salonehire', status: 'active', title: 'Tailwind <step>' }] } });
+    check('sidebar card: says an agent is working with the escaped task, or All quiet', /An agent is working/.test(card) && /Tailwind &lt;step&gt;/.test(card) && /All quiet/.test(O.agentCardHtml({ build: { items: [] } })));
+    check('the page shell has the agent card slot and the bundle ships cortex.js', /id="agentcard"/.test(fs.readFileSync(path.join(root, 'api/os/_page.js'), 'utf8')) && /_client\/cortex\.js/.test(fs.readFileSync(path.join(root, 'api/os/index.js'), 'utf8')));
+  }
 })().catch((e) => { check('async checks ran: ' + e.message, false); }).then(() => {
 const failed = results.filter((r) => !r.pass);
 results.forEach((r) => console.log(`${r.pass ? 'PASS' : 'FAIL'} ${r.name}`));

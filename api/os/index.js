@@ -40,6 +40,7 @@ function readAsset(name) {
         fs.readFileSync(path.join(__dirname, '_client/inbox.js'), 'utf8'),
         fs.readFileSync(path.join(__dirname, '_client/saved.js'), 'utf8'),
         fs.readFileSync(path.join(__dirname, '_client/recap.js'), 'utf8'),
+        fs.readFileSync(path.join(__dirname, '_client/cortex.js'), 'utf8'),
         fs.readFileSync(path.join(__dirname, '_client/brain-graph.js'), 'utf8'),
         fs.readFileSync(path.join(__dirname, '_client/brain.js'), 'utf8'),
       ].join('\n');
