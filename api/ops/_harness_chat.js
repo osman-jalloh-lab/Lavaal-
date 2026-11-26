@@ -25,11 +25,25 @@ const MAX_MESSAGE = 8000;
 const MAX_HISTORY = 40;
 const MAX_LOG = 50;
 
+// RULES.md: "Claude must use Sonnet only. Never use Opus." Opus is not offered.
 const CLAUDE_MODELS = Object.freeze({
   sonnet: process.env.ANTHROPIC_SONNET_MODEL || 'claude-sonnet-4-5',
   haiku: process.env.ANTHROPIC_HAIKU_MODEL || 'claude-haiku-4-5',
-  opus: process.env.ANTHROPIC_OPUS_MODEL || 'claude-opus-4-5',
 });
+
+// Token diet. Every run re-sends the prompt, so keep the per-run payload small:
+// a short window of recent chat, each message clipped, and a short handoff log.
+// Stable text (instructions, RULES, project context) goes first in the system
+// prompt so provider prompt caching can reuse it between runs.
+const RECENT_TURNS = 6;
+const RECENT_MSG_CHARS = 1500;
+const LOG_LINES = 5;
+const MAX_OUTPUT_TOKENS = 2048;
+
+function clip(text, max) {
+  const s = String(text || '');
+  return s.length > max ? `${s.slice(0, max)} [...clipped]` : s;
+}
 
 function firstQuery(req, key) {
   const value = queryOf(req)[key];
@@ -131,19 +145,20 @@ function projectContext(project) {
 
 function composePrompt(project, history, message, extraLog) {
   const rules = readRules();
-  const recent = (history || []).slice(-12).map((m) => `${m.role}: ${m.text}`).join('\n');
-  const log = (extraLog || []).slice(-10).join('\n');
+  const recent = (history || []).slice(-RECENT_TURNS)
+    .map((m) => `${m.role}: ${clip(m.text, RECENT_MSG_CHARS)}`).join('\n');
+  const log = (extraLog || []).slice(-LOG_LINES).join('\n');
   return {
     system: [
       'You are helping Osman work on a LAVAALL project from the founder-only Harness chat.',
       'You are running as a hosted API call, not as the Codex or Claude CLI, and you cannot edit files on his computer or the private box.',
       'Follow the rules and the project handoff. Do not deploy, merge, send, or spend. Synthetic data only. Do not invent prices, stock, or testimonials.',
       'Do not ask for or repeat API keys. If you cannot do something from here, say so plainly and say what he can run locally.',
+      'Be concise. Answer the request directly; skip restating the context.',
       rules ? `--- RULES.md ---\n${rules}` : '',
+      `--- PROJECT ---\n${projectContext(project)}`,
     ].filter(Boolean).join('\n\n'),
     user: [
-      '--- PROJECT ---',
-      projectContext(project),
       log ? `--- HANDOFF LOG ---\n${log}` : '',
       recent ? `--- RECENT CHAT ---\n${recent}` : '',
       '--- REQUEST ---',
@@ -264,6 +279,7 @@ async function callOpenAICompatible(fetchImpl, env, url, key, model, prompt) {
     body: JSON.stringify({
       model,
       temperature: 0.2,
+      max_tokens: MAX_OUTPUT_TOKENS,
       messages: openaiMessages(prompt),
     }),
   });
@@ -289,9 +305,10 @@ async function callClaude(fetchImpl, env, key, model, prompt) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: MAX_OUTPUT_TOKENS,
       temperature: 0.2,
-      system: prompt.system,
+      // The system prompt is the stable part of every run: cache it.
+      system: [{ type: 'text', text: prompt.system, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: prompt.user }],
     }),
   });
