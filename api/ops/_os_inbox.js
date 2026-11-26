@@ -9,6 +9,7 @@
 const { json, looksLikeAgentRequest, queryOf } = require('./_lib');
 const { readLiveSession } = require('./_signin_hardening');
 const gmail = require('./_gmail');
+const osGoogle = require('./_os_google');
 
 const CACHE_MS = 60 * 1000;
 const MAX_THREADS = 20;
@@ -59,13 +60,48 @@ function toItem(t) {
   };
 }
 
+// The account connected with "Connect Google" in /os (support@lavaall.com), read with its own token.
+async function listWithToken(token, fetchImpl) {
+  const get = async (path) => {
+    const res = await fetchImpl(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error('gmail');
+    return res.json();
+  };
+  const list = await get(`threads?maxResults=${MAX_THREADS}&q=${encodeURIComponent('in:inbox')}`);
+  const out = [];
+  for (const t of (Array.isArray(list.threads) ? list.threads : []).slice(0, MAX_THREADS)) {
+    const data = await get(`threads/${encodeURIComponent(t.id)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`);
+    const msgs = Array.isArray(data.messages) ? data.messages : [];
+    const last = msgs[msgs.length - 1] || {};
+    const headers = (last.payload && last.payload.headers) || [];
+    const h = (n) => { const x = headers.find((y) => String(y.name).toLowerCase() === n); return x ? x.value : ''; };
+    out.push({ gmailThreadId: data.id || t.id, from: h('from'), subject: h('subject') || '(no subject)', snippet: data.snippet || '',
+      unread: msgs.some((m) => Array.isArray(m.labelIds) && m.labelIds.includes('UNREAD')), receivedAt: Number(last.internalDate) || Date.parse(h('date')) || 0 });
+  }
+  return out;
+}
+
 async function loadInbox(opts) {
   const now = (opts && opts.now) || Date.now();
+  const env = (opts && opts.env) || process.env;
+  const fetchImpl = (opts && opts.fetchImpl) || globalThis.fetch;
+  if (!(opts && opts.listThreads)) {
+    let conn = null;
+    try { conn = await osGoogle.accessToken(env, fetchImpl); } catch { conn = null; }
+    if (conn) {
+      if (cache && cache.via === 'google' && now - cache.at < CACHE_MS && !(opts && opts.fresh)) return cache.value;
+      const threads = await listWithToken(conn.token, fetchImpl);
+      const value = { connected: true, via: 'google', mailbox: clip(conn.record.email, 120), mailboxVerified: true, piles: PILES,
+        items: threads.map(toItem).sort((a, b) => b.receivedAt - a.receivedAt), fetchedAt: now };
+      cache = { at: now, via: 'google', value };
+      return value;
+    }
+  }
   const configured = opts && opts.configured !== undefined ? opts.configured : gmail.gmailConfigured();
   if (!configured) {
     return { connected: false, mailbox: '', piles: PILES, items: [], message: 'Gmail is not connected on this deployment (OPS_GMAIL_* are not all set).' };
   }
-  if (cache && now - cache.at < CACHE_MS && !(opts && opts.fresh)) return cache.value;
+  if (cache && cache.via === 'keys' && now - cache.at < CACHE_MS && !(opts && opts.fresh)) return cache.value;
   const list = (opts && opts.listThreads) || gmail.listGmailThreads;
   const profile = (opts && opts.readProfile) || gmail.readGmailProfile;
   const threads = await list({ max: MAX_THREADS });
@@ -82,7 +118,7 @@ async function loadInbox(opts) {
     items: threads.map(toItem).sort((a, b) => b.receivedAt - a.receivedAt),
     fetchedAt: now,
   };
-  cache = { at: now, value };
+  cache = { at: now, via: 'keys', value };
   return value;
 }
 

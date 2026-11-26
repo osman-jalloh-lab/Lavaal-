@@ -395,3 +395,15 @@
 .os-root .mem-text{white-space:pre-wrap;overflow-wrap:anywhere}
 .os-root .mem-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;color:var(--tx3);font-size:12px}.os-root .mem-meta .btn{margin-left:auto}
 @media(max-width:759px){.os-root .g3{grid-template-columns:minmax(0,1fr)}}
+
+/* Google: connect panel, Gmail draft, Calendar */
+.os-root .gconn{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px}
+.os-root .gconn .note{margin-top:2px}
+.os-root .gdraft{padding:12px 16px}.os-root .gdraft summary{cursor:pointer;font-weight:500}
+.os-root .gdraft form{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.os-root .gdraft input,.os-root .gdraft textarea,.os-root .cal-add input{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-ctl);color:var(--text);font:inherit;padding:7px 10px;min-width:0}
+.os-root .gdraft .btn{align-self:flex-start}
+.os-root .cal-add{display:flex;flex-wrap:wrap;gap:8px;padding:10px;align-items:center}.os-root .cal-add #cal-title{flex:1 1 220px}
+.os-root .cal-row{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;padding:10px 16px;border-bottom:1px solid var(--line)}.os-root .cal-row:last-child{border-bottom:0}
+.os-root .cal-when{color:var(--tx2);font-size:12.5px;min-width:150px}.os-root .cal-title{font-weight:500;flex:1;min-width:0;overflow-wrap:anywhere}
+.os-root .cal-where{color:var(--tx3);font-size:12px}.os-root .cal-open{color:var(--accent);font-size:12px}

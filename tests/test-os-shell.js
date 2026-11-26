@@ -142,7 +142,9 @@ async function call(area, extra) {
   // Jarvis adds two: a same-origin POST helper (voice session, ask_os) and the WebRTC offer to OpenAI Realtime.
   const inboxSrc = fs.readFileSync(path.join(root, 'api/os/_client/inbox.js'), 'utf8');
   const savedSrc = fs.readFileSync(path.join(root, 'api/os/_client/saved.js'), 'utf8');
-  check('app.js fetch call sites: talk.js, harness.js, inbox.js (read-only GET), saved.js (/ops/os/saved), and two in voice.js (same-origin helper, OpenAI Realtime offer)', fetchCount === 6
+  const googleSrc = fs.readFileSync(path.join(root, 'api/os/_client/google.js'), 'utf8');
+  check('app.js fetch call sites: talk.js, harness.js, inbox.js (read-only GET), saved.js (/ops/os/saved), google.js (same-origin helper), and two in voice.js (same-origin helper, OpenAI Realtime offer)', fetchCount === 7
+    && (googleSrc.match(/window\.fetch\(/g) || []).length === 1 && /credentials: 'same-origin'/.test(googleSrc) && !/https?:\/\/[^'"]*googleapis/.test(googleSrc)
     && (inboxSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/inbox'/.test(inboxSrc) && !/method: 'POST'/.test(inboxSrc)
     && (savedSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/saved'/.test(savedSrc) && /credentials: 'same-origin'/.test(savedSrc)
     && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && harnessFetches.length === 1 && voiceFetches.length === 2 && /credentials: 'same-origin'/.test(voiceSrc) && /window\.fetch\('https:\/\/api\.openai\.com\/v1\/realtime\/calls/.test(voiceSrc));
