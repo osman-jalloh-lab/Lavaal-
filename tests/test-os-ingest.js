@@ -402,14 +402,16 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
         && typeof chatFn.includeFiles === 'string'
         && chatFn.includeFiles.includes('assets/js/catalog-data.js')
         && same(current.rewrites, base.rewrites)
-        && same(pick(current, (h) => /^\/os/.test(h.source)), pick(base, (h) => /^\/os/.test(h.source)))
+        // /os may only gain the same same-origin microphone policy /ops has (Jarvis voice), nothing else.
+        && same(pick(current, (h) => /^\/os/.test(h.source) && h.source !== '/os(.*)'), pick(base, (h) => /^\/os/.test(h.source) && h.source !== '/os(.*)'))
+        && pick(current, (h) => h.source === '/os(.*)').every((h) => same(h.headers, [{ key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' }]))
         && same(pick(current, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'), pick(base, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'))
         && same(pick(current, (h) => h.source === '/(.*)'), pick(base, (h) => h.source === '/(.*)'));
       const rootHeader = (current.headers || []).find((h) => h.source === '/');
       const policy = rootHeader && (rootHeader.headers || []).find((h) => h.key === 'Permissions-Policy');
       osRoutesIntact = osRoutesIntact && !!policy && policy.value === 'camera=(), microphone=(self), geolocation=()';
     }
-    check('/os, /ops and /web vercel routes stay unchanged; homepage may only add a scoped same-origin microphone policy', osRoutesIntact);
+    check('/os, /ops and /web vercel routes stay unchanged; the homepage and /os may only add a scoped same-origin microphone policy', osRoutesIntact);
   } catch { check('vercel.json and the auth code are not changed (git unavailable, skipped)', true); }
 
   const failedChecks = results.filter((r) => !r.pass);

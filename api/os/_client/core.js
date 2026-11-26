@@ -494,6 +494,7 @@
     window.addEventListener('hashchange', render);
     var bar = $('#aibar');
     if (bar) bar.innerHTML = OS.aiBar();
+    if (OS.mountJarvis) OS.mountJarvis(doc.body);
     tickClock();
     setInterval(tickClock, 30000);
     render();

@@ -498,7 +498,7 @@ async function handleChat(req, res, env, fetchImpl) {
   }
   const modelPick = modelFor(harness, body.model, env);
   if (modelPick && modelPick.error) {
-    json(res, 400, { error: 'unknown_model', message: 'Pick Sonnet, Haiku, or Opus.' });
+    json(res, 400, { error: 'unknown_model', message: 'Pick Sonnet or Haiku.' });
     return true;
   }
   if (!keyFor(harness, env)) {
