@@ -48,7 +48,7 @@ check('codex shows key present without the secret, claude and deepseek show key 
 check('page data never includes the API key value', !JSON.stringify(data.harness).includes(SECRET));
 
 const html = OS.views.harness.render({ id: 'harness', sub: '', data });
-check('page heading is Harness', /<h1>Harness<\/h1>/.test(html));
+check('chat layout: your chats list, voice banner with the Jarvis orb, composer', /class="hx-side card"/.test(html) && /id="hx-orb"/.test(html) && /id="harness-form"/.test(html) && /Ask anything\./.test(fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8')));
 check('explains real capabilities and that Gemini is off', /Connected provider APIs can answer here/.test(html) && /Gemini is off/.test(html));
 check('Home and Chat tabs are present', /data-harness-tab="home"/.test(html) && /data-harness-tab="chat"/.test(html));
 check('group picker lists the four groups', /id="harness-group"/.test(html) && /value="lavaall"/.test(html) && /LAVAALL/.test(html) && /SaloneWorks/.test(html) && /Starlink/.test(html) && /SaloneHire/.test(html));
@@ -58,7 +58,7 @@ check('no copy-command UI', !/id="harness-copy"/.test(html) && !/Copy command/.t
 check('Claude model picker defaults to Sonnet, offers Haiku, and never Opus', /id="harness-model"/.test(html) && /value="sonnet" selected/.test(html) && /value="haiku"/.test(html) && !/value="opus"/.test(html));
 check('composer lets the founder type a request and send it', /id="harness-form"/.test(html) && /id="harness-input"/.test(html) && /id="harness-send">Send</.test(html));
 check('usage home is present', /id="harness-usage"/.test(html) && /Usage and credit/.test(html));
-check('Codex setup mentions OPENAI_API_KEY and local codex login', /OPENAI_API_KEY/.test(html) && /codex login/.test(html));
+check('Codex setup mentions OPENAI_API_KEY and local codex login', /OPENAI_API_KEY/.test(fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8')) && /codex login/.test(fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8')));
 check('rendered HTML does not contain the API key', !html.includes(SECRET));
 const harnessSrc = fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8');
 check('no inline handlers; harness fetch is same-origin /ops/harness/ only', !/\son[a-z]+\s*=/i.test(html) && /window\.fetch\(/.test(harnessSrc) && /\/ops\/harness\//.test(harnessSrc) && /credentials(?:\s*:\s*|\s*=\s*)'same-origin'/.test(harnessSrc) && !/https?:\/\//.test(harnessSrc.replace(/\/\*[\s\S]*?\*\//, '')));

@@ -515,3 +515,75 @@
 .os-root .bz-left li{font-size:13px;display:flex;gap:8px;align-items:baseline;min-width:0;overflow-wrap:anywhere}
 .os-root .bz-k{flex:none;font:600 10px/16px var(--mono,monospace);letter-spacing:.06em;text-transform:uppercase;padding:0 5px;border-radius:4px;border:1px solid var(--line2);color:var(--tx3)}
 .os-root .bz-k.waiting{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}.os-root .bz-k.active{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+
+/* ---- Chat, agentic-OS layout: chats list | voice banner, thread with "Ask anything", composer ---- */
+.os-root .hx-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+.os-root .hx-top .harness-tabs{margin:0}
+.os-root .hx-top .harness-picks{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.os-root .hx-top .harness-pick{min-height:30px;height:30px;flex-direction:row;align-items:center;padding:0 10px;border-radius:999px;gap:6px}
+.os-root .hx-top .harness-pick small{display:none}.os-root .hx-top .harness-pick .dot{margin-top:0}
+.os-root .hx-top .harness-pick.on{background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+.os-root .hx{display:grid;grid-template-columns:230px minmax(0,1fr);gap:12px;align-items:start}
+.os-root .hx-side{padding:12px;display:flex;flex-direction:column;gap:10px;position:sticky;top:8px;max-height:calc(100vh - 120px);overflow:auto}
+.os-root .hx-sh{display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.os-root .hx-new{justify-content:center;height:34px}
+.os-root .hx-list{display:flex;flex-direction:column;gap:2px}
+.os-root .hx-row{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;padding:8px 10px;border-radius:var(--r-ctl);border:1px solid transparent;color:var(--tx2);min-width:0}
+.os-root .hx-row b{font-weight:500;color:var(--text);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.os-root .hx-row small{font-size:11.5px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.os-root .hx-row:hover{background:var(--hover)}.os-root .hx-row.on{background:var(--hover);border-color:var(--line2);box-shadow:inset 2px 0 0 var(--accent)}
+.os-root .hx-main{display:flex;flex-direction:column;gap:12px;min-width:0}
+.os-root .hx-voice{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 16px;border-radius:var(--r-card);border:1px solid var(--line);
+  background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--c-violet) 30%,transparent),transparent 55%),radial-gradient(90% 120% at 100% 100%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 60%),var(--panel)}
+.os-root .hx-orb{width:54px;height:54px;flex:none;border-radius:50%;border:0;cursor:pointer;background:radial-gradient(circle at 35% 30%,#fff 0,#c9b8ff 18%,#8B7BFF 45%,#3a2a8a 100%);animation:hxpulse 3.2s ease-in-out infinite}
+.os-root .hx-orb:hover{filter:brightness(1.12)}
+@keyframes hxpulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 transparent)}50%{transform:scale(1.05);filter:drop-shadow(0 0 14px rgba(139,123,255,.55))}}
+.os-root .hx-vt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:200px}
+.os-root .hx-k{font:600 10.5px/16px var(--mono,monospace);letter-spacing:.14em;text-transform:uppercase;color:var(--tx3)}
+.os-root .hx-vt b{font-size:15px}
+.os-root .hx-model{min-width:200px;max-width:280px}
+.os-root .hx-main .harness-thread{min-height:min(52vh,460px);max-height:min(62vh,640px);background:var(--panel)}
+.os-root .hx-hero{margin:auto;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:30px 12px;max-width:520px}
+.os-root .hx-hero h2{font-family:var(--display,inherit);font-size:34px;font-weight:700;letter-spacing:-.02em;margin:0}
+.os-root .hx-hero p{margin:0}
+.os-root .hx-glyph{width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:conic-gradient(from 30deg,var(--accent),var(--c-violet),var(--ok),var(--accent));opacity:.9}
+.os-root .hx-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:6px}.os-root .hx-chips .chip{border-radius:999px}
+.os-root .hx-comp{flex-direction:row;align-items:flex-end;gap:8px;padding:8px;border:1px solid var(--line2);border-radius:var(--r-card);background:var(--panel)}
+.os-root .hx-comp .harness-input{flex:1;min-height:44px;border:0;background:transparent}.os-root .hx-comp .harness-input:focus{outline:none}
+.os-root .hx-comp:focus-within{border-color:var(--accent)}
+.os-root .harness-execution summary{cursor:pointer;font-weight:500}
+@media(max-width:900px){.os-root .hx{grid-template-columns:minmax(0,1fr)}.os-root .hx-side{position:static;max-height:none}.os-root .hx-list{flex-direction:row;overflow-x:auto}.os-root .hx-row{min-width:150px}.os-root .hx-top .harness-picks{margin-left:0}}
+@media(prefers-reduced-motion:reduce){.os-root .hx-orb{animation:none}}
+
+/* ---- Memory: visual cortex ---- */
+.os-root .cx{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:12px;align-items:start}
+.os-root .cx-main{padding:12px 14px;overflow:hidden;background:radial-gradient(70% 70% at 50% 50%,color-mix(in srgb,var(--c-violet) 10%,transparent),transparent 70%),var(--panel)}
+.os-root .cx-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.os-root .cx-h b{font-size:14px}.os-root .cx-tot{margin-left:auto}
+.os-root .cx-svg{display:block;width:100%;max-height:560px;margin:0 auto}
+.os-root .cx-ring{fill:none;stroke:var(--line2);stroke-width:1}.os-root .cx-ring.in{stroke-dasharray:2 4}
+.os-root .cx-core{fill:color-mix(in srgb,var(--c-violet) 22%,var(--panel));stroke:var(--accent);stroke-width:1.5}
+.os-root .cx-c{fill:var(--text);font:600 11px Inter,system-ui,sans-serif}.os-root .cx-cn{fill:var(--tx3);font:500 10px var(--mono,monospace)}
+.os-root .cx-l{fill:var(--tx2);font:600 10.5px var(--mono,monospace);letter-spacing:.06em}.os-root .cx-n{fill:var(--text)}
+.os-root .cx-spin{transform-origin:260px 260px;animation:cxspin 240s linear infinite}
+@keyframes cxspin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.os-root .cx-spin{animation:none}}
+.os-root .cx-src{padding:12px;display:flex;flex-direction:column;gap:2px}
+.os-root .cx-sh{display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px;font-size:13px}
+.os-root .cx-row{display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:var(--r-ctl);cursor:pointer}.os-root .cx-row:hover{background:var(--hover)}
+.os-root .cx-dot{width:10px;height:10px;border-radius:3px;flex:none}
+.os-root .cx-name{flex:1;display:flex;flex-direction:column;font-size:13px}.os-root .cx-name small{color:var(--tx3);font-size:11px}
+.os-root .cx-sw{appearance:none;-webkit-appearance:none;width:30px;height:18px;border-radius:999px;background:var(--line2);position:relative;cursor:pointer;flex:none;transition:background .15s}
+.os-root .cx-sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--text);transition:transform .15s}
+.os-root .cx-sw:checked{background:var(--accent)}.os-root .cx-sw:checked::after{transform:translateX(12px);background:#0A0A14}
+@media(max-width:900px){.os-root .cx{grid-template-columns:minmax(0,1fr)}}
+
+/* ---- Sidebar agent card ---- */
+.os-root .agentcard{margin:10px 4px 8px;padding:12px;border-radius:var(--r-card);border:1px solid var(--line);display:flex;align-items:center;gap:10px;text-align:left;color:var(--text);
+  background:radial-gradient(120% 120% at 0% 100%,color-mix(in srgb,var(--c-violet) 32%,transparent),transparent 60%),radial-gradient(100% 100% at 100% 0%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 60%),var(--panel)}
+.os-root .agentcard:hover{border-color:var(--line2)}
+.os-root .ac-orb{width:34px;height:34px;flex:none;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0,#7BE0C8 22%,#2fa39c 60%,#186f6c 100%)}
+.os-root .ac-orb.busy{background:radial-gradient(circle at 35% 30%,#fff3c4 0,#FFE03D 30%,#FF8A3C 75%,#7a3410 100%);animation:hxpulse 2.4s ease-in-out infinite}
+.os-root .ac-t{display:flex;flex-direction:column;min-width:0}.os-root .ac-t b{font-size:13px}
+.os-root .ac-t small{font-size:11.5px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(prefers-reduced-motion:reduce){.os-root .ac-orb.busy{animation:none}}
+.os-root .hx-main .harness-meta{margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px}.os-root .hx-main .harness-setup{font-size:12.5px;padding:8px 10px}

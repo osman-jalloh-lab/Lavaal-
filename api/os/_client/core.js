@@ -100,6 +100,25 @@
 
   OS.data = readData();
   OS.nav = NAV;
+  // Sidebar card: is an agent working right now? From the Build log only (active items). Click to talk to Jarvis.
+  function agentCardHtml(data) {
+    var items = (data && data.build && Array.isArray(data.build.items)) ? data.build.items : [];
+    var active = items.filter(function (i) { return i.status === 'active' && OS.inBusiness(i.project); });
+    var waiting = items.filter(function (i) { return i.status === 'waiting' && OS.inBusiness(i.project); }).length;
+    return '<span class="ac-orb' + (active.length ? ' busy' : '') + '" aria-hidden="true"></span>' +
+      '<span class="ac-t"><b>' + (active.length ? (active.length === 1 ? 'An agent is working' : active.length + ' agents are working') : 'All quiet') + '</b>' +
+      '<small>' + esc(active.length ? active[0].title : waiting ? waiting + ' waiting on you' : 'Tap to talk to Jarvis') + '</small></span>';
+  }
+  OS.agentCardHtml = agentCardHtml;
+  function paintAgentCard() {
+    var el = $('#agentcard');
+    if (!el) return;
+    el.innerHTML = agentCardHtml(OS.data);
+    if (!el.getAttribute('data-wired')) {
+      el.setAttribute('data-wired', '1');
+      el.addEventListener('click', function () { if (OS.jarvis && OS.jarvis.start) OS.jarvis.start(); });
+    }
+  }
   OS.sections = SECTIONS;
 
   // ---- Business switch: All, or one of Osman's businesses. Filters Build, Progress, Memory and AI models chat.
@@ -315,6 +334,7 @@
   function renderNav() {
     var active = sectionOf(cur).id;
     var group = '';
+    paintAgentCard();
     $('#nav').innerHTML = SECTIONS.map(function (sec) {
       var first = navItem(sec.views[0]);
       var lbl = sec.group !== group ? '<div class="navlbl">' + esc(sec.group) + '</div>' : '';

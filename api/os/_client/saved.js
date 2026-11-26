@@ -110,9 +110,10 @@
   }
   OS.registerView('saved', {
     render: function () {
-      return '<div class="ph"><div><h1>Saved memory</h1><p>Things you want the OS to remember. Jarvis can save here too: just say "remember that…".</p></div></div>' +
-        '<form class="card mem-add" id="mem-add" autocomplete="off">' +
-          '<label class="sr" for="mem-text">Remember</label><textarea id="mem-text" rows="3" maxlength="2000" placeholder="Remember that…" required></textarea>' +
+      return '<div class="ph"><div><h1>Memory</h1><p>Your knowledge, connected. Everything the OS remembers, and a place to add more. Jarvis can save here too: just say "remember that…".</p></div></div>' +
+        '<div id="cortex">' + (OS.cortexHtml ? OS.cortexHtml() : '') + '</div>' +
+        '<form class="card mem-add mt" id="mem-add" autocomplete="off">' +
+          '<label class="sr" for="mem-text">Remember</label><textarea id="mem-text" rows="3" maxlength="2000" placeholder="Write a note, paste a link, or tell the OS what to remember…" required></textarea>' +
           '<div class="mem-add-r"><label class="sr" for="mem-tags">Tags</label><input id="mem-tags" maxlength="120" placeholder="Tags, comma separated (optional)" />' +
           '<button class="btn pri" type="submit">Save memory</button></div></form>' +
         '<div class="mem-search mt"><label class="sr" for="mem-q">Search memories</label><input id="mem-q" placeholder="Search memories" /></div>' +
@@ -120,8 +121,9 @@
     },
     mount: function (root) {
       var host = root.querySelector('#mem-body'), msg = root.querySelector('#mem-msg');
-      function paint() { if (host) host.innerHTML = memoryBody(); }
+      function paint() { if (host) host.innerHTML = memoryBody(); if (OS.cortexPaint) OS.cortexPaint(root); }
       function fail(e) { if (msg) msg.textContent = e.message || 'Could not save.'; }
+      if (OS.cortexMount) OS.cortexMount(root);
       OS.saved.on(paint);
       OS.saved.load().catch(fail);
       root.querySelector('#mem-add').addEventListener('submit', function (e) {
