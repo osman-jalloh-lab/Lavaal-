@@ -336,7 +336,7 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
   const draw = (id, sub) => OS.views[id].render({ id, sub: sub || '', data });
   const home = draw('home');
   check('Home: the Morning brief card shows the posted text and its date', /Three things matter today\./.test(home) && /class="brief"/.test(home) && />2026-10-23</.test(home) && !/No morning brief/.test(home));
-  check('Home: the bounce tile shows 10% with its day', />10%</.test(home) && /bounced of sent, 2026-10-22/.test(home));
+  check('Home: no hotel bounce tile; a Waiting on you tile counts the Build log items that need Osman', !/Hotel bounce rate/.test(home) && /<span>Waiting on you<\/span><b class="num">1<\/b><i>from the Build log<\/i>/.test(home));
   check('Home: the AI spend tile shows the month total', /AI spend this month/.test(home) && /\$3\.94/.test(home));
   check('Home: the Routine health card counts the four statuses', /Routine health/.test(home) && /4 of 14 routines report/.test(home) && /Checked [A-Z][a-z]{2} \d+, \d+:\d{2} [AP]M CT/.test(home) && /pill pass">OK<\/span>[\s\S]*?<b class="num">1<\/b>/.test(home) && /pill bad">Failed/.test(home));
   check('Home: no "Other" row when no routine is outside the four statuses', !/>Other</.test(home));
