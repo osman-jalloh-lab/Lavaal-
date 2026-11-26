@@ -24,7 +24,7 @@ function loadOS(data, stored) {
     location: { hash: '' }, navigator: {}, setTimeout: () => 0, setInterval: () => 0, Intl,
   };
   vm.createContext(sandbox);
-  ['core.js', 'home.js', 'google.js', 'inbox.js', 'saved.js', 'recap.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(root, 'api/os/_client', f), 'utf8'), sandbox, { filename: f }));
+  ['core.js', 'home.js', 'google.js', 'inbox.js', 'saved.js', 'recap.js', 'build.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(root, 'api/os/_client', f), 'utf8'), sandbox, { filename: f }));
   return win.OS;
 }
 
@@ -106,7 +106,7 @@ function loadOS(data, stored) {
 {
   const pack = require(path.join(root, 'tools/lavaall-ai/projects.json'));
   const withLaunch = pack.groups.filter((g) => g.launch);
-  check('projects.json: one group has a 1 Dec 2026 go-live date', withLaunch.length === 1 && withLaunch[0].launch === '2026-12-01');
+  check('projects.json: SaloneHire is the group with the 1 Dec 2026 go-live date', withLaunch.length === 1 && withLaunch[0].id === 'salonehire' && withLaunch[0].launch === '2026-12-01');
   const src = fs.readFileSync(path.join(root, 'api/ops/_os_data.js'), 'utf8');
   check('the OS data passes a validated launch date and goal per group', /launch: \/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/\.test/.test(src) && /goal: text\(g && g\.goal, 160\)/.test(src));
 }
@@ -118,7 +118,53 @@ function loadOS(data, stored) {
   check('shipped client code never names the business kept off the website', files.every((f) => !banned.test(fs.readFileSync(path.join(root, 'api/os/_client', f), 'utf8'))));
 }
 
+// ---- Every model per provider (live list), Opus never offered ----
+(async () => {
+  const chat = require(path.join(root, 'api/ops/_harness_chat.js'));
+  check('models: chat models kept, non-chat and Opus dropped', chat.chatModel('codex', 'gpt-5') && chat.chatModel('codex', 'o3') && !chat.chatModel('codex', 'gpt-4o-realtime-preview') && !chat.chatModel('codex', 'text-embedding-3-large')
+    && chat.chatModel('claude', 'claude-sonnet-4-5') && chat.chatModel('claude', 'claude-haiku-4-5') && !chat.chatModel('claude', 'claude-opus-4-1') && chat.chatModel('grok', 'grok-4') && chat.chatModel('deepseek', 'deepseek-chat'));
+  const env = { OPENAI_API_KEY: 'k'.repeat(20), ANTHROPIC_API_KEY: 'k'.repeat(20) };
+  const calls = [];
+  const fetchImpl = async (url) => {
+    calls.push(String(url));
+    const ids = String(url).includes('anthropic') ? ['claude-sonnet-4-5', 'claude-opus-4-1', 'claude-haiku-4-5'] : ['gpt-5', 'gpt-4.1', 'whisper-1'];
+    return { status: 200, ok: true, text: async () => JSON.stringify({ data: ids.map((id) => ({ id })) }) };
+  };
+  chat.resetModelCache();
+  const claude = await chat.listModels('claude', env, fetchImpl);
+  check('models: Claude lists every model the key can use, except Opus', claude.join() === 'claude-sonnet-4-5,claude-haiku-4-5');
+  await chat.listModels('claude', env, fetchImpl);
+  check('models: the list is cached, not fetched on every message', calls.filter((u) => u.includes('anthropic')).length === 1);
+  check('models: a listed model can be picked', (await chat.pickModel('codex', 'gpt-5', env, fetchImpl)) === 'gpt-5');
+  check('models: Opus and unlisted models are refused', (await chat.pickModel('claude', 'claude-opus-4-1', env, fetchImpl)).error === 'unknown_model' && (await chat.pickModel('codex', 'gpt-9-imaginary', env, fetchImpl)).error === 'unknown_model');
+  check('models: no pick uses the configured default; Sonnet and Haiku shortcuts still work', (await chat.pickModel('codex', '', env, fetchImpl)) === 'gpt-4.1' && (await chat.pickModel('claude', 'haiku', env, fetchImpl)) === chat.CLAUDE_MODELS.haiku);
+  const hsrc = fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8');
+  check('chat page: one model picker for every provider, filled from /ops/harness/models', /api\('models'/.test(hsrc) && !/selectedHarness !== 'claude'\)/.test(hsrc) && /if \(modelEl && modelEl\.value\) payload\.model = modelEl\.value/.test(hsrc));
+
+  // ---- Google status: a failed check is not "disconnected" ----
+  const gsrc = fs.readFileSync(path.join(root, 'api/os/_client/google.js'), 'utf8');
+  check('google: the status check retries and remembers the last answer for this tab', /checkStatus\(3\)/.test(gsrc) && /sessionStorage\.setItem\('os-google'/.test(gsrc) && !/status = \{ connected: false \}; paint\(\)/.test(gsrc));
+  const g = require(path.join(root, 'api/ops/_os_google.js'));
+  const res = { statusCode: 0, headers: {}, body: null, setHeader(k, v) { this.headers[k.toLowerCase()] = v; return this; }, status(c) { this.statusCode = c; return this; }, end(b) { this.body = b; }, send(b) { this.body = b; } };
+  const kvEnv = { KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't', OPS_GMAIL_CLIENT_ID: 'id', OPS_GMAIL_CLIENT_SECRET: 's' };
+  await g.handleOsGoogle({ method: 'GET', url: '/ops/os/google/status', headers: {}, query: { area: 'os/google/status' } }, res,
+    { env: kvEnv, fetchImpl: async () => ({ ok: false, status: 500, json: async () => ({}) }), session: { email: 'founder@example.com' } });
+  check('google: when the store does not answer, status says 503 store_unavailable, not "not connected"', res.statusCode === 503 && /store_unavailable/.test(String(res.body)));
+
+  // ---- Business overview ----
+  const OS = loadOS({ harness: { status: [], groups: [{ id: 'salonehire', label: 'SaloneHire', launch: dayKey(now + 5 * DAY), projects: [{ name: 'salonehire', status: 'Launching 1 Dec' }] }] } });
+  const items = [
+    { id: 'a', project: 'salonehire', status: 'done', title: 'Single scan', updatedAt: now },
+    { id: 'b', project: 'salonehire', status: 'active', title: 'Tailwind <build> step', updatedAt: now },
+    { id: 'c', project: 'salonehire', status: 'waiting', title: 'Pick the logo', updatedAt: now },
+    { id: 'd', project: 'lavaall-os', status: 'done', title: 'Calendar', updatedAt: now },
+  ];
+  const ov = OS.businessOverviewHtml({ build: { receivedAt: now, items } });
+  check('overview: one card per business with progress, counts and what is left', /data-biz="salonehire"/.test(ov) && /data-biz="lavaall"/.test(ov) && /aria-valuenow="33"/.test(ov) && /<b class="num">1<\/b> need you/.test(ov));
+  check('overview: what is left lists needs-you first, escaped, and the launch countdown shows', ov.indexOf('Pick the logo') < ov.indexOf('Tailwind') && /Tailwind &lt;build&gt; step/.test(ov) && /5 days to launch/.test(ov) && /Launching 1 Dec/.test(ov));
+})().catch((e) => { check('async checks ran: ' + e.message, false); }).then(() => {
 const failed = results.filter((r) => !r.pass);
 results.forEach((r) => console.log(`${r.pass ? 'PASS' : 'FAIL'} ${r.name}`));
 console.log(`\n${results.length - failed.length}/${results.length} passed`);
 process.exit(failed.length ? 1 : 0);
+});

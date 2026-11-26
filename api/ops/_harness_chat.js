@@ -59,6 +59,7 @@ function harnessKind(req) {
   if (/harness\/usage/.test(hay)) return 'usage';
   if (/harness\/execute/.test(hay)) return 'execute';
   if (/harness\/runs/.test(hay)) return 'runs';
+  if (/harness\/models/.test(hay)) return 'models';
   return '';
 }
 
@@ -235,6 +236,77 @@ function keyFor(harness, env) {
   return '';
 }
 
+// ---- Every model each provider offers, read live from its /models endpoint (cached 30 minutes per instance).
+// Chat-capable models only. Claude Opus stays off: RULES.md says "Claude must use Sonnet only. Never use Opus."
+const MODEL_LIST_TTL_MS = 30 * 60 * 1000;
+const MODEL_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:/-]{1,99}$/;
+const MODEL_SOURCES = Object.freeze({
+  codex: { url: 'https://api.openai.com/v1/models', auth: (k) => ({ Authorization: `Bearer ${k}` }) },
+  claude: { url: 'https://api.anthropic.com/v1/models?limit=100', auth: (k) => ({ 'x-api-key': k, 'anthropic-version': '2023-06-01' }) },
+  deepseek: { url: 'https://api.deepseek.com/models', auth: (k) => ({ Authorization: `Bearer ${k}` }) },
+  grok: { url: 'https://api.x.ai/v1/models', auth: (k) => ({ Authorization: `Bearer ${k}` }) },
+});
+const modelCache = {};
+
+function chatModel(harness, id) {
+  if (!MODEL_ID_RE.test(id)) return false;
+  const low = id.toLowerCase();
+  if (harness === 'claude') return /^claude-/.test(low) && !/opus/.test(low);
+  if (harness === 'codex') {
+    return /^(gpt-|o\d|chatgpt-)/.test(low) && !/(audio|realtime|tts|transcribe|image|search|embedding|instruct|moderation|whisper|dall-e|codex-mini|computer-use)/.test(low);
+  }
+  if (harness === 'grok') return /^grok-/.test(low) && !/(image|vision-beta|imagine)/.test(low);
+  if (harness === 'deepseek') return /^deepseek-/.test(low);
+  return false;
+}
+
+async function listModels(harness, env, fetchImpl, now) {
+  const at = Number.isFinite(now) ? now : Date.now();
+  const hit = modelCache[harness];
+  if (hit && at - hit.at < MODEL_LIST_TTL_MS) return hit.ids;
+  const key = keyFor(harness, env);
+  const src = MODEL_SOURCES[harness];
+  if (!key || !src) return null;
+  try {
+    const res = await httpJson(fetchImpl, src.url, { method: 'GET', headers: src.auth(key) });
+    if (!res.ok || !res.body) return hit ? hit.ids : null;
+    const rows = Array.isArray(res.body.data) ? res.body.data : Array.isArray(res.body.models) ? res.body.models : [];
+    const ids = Array.from(new Set(rows.map((r) => String((r && (r.id || r.name)) || '')).filter((id) => chatModel(harness, id)))).sort().reverse().slice(0, 80);
+    modelCache[harness] = { at, ids };
+    return ids;
+  } catch {
+    return hit ? hit.ids : null;
+  }
+}
+
+function resetModelCache() { Object.keys(modelCache).forEach((k) => { delete modelCache[k]; }); }
+
+// The model a run uses: the one Osman picked when the provider lists it, else the configured default.
+async function pickModel(harness, requested, env, fetchImpl) {
+  const fallback = modelFor(harness, CLAUDE_MODELS[String(requested || '').toLowerCase()] ? requested : '', env);
+  const want = String(requested || '').trim();
+  if (!want || CLAUDE_MODELS[want.toLowerCase()]) return fallback;
+  if (!chatModel(harness, want)) return { error: 'unknown_model' };
+  const ids = await listModels(harness, env, fetchImpl);
+  if (!ids) return want === fallback ? fallback : { error: 'models_unavailable' };
+  return ids.includes(want) || want === fallback ? want : { error: 'unknown_model' };
+}
+
+async function handleModels(req, res, env, fetchImpl) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') { json(res, 405, { error: 'method_not_allowed' }); return true; }
+  const impl = fetchImpl || globalThis.fetch;
+  const out = {};
+  await Promise.all(VISIBLE_HARNESSES.map(async (h) => {
+    const ids = await listModels(h, env, impl);
+    const def = modelFor(h, '', env);
+    const list = ids ? ids.slice() : [];
+    if (def && !list.includes(def)) list.unshift(def);
+    out[h] = { default: def, models: list, live: Boolean(ids) };
+  }));
+  json(res, 200, { harnesses: out, note: 'Claude Opus is not offered (RULES.md: Sonnet only, never Opus).' });
+  return true;
+}
+
 function modelFor(harness, requested, env) {
   if (harness === 'codex') return (env.OPENAI_HARNESS_MODEL || 'gpt-4.1').trim();
   if (harness === 'deepseek') return (env.DEEPSEEK_MODEL || 'deepseek-flash').trim();
@@ -276,12 +348,13 @@ async function callOpenAICompatible(fetchImpl, env, url, key, model, prompt) {
       Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      max_tokens: MAX_OUTPUT_TOKENS,
-      messages: openaiMessages(prompt),
-    }),
+    body: JSON.stringify(Object.assign(
+      { model, messages: openaiMessages(prompt) },
+      // OpenAI's newer and reasoning models take max_completion_tokens and only the default temperature.
+      url.includes('openai.com')
+        ? Object.assign({ max_completion_tokens: MAX_OUTPUT_TOKENS }, /^(o\d|gpt-5)/i.test(model) ? {} : { temperature: 0.2 })
+        : { temperature: 0.2, max_tokens: MAX_OUTPUT_TOKENS },
+    )),
   });
   if (!res.ok) {
     const err = typeof res.body === 'object' ? JSON.stringify(res.body).slice(0, 400) : String(res.body).slice(0, 400);
@@ -496,9 +569,9 @@ async function handleChat(req, res, env, fetchImpl) {
     json(res, 400, { error: 'message_too_long' });
     return true;
   }
-  const modelPick = modelFor(harness, body.model, env);
+  const modelPick = await pickModel(harness, body.model, env, fetchImpl || globalThis.fetch);
   if (modelPick && modelPick.error) {
-    json(res, 400, { error: 'unknown_model', message: 'Pick Sonnet or Haiku.' });
+    json(res, 400, { error: modelPick.error, message: modelPick.error === 'models_unavailable' ? 'The model list could not be checked. Try again, or pick the default model.' : 'Pick a model from the list.' });
     return true;
   }
   if (!keyFor(harness, env)) {
@@ -572,12 +645,17 @@ async function handleHarnessChat(req, res, opts) {
   if (kind === 'usage') return handleUsage(req, res, env, fetchImpl);
   if (kind === 'history') return handleHistory(req, res, env, fetchImpl);
   if (kind === 'chat') return handleChat(req, res, env, fetchImpl);
+  if (kind === 'models') return handleModels(req, res, env, fetchImpl);
   json(res, 404, { error: 'not_found' });
   return true;
 }
 
 module.exports = {
   CLAUDE_MODELS,
+  chatModel,
+  listModels,
+  pickModel,
+  resetModelCache,
   VISIBLE_HARNESSES,
   composePrompt,
   findProject,

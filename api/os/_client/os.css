@@ -501,3 +501,17 @@
 .os-root .rc-part p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--tx2)}
 .os-root .rc-part.h p{color:var(--text)}.os-root .rc-part.x span{color:var(--bad)}.os-root .rc-part.b span{color:var(--ok)}
 @media(max-width:759px){.os-root .aibar{display:none}.os-root .bizsel{max-width:128px;margin-right:2px}.os-root .hdr-r{min-width:0}}
+
+/* ---- Business overview (Build and Home): progress and what is left, per business ---- */
+.os-root .bz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:8px}
+.os-root .bz{padding:14px 16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:border-color .12s,background .12s}
+.os-root .bz:hover{border-color:var(--line2);background:var(--hover)}
+.os-root .bz-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.os-root .bz-h b{font-family:var(--display,inherit);font-size:17px;font-weight:700}
+.os-root .bz-h .pill{margin-left:auto}
+.os-root .bz-s{margin:0;overflow-wrap:anywhere}
+.os-root .bz-bar{height:6px;border-radius:999px;background:var(--bg2);overflow:hidden}.os-root .bz-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--ok));border-radius:999px}
+.os-root .bz-n{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--tx2)}.os-root .bz-n b{color:var(--text)}.os-root .bz-w b,.os-root .bz-w{color:var(--warn)}
+.os-root .bz-left{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.os-root .bz-left li{font-size:13px;display:flex;gap:8px;align-items:baseline;min-width:0;overflow-wrap:anywhere}
+.os-root .bz-k{flex:none;font:600 10px/16px var(--mono,monospace);letter-spacing:.06em;text-transform:uppercase;padding:0 5px;border-radius:4px;border:1px solid var(--line2);color:var(--tx3)}
+.os-root .bz-k.waiting{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}.os-root .bz-k.active{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
