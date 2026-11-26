@@ -36,6 +36,7 @@
     more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
     fit: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>',
     shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+    build: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
     harness: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><path d="M16 8h2a3 3 0 0 1 3 3v1M8 16H6a3 3 0 0 1-3-3v-1"/>'
   };
   function icon(name) {
@@ -45,6 +46,7 @@
   // id, label, icon, shortcut hint, key after "g", crumb, one-line purpose, data source key
   var NAV = [
     { id: 'home', label: 'Home', icon: 'home', hint: 'G H', key: 'h', about: 'What needs you today.', src: null },
+    { id: 'build', label: 'Build', icon: 'build', hint: 'G U', key: 'u', about: 'What Claude and the agents are building, and what waits on you.', src: 'build' },
     { id: 'desks', label: 'Desks', icon: 'users', hint: 'G D', key: 'd', about: 'The desks, their rules and routines.', src: 'desks' },
     { id: 'talk', label: 'Talk', icon: 'council', hint: 'G T', key: 't', about: 'One-on-one chats with the desks.', src: null },
     { id: 'decisions', label: 'Decisions + Jev', icon: 'scale', hint: 'G J', key: 'j', about: 'Decision log with Jev scores.', src: 'decisions' },
@@ -59,7 +61,7 @@
   ];
   // Phone tab bar: four views, then "More" for the rest. Routines moves into More so no view is unreachable.
   var TABS = ['home', 'desks', 'decisions', 'outreach'];
-  var MORE = ['talk', 'notes', 'brain', 'council', 'spend', 'settings', 'routines', 'harness'];
+  var MORE = ['build', 'talk', 'notes', 'brain', 'council', 'spend', 'settings', 'routines', 'harness'];
 
   function readData() {
     var node = $('#os-data');

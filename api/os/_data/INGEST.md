@@ -1,6 +1,6 @@
 # LAVAALL OS live feeds (ingest)
 
-Six authenticated POST endpoints feed `/os`. `/os` itself stays read-only: it only reads what these write.
+Seven authenticated POST endpoints feed `/os`. `/os` itself stays read-only: it only reads what these write.
 
 - **URL:** `https://www.lavaall.com/api/os/ingest/<feed>` (one function, `api/os/ingest/[feed].js`).
 - **Auth:** `Authorization: Bearer $TOKEN`, where `$TOKEN` is the value of the existing `OPS_CEO_BRIDGE_SECRET` (the bearer the inbox push and routine health already use). No new env var. Without it the answer is `401 {"error":"unauthorized"}` and nothing is stored.
@@ -85,3 +85,23 @@ curl -sS -X POST https://www.lavaall.com/api/os/ingest/notes \
 - Text is stored as data and escaped when shown; it is never run as HTML.
 - Nothing is logged: not the payload, not the token.
 - There is no rate limit beyond the 20 KB cap and the secret. Post once per run, not in a loop.
+
+## 7. build-log
+
+`[{id, project, status, title, detail, url, updated}]`, 1 to 100 items. It fills the **Build** page: what Claude and the agents are building, in four lanes (Waiting on you, In progress, Done, Up next). **Each post replaces the whole log**, so send every item you want shown.
+
+- `id`: lowercase letters, digits and hyphens, up to 60 characters, unique in the post.
+- `project`: `lavaall-os`, `salonehire`, `saloneworks`, `agents` or `website`.
+- `status`: `waiting` (needs Osman), `active`, `done` or `next`.
+- `title`: 1 to 140 characters, one line. `detail`: up to 600 characters (`""` for none); line breaks are kept.
+- `url`: an `https://` link (a pull request, a preview), or `""`.
+- `updated`: a UTC time, not in the future.
+
+The notes privacy filter applies: an item with an email address, a phone number, a blocked word or lead data is refused.
+
+```sh
+curl -sS -X POST https://www.lavaall.com/api/os/ingest/build-log \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[{"id":"token-diet","project":"lavaall-os","status":"waiting","title":"Merge the token diet","detail":"Tests pass; needs your yes.","url":"https://github.com/osman-jalloh-lab/Lavaal-/pull/113","updated":"2026-10-23T14:00:00Z"}]'
+```

@@ -70,7 +70,12 @@ const GOOD = {
     { id: 'nt-0000000002', type: 'scout-find', folder: 'Scout Finds', title: 'A scout find', date: '2026-10-22', updated: '2026-10-22', desk: '', status: 'new', level: 'L1', jev: 0.8, tags: ['scout'], links: [], source: 'x', body: 'Body.', urgent: true, url: 'https://example.com/post/1' },
   ],
 };
+GOOD['build-log'] = [
+  { id: 'token-diet', project: 'lavaall-os', status: 'waiting', title: 'Merge the token diet', detail: 'Tests pass.\nNeeds your yes.', url: 'https://github.com/osman-jalloh-lab/Lavaal-/pull/113', updated: '2026-10-23T14:00:00Z' },
+  { id: 'single-scan', project: 'salonehire', status: 'active', title: 'Scan each CV once', detail: '', url: '', updated: '2026-10-23T13:00:00Z' },
+];
 const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
+const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
 
 (async () => {
   // ================= 1. auth: 401 without the secret, for every feed ===========================
@@ -203,6 +208,25 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
       ['a blocked word in a tag', [noteOf({ tags: ['Gui' + 'nea'] })]],
     ],
   };
+  BAD['build-log'] = [
+    ['not an array', GOOD['build-log'][0]],
+    ['empty array', []],
+    ['extra key', buildOf({ extra: 1 })],
+    ['missing url', [(() => { const r = Object.assign({}, GOOD['build-log'][0]); delete r.url; return r; })()]],
+    ['bad id', buildOf({ id: 'Has Spaces' })],
+    ['duplicate id', GOOD['build-log'].concat(buildOf({}))],
+    ['unknown project', buildOf({ project: 'secret-project' })],
+    ['unknown status', buildOf({ status: 'blocked' })],
+    ['empty title', buildOf({ title: '   ' })],
+    ['title over 140', buildOf({ title: 'x'.repeat(141) })],
+    ['detail over 600', buildOf({ detail: 'x'.repeat(601) })],
+    ['http url', buildOf({ url: 'http://example.com/x' })],
+    ['javascript url', buildOf({ url: 'javascript:alert(1)' })],
+    ['future time', buildOf({ updated: '2026-10-24T15:00:00Z' })],
+    ['an email in the detail', buildOf({ detail: 'write to me@example.com' })],
+    ['a phone number in the detail', buildOf({ detail: 'call 737-704-4182' })],
+    ['over 100 items', Array.from({ length: 101 }, (_, i) => ({ id: 'i' + i, project: 'agents', status: 'next', title: 'x', detail: '', url: '', updated: '2026-10-23T14:00:00Z' }))],
+  ];
   for (const feed of feeds.FEEDS) {
     const cases = BAD[feed];
     const outcomes = [];
@@ -277,7 +301,7 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
   const getsBefore = kv.cmds.length;
   const data = await osData.loadOsData({ env: ENV, fetchImpl: kv.fetchImpl, store: {}, health: null, now: NOW });
   const loadCmds = kv.cmds.slice(getsBefore);
-  check('loading /os data after the posts uses GETs only', loadCmds.length === 6 && loadCmds.every((c) => c[0] === 'GET'));
+  check('loading /os data after the posts uses GETs only', loadCmds.length === 7 && loadCmds.every((c) => c[0] === 'GET'));
 
   check('data: brief is the posted brief', data.brief && data.brief.date === today && /Three things matter/.test(data.brief.text));
   check('data: routine health merged by id onto the pack routines', data.routines.find((r) => r.id === 'sl-daily-leads').health.status === 'ok' && data.routines.find((r) => r.id === 'midnight-closeout').health.status === 'late' && data.routines.find((r) => r.id === 'friday-decide-or-kill').health.tone === 'bad');
@@ -298,6 +322,16 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
   vm.createContext(sandbox);
   ['core.js', 'home.js', 'desks.js', 'decisions.js', 'outreach.js', 'routines.js', 'notes.js', 'council.js', 'spend.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(root, 'api/os/_client', f), 'utf8'), sandbox, { filename: f }));
   const OS = win.OS;
+  vm.runInContext(fs.readFileSync(path.join(root, 'api/os/_client/build.js'), 'utf8'), sandbox, { filename: 'build.js' });
+  check('data: the build log comes from the build-log feed, newest first', data.build && data.build.items.length === 2 && data.build.items[0].id === 'token-diet' && data.sources.build.live === true);
+  const buildHtml = OS.views.build.render({ id: 'build', sub: '', data });
+  check('Build: four lanes in order, Waiting on you first', ['Waiting on you', 'In progress', 'Done', 'Up next'].map((l) => buildHtml.indexOf('<h3>' + l + '</h3>')).every((n, k, a) => n > -1 && (k === 0 || n > a[k - 1])));
+  check('Build: items land in their lanes with project tags and a link', /Merge the token diet/.test(buildHtml) && /LAVAALL OS/.test(buildHtml) && /SaloneHire/.test(buildHtml) && /href="https:\/\/github\.com\/osman-jalloh-lab\/Lavaal-\/pull\/113"/.test(buildHtml));
+  check('Build: a lane with nothing says so', /Nothing finished yet\./.test(buildHtml) && /Nothing queued\./.test(buildHtml));
+  const hostileBuild = OS.views.build.render({ id: 'build', sub: '', data: Object.assign({}, data, { build: { receivedAt: NOW, items: [{ id: 'x', project: 'agents', status: 'waiting', title: '<img src=x onerror=alert(1)>', detail: '<script>alert(2)</script>', url: 'javascript:alert(3)', updatedAt: NOW }] } }) });
+  check('Build: hostile text is escaped and a non-https link is never rendered', !/<img src=x/.test(hostileBuild) && !/<script>alert/.test(hostileBuild) && !/javascript:/.test(hostileBuild));
+  const emptyBuild = OS.views.build.render({ id: 'build', sub: '', data: Object.assign({}, data, { build: null }) });
+  check('Build: with no feed, an empty state says so and tiles show dashes', /No build log has been received yet\./.test(emptyBuild) && /<b class="num">—<\/b>/.test(emptyBuild));
   OS.data = data;
   const draw = (id, sub) => OS.views[id].render({ id, sub: sub || '', data });
   const home = draw('home');
@@ -345,7 +379,7 @@ const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
   check('only the ingest modules write, and only with SET on a lavaall-os-feed key', (src.match(/'SET'/g) || []).length === 1 && /KEY_PREFIX = 'lavaall-os-feed-'/.test(src));
   check('no payload, token or header is logged', !/console\.(log|error|warn)\([^)]*(body|token|authorization|req\.)/i.test(src));
   const docs = fs.readFileSync(path.join(root, 'api/os/_data/INGEST.md'), 'utf8');
-  check('INGEST.md has one curl example per feed, with the secret shown as $TOKEN', feeds.FEEDS.every((f) => docs.includes('curl -sS -X POST https://www.lavaall.com/api/os/ingest/' + f + ' \\')) && (docs.match(/curl -sS -X POST/g) || []).length === 6 && (docs.match(/-H "Authorization: Bearer \$TOKEN"/g) || []).length === 6);
+  check('INGEST.md has one curl example per feed, with the secret shown as $TOKEN', feeds.FEEDS.every((f) => docs.includes('curl -sS -X POST https://www.lavaall.com/api/os/ingest/' + f + ' \\')) && (docs.match(/curl -sS -X POST/g) || []).length === 7 && (docs.match(/-H "Authorization: Bearer \$TOKEN"/g) || []).length === 7);
   const banned = new RegExp(['Star' + 'link', 'Gui' + 'nea', '@gmail', '@g\\.', '[A-Za-z0-9_-]{32,}'].join('|'));
   check('INGEST.md holds no real secret, email, lead name or banned public-copy term', !banned.test(docs.replace(/https?:\/\/\S+/g, '')));
   try {
