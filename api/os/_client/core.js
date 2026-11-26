@@ -49,6 +49,7 @@
     { id: 'build', label: 'Build', icon: 'build', hint: 'G U', key: 'u', about: 'What Claude and the agents are building, and what waits on you.', src: 'build' },
     { id: 'desks', label: 'Desks', icon: 'users', hint: 'G D', key: 'd', about: 'The desks, their rules and routines.', src: 'desks' },
     { id: 'talk', label: 'Desk chats', icon: 'council', hint: 'G T', key: 't', about: 'One-on-one chats with the desks.', src: null },
+    { id: 'inbox', label: 'Inbox', icon: 'inbox', hint: 'G I', key: 'i', about: 'Business Gmail sorted into piles. Read-only.', src: null },
     { id: 'decisions', label: 'Decisions', icon: 'scale', hint: 'G J', key: 'j', about: 'Decision log with Jev scores.', src: 'decisions' },
     { id: 'outreach', label: 'Outreach', icon: 'send', hint: 'G O', key: 'o', about: 'Leads by stage. View only; nothing is sent from here.', src: 'outreach' },
     { id: 'routines', label: 'Routines', icon: 'timer', hint: 'G R', key: 'r', about: 'Schedules, last runs and health.', src: 'routines' },
@@ -65,6 +66,7 @@
     { id: 'home', label: 'Home', icon: 'home', group: 'Today', views: ['home'] },
     { id: 'build', label: 'Build', icon: 'build', group: 'Today', views: ['build'] },
     { id: 'chat', label: 'Chat', icon: 'council', group: 'Work', views: ['talk', 'harness'], tabs: { talk: 'Desks', harness: 'AI models' } },
+    { id: 'inbox', label: 'Inbox', icon: 'inbox', group: 'Work', views: ['inbox'] },
     { id: 'decisions', label: 'Decisions', icon: 'scale', group: 'Work', views: ['decisions'] },
     { id: 'outreach', label: 'Outreach', icon: 'send', group: 'Work', views: ['outreach'] },
     { id: 'money', label: 'Money', icon: 'spend', group: 'Business', views: ['spend'] },
@@ -82,7 +84,7 @@
   }
   // Phone tab bar: four sections, then "More" for the rest, so every section is reachable.
   var TABS = ['home', 'chat', 'build', 'decisions'];
-  var MORE = ['outreach', 'money', 'memory', 'agents', 'settings'];
+  var MORE = ['inbox', 'outreach', 'money', 'memory', 'agents', 'settings'];
 
   function readData() {
     var node = $('#os-data');

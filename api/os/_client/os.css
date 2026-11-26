@@ -362,3 +362,18 @@
 @keyframes jv-pulse{50%{transform:scale(1.07)}}
 @media(prefers-reduced-motion:reduce){.os-root .jv-orb{animation:none!important}}
 @media(max-width:759px){.os-root .jv{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
+
+/* Inbox */
+.os-root .inbox-piles{display:flex;flex-wrap:wrap;gap:6px}
+.os-root .inbox-piles .chip .num{color:var(--tx3);margin-left:2px}
+.os-root .inbox-piles .chip.on{border-color:var(--accent);color:var(--text)}
+.os-root .inbox-row{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:3px;min-width:0}
+.os-root .inbox-row:last-child{border-bottom:0}
+.os-root .inbox-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+.os-root .inbox-from{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.os-root .inbox-row.unread .inbox-from,.os-root .inbox-row.unread .inbox-subj{font-weight:600;color:var(--text)}
+.os-root .inbox-row.unread{box-shadow:inset 2px 0 0 var(--accent)}
+.os-root .inbox-when{margin-left:auto;color:var(--tx3);font-size:12px}
+.os-root .inbox-subj{color:var(--tx2);overflow-wrap:anywhere}
+.os-root .inbox-snip{color:var(--tx3);font-size:12.5px;overflow-wrap:anywhere}
+.os-root .inbox-open{color:var(--accent);font-size:12px;align-self:flex-start}
