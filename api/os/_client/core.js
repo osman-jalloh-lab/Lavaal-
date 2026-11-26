@@ -48,20 +48,41 @@
     { id: 'home', label: 'Home', icon: 'home', hint: 'G H', key: 'h', about: 'What needs you today.', src: null },
     { id: 'build', label: 'Build', icon: 'build', hint: 'G U', key: 'u', about: 'What Claude and the agents are building, and what waits on you.', src: 'build' },
     { id: 'desks', label: 'Desks', icon: 'users', hint: 'G D', key: 'd', about: 'The desks, their rules and routines.', src: 'desks' },
-    { id: 'talk', label: 'Talk', icon: 'council', hint: 'G T', key: 't', about: 'One-on-one chats with the desks.', src: null },
-    { id: 'decisions', label: 'Decisions + Jev', icon: 'scale', hint: 'G J', key: 'j', about: 'Decision log with Jev scores.', src: 'decisions' },
+    { id: 'talk', label: 'Desk chats', icon: 'council', hint: 'G T', key: 't', about: 'One-on-one chats with the desks.', src: null },
+    { id: 'decisions', label: 'Decisions', icon: 'scale', hint: 'G J', key: 'j', about: 'Decision log with Jev scores.', src: 'decisions' },
     { id: 'outreach', label: 'Outreach', icon: 'send', hint: 'G O', key: 'o', about: 'Leads by stage. View only; nothing is sent from here.', src: 'outreach' },
     { id: 'routines', label: 'Routines', icon: 'timer', hint: 'G R', key: 'r', about: 'Schedules, last runs and health.', src: 'routines' },
     { id: 'notes', label: 'Notes', icon: 'notes', hint: 'G N', key: 'n', about: 'Founder notes.', src: 'notes' },
     { id: 'brain', label: 'Brain', icon: 'brain', hint: 'G B', key: 'b', about: 'How desks, rules, skills, routines and decisions connect.', src: 'desks' },
     { id: 'council', label: 'AI Council', icon: 'council', hint: 'G C', key: 'c', about: 'Drafter and reviewer rounds, read from stored records.', src: 'council' },
-    { id: 'spend', label: 'Spend', icon: 'spend', hint: 'G S', key: 's', about: 'AI spend from real records.', src: 'spend' },
+    { id: 'spend', label: 'Money', icon: 'spend', hint: 'G S', key: 's', about: 'AI spend from real records.', src: 'spend' },
     { id: 'settings', label: 'Settings', icon: 'settings', hint: 'G ,', key: ',', about: 'Connection status. Names only, never values.', src: 'settings' },
-    { id: 'harness', label: 'Harness', icon: 'harness', hint: 'G A', key: 'a', about: 'Type a request to Codex, Claude, or DeepSeek for a project. Gemini is off.', src: 'harness' }
+    { id: 'harness', label: 'AI models', icon: 'harness', hint: 'G A', key: 'a', about: 'Type a request to Codex, Claude, or DeepSeek for a project. Gemini is off.', src: 'harness' }
   ];
-  // Phone tab bar: four views, then "More" for the rest. Routines moves into More so no view is unreachable.
-  var TABS = ['home', 'desks', 'decisions', 'outreach'];
-  var MORE = ['build', 'talk', 'notes', 'brain', 'council', 'spend', 'settings', 'routines', 'harness'];
+  // Sidebar sections, grouped like an agentic OS: each section opens its first view, and a section with several
+  // views shows them as tabs. Every view keeps its own route (#talk, #brain, ...), so old links still work.
+  var SECTIONS = [
+    { id: 'home', label: 'Home', icon: 'home', group: 'Today', views: ['home'] },
+    { id: 'build', label: 'Build', icon: 'build', group: 'Today', views: ['build'] },
+    { id: 'chat', label: 'Chat', icon: 'council', group: 'Work', views: ['talk', 'harness'], tabs: { talk: 'Desks', harness: 'AI models' } },
+    { id: 'decisions', label: 'Decisions', icon: 'scale', group: 'Work', views: ['decisions'] },
+    { id: 'outreach', label: 'Outreach', icon: 'send', group: 'Work', views: ['outreach'] },
+    { id: 'money', label: 'Money', icon: 'spend', group: 'Business', views: ['spend'] },
+    { id: 'memory', label: 'Memory', icon: 'brain', group: 'Knowledge', views: ['notes', 'brain'], tabs: { notes: 'Notes', brain: 'Graph' } },
+    { id: 'agents', label: 'Agents', icon: 'users', group: 'Knowledge', views: ['desks', 'routines', 'council'], tabs: { desks: 'Desks', routines: 'Routines', council: 'AI Council' } },
+    { id: 'settings', label: 'Settings', icon: 'settings', group: 'System', views: ['settings'] }
+  ];
+  function sectionOf(viewId) {
+    for (var i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].views.indexOf(viewId) !== -1) return SECTIONS[i];
+    return SECTIONS[0];
+  }
+  function sectionById(id) {
+    for (var i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].id === id) return SECTIONS[i];
+    return null;
+  }
+  // Phone tab bar: four sections, then "More" for the rest, so every section is reachable.
+  var TABS = ['home', 'chat', 'build', 'decisions'];
+  var MORE = ['outreach', 'money', 'memory', 'agents', 'settings'];
 
   function readData() {
     var node = $('#os-data');
@@ -70,6 +91,8 @@
 
   OS.data = readData();
   OS.nav = NAV;
+  OS.sections = SECTIONS;
+  OS.sectionOf = sectionOf;
   OS.esc = esc;
   OS.icon = icon;
   OS.$ = $;
@@ -212,14 +235,19 @@
   // ---- nav ---------------------------------------------------------------
   var cur = 'home';
   function renderNav() {
-    $('#nav').innerHTML = '<div class="navlbl">Workspace</div>' + NAV.map(function (n) {
-      return '<a href="#' + n.id + '" data-nav="' + n.id + '"' + (n.id === cur ? ' class="on" aria-current="page"' : '') + '>' +
-        icon(n.icon) + esc(n.label) + '<kbd>' + esc(n.hint) + '</kbd></a>';
+    var active = sectionOf(cur).id;
+    var group = '';
+    $('#nav').innerHTML = SECTIONS.map(function (sec) {
+      var first = navItem(sec.views[0]);
+      var lbl = sec.group !== group ? '<div class="navlbl">' + esc(sec.group) + '</div>' : '';
+      group = sec.group;
+      return lbl + '<a href="#' + sec.views[0] + '" data-nav="' + sec.id + '"' + (sec.id === active ? ' class="on" aria-current="page"' : '') + '>' +
+        icon(sec.icon) + esc(sec.label) + '<kbd>' + esc(first.hint) + '</kbd></a>';
     }).join('');
     $('#tabbar').innerHTML = TABS.map(function (id) {
-      var n = navItem(id);
-      return '<a href="#' + id + '"' + (id === cur ? ' class="on" aria-current="page"' : '') + '>' + icon(n.icon) + esc(n.label.split(' ')[0]) + '</a>';
-    }).join('') + '<button type="button" id="tab-more" class="tab' + (MORE.indexOf(cur) !== -1 ? ' on' : '') + '" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet">' + icon('more') + 'More</button>';
+      var sec = sectionById(id);
+      return '<a href="#' + sec.views[0] + '"' + (id === active ? ' class="on" aria-current="page"' : '') + '>' + icon(sec.icon) + esc(sec.label) + '</a>';
+    }).join('') + '<button type="button" id="tab-more" class="tab' + (MORE.indexOf(active) !== -1 ? ' on' : '') + '" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet">' + icon('more') + 'More</button>';
   }
 
   // ---- router ------------------------------------------------------------
@@ -253,15 +281,20 @@
     if (mounted && mounted.unmount) { try { mounted.unmount(); } catch (e) { /* ignore */ } }
     mounted = null;
     cur = route.id;
-    $('#crumb').textContent = n.label;
-    doc.title = n.label + ' · LAVAALL OS';
+    var sec = sectionOf(route.id);
+    var tabLabel = sec.tabs && sec.tabs[route.id];
+    $('#crumb').textContent = tabLabel ? sec.label + ' / ' + tabLabel : n.label;
+    doc.title = (tabLabel ? sec.label + ': ' + tabLabel : n.label) + ' · LAVAALL OS';
     renderNav();
     closeMore();
     closeDrawer();
     var view = OS.views[route.id];
     var ctx = { id: route.id, sub: route.sub, data: OS.data, esc: esc, icon: icon, go: OS.go };
     var host = $('#view');
-    host.innerHTML = '<div class="fade">' + (view ? view.render(ctx) : placeholder(n)) + '</div>';
+    var tabs = sec.views.length > 1 ? '<nav class="subtabs" aria-label="' + esc(sec.label) + '">' + sec.views.map(function (id) {
+      return '<a href="#' + id + '"' + (id === route.id ? ' class="on" aria-current="page"' : '') + '>' + esc((sec.tabs && sec.tabs[id]) || navItem(id).label) + '</a>';
+    }).join('') + '</nav>' : '';
+    host.innerHTML = '<div class="fade">' + tabs + (view ? view.render(ctx) : placeholder(n)) + '</div>';
     if (view) {
       mounted = view;
       if (view.mount) view.mount(host, ctx);
@@ -271,9 +304,10 @@
   // ---- More sheet (phone) ------------------------------------------------
   function openMore() {
     var panel = $('#sheet-panel');
+    var active = sectionOf(cur).id;
     panel.innerHTML = '<div class="sheet-h">More</div>' + MORE.map(function (id) {
-      var n = navItem(id);
-      return '<a class="sheet-i' + (id === cur ? ' on' : '') + '" href="#' + id + '"' + (id === cur ? ' aria-current="page"' : '') + '>' + icon(n.icon) + '<span>' + esc(n.label) + '</span></a>';
+      var sec = sectionById(id);
+      return '<a class="sheet-i' + (id === active ? ' on' : '') + '" href="#' + sec.views[0] + '"' + (id === active ? ' aria-current="page"' : '') + '>' + icon(sec.icon) + '<span>' + esc(sec.label) + '</span></a>';
     }).join('');
     $('#sheet').classList.add('on');
     $('#tab-more').setAttribute('aria-expanded', 'true');
