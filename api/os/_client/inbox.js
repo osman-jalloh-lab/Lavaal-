@@ -38,7 +38,8 @@
         (url ? '<a class="inbox-open" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Open in Gmail</a>' : '') +
       '</div>';
     }).join('') : '<div class="empty"><b>Nothing in this pile.</b></div>';
-    return chips + '<section class="card mt">' + list + '</section>';
+    var who = data.mailbox ? '<p class="note inbox-acct">Reading <b>' + esc(data.mailbox) + '</b>' + (data.mailboxVerified ? ' (confirmed by Google)' : ' (from settings; Google did not confirm)') + '</p>' : '';
+    return who + chips + '<section class="card mt">' + list + '</section>';
   }
 
   function load(root, fresh) {

@@ -8,7 +8,7 @@
   var icon = OS.icon;
 
   var HARNESSES = [
-    { id: 'codex', label: 'OpenAI API' },
+    { id: 'codex', label: 'ChatGPT (Codex)' },
     { id: 'claude', label: 'Claude' },
     { id: 'deepseek', label: 'DeepSeek' },
     { id: 'grok', label: 'Grok' }
@@ -190,7 +190,7 @@
       }
 
       function bubble(msg) {
-        var who = msg.role === 'user' ? 'You' : (msg.harness === 'codex' ? 'OpenAI API' : (msg.harness || 'Assistant'));
+        var who = msg.role === 'user' ? 'You' : (msg.harness === 'codex' ? 'ChatGPT' : (msg.harness || 'Assistant'));
         var u = msg.role !== 'user' && msg.usage;
         var count = u && (u.inputTokens != null || u.outputTokens != null)
           ? '<small class="dim">Reported tokens: ' + esc(u.inputTokens == null ? '?' : u.inputTokens) + ' in / ' + esc(u.outputTokens == null ? '?' : u.outputTokens) + ' out · Cost not available</small>'

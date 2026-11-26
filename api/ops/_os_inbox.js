@@ -67,10 +67,17 @@ async function loadInbox(opts) {
   }
   if (cache && now - cache.at < CACHE_MS && !(opts && opts.fresh)) return cache.value;
   const list = (opts && opts.listThreads) || gmail.listGmailThreads;
+  const profile = (opts && opts.readProfile) || gmail.readGmailProfile;
   const threads = await list({ max: MAX_THREADS });
+  // Show the account Google says the key reads, so Osman can confirm it is the right inbox.
+  let account = '';
+  try { account = clip((await profile()).emailAddress, 120); } catch { account = ''; }
+  const fromAddress = clip(gmail.gmailFromAddress(), 120);
   const value = {
     connected: true,
-    mailbox: clip(gmail.gmailFromAddress(), 120),
+    mailbox: account || fromAddress,
+    mailboxVerified: Boolean(account),
+    mailboxMatchesFrom: Boolean(account) && account === fromAddress,
     piles: PILES,
     items: threads.map(toItem).sort((a, b) => b.receivedAt - a.receivedAt),
     fetchedAt: now,

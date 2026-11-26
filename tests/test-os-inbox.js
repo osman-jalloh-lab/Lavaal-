@@ -42,7 +42,11 @@ const T = (o) => Object.assign({ gmailThreadId: 'abc123', gmailMessageId: 'm1', 
   const off = await call({}, { session: SESSION, configured: false });
   check('Gmail not connected: says so, lists nothing', off.res.statusCode === 200 && off.res.body.connected === false && off.res.body.items.length === 0);
   let asked = null;
-  const ok = await call({}, { session: SESSION, configured: true, listThreads: async (o) => { asked = o; return [T({ gmailThreadId: 'old', receivedAt: 1 }), T({ gmailThreadId: 'new', receivedAt: 2, subject: 'Quote please' })]; } });
+  const acct = await call({}, { session: SESSION, configured: true, readProfile: async () => ({ emailAddress: 'support@lavaall.com' }), listThreads: async () => [] });
+  check('the inbox reports the account Google says the key reads', acct.res.body.mailbox === 'support@lavaall.com' && acct.res.body.mailboxVerified === true);
+  const noProf = await call({}, { session: SESSION, configured: true, readProfile: async () => { throw new Error('x'); }, listThreads: async () => [] });
+  check('if Google does not confirm the account, it says so', noProf.res.body.mailboxVerified === false);
+  const ok = await call({}, { session: SESSION, configured: true, readProfile: async () => ({ emailAddress: 'a@b.co' }), listThreads: async (o) => { asked = o; return [T({ gmailThreadId: 'old', receivedAt: 1 }), T({ gmailThreadId: 'new', receivedAt: 2, subject: 'Quote please' })]; } });
   check('lists up to 20 threads, newest first, each with a pile', ok.res.statusCode === 200 && asked.max === 20 && ok.res.body.items.map((i) => i.id).join() === 'new,old' && ok.res.body.items[0].pile === 'sales');
   const down = await call({}, { session: SESSION, configured: true, listThreads: async () => { throw new Error('token ya29.secret'); } });
   check('a Gmail failure is a plain 502 that leaks nothing', down.res.statusCode === 502 && !/ya29/.test(down.res.raw));
@@ -58,6 +62,7 @@ const T = (o) => Object.assign({ gmailThreadId: 'abc123', gmailMessageId: 'm1', 
   const html = OS.inboxBody({ connected: true, piles: inbox.PILES, items: [{ id: 'abc_123', from: '"Ev<il>" <x@y.z>', subject: '<img src=x onerror=alert(1)>', snippet: '<script>alert(2)</script>', unread: true, receivedAt: 1790000000000, pile: 'reply' }] });
   check('mail is escaped and opens in Gmail', !/<img src=x/.test(html) && !/<script>alert/.test(html) && /href="https:\/\/mail\.google\.com\/mail\/u\/0\/#inbox\/abc_123"/.test(html));
   check('a thread id with odd characters gets no link', !/mail\.google\.com/.test(OS.inboxBody({ connected: true, piles: inbox.PILES, items: [{ id: 'x"onclick', from: '', subject: 's', snippet: '', unread: false, receivedAt: 0, pile: 'other' }] })));
+  check('the page names the account and whether Google confirmed it', /Reading <b>support@lavaall\.com<\/b> \(confirmed by Google\)/.test(OS.inboxBody({ connected: true, mailbox: 'support@lavaall.com', mailboxVerified: true, piles: inbox.PILES, items: [] })));
   check('not connected shows a plain message', /Gmail is not connected/.test(OS.inboxBody({ connected: false, message: 'm' })));
 
   const failed = results.filter((r) => !r.pass);

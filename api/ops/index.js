@@ -37,6 +37,7 @@ const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
 const { handleHarnessChat } = require('./_harness_chat');
 const { handleVoice } = require('./_voice');
 const { handleOsInbox } = require('./_os_inbox');
+const { handleSaved } = require('./_os_saved');
 const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
 const {
   confirmInboxSend,
@@ -745,6 +746,7 @@ async function opsDispatch(req, res) {
   if (await handleDeskTalk(req, res)) return;
   if (await handleVoice(req, res)) return;
   if (await handleOsInbox(req, res)) return;
+  if (await handleSaved(req, res)) return;
   if (await handleHarnessChat(req, res)) return;
   if (await handleKitsApi(req, res)) return;
   if (await handleMapApi(req, res)) return;
