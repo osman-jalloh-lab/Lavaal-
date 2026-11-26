@@ -306,3 +306,13 @@
 .os-root .harness-execution h3,.os-root .harness-execution p{margin:0}
 .os-root .harness-execution label{display:flex;align-items:center;gap:8px;font-size:13px}
 .os-root .harness-execution .note{max-width:100%;overflow-wrap:anywhere}
+
+/* Build: what Claude and the agents are building. One card per lane, Waiting on you first. */
+.os-root .bl-lane.wait{border-color:color-mix(in srgb,var(--c-orange) 45%,var(--line))}
+.os-root .bl-item{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px;min-width:0}
+.os-root .bl-item:last-child{border-bottom:0}
+.os-root .bl-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+.os-root .bl-title{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.os-root .bl-detail{color:var(--tx2);white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.os-root .bl-meta{display:flex;flex-wrap:wrap;gap:12px;color:var(--tx3);font-size:12px}
+.os-root .bl-meta a{color:var(--accent)}

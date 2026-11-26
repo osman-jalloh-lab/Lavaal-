@@ -13,7 +13,7 @@ const path = require('path');
 
 const { formatChicago } = require('./_routine_health');
 
-const FEEDS = Object.freeze(['morning-brief', 'routine-health', 'spend', 'outreach-stats', 'desk-status', 'notes']);
+const FEEDS = Object.freeze(['morning-brief', 'routine-health', 'spend', 'outreach-stats', 'desk-status', 'notes', 'build-log']);
 const MAX_BYTES = 20 * 1024;
 // The notes pack is a few hundred notes of text, so that one feed gets a larger cap. 900 KB stays under Vercel's
 // 4.5 MB request limit and Upstash's 1 MB request size; every other feed keeps 20 KB.
@@ -217,7 +217,38 @@ function validateNotes(body, ctx) {
   return { ok: true, value: rows };
 }
 
+// ---- build log: what Claude and the agents are building, shown on the /os Build page ----------------
+// Each push replaces the whole log. Same privacy filter as notes: no emails, phones, blocked words or lead data.
+const BUILD_PROJECTS = Object.freeze(['lavaall-os', 'salonehire', 'saloneworks', 'agents', 'website']);
+const BUILD_STATUSES = Object.freeze(['waiting', 'active', 'done', 'next']);
+const BUILD_KEYS = ['id', 'project', 'status', 'title', 'detail', 'url', 'updated'];
+const MAX_BUILD_ITEMS = 100;
+
+function validateBuildLog(body, ctx) {
+  if (!Array.isArray(body) || body.length < 1 || body.length > MAX_BUILD_ITEMS) return bad('body');
+  const seen = new Set();
+  const rows = [];
+  for (let i = 0; i < body.length; i += 1) {
+    const r = body[i];
+    if (!exactKeys(r, BUILD_KEYS)) return bad(`[${i}]`);
+    if (typeof r.id !== 'string' || r.id.length > 60 || !SLUG_RE.test(r.id) || seen.has(r.id)) return bad(`[${i}].id`);
+    seen.add(r.id);
+    if (!BUILD_PROJECTS.includes(r.project)) return bad(`[${i}].project`);
+    if (!BUILD_STATUSES.includes(r.status)) return bad(`[${i}].status`);
+    const title = plain(r.title, 1, 140, false);
+    if (title === null) return bad(`[${i}].title`);
+    const detail = r.detail === '' ? '' : plain(r.detail, 0, 600, true);
+    if (detail === null) return bad(`[${i}].detail`);
+    if (r.url !== '' && (typeof r.url !== 'string' || r.url.length > 300 || !/^https:\/\/[^\s@]+$/.test(r.url))) return bad(`[${i}].url`);
+    if (!pastIso(r.updated, ctx.now)) return bad(`[${i}].updated`);
+    if (dropReasons({ title, body: detail, url: r.url }).length) return bad(`[${i}].detail`);
+    rows.push({ id: r.id, project: r.project, status: r.status, title, detail, url: r.url, updated: r.updated });
+  }
+  return { ok: true, value: rows };
+}
+
 const VALIDATORS = {
+  'build-log': validateBuildLog,
   notes: validateNotes,
   'morning-brief': validateBrief,
   'routine-health': validateRoutineHealth,
@@ -255,6 +286,8 @@ function applyPayload(feed, existing, value, now) {
       const keep = Object.keys(days).sort().reverse().slice(0, MAX_OUTREACH_DAYS);
       return { receivedAt, days: keep.reduce((o, d) => { o[d] = days[d]; return o; }, {}) };
     }
+    case 'build-log':
+      return { receivedAt, items: value.slice() };
     case 'notes':
       // Each push replaces the whole pack: the vault is the source of truth, so a note removed there leaves /os too.
       return { receivedAt, notes: value.slice() };
@@ -384,6 +417,10 @@ function normalizeRecord(feed, raw) {
       const v = validateNotes(raw.notes, ctx);
       return v.ok ? Object.assign(rec, { notes: v.value }) : null;
     }
+    case 'build-log': {
+      const v = validateBuildLog(raw.items, ctx);
+      return v.ok ? Object.assign(rec, { items: v.value }) : null;
+    }
     case 'desk-status': {
       if (!isObject(raw.desks)) return null;
       const desks = {};
@@ -399,11 +436,11 @@ function normalizeRecord(feed, raw) {
   }
 }
 
-// Reads all six. One unreadable feed never hides the others.
+// Reads all seven. One unreadable feed never hides the others.
 async function readFeeds(opts) {
   if (opts && opts.feeds !== undefined) return opts.feeds;
-  const [brief, health, spend, outreach, desks, notes] = await Promise.all(FEEDS.map((f) => readFeed(f, opts)));
-  return { brief, health, spend, outreach, desks, notes };
+  const [brief, health, spend, outreach, desks, notes, build] = await Promise.all(FEEDS.map((f) => readFeed(f, opts)));
+  return { brief, health, spend, outreach, desks, notes, build };
 }
 
 // ---- views for the adapter (pure) --------------------------------------------------------------------
@@ -479,6 +516,18 @@ function notePackRow(n) {
   };
 }
 
+// Newest first inside each lane; the client groups by status.
+function buildLogView(rec) {
+  if (!rec) return null;
+  return {
+    receivedAt: rec.receivedAt,
+    items: rec.items.map((r) => ({
+      id: r.id, project: r.project, status: r.status, title: r.title, detail: r.detail, url: r.url,
+      updatedAt: Date.parse(r.updated),
+    })).sort((a, b) => b.updatedAt - a.updatedAt),
+  };
+}
+
 function deskStatusView(rec) {
   if (!rec) return null;
   return Object.keys(rec.desks).reduce((o, id) => {
@@ -488,6 +537,8 @@ function deskStatusView(rec) {
 }
 
 module.exports = {
+  BUILD_PROJECTS,
+  BUILD_STATUSES,
   COUNT_KEYS,
   FEEDS,
   HEALTH_STATUSES,
@@ -495,6 +546,7 @@ module.exports = {
   NOTES_MAX_BYTES,
   applyPayload,
   briefView,
+  buildLogView,
   deskStatusView,
   feedKey,
   healthView,

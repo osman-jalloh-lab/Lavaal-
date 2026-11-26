@@ -126,8 +126,8 @@ async function call(area, extra) {
   check('no gradient purple-to-pink, no glass blur', !/backdrop-filter|blur\(/.test(cssText));
 
   // 5. Shell behaviour contract.
-  const hints = ['G H', 'G D', 'G T', 'G J', 'G O', 'G R', 'G N', 'G B', 'G C', 'G S', 'G ,', 'G A'];
-  check('all twelve views with shortcuts', hints.every((h) => js.body.includes(`'${h}'`)));
+  const hints = ['G H', 'G U', 'G D', 'G T', 'G J', 'G O', 'G R', 'G N', 'G B', 'G C', 'G S', 'G ,', 'G A'];
+  check('all thirteen views with shortcuts', hints.every((h) => js.body.includes(`'${h}'`)));
   check('palette offers Open Brain graph and Search Brain', js.body.includes('Open Brain graph') && js.body.includes('Search Brain'));
   check('clock is Chicago time', js.body.includes('America/Chicago') && js.body.includes("' CT'"));
   check('theme is persisted defensively', /try \{[^}]*localStorage/.test(js.body));
