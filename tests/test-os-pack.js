@@ -25,7 +25,7 @@ const deskIds = K.desks.map((d) => d.id).concat(K.extraDesks.map((d) => d.id));
 
 // ================= 1. the pack as committed =================
 check('pack loads through require() and is frozen', Object.isFrozen(PACK) && PACK.builtAt === '2026-10-22' && Array.isArray(PACK.decisions) && Array.isArray(PACK.skills));
-check('counts: 52 decisions (22 Open, 30 Closed, 6 with a Jev score)', D.length === 52 && count(D, (r) => r.status === 'Open') === 22 && count(D, (r) => r.status === 'Closed') === 30 && count(D, (r) => r.jev !== null) === 6);
+check('counts: 52 decisions (0 Open after the 25 Nov cleanup, 52 Closed, 6 with a Jev score)', D.length === 52 && count(D, (r) => r.status === 'Open') === 0 && count(D, (r) => r.status === 'Closed') === 52 && count(D, (r) => r.jev !== null) === 6);
 check('counts: 14 routines (13 active, 1 removed), 54 skills, 30 rules, 6 desks plus Scout', RT.length === 14 && count(RT, (r) => r.status === 'active') === 13 && count(RT, (r) => r.status === 'removed') === 1 && RT.find((r) => r.id === 'lavaall-slack-task-bridge').status === 'removed' && S.length === 54 && R.length === 30 && K.desks.length === 6 && K.extraDesks.length === 1);
 check('every id is unique (the stale duplicate decision is gone)', [D, RT, S, R].every((rows) => new Set(rows.map((r) => r.id)).size === rows.length));
 check('D-2026-09-25-38 appears once, as Closed', D.filter((r) => r.id === 'D-2026-09-25-38').length === 1 && D.find((r) => r.id === 'D-2026-09-25-38').status === 'Closed');
@@ -50,7 +50,7 @@ const data = osData.buildOsData({ store: null, health: null }, { env: {} });
 const trim = (v) => String(v).trim();
 check('decisions: all 52 load, none truncated or altered (edge whitespace trimmed only)', data.decisions.length === 52 && D.every((r) => { const o = data.decisions.find((x) => x.id === r.id); return o && o.title === trim(r.title) && o.text === trim(r.text) && o.source === trim(r.source) && o.status === r.status && o.date === r.date && o.jev === r.jev && o.level === r.level; }));
 check('decisions: newest first', data.decisions.every((d, i, a) => i === 0 || d.date <= a[i - 1].date));
-check('Home KPI "open decisions" is 22, from the pack', data.kpis.openDecisions === 22);
+check('Home KPI "open decisions" is 0, from the pack', data.kpis.openDecisions === 0);
 check('decisions are available even when the store is down', data.storeAvailable === false && data.decisions.length === 52);
 check('routines: 14 from the pack with schedule, owner and status', data.routines.length === 14 && RT.every((r) => { const o = data.routines.find((x) => x.id === r.id); return o && o.name === trim(r.name) && o.schedule === trim(r.schedule) && o.owner === r.owner && o.status === r.status; }));
 check("routines: the pack's stale last-run fields are ignored", data.routines.every((r) => r.lastRunAt === 0 && r.lastRunLabel === '' && r.lastRunStatus === ''));
@@ -102,7 +102,7 @@ check('Brain: layout settles to finite coordinates for all 157 nodes', (() => { 
 // ================= 4. views from the real pack =================
 const html = (id, sub) => OS.views[id].render({ id, sub: sub || '', data });
 const dec = html('decisions');
-check('Decisions view: 52 rows, chips All 52 / Open 22 / Closed 30', (dec.match(/<article class="dcard/g) || []).length === 52 && /All <span class="num">52<\/span>/.test(dec) && /Open <span class="num">22<\/span>/.test(dec) && /Closed <span class="num">30<\/span>/.test(dec));
+check('Decisions view: 52 rows, chips All 52 / Open 0 / Closed 52', (dec.match(/<article class="dcard/g) || []).length === 52 && /All <span class="num">52<\/span>/.test(dec) && /Open <span class="num">0<\/span>/.test(dec) && /Closed <span class="num">52<\/span>/.test(dec));
 check('Decisions view: 6 scored (PASS or FLAG), 46 "Jev: not run"', (dec.match(/pill (pass|flag) num/g) || []).length === 6 && (dec.match(/Jev: not run/g) || []).length === 46);
 check('Decisions view: 10 cards have no level; 25 show their desk short name and 27 a dash', (dec.match(/class="lv num">—</g) || []).length === 10 && (dec.match(/<span class="dim">—<\/span><\/span>|<span class="dim">—<\/span><span class="pill/g) || []).length === 27 && ['Technical', 'CEO', 'Growth', 'Sales'].map((d) => (dec.match(new RegExp(`</i>${d}</span>`, 'g')) || []).length).join() === '16,5,2,2');
 check('Decisions view: a decision opens from its id', /data-go="decisions\/D-2026-09-25-38"/.test(dec));
@@ -115,7 +115,7 @@ check('Desks view: seven cards, Lifecycle shows its now line, the other six say 
 check('Desks view: cards show real skill and routine counts', /16 skills · 10 routines/.test(dkv.replace(/·/g, '·')) && /0 skills · 3 routines/.test(dkv.replace(/·/g, '·')));
 check('Desks view: Scout is there and links to its drawer', /data-go="desks\/scout"/.test(dkv));
 const home = html('home');
-check('Home: open decisions 22, five recent decisions, seven desks', /Open decisions<\/span><b class="num">22<\/b>/.test(home) && (home.split('<h3>Recent decisions</h3>')[1].match(/data-go="decisions\/D-/g) || []).length === 5 && (home.match(/data-go="desks\/[a-z-]+"><span class="dot">/g) || []).length === 7);
+check('Home: open decisions 0, five recent decisions, seven desks', /Open decisions<\/span><b class="num">0<\/b>/.test(home) && (home.split('<h3>Recent decisions</h3>')[1].match(/data-go="decisions\/D-/g) || []).length === 5 && (home.match(/data-go="desks\/[a-z-]+"><span class="dot">/g) || []).length === 7);
 
 // ================= 5. bundling and read-only =================
 const adapter = fs.readFileSync(path.join(root, 'api/ops/_os_data.js'), 'utf8');

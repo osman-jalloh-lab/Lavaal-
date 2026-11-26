@@ -93,7 +93,7 @@ async function accessToken(env, fetchImpl) {
     body: new URLSearchParams({ client_id: c.id, client_secret: c.secret, refresh_token: decrypt(rec.enc), grant_type: 'refresh_token' }).toString(),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.access_token) throw new Error('google_token');
+  if (!res.ok || !data.access_token) { const e = new Error('google_token'); e.status = 401; throw e; }
   return { token: data.access_token, record: rec };
 }
 
@@ -223,7 +223,15 @@ async function handleOsGoogle(req, res, opts) {
       return true;
     }
   } catch (err) {
-    json(res, 502, { error: 'google_unavailable', message: 'Google did not answer. Try again, or reconnect Google.' });
+    // Say what went wrong in plain words, from Google's status code. Never echo Google's body or a token.
+    const status = err && err.status;
+    const api = route.startsWith('os/calendar') ? 'Google Calendar API' : 'Gmail API';
+    const message = status === 401 ? 'Google sign-in for the OS has expired or was removed. Disconnect, then Connect Google again.'
+      : status === 403 ? `Google refused access. Check that the ${api} is enabled in your Google Cloud project, then Disconnect and Connect Google again so it asks for ${route.startsWith('os/calendar') ? 'Calendar' : 'Gmail'} permission.`
+        : status === 404 ? 'Google could not find that calendar or mailbox for this account.'
+          : status === 429 ? 'Google is rate-limiting requests. Wait a minute and try again.'
+            : 'Google did not answer. Try again in a minute.';
+    json(res, 502, { error: 'google_unavailable', status: status || null, message });
     return true;
   }
   json(res, 404, { error: 'not_found' });

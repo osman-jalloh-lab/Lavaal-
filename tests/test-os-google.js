@@ -90,6 +90,14 @@ async function call(w, route, req, extra) {
   check('a draft is saved to Gmail drafts, never sent', draft.res.body.ok === true && w.calls.some((c) => /\/users\/me\/drafts$/.test(c.url)) && !w.calls.some((c) => /messages\/send|drafts\/send/.test(c.url)));
   check('the module has no send endpoint at all', !/messages\/send|drafts\/send/.test(fs.readFileSync(path.join(root, 'api/ops/_os_google.js'), 'utf8')));
 
+  const w403 = world();
+  const realFetch = w403.fetchImpl;
+  w403.fetchImpl = async (url, init) => (String(url).includes('/calendar/v3/') ? { ok: false, status: 403, json: async () => ({ error: { message: 'Calendar API has not been used' } }) } : realFetch(url, init));
+  await call(w403, 'os/google/connect');
+  w403.kv.set('lavaall-os-google-v1', w.kv.get('lavaall-os-google-v1'));
+  const forbidden = await call(w403, 'os/calendar');
+  check('a 403 from Google explains how to fix it, without echoing Google', forbidden.res.statusCode === 502 && /Google Calendar API is enabled/.test(forbidden.res.body.message) && !/has not been used/.test(forbidden.res.raw));
+
   const off = await call(w, 'os/google/disconnect', { method: 'POST' });
   check('disconnect revokes at Google and forgets the token', off.res.body.connected === false && !w.kv.has('lavaall-os-google-v1') && w.calls.some((c) => /oauth2\.googleapis\.com\/revoke/.test(c.url)));
   const leaks = [REFRESH, 'csecret-DO-NOT-PRINT'];
@@ -109,6 +117,9 @@ async function call(w, route, req, extra) {
   const calHtml = OS.calendarBody();
   check('calendar events are escaped and unsafe links dropped', !/<script>x/.test(calHtml) && !/javascript:/.test(calHtml));
   check('Calendar is a section under Work', OS.sectionOf('calendar').group === 'Work');
+  check('Home calendar card: connect prompt, escaped events, at most five', /Connect Google to see your calendar here/.test(OS.homeCalendarHtml(null, null, false))
+    && !/<img/.test(OS.homeCalendarHtml([{ title: '<img src=x>', start: '2026-11-27T15:00:00Z' }]))
+    && (OS.homeCalendarHtml(Array.from({ length: 9 }, () => ({ title: 'x', start: '2026-11-27T15:00:00Z' }))).match(/cal-row/g) || []).length === 5);
 
   const failed = results.filter((r) => !r.pass);
   results.forEach((r) => console.log(`${r.pass ? 'PASS' : 'FAIL'} ${r.name}`));
