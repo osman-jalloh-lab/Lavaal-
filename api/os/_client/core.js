@@ -47,6 +47,8 @@
   var NAV = [
     { id: 'home', label: 'Home', icon: 'home', hint: 'G H', key: 'h', about: 'What needs you today.', src: null },
     { id: 'build', label: 'Build', icon: 'build', hint: 'G U', key: 'u', about: 'What Claude and the agents are building, and what waits on you.', src: 'build' },
+    { id: 'progress', label: 'Progress', icon: 'timer', hint: 'G P', key: 'p', about: 'Goals for the week, month and quarter.', src: null },
+    { id: 'saved', label: 'Saved memory', icon: 'brain', hint: 'G M', key: 'm', about: 'Things you asked the OS to remember.', src: null },
     { id: 'desks', label: 'Desks', icon: 'users', hint: 'G D', key: 'd', about: 'The desks, their rules and routines.', src: 'desks' },
     { id: 'talk', label: 'Desk chats', icon: 'council', hint: 'G T', key: 't', about: 'One-on-one chats with the desks.', src: null },
     { id: 'decisions', label: 'Decisions', icon: 'scale', hint: 'G J', key: 'j', about: 'Decision log with Jev scores.', src: 'decisions' },
@@ -64,11 +66,12 @@
   var SECTIONS = [
     { id: 'home', label: 'Home', icon: 'home', group: 'Today', views: ['home'] },
     { id: 'build', label: 'Build', icon: 'build', group: 'Today', views: ['build'] },
+    { id: 'progress', label: 'Progress', icon: 'timer', group: 'Today', views: ['progress'] },
     { id: 'chat', label: 'Chat', icon: 'council', group: 'Work', views: ['talk', 'harness'], tabs: { talk: 'Desks', harness: 'AI models' } },
     { id: 'decisions', label: 'Decisions', icon: 'scale', group: 'Work', views: ['decisions'] },
     { id: 'outreach', label: 'Outreach', icon: 'send', group: 'Work', views: ['outreach'] },
     { id: 'money', label: 'Money', icon: 'spend', group: 'Business', views: ['spend'] },
-    { id: 'memory', label: 'Memory', icon: 'brain', group: 'Knowledge', views: ['notes', 'brain'], tabs: { notes: 'Notes', brain: 'Graph' } },
+    { id: 'memory', label: 'Memory', icon: 'brain', group: 'Knowledge', views: ['saved', 'notes', 'brain'], tabs: { saved: 'Saved', notes: 'Notes', brain: 'Graph' } },
     { id: 'agents', label: 'Agents', icon: 'users', group: 'Knowledge', views: ['desks', 'routines', 'council'], tabs: { desks: 'Desks', routines: 'Routines', council: 'AI Council' } },
     { id: 'settings', label: 'Settings', icon: 'settings', group: 'System', views: ['settings'] }
   ];
@@ -82,7 +85,7 @@
   }
   // Phone tab bar: four sections, then "More" for the rest, so every section is reachable.
   var TABS = ['home', 'chat', 'build', 'decisions'];
-  var MORE = ['outreach', 'money', 'memory', 'agents', 'settings'];
+  var MORE = ['progress', 'outreach', 'money', 'memory', 'agents', 'settings'];
 
   function readData() {
     var node = $('#os-data');

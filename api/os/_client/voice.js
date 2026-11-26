@@ -7,7 +7,7 @@
   'use strict';
   var OS = window.OS;
   var esc = OS.esc;
-  var VIEWS = ['home', 'build', 'talk', 'harness', 'decisions', 'outreach', 'spend', 'notes', 'brain', 'desks', 'routines', 'council', 'settings'];
+  var VIEWS = ['home', 'build', 'progress', 'saved', 'talk', 'harness', 'decisions', 'outreach', 'spend', 'notes', 'brain', 'desks', 'routines', 'council', 'settings'];
 
   var pc = null, dc = null, mic = null, audio = null, live = false, busy = false;
   var you = '', jarvis = '';
@@ -58,6 +58,14 @@
         var text = r.ok ? (r.body.reply || 'It came back empty.') : (r.body.message || r.body.error || 'The OS could not answer (HTTP ' + r.status + ').');
         toolResult(callId, text);
       }).catch(function () { toolResult(callId, 'The OS could not be reached.'); });
+      return;
+    }
+    if (name === 'save_memory') {
+      var t = String(args.text || '').slice(0, 2000);
+      if (!t.trim()) { toolResult(callId, 'Nothing to save.'); return; }
+      post('/ops/os/saved', { op: 'memory.add', text: t, tags: ['jarvis'] }).then(function (r) {
+        toolResult(callId, r.ok ? 'Saved to Memory.' : (r.body.message || 'Could not save it.'));
+      }).catch(function () { toolResult(callId, 'Could not save it.'); });
       return;
     }
     toolResult(callId, 'Unknown tool.');
