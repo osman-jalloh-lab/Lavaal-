@@ -186,6 +186,7 @@ function doPost(e) {
     var secret = props.getProperty('BOOKING_WEBHOOK_SECRET');
     if (secret && payload.secret !== secret) return jsonOut({ error: 'forbidden' }, 403);
 
+    if (payload.action === 'lookup') return lookupLead(String(payload.leadId || ''), String(payload.token || ''));
     if (payload.action === 'register') return handleRegister(payload);
     if (payload.action === 'book') return handleBook(payload);
     return jsonOut({ error: 'unknown_action' }, 400);
@@ -409,7 +410,13 @@ function handleBook(payload) {
   try {
     var lead = findLeadRow(payload.leadId, payload.token);
     if (!lead) return jsonOut({ error: 'invalid_lead_or_token' }, 404);
-    if (lead.values['Booking Status'] === 'Scheduled') return jsonOut({ error: 'already_scheduled' }, 409);
+    if (lead.values['Booking Status'] === 'Scheduled' || lead.values['Calendar Event ID']) {
+      var existing = bookingReceipt(lead.values);
+      if (existing.start && existing.start === parseSlot(payload.date, payload.time).toISOString()) {
+        return jsonOut(Object.assign({ ok: true, replayed: true }, existing));
+      }
+      return jsonOut({ error: 'already_scheduled', message: 'This request already has a scheduled call. Please use your booking confirmation.' }, 409);
+    }
     if (new Date(lead.values['Booking Token Expiration']).getTime() < Date.now()) {
       updateRowStatusFields(lead.rowIndex, { 'Booking Status': 'Expired' });
       return jsonOut({ error: 'token_expired' }, 410);
@@ -443,6 +450,15 @@ function handleBook(payload) {
       ? createMeetEvent(title, start, end, descLines.join('\n'), lead.values['Email'])
       : createPlainEvent(title, start, end, descLines.join('\n'), lead.values['Email']);
 
+    // Persist the event receipt before notification attempts. A lost response or
+    // email failure can then recover the same booking without creating another.
+    updateRowStatusFields(lead.rowIndex, {
+      'Appointment Date': payload.date, 'Appointment Time': payload.time, 'Appointment Timezone': TIMEZONE,
+      'Calendar Event ID': created.eventId, 'Google Meet Link': created.meetLink || '',
+      'Customer Notification Status': hasEmail ? 'Pending' : 'Not Applicable (no email provided)',
+      'Internal Notification Status': 'Pending', 'Booking Status': 'Scheduled',
+    });
+
     var whenStr = Utilities.formatDate(start, TIMEZONE, "EEEE, MMMM d, yyyy 'at' h:mm a") + ' (' + TIMEZONE + ')';
     var strings = EMAIL_STRINGS[langCode];
 
@@ -469,7 +485,7 @@ function handleBook(payload) {
       combinedNotificationStatus(customerNotifyStatus, internalNotifyStatus)
     );
 
-    return jsonOut({ ok: true, start: start.toISOString(), end: end.toISOString(), timezone: TIMEZONE, meetLink: created.meetLink || null });
+    return jsonOut({ ok: true, start: start.toISOString(), end: end.toISOString(), timezone: TIMEZONE, meetLink: created.meetLink || null, emailSent: hasEmail ? custOk : null });
   } finally {
     lock.releaseLock();
   }
@@ -479,15 +495,34 @@ function lookupLead(leadId, token) {
   var lead = findLeadRow(leadId, token);
   if (!lead) return jsonOut({ error: 'invalid_lead_or_token' }, 404);
   if (new Date(lead.values['Booking Token Expiration']).getTime() < Date.now()) return jsonOut({ error: 'token_expired' }, 410);
-  return jsonOut({
+  var booked = lead.values['Booking Status'] === 'Scheduled' || !!lead.values['Calendar Event ID'];
+  return jsonOut(Object.assign({
     ok: true,
     firstName: lead.values['First Name'], lastName: lead.values['Last Name'],
     reason: lead.values['Reason for Call'], preferredContactMethod: lead.values['Preferred Contact Method'],
-    language: lead.values['Website Language'], bookingStatus: lead.values['Booking Status'],
-  });
+    hasEmail: !!lead.values['Email'],
+    language: lead.values['Website Language'], bookingStatus: booked ? 'Scheduled' : lead.values['Booking Status'],
+  }, booked ? bookingReceipt(lead.values) : {}));
   // Deliberately omits: email/phone (rendered again by the customer's own
   // browser session, not re-served), spreadsheet ID, calendar ID, everything
   // else about any *other* lead.
+}
+
+// Read both legacy sheet dates and the string values written by registration.
+function bookingReceipt(values) {
+  var date = values['Appointment Date'];
+  var time = values['Appointment Time'];
+  if (date instanceof Date) date = Utilities.formatDate(date, TIMEZONE, 'yyyy-MM-dd');
+  if (time instanceof Date) time = Utilities.formatDate(time, TIMEZONE, 'HH:mm');
+  var start = parseSlot(String(date || ''), String(time || ''));
+  var status = values['Customer Notification Status'];
+  return {
+    start: isNaN(start.getTime()) ? null : start.toISOString(),
+    end: isNaN(start.getTime()) ? null : new Date(start.getTime() + SLOT_DURATION_MINUTES * 60000).toISOString(),
+    timezone: TIMEZONE,
+    meetLink: values['Google Meet Link'] || null,
+    emailSent: status === 'Sent' ? true : (status === 'Failed' ? false : null),
+  };
 }
 
 // ============================================================================
