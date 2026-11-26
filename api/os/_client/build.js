@@ -19,7 +19,7 @@
   function item(it) {
     var url = safeUrl(it.url);
     return '<div class="bl-item">' +
-      '<div class="bl-top"><span class="tag">' + esc(PROJECTS[it.project] || it.project) + '</span><span class="bl-title">' + esc(it.title) + '</span></div>' +
+      '<div class="bl-top"><span class="tag">' + esc(PROJECTS[it.project] || (OS.businessLabel ? OS.businessLabel(it.project) : it.project)) + '</span><span class="bl-title">' + esc(it.title) + '</span></div>' +
       (it.detail ? '<p class="bl-detail">' + esc(it.detail) + '</p>' : '') +
       '<div class="bl-meta"><span class="num">' + esc(OS.fmtTime(it.updatedAt)) + '</span>' +
       (url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Open</a>' : '') + '</div>' +
@@ -29,8 +29,8 @@
   OS.registerView('build', {
     render: function (ctx) {
       var log = ctx.data.build;
-      var items = log && Array.isArray(log.items) ? log.items : [];
-      var head = '<div class="ph"><div><h1>Build</h1><p>What Claude and the agents are building, and what is waiting on your yes.</p></div>' +
+      var items = log && Array.isArray(log.items) ? log.items.filter(function (i) { return !OS.inBusiness || OS.inBusiness(i.project); }) : [];
+      var head = '<div class="ph"><div><h1>Build</h1><p>What Claude and the agents are building' + (OS.business && OS.business() !== 'all' ? ' for ' + esc(OS.businessLabel()) : '') + ', and what is waiting on your yes.</p></div>' +
         (log ? '<div class="r"><span class="dim">Updated ' + esc(OS.fmtTime(log.receivedAt)) + '</span></div>' : '') + '</div>';
       var tiles = '<div class="grid g4">' + LANES.map(function (l) {
         var n = items.filter(function (i) { return i.status === l.key; }).length;

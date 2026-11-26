@@ -408,6 +408,9 @@
             .then(function () { executeBtn.disabled = false; executeConfirm.checked = false; });
         });
       }
+      // Open on the selected business's project group.
+      var biz = OS.business ? OS.business() : 'all';
+      if (biz !== 'all' && groupEl.querySelector('option[value="' + biz + '"]')) { groupEl.value = biz; fillProjects(); }
       renderSetup();
       if (meta) meta.textContent = metaLine(currentProject());
       loadHistory();

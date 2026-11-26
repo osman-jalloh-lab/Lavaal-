@@ -219,7 +219,15 @@ function validateNotes(body, ctx) {
 
 // ---- build log: what Claude and the agents are building, shown on the /os Build page ----------------
 // Each push replaces the whole log. Same privacy filter as notes: no emails, phones, blocked words or lead data.
-const BUILD_PROJECTS = Object.freeze(['lavaall-os', 'salonehire', 'saloneworks', 'agents', 'website']);
+// Fixed ids plus every project group id in tools/lavaall-ai/projects.json (one per business), so a new
+// business line needs no code change here.
+const PROJECT_GROUP_IDS = (() => {
+  try {
+    const pack = require('../../tools/lavaall-ai/projects.json');
+    return (Array.isArray(pack.groups) ? pack.groups : []).map((g) => String(g && g.id || '')).filter((id) => /^[a-z0-9-]{2,40}$/.test(id));
+  } catch { return []; }
+})();
+const BUILD_PROJECTS = Object.freeze(Array.from(new Set(['lavaall-os', 'salonehire', 'saloneworks', 'agents', 'website'].concat(PROJECT_GROUP_IDS))));
 const BUILD_STATUSES = Object.freeze(['waiting', 'active', 'done', 'next']);
 const BUILD_KEYS = ['id', 'project', 'status', 'title', 'detail', 'url', 'updated'];
 const MAX_BUILD_ITEMS = 100;

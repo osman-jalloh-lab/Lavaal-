@@ -15,7 +15,12 @@ const { readLiveSession } = require('./_signin_hardening');
 
 const KEY = 'lavaall-os-saved-v1';
 const HORIZONS = Object.freeze(['week', 'month', 'quarter']);
-const PROJECTS = Object.freeze(['lavaall', 'salonehire', 'saloneworks', 'personal', 'other']);
+const PROJECTS = Object.freeze(Array.from(new Set(['lavaall', 'salonehire', 'saloneworks', 'personal', 'other'].concat((() => {
+  try {
+    const pack = require('../../tools/lavaall-ai/projects.json');
+    return (Array.isArray(pack.groups) ? pack.groups : []).map((g) => String(g && g.id || '')).filter((id) => /^[a-z0-9-]{2,40}$/.test(id));
+  } catch { return []; }
+})()))));
 const MAX_GOALS = 60;
 const MAX_MEMORIES = 500;
 const MAX_MEMORY = 2000;
