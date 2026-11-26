@@ -44,9 +44,9 @@ async function call(req, opts) {
   const cfg = JSON.parse(sent.init.body);
   check('mints a short-lived secret from OpenAI Realtime with the server key', ok.res.statusCode === 200 && ok.res.body.value === 'ek_short_lived_123' && sent.url === 'https://api.openai.com/v1/realtime/client_secrets' && sent.init.headers.Authorization === 'Bearer ' + KEY);
   check('the real key never reaches the browser', !ok.res.raw.includes(KEY));
-  check('the session has the Jarvis instructions, ask_os and navigate tools, and the picked voice', /You are Jarvis/.test(cfg.session.instructions) && cfg.session.tools.map((t) => t.name).join() === 'ask_os,navigate' && cfg.session.audio.output.voice === 'cedar' && cfg.session.model === 'gpt-realtime');
+  check('the session has the Jarvis instructions, ask_os and navigate tools, and the picked voice', /You are Jarvis/.test(cfg.session.instructions) && cfg.session.tools.map((t) => t.name).join() === 'ask_os,save_memory,navigate' && cfg.session.audio.output.voice === 'cedar' && cfg.session.model === 'gpt-realtime');
   check('Jarvis is told it can never send, deploy, merge or spend, and never to invent facts', /never send, post, deploy, merge, pay or spend/.test(cfg.session.instructions) && /Never guess, never invent prices/.test(cfg.session.instructions));
-  check('navigate is limited to real OS pages', cfg.session.tools[1].parameters.properties.page.enum.join() === voice.VIEWS.join());
+  check('navigate is limited to real OS pages', cfg.session.tools[2].parameters.properties.page.enum.join() === voice.VIEWS.join());
   const badVoice = await call({ body: { voice: '<script>' } }, { session: SESSION, env: { OPENAI_API_KEY: KEY }, fetchImpl: okFetch });
   check('an unknown voice falls back to marin', badVoice.res.body.voice === 'marin');
   const upstream = await call({}, { session: SESSION, env: { OPENAI_API_KEY: KEY }, fetchImpl: async () => ({ ok: false, json: async () => ({ error: { message: 'Incorrect API key ' + KEY } }) }) });
@@ -77,6 +77,11 @@ async function call(req, opts) {
   OS.jarvis.runTool('ask_os', 'c3', '{"request":"fix the bug in kits"}');
   await new Promise((r) => setImmediate(r));
   check('ask_os goes through the founder harness chat with the routed model', posted.length === 1 && posted[0].url === '/ops/harness/chat' && posted[0].body.project === 'lavaall' && posted[0].body.message === 'fix the bug in kits' && ['codex', 'claude'].includes(posted[0].body.harness));
+
+  posted.length = 0;
+  OS.jarvis.runTool('save_memory', 'c4', '{"text":"Jack bought Glido merch"}');
+  await new Promise((r) => setImmediate(r));
+  check('save_memory saves through /ops/os/saved, tagged jarvis', posted.length === 1 && posted[0].url === '/ops/os/saved' && posted[0].body.op === 'memory.add' && posted[0].body.text === 'Jack bought Glido merch' && posted[0].body.tags.join() === 'jarvis');
 
   const failed = results.filter((r) => !r.pass);
   results.forEach((r) => console.log(`${r.pass ? 'PASS' : 'FAIL'} ${r.name}`));
