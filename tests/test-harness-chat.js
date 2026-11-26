@@ -88,14 +88,30 @@ async function run() {
   const composed = chat.composePrompt(chat.findProject('salonehire'), [], 'Add a receipt hold.', []);
   check('composed prompt includes RULES, the SaloneHire handoff, and the request',
     /RULES\.md/.test(composed.system) && /hosted API/.test(composed.system) && /cannot edit files/.test(composed.system)
-    && /SaloneHire/.test(composed.user) && /Add a receipt hold/.test(composed.user));
+    && /SaloneHire/.test(composed.system) && /Add a receipt hold/.test(composed.user));
+
+  {
+    const long = 'x'.repeat(5000);
+    const history = Array.from({ length: 20 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: `turn-${i} ${long}` }));
+    const log = Array.from({ length: 20 }, (_, i) => `log-line-${i}`);
+    const dieted = chat.composePrompt(chat.findProject('salonehire'), history, 'Shrink it.', log);
+    check('token diet: only the last 6 chat turns are sent',
+      /turn-19 /.test(dieted.user) && /turn-14 /.test(dieted.user) && !/turn-13 /.test(dieted.user));
+    check('token diet: each chat message is clipped',
+      /\[\.\.\.clipped\]/.test(dieted.user) && dieted.user.length < 6 * 1700 + 2000);
+    check('token diet: only the last 5 handoff log lines are sent',
+      /log-line-19/.test(dieted.user) && /log-line-15/.test(dieted.user) && !/log-line-14/.test(dieted.user));
+    check('token diet: stable context sits in the cacheable system prompt, not the per-run user turn',
+      /RULES\.md/.test(dieted.system) && /--- PROJECT ---/.test(dieted.system) && !/--- PROJECT ---/.test(dieted.user));
+  }
   check('composed prompt tells the model not to deploy, merge, send, or spend',
     /Do not deploy, merge, send, or spend/.test(composed.system));
 
-  check('Claude model picker defaults to Sonnet and accepts Haiku and Opus',
+  check('Claude model picker defaults to Sonnet, accepts Haiku, and refuses Opus (RULES.md)',
     chat.modelFor('claude', undefined, {}) === chat.CLAUDE_MODELS.sonnet
     && chat.modelFor('claude', 'haiku', {}) === chat.CLAUDE_MODELS.haiku
-    && chat.modelFor('claude', 'opus', {}) === chat.CLAUDE_MODELS.opus
+    && chat.modelFor('claude', 'opus', {}).error === 'unknown_model'
+    && !('opus' in chat.CLAUDE_MODELS)
     && chat.modelFor('claude', 'sonnet', {}) === chat.CLAUDE_MODELS.sonnet
     && chat.modelFor('claude', 'wrong', {}).error === 'unknown_model');
   check('Codex and DeepSeek models have defaults',
@@ -181,18 +197,27 @@ async function run() {
   }
 
   {
-    const fetchImpl = async (url) => {
+    const calls = [];
+    const fetchImpl = async (url, init) => {
       if (String(url).includes('api.anthropic.com/v1/messages')) {
-        return { ok: true, status: 200, text: async () => JSON.stringify({ content: [{ type: 'text', text: 'Opus plan for SaloneHire.' }] }) };
+        calls.push(JSON.parse(init.body));
+        return { ok: true, status: 200, text: async () => JSON.stringify({ content: [{ type: 'text', text: 'Sonnet plan for SaloneHire.' }] }) };
       }
       throw new Error('unexpected fetch ' + url);
     };
     const { res } = await call('chat', {
       body: { project: 'salonehire', harness: 'claude', model: 'opus', message: 'Review the interview tools.' },
     }, { env: { ANTHROPIC_API_KEY: FAKE_ANTHROPIC }, fetchImpl });
-    check('Claude chat honors the Opus picker',
-      res.statusCode === 200 && res.body.harness === 'claude' && res.body.model === chat.CLAUDE_MODELS.opus
-      && res.body.reply === 'Opus plan for SaloneHire.' && !dumpHas(res.body, FAKE_ANTHROPIC));
+    check('Claude chat refuses an Opus request without calling the provider',
+      res.statusCode >= 400 && calls.length === 0 && !dumpHas(res.body, FAKE_ANTHROPIC));
+    const ok = await call('chat', {
+      body: { project: 'salonehire', harness: 'claude', model: 'sonnet', message: 'Review the interview tools.' },
+    }, { env: { ANTHROPIC_API_KEY: FAKE_ANTHROPIC }, fetchImpl });
+    const sent = calls[0] || {};
+    check('Claude chat caches the stable system prompt and caps output tokens',
+      ok.res.statusCode === 200 && ok.res.body.reply === 'Sonnet plan for SaloneHire.'
+      && Array.isArray(sent.system) && sent.system[0].cache_control && sent.system[0].cache_control.type === 'ephemeral'
+      && sent.max_tokens === 2048);
   }
 
   {

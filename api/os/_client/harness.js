@@ -15,8 +15,7 @@
   ];
   var CLAUDE_MODELS = [
     { id: 'sonnet', label: 'Sonnet' },
-    { id: 'haiku', label: 'Haiku' },
-    { id: 'opus', label: 'Opus' }
+    { id: 'haiku', label: 'Haiku' }
   ];
 
   function pack(data) {
