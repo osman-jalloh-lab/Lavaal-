@@ -193,7 +193,8 @@
           kpi('g', 'AI spend this month', k.aiSpendMonth == null ? null : OS.money(k.aiSpendMonth), k.aiSpendMonth == null ? 'no spend records yet' : 'from spend records') +
         '</div>' +
         '<div class="stack">' +
-          '<div class="grid g32">' + briefCard(d) + approvalsCard(d) + '</div>' +
+          '<div class="grid g32">' + briefCard(d) + '<section class="card" id="home-cal"></section></div>' +
+          '<div class="grid g32">' + approvalsCard(d) + '</div>' +
           todayColumn(d) +
           '<div class="grid g32">' + decisionsCard(d) + desksCard(d) + '</div>' +
         '</div>';
@@ -201,6 +202,7 @@
     mount: function (root, ctx) {
       var byId = {};
       (ctx.data.approvals || []).forEach(function (a) { byId[a.id] = a; });
+      if (OS.mountHomeCalendar) OS.mountHomeCalendar(root);
       var cmd = root.querySelector('#home-cmd');
       if (cmd) cmd.addEventListener('click', OS.openPalette);
       var askForm = root.querySelector('#home-ask');

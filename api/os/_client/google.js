@@ -85,6 +85,29 @@
       }).join('') : '<div class="empty"><b>Nothing on the calendar.</b></div>') + '</section>';
   }
   OS.calendarBody = calBody;
+
+  // ---- Home: the next few events ----
+  function homeCal(list, err, connected) {
+    var head = '<div class="ch"><h3>Calendar</h3><div class="r"><a href="#calendar">Open</a></div></div>';
+    if (connected === false) return head + '<div class="empty"><b>Connect Google to see your calendar here.</b><small><a href="#calendar">Open Calendar</a></small></div>';
+    if (err) return head + '<div class="empty"><b>' + esc(err) + '</b></div>';
+    if (!list) return head + '<div class="empty"><b>Loading…</b></div>';
+    if (!list.length) return head + '<div class="empty"><b>Nothing in the next two weeks.</b></div>';
+    return head + list.slice(0, 5).map(function (e) {
+      return '<div class="cal-row"><span class="cal-when num">' + esc(when(e)) + '</span><span class="cal-title">' + esc(e.title) + '</span></div>';
+    }).join('');
+  }
+  OS.homeCalendarHtml = homeCal;
+  OS.mountHomeCalendar = function (root) {
+    var host = root.querySelector('#home-cal');
+    if (!host) return;
+    host.innerHTML = homeCal(null);
+    api('/ops/os/google/status').then(function (s) {
+      status = s;
+      if (!s.connected) { host.innerHTML = homeCal(null, null, false); return; }
+      return api('/ops/os/calendar').then(function (d) { host.innerHTML = homeCal(d.events || []); });
+    }).catch(function (err) { host.innerHTML = homeCal(null, err.message); });
+  };
   OS.setCalendarEvents = function (list) { events = { list: list }; };
   OS.registerView('calendar', {
     render: function () {
