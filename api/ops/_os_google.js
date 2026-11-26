@@ -5,7 +5,7 @@
 //   GET  /ops/os/gmail/callback    -> exchange the code, store the refresh token ENCRYPTED in KV, back to /os#inbox
 //   GET  /ops/os/google/status     -> { connected, email, scopes }
 //   POST /ops/os/google/disconnect -> revoke at Google and forget the token
-//   GET  /ops/os/calendar          -> upcoming events (next 14 days, primary calendar)
+//   GET  /ops/os/calendar          -> upcoming events (next 14 days, primary calendar); ?from=<ms>&days=<1..31> for a range
 //   POST /ops/os/calendar/event    -> create one event (only from Osman's click in /os)
 //   POST /ops/os/gmail/draft       -> create a Gmail DRAFT. Nothing is ever sent from here: Osman sends it in Gmail.
 //
@@ -185,7 +185,15 @@ async function handleOsGoogle(req, res, opts) {
 
     if (route === 'os/calendar') {
       const now = (opts && opts.now) || Date.now();
-      const params = new URLSearchParams({ timeMin: new Date(now).toISOString(), timeMax: new Date(now + 14 * 86400000).toISOString(), singleEvents: 'true', orderBy: 'startTime', maxResults: '25' });
+      // ?from=<ms>&days=<1..31> for the Day and Week grids; the default is the next 14 days from now.
+      const cq = queryOf(req);
+      const one = (v) => (Array.isArray(v) ? v[0] : v);
+      const fromMs = Number(one(cq.from));
+      const days = Math.round(Number(one(cq.days)));
+      const ranged = Number.isFinite(fromMs) && Math.abs(fromMs - now) < 400 * 86400000 && days >= 1 && days <= 31;
+      const timeMin = ranged ? fromMs : now;
+      const timeMax = ranged ? fromMs + days * 86400000 : now + 14 * 86400000;
+      const params = new URLSearchParams({ timeMin: new Date(timeMin).toISOString(), timeMax: new Date(timeMax).toISOString(), singleEvents: 'true', orderBy: 'startTime', maxResults: ranged ? '250' : '25' });
       const data = await google(fetchImpl, auth.token, `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`);
       const events = (Array.isArray(data.items) ? data.items : []).map((e) => ({
         id: clip(e.id, 120), title: clip(e.summary, 200) || '(no title)', where: clip(e.location, 200),

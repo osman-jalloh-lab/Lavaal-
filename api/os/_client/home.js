@@ -194,7 +194,8 @@
         '</div>' +
         '<div class="stack">' +
           '<div class="grid g32">' + briefCard(d) + '<section class="card" id="home-cal"></section></div>' +
-          '<div class="grid g32">' + approvalsCard(d) + '</div>' +
+          (OS.launchesHtml ? OS.launchesHtml() : '') +
+          '<div class="grid g32">' + approvalsCard(d) + '<section class="card" id="home-recap">' + (OS.recapHomeHtml ? OS.recapHomeHtml() : '') + '</section></div>' +
           todayColumn(d) +
           '<div class="grid g32">' + decisionsCard(d) + desksCard(d) + '</div>' +
         '</div>';

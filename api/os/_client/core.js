@@ -48,6 +48,7 @@
     { id: 'home', label: 'Home', icon: 'home', hint: 'G H', key: 'h', about: 'What needs you today.', src: null },
     { id: 'build', label: 'Build', icon: 'build', hint: 'G U', key: 'u', about: 'What Claude and the agents are building, and what waits on you.', src: 'build' },
     { id: 'progress', label: 'Progress', icon: 'timer', hint: 'G P', key: 'p', about: 'Goals for the week, month and quarter.', src: null },
+    { id: 'recap', label: 'End of day', icon: 'sunrise', hint: 'G E', key: 'e', about: 'What every agent did today, what is blocked, and your own recap.', src: 'recap' },
     { id: 'saved', label: 'Saved memory', icon: 'brain', hint: 'G M', key: 'm', about: 'Things you asked the OS to remember.', src: null },
     { id: 'desks', label: 'Desks', icon: 'users', hint: 'G D', key: 'd', about: 'The desks, their rules and routines.', src: 'desks' },
     { id: 'talk', label: 'Desk chats', icon: 'council', hint: 'G T', key: 't', about: 'One-on-one chats with the desks.', src: null },
@@ -69,6 +70,7 @@
     { id: 'home', label: 'Home', icon: 'home', group: 'Today', views: ['home'] },
     { id: 'build', label: 'Build', icon: 'build', group: 'Today', views: ['build'] },
     { id: 'progress', label: 'Progress', icon: 'timer', group: 'Today', views: ['progress'] },
+    { id: 'recap', label: 'End of day', icon: 'sunrise', group: 'Today', views: ['recap'] },
     { id: 'chat', label: 'Chat', icon: 'council', group: 'Work', views: ['talk', 'harness'], tabs: { talk: 'Desks', harness: 'AI models' } },
     { id: 'inbox', label: 'Inbox', icon: 'inbox', group: 'Work', views: ['inbox'] },
     { id: 'calendar', label: 'Calendar', icon: 'timer', group: 'Work', views: ['calendar'] },
@@ -89,7 +91,7 @@
   }
   // Phone tab bar: four sections, then "More" for the rest, so every section is reachable.
   var TABS = ['home', 'chat', 'build', 'decisions'];
-  var MORE = ['progress', 'inbox', 'calendar', 'outreach', 'money', 'memory', 'agents', 'settings'];
+  var MORE = ['progress', 'recap', 'inbox', 'calendar', 'outreach', 'money', 'memory', 'agents', 'settings'];
 
   function readData() {
     var node = $('#os-data');

@@ -1,6 +1,6 @@
 # LAVAALL OS live feeds (ingest)
 
-Seven authenticated POST endpoints feed `/os`. `/os` itself stays read-only: it only reads what these write.
+Eight authenticated POST endpoints feed `/os`. `/os` itself stays read-only: it only reads what these write.
 
 - **URL:** `https://www.lavaall.com/api/os/ingest/<feed>` (one function, `api/os/ingest/[feed].js`).
 - **Auth:** `Authorization: Bearer $TOKEN`, where `$TOKEN` is the value of the existing `OPS_CEO_BRIDGE_SECRET` (the bearer the inbox push and routine health already use). No new env var. Without it the answer is `401 {"error":"unauthorized"}` and nothing is stored.
@@ -104,4 +104,26 @@ curl -sS -X POST https://www.lavaall.com/api/os/ingest/build-log \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '[{"id":"token-diet","project":"lavaall-os","status":"waiting","title":"Merge the token diet","detail":"Tests pass; needs your yes.","url":"https://github.com/osman-jalloh-lab/Lavaal-/pull/113","updated":"2026-10-23T14:00:00Z"}]'
+```
+
+## 8. daily-recap
+
+`[{id, agent, project, date, happened, built, blocked, next, updated}]` becomes the **End of day** page and the Home End of day card. At the end of each day every agent reports here: Grok (from xAI, the main front end), Claude, Codex, DeepSeek and the desks. 1 to 40 entries per post. **Entries merge by `id`**, so an agent can re-send its recap during the day; the newest 14 days are kept.
+
+Each entry has exactly: `id`, `agent`, `project`, `date`, `happened`, `built`, `blocked`, `next`, `updated`.
+
+- `id`: lowercase letters, digits and hyphens, up to 60 characters, unique in the post. A good pattern is `<agent>-<date>-<project>`.
+- `agent`: who is reporting, a short slug: `grok`, `claude`, `codex`, `deepseek`, or a desk id.
+- `project`: the same ids as the build log. The End of day page filters by the business switch.
+- `date`: the day being reported, `YYYY-MM-DD`.
+- `happened`: 1 to 800 characters, what went on. `built`, `blocked`, `next`: up to 600 characters each, `""` for none. Line breaks are kept. An entry with something in `blocked` is flagged on Home.
+- `updated`: a UTC time, not in the future.
+
+The notes privacy filter applies, as for the build log. Osman's own end-of-day note is not posted here: he types it on the End of day page (or tells Jarvis), and it is saved to his Memory.
+
+```sh
+curl -sS -X POST https://www.lavaall.com/api/os/ingest/daily-recap \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[{"id":"grok-2026-11-26-lavaall-os","agent":"grok","project":"lavaall-os","date":"2026-11-26","happened":"Reviewed the live calendar and inbox.","built":"","blocked":"","next":"Post tomorrow morning brief","updated":"2026-11-26T23:00:00Z"}]'
 ```

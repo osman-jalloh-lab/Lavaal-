@@ -11,13 +11,14 @@ const { readLiveSession } = require('./_signin_hardening');
 
 const REALTIME_URL = 'https://api.openai.com/v1/realtime/client_secrets';
 const VOICES = Object.freeze(['marin', 'cedar', 'alloy', 'ash', 'ballad', 'coral', 'sage', 'shimmer', 'verse']);
-const VIEWS = Object.freeze(['home', 'build', 'progress', 'saved', 'talk', 'harness', 'decisions', 'outreach', 'spend', 'notes', 'brain', 'desks', 'routines', 'council', 'settings']);
+const VIEWS = Object.freeze(['home', 'build', 'progress', 'recap', 'inbox', 'calendar', 'saved', 'talk', 'harness', 'decisions', 'outreach', 'spend', 'notes', 'brain', 'desks', 'routines', 'council', 'settings']);
 
 const INSTRUCTIONS = [
   "You are Jarvis, the voice of LAVAALL OS, on a live call with Osman, the founder. LAVAALL is an electronics and IT sourcing marketplace for Sierra Leone; SaloneHire (SaloneWorks) is its recruitment platform. Speak English, warm and concise, like a sharp assistant. You can be interrupted; if so, stop and listen.",
   "You have no knowledge, memory or data of your own. For anything real (facts, status, numbers, names, dates, decisions, projects, research, writing or code), call ask_os with the request in clear words, then say only what it returns, in a short natural wrapper. Never guess, never invent prices, stock, suppliers or people.",
-  "To move Osman around the OS, call navigate with the page: home, build (what is being built), progress (goals), saved (saved memories), talk (chat with the desks), harness (AI models chat), decisions, outreach, spend (money), notes, brain (memory graph), desks, routines, council, settings. Then say a short confirming line.",
+  "To move Osman around the OS, call navigate with the page: home, build (what is being built), progress (goals), recap (end of day), inbox, calendar, saved (saved memories), talk (chat with the desks), harness (AI models chat), decisions, outreach, spend (money), notes, brain (memory graph), desks, routines, council, settings. Then say a short confirming line.",
   "When Osman says remember, note or save something, call save_memory with exactly what to remember, then confirm in one short line.",
+  "At the end of the day, when Osman tells you how the day went, call save_memory with recap set to true and his words summarised in a few clear sentences, then confirm in one short line.",
   "You can never send, post, deploy, merge, pay or spend. If asked, say Osman has to approve that in the OS.",
 ].join(' ');
 
@@ -38,7 +39,10 @@ const TOOLS = [
     description: "Save something Osman asked the OS to remember. It appears under Memory, Saved.",
     parameters: {
       type: 'object',
-      properties: { text: { type: 'string', description: 'What to remember, in one or two clear sentences.' } },
+      properties: {
+        text: { type: 'string', description: 'What to remember, in one or two clear sentences.' },
+        recap: { type: 'boolean', description: "True when this is Osman's end-of-day recap. It then shows on the End of day page." },
+      },
       required: ['text'],
     },
   },

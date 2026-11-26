@@ -57,6 +57,7 @@
   OS.registerView('progress', {
     render: function () {
       return '<div class="ph"><div><h1>Progress</h1><p>Your goals for the week, month and quarter. Ask anything and Jarvis can steer toward them.</p></div></div>' +
+        (OS.launchesHtml ? OS.launchesHtml() : '') +
         '<form class="card pg-add" id="pg-add" autocomplete="off">' +
           '<label class="sr" for="pg-title">New goal</label><input id="pg-title" maxlength="160" placeholder="Add a goal, for example: launch SaloneHire in Freetown" required />' +
           '<label class="sr" for="pg-horizon">When</label><select id="pg-horizon">' + HORIZONS.map(function (h) { return '<option value="' + h.id + '">' + esc(h.label) + '</option>'; }).join('') + '</select>' +

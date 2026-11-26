@@ -74,6 +74,11 @@ GOOD['build-log'] = [
   { id: 'token-diet', project: 'lavaall-os', status: 'waiting', title: 'Merge the token diet', detail: 'Tests pass.\nNeeds your yes.', url: 'https://github.com/osman-jalloh-lab/Lavaal-/pull/113', updated: '2026-10-23T14:00:00Z' },
   { id: 'single-scan', project: 'salonehire', status: 'active', title: 'Scan each CV once', detail: '', url: '', updated: '2026-10-23T13:00:00Z' },
 ];
+GOOD['daily-recap'] = [
+  { id: 'grok-2026-10-23', agent: 'grok', project: 'starlink', date: today, happened: 'Planned the go-live checklist.', built: 'Launch page draft', blocked: '', next: 'Final QA', updated: '2026-10-23T14:00:00Z' },
+  { id: 'claude-2026-10-23', agent: 'claude', project: 'lavaall-os', date: today, happened: 'Built the live calendar.', built: '', blocked: 'Needs the merge.', next: '', updated: '2026-10-23T13:00:00Z' },
+];
+const recapOf = (over) => [Object.assign({}, GOOD['daily-recap'][0], over)];
 const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
 const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
 
@@ -227,6 +232,24 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
     ['a phone number in the detail', buildOf({ detail: 'call 737-704-4182' })],
     ['over 100 items', Array.from({ length: 101 }, (_, i) => ({ id: 'i' + i, project: 'agents', status: 'next', title: 'x', detail: '', url: '', updated: '2026-10-23T14:00:00Z' }))],
   ];
+  BAD['daily-recap'] = [
+    ['not an array', GOOD['daily-recap'][0]],
+    ['empty array', []],
+    ['extra key', recapOf({ extra: 1 })],
+    ['missing next', [(() => { const r = Object.assign({}, GOOD['daily-recap'][0]); delete r.next; return r; })()]],
+    ['bad id', recapOf({ id: 'Has Spaces' })],
+    ['bad agent', recapOf({ agent: 'Grok XAI' })],
+    ['duplicate id', GOOD['daily-recap'].concat(recapOf({}))],
+    ['unknown project', recapOf({ project: 'secret-project' })],
+    ['bad date', recapOf({ date: '23/10/2026' })],
+    ['empty happened', recapOf({ happened: '  ' })],
+    ['happened over 800', recapOf({ happened: 'x'.repeat(801) })],
+    ['blocked over 600', recapOf({ blocked: 'x'.repeat(601) })],
+    ['future time', recapOf({ updated: '2026-10-24T15:00:00Z' })],
+    ['an email in what happened', recapOf({ happened: 'write to me@example.com' })],
+    ['a phone number in next', recapOf({ next: 'call 737-704-4182' })],
+    ['over 40 entries', Array.from({ length: 41 }, (_, i) => Object.assign({}, GOOD['daily-recap'][0], { id: 'r' + i }))],
+  ];
   for (const feed of feeds.FEEDS) {
     const cases = BAD[feed];
     const outcomes = [];
@@ -301,7 +324,7 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
   const getsBefore = kv.cmds.length;
   const data = await osData.loadOsData({ env: ENV, fetchImpl: kv.fetchImpl, store: {}, health: null, now: NOW });
   const loadCmds = kv.cmds.slice(getsBefore);
-  check('loading /os data after the posts uses GETs only', loadCmds.length === 7 && loadCmds.every((c) => c[0] === 'GET'));
+  check('loading /os data after the posts uses GETs only', loadCmds.length === 8 && loadCmds.every((c) => c[0] === 'GET'));
 
   check('data: brief is the posted brief', data.brief && data.brief.date === today && /Three things matter/.test(data.brief.text));
   check('data: routine health merged by id onto the pack routines', data.routines.find((r) => r.id === 'sl-daily-leads').health.status === 'ok' && data.routines.find((r) => r.id === 'midnight-closeout').health.status === 'late' && data.routines.find((r) => r.id === 'friday-decide-or-kill').health.tone === 'bad');
@@ -315,6 +338,16 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
   check('data: the desk now lines come from the feed', data.desks.find((d) => d.id === 'technical').now === 'Shipping the live feeds' && data.desks.find((d) => d.id === 'scout').now === 'Watching two channels' && data.desks.find((d) => d.id === 'technical').nowUpdatedAt > 0);
   check('data: a desk the feed did not name keeps the pack line', data.desks.find((d) => d.id === 'lifecycle').now === 'Parked as routing priority; Talk still works.');
   check('data: notes come from the notes feed, with type, folder, tags and links', data.notes.length === 2 && data.notes.find((n) => n.id === 'nt-0000000002').type === 'scout-find' && data.notes.find((n) => n.id === 'nt-0000000002').urgent === true && data.notes.find((n) => n.id === 'nt-0000000001').links.join() === 'nt-0000000002' && data.notes.find((n) => n.id === 'nt-0000000001').folder === 'Ideas');
+  check('data: the daily recap comes from the daily-recap feed', data.recap && data.recap.entries.length === 2 && data.sources.recap.live === true && data.recap.entries.some((e) => e.agent === 'grok' && e.project === 'starlink'));
+  {
+    const first = feeds.applyPayload('daily-recap', null, GOOD['daily-recap'], 1);
+    const again = feeds.applyPayload('daily-recap', first, [Object.assign({}, GOOD['daily-recap'][0], { happened: 'Updated.' })], 2);
+    check('daily-recap: re-sending an id replaces it, others are kept', again.entries.length === 2 && again.entries.find((e) => e.id === 'grok-2026-10-23').happened === 'Updated.');
+    const many = Array.from({ length: 20 }, (_, i) => Object.assign({}, GOOD['daily-recap'][0], { id: 'd' + i, date: '2026-10-' + String(i + 1).padStart(2, '0') }));
+    const kept = feeds.applyPayload('daily-recap', null, many, 3);
+    check('daily-recap: only the newest 14 days are kept', new Set(kept.entries.map((e) => e.date)).size === 14 && kept.entries[0].date === '2026-10-20');
+    check('daily-recap: a stored record survives normalizing', feeds.normalizeRecord('daily-recap', JSON.parse(JSON.stringify(kept))).entries.length === 14);
+  }
   check('data: the source flags turn live', data.sources.brief.live && data.sources.outreach.live && data.sources.hotelBounceRate.live && data.sources.spend.live);
 
   const win = {};
@@ -379,7 +412,7 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
   check('only the ingest modules write, and only with SET on a lavaall-os-feed key', (src.match(/'SET'/g) || []).length === 1 && /KEY_PREFIX = 'lavaall-os-feed-'/.test(src));
   check('no payload, token or header is logged', !/console\.(log|error|warn)\([^)]*(body|token|authorization|req\.)/i.test(src));
   const docs = fs.readFileSync(path.join(root, 'api/os/_data/INGEST.md'), 'utf8');
-  check('INGEST.md has one curl example per feed, with the secret shown as $TOKEN', feeds.FEEDS.every((f) => docs.includes('curl -sS -X POST https://www.lavaall.com/api/os/ingest/' + f + ' \\')) && (docs.match(/curl -sS -X POST/g) || []).length === 7 && (docs.match(/-H "Authorization: Bearer \$TOKEN"/g) || []).length === 7);
+  check('INGEST.md has one curl example per feed, with the secret shown as $TOKEN', feeds.FEEDS.every((f) => docs.includes('curl -sS -X POST https://www.lavaall.com/api/os/ingest/' + f + ' \\')) && (docs.match(/curl -sS -X POST/g) || []).length === 8 && (docs.match(/-H "Authorization: Bearer \$TOKEN"/g) || []).length === 8);
   const banned = new RegExp(['Star' + 'link', 'Gui' + 'nea', '@gmail', '@g\\.', '[A-Za-z0-9_-]{32,}'].join('|'));
   check('INGEST.md holds no real secret, email, lead name or banned public-copy term', !banned.test(docs.replace(/https?:\/\/\S+/g, '')));
   try {

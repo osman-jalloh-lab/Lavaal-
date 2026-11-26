@@ -7,7 +7,7 @@
   'use strict';
   var OS = window.OS;
   var esc = OS.esc;
-  var VIEWS = ['home', 'build', 'progress', 'saved', 'talk', 'harness', 'decisions', 'outreach', 'spend', 'notes', 'brain', 'desks', 'routines', 'council', 'settings'];
+  var VIEWS = ['home', 'build', 'progress', 'recap', 'inbox', 'calendar', 'saved', 'talk', 'harness', 'decisions', 'outreach', 'spend', 'notes', 'brain', 'desks', 'routines', 'council', 'settings'];
 
   var pc = null, dc = null, mic = null, audio = null, live = false, busy = false;
   var you = '', jarvis = '';
@@ -63,7 +63,7 @@
     if (name === 'save_memory') {
       var t = String(args.text || '').slice(0, 2000);
       if (!t.trim()) { toolResult(callId, 'Nothing to save.'); return; }
-      post('/ops/os/saved', { op: 'memory.add', text: t, tags: ['jarvis'] }).then(function (r) {
+      post('/ops/os/saved', { op: 'memory.add', text: t, tags: args.recap === true ? ['jarvis', 'recap'].concat(OS.business && OS.business() !== 'all' ? [OS.business()] : []) : ['jarvis'] }).then(function (r) {
         toolResult(callId, r.ok ? 'Saved to Memory.' : (r.body.message || 'Could not save it.'));
       }).catch(function () { toolResult(callId, 'Could not save it.'); });
       return;
