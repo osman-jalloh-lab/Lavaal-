@@ -11,7 +11,8 @@ const OS_CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data:",
-  "connect-src 'self'",
+  // Jarvis: the browser sends its WebRTC offer to OpenAI Realtime with a short-lived secret.
+  "connect-src 'self' https://api.openai.com",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",

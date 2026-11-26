@@ -345,3 +345,20 @@
 .os-root .askbar input::placeholder{color:var(--tx3)}
 .os-root .askbar:focus-within{border-color:var(--accent)}
 .os-root .askroute{font-size:12px;color:var(--tx3);white-space:nowrap}
+
+/* Jarvis: a glowing orb, bottom right, on every page. Idle sky, listening lime, thinking sun, speaking coral. */
+.os-root .jv{position:fixed;right:calc(20px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.os-root .jv-orb{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--accent) 50%,transparent);background:radial-gradient(circle at 35% 30%,#E9FBFF 0%,var(--accent) 38%,#005E80 100%);transition:transform .15s}
+.os-root .jv-orb:hover{transform:scale(1.05)}
+.os-root .jv-orb span{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.85)}
+.os-root .jv-orb[data-state=listening]{background:radial-gradient(circle at 35% 30%,#EFFFF8 0%,var(--ok) 40%,#007A50 100%);animation:jv-pulse 1.6s ease-in-out infinite}
+.os-root .jv-orb[data-state=thinking]{background:radial-gradient(circle at 35% 30%,#FFF9D6 0%,var(--sun) 42%,#B38F00 100%);animation:jv-pulse .9s ease-in-out infinite}
+.os-root .jv-orb[data-state=speaking]{background:radial-gradient(circle at 35% 30%,#FFE9E9 0%,var(--bad) 42%,#9E2528 100%);animation:jv-pulse .7s ease-in-out infinite}
+.os-root .jv-orb[data-state=error]{background:radial-gradient(circle at 35% 30%,#fff 0%,var(--tx3) 60%,var(--bg2) 100%)}
+.os-root .jv-panel{width:min(340px,calc(100vw - 40px));background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-card);padding:12px 14px}
+.os-root .jv-h{display:flex;align-items:baseline;gap:8px}.os-root .jv-h b{font-family:var(--display)}
+.os-root .jv-sub{font-size:11px;color:var(--tx3)}
+.os-root .jv-cap{margin-top:6px;color:var(--tx2);font-size:13.5px;line-height:1.45;max-height:7.5em;overflow:auto;white-space:pre-wrap}
+@keyframes jv-pulse{50%{transform:scale(1.07)}}
+@media(prefers-reduced-motion:reduce){.os-root .jv-orb{animation:none!important}}
+@media(max-width:759px){.os-root .jv{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}

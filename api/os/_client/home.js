@@ -75,8 +75,10 @@
     return card('', 'timer', 'Routine health', right, rows, foot);
   }
 
-  function bounceText(k) {
-    return k.hotelBounceRate == null ? null : (Math.round(k.hotelBounceRate * 1000) / 10) + '%';
+  // How many Build items need Osman's yes (the build-log feed). A dash until a log arrives.
+  function buildWaiting(d) {
+    if (!d.build || !Array.isArray(d.build.items)) return null;
+    return String(d.build.items.filter(function (i) { return i.status === 'waiting'; }).length);
   }
 
   var COUNCIL_STATUS = { waiting_l3: 'Waiting', approved: 'Approved', changes_requested: 'Changes requested', flagged: 'Flagged', held: 'Held' };
@@ -187,7 +189,7 @@
         '<div class="grid g4">' +
           kpi('b', 'Awaiting approval', k.awaitingApproval, 'pending proposals') +
           kpi('v', 'Open decisions', k.openDecisions, k.openDecisions == null ? 'no decision log yet' : 'from the decision log') +
-          kpi('o', 'Hotel bounce rate', bounceText(k), k.hotelBounceRate == null ? 'no outreach results yet' : 'bounced of sent, ' + k.hotelBounceDate) +
+          kpi('o', 'Waiting on you', buildWaiting(d), d.build ? 'from the Build log' : 'no build log yet') +
           kpi('g', 'AI spend this month', k.aiSpendMonth == null ? null : OS.money(k.aiSpendMonth), k.aiSpendMonth == null ? 'no spend records yet' : 'from spend records') +
         '</div>' +
         '<div class="stack">' +

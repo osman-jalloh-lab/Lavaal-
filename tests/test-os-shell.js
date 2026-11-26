@@ -137,7 +137,10 @@ async function call(area, extra) {
   const harnessSrc = fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8');
   const fetchCount = (js.body.match(/fetch\(/g) || []).length;
   const harnessFetches = harnessSrc.match(/window\.fetch\(/g) || [];
-  check('app.js has exactly two fetch call sites: talk.js and harness.js', fetchCount === 2 && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && harnessFetches.length === 1);
+  const voiceSrc = fs.readFileSync(path.join(root, 'api/os/_client/voice.js'), 'utf8');
+  const voiceFetches = voiceSrc.match(/window\.fetch\(/g) || [];
+  // Jarvis adds two: a same-origin POST helper (voice session, ask_os) and the WebRTC offer to OpenAI Realtime.
+  check('app.js fetch call sites: talk.js, harness.js, and two in voice.js (same-origin helper, OpenAI Realtime offer)', fetchCount === 4 && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && harnessFetches.length === 1 && voiceFetches.length === 2 && /credentials: 'same-origin'/.test(voiceSrc) && /window\.fetch\('https:\/\/api\.openai\.com\/v1\/realtime\/calls/.test(voiceSrc));
   check('talk.js stays same-origin to /ops Talk paths', /credentials: 'same-origin'/.test(talkSrc) && !/https?:\/\//.test(talkSrc.replace(/\/\*[\s\S]*?\*\//, '')) && /'\/ops\/ceo-bridge\/'/.test(talkSrc) && /'\/ops\/desk-talk\/'/.test(talkSrc));
   check('harness.js stays same-origin to /ops/harness/', /credentials(?:\s*:\s*|\s*=\s*)'same-origin'/.test(harnessSrc) && /'\/ops\/harness\/'/.test(harnessSrc) && !/https?:\/\//.test(harnessSrc.replace(/\/\*[\s\S]*?\*\//, '')));
 
