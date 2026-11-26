@@ -31,7 +31,7 @@ function loadOS() {
 
 const { OS } = loadOS();
 check('harness is a registered view', Boolean(OS.views.harness && OS.views.harness.render));
-check('harness is in the nav and in More, not in the primary tabs', OS.nav.some((n) => n.id === 'harness') && OS.mobile.MORE.includes('harness') && !OS.mobile.TABS.includes('harness'));
+check('harness is a view under Chat (AI models tab), reachable from the Chat tab on phones', OS.nav.some((n) => n.id === 'harness') && OS.sectionOf('harness').id === 'chat' && OS.mobile.TABS.includes('chat'));
 check('harness shortcut is G A', OS.nav.find((n) => n.id === 'harness').hint === 'G A' && OS.nav.find((n) => n.id === 'harness').key === 'a');
 check('nav about is type-and-send, Gemini off', /Type a request/.test(OS.nav.find((n) => n.id === 'harness').about) && !/Gemini/.test(OS.nav.find((n) => n.id === 'harness').about.replace('Gemini is off.', '')));
 

@@ -30,12 +30,14 @@ const { osPage } = require(path.join(root, 'api/os/_page.js'));
 // ---- the phone tab bar ----------------------------------------------------------
 const { TABS, MORE } = OS.mobile;
 const ids = OS.nav.map((n) => n.id);
-check('four primary tabs, then More', TABS.join() === 'home,desks,decisions,outreach');
-check('More holds Notes, Brain, AI Council, Spend and Settings', ['notes', 'brain', 'council', 'spend', 'settings'].every((id) => MORE.includes(id)));
-check('Routines moved into More so it stays reachable', MORE.includes('routines') && !TABS.includes('routines'));
-check('every view is reachable on a phone, exactly once', ids.every((id) => TABS.concat(MORE).filter((x) => x === id).length === 1) && TABS.concat(MORE).length === ids.length);
+const sections = OS.sections;
+const sectionIds = sections.map((s) => s.id);
+check('four primary tabs (Home, Chat, Build, Decisions), then More', TABS.join() === 'home,chat,build,decisions');
+check('More holds Outreach, Money, Memory, Agents and Settings', ['outreach', 'money', 'memory', 'agents', 'settings'].every((id) => MORE.includes(id)));
+check('every section is on a phone exactly once', sectionIds.every((id) => TABS.concat(MORE).filter((x) => x === id).length === 1) && TABS.concat(MORE).length === sectionIds.length);
+check('every view belongs to exactly one section, so every view is reachable', ids.every((id) => sections.filter((s) => s.views.includes(id)).length === 1) && sections.reduce((n, s) => n + s.views.length, 0) === ids.length);
 check('tab bar renders a More button wired for assistive tech', ['id="tab-more"', 'aria-haspopup="dialog"', 'aria-expanded="false"', 'aria-controls="sheet"'].every((attr) => core.includes(attr)));
-check('More is marked active when the current view lives in it', /MORE\.indexOf\(cur\) !== -1 \? ' on' : ''/.test(core));
+check('More is marked active when the current view lives in it', /MORE\.indexOf\(active\) !== -1 \? ' on' : ''/.test(core) && /var active = sectionOf\(cur\)\.id/.test(core));
 check('the sheet closes on route change, Escape, scrim tap, second tap on More and widening past phone size', /closeMore\(\);\s*closeDrawer\(\)/.test(core) && /\$\('#sheet'\)\.classList\.contains\('on'\)\) \{ closeMore\(\)/.test(core) && /sheet-back/.test(core) && /if \(\$\('#sheet'\)\.classList\.contains\('on'\)\) closeMore\(\); else openMore\(\)/.test(core) && /innerWidth >= 760\) closeMore\(\)/.test(core));
 check('sheet items are real links, so navigation needs no extra code', core.includes('class="sheet-i') && core.includes("href=\"#' + id") && !/sheet-i[^;]*data-go/.test(core));
 
