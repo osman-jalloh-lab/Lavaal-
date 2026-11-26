@@ -412,3 +412,92 @@
 .os-root .bizsel{height:28px;border:1px solid var(--line2);border-radius:999px;background:var(--panel);color:var(--text);font:500 12px Inter,system-ui,sans-serif;padding:0 10px;margin-right:6px;max-width:150px}
 .os-root .bizsel:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .os-root .biznote{font-size:12px;color:var(--tx3);margin:-16px 0 16px}
+
+/* ---- Calendar: live Day / Week grid ---- */
+.os-root .cal-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.os-root .cal-bar .seg{display:inline-flex;gap:0}.os-root .cal-bar .seg .btn{border-radius:0;margin-left:-1px}.os-root .cal-bar .seg .btn:first-child{border-radius:var(--r-ctl) 0 0 var(--r-ctl);margin-left:0}.os-root .cal-bar .seg .btn:last-child{border-radius:0 var(--r-ctl) var(--r-ctl) 0}
+.os-root .cal-bar .seg .btn.on{background:var(--hover);border-color:var(--accent);color:var(--text);position:relative;z-index:1}
+.os-root .cal-range{font-family:var(--display,inherit);font-size:16px;font-weight:600;flex:1;min-width:0}
+.os-root .cal-card{overflow:hidden}
+.os-root .nownext{display:flex;flex-wrap:wrap;gap:8px 20px;padding:12px 16px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 9%,var(--panel)),var(--panel) 70%)}
+.os-root .nn{display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:wrap}.os-root .nn b{font-weight:600;overflow-wrap:anywhere}.os-root .nn .num{color:var(--tx2);font-size:12.5px}
+.os-root .nn-k{font:600 10.5px/18px var(--mono,monospace);letter-spacing:.08em;text-transform:uppercase;padding:0 6px;border-radius:4px;border:1px solid var(--line2);color:var(--tx2)}
+.os-root .nn-k.live{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent);background:color-mix(in srgb,var(--bad) 10%,transparent)}
+.os-root .nn-free{color:var(--tx2)}
+.os-root .cal-grid{display:flex;flex-direction:column;min-width:0}
+.os-root .cal-row-h{display:grid;border-bottom:1px solid var(--line)}.os-root .cal-row-h.ad{background:var(--bg2)}
+.os-root .cal-dh{padding:8px 6px;text-align:center;font-size:12px;color:var(--tx2);border-left:1px solid var(--line)}
+.os-root .cal-dh.today{color:var(--accent);font-weight:600}
+.os-root .cal-gut{font-size:10.5px;color:var(--tx3);padding:6px 4px;text-align:right}
+.os-root .cal-ad{border-left:1px solid var(--line);padding:4px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.os-root .cal-adev{font-size:11.5px;padding:2px 6px;border-radius:4px;background:color-mix(in srgb,var(--c-violet) 18%,var(--panel));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.os-root .cal-scroll{max-height:min(68vh,640px);overflow-y:auto;overscroll-behavior:contain}
+.os-root .cal-body{display:grid;position:relative}
+.os-root .cal-hours span{display:block;font-size:10.5px;color:var(--tx3);text-align:right;padding-right:6px;transform:translateY(-6px)}
+.os-root .cal-hours span:first-child{transform:none}
+.os-root .cal-col{position:relative;border-left:1px solid var(--line);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hour) - 1px),var(--line) calc(var(--hour) - 1px),var(--line) var(--hour));cursor:copy}
+.os-root .cal-col.today{background-color:color-mix(in srgb,var(--accent) 4%,transparent)}
+.os-root .cal-ev{position:absolute;display:flex;flex-direction:column;gap:1px;padding:3px 6px;border-radius:6px;overflow:hidden;font-size:11.5px;line-height:15px;color:var(--text);text-decoration:none;cursor:pointer;
+  background:color-mix(in srgb,var(--accent) 20%,var(--panel));border-left:3px solid var(--accent)}
+.os-root .cal-ev b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.os-root .cal-ev span{color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.os-root .cal-ev:hover{background:color-mix(in srgb,var(--accent) 30%,var(--panel))}
+.os-root .cal-ev.past{opacity:.55}
+.os-root .cal-ev.live{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,var(--panel))}
+.os-root .cal-now{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--bad);z-index:2;pointer-events:none}
+.os-root .cal-now::before{content:"";position:absolute;left:-5px;top:-6px;width:10px;height:10px;border-radius:50%;background:var(--bad)}
+.os-root .cal-soon{margin-left:auto;font-size:11.5px;color:var(--accent);white-space:nowrap}
+.os-root .cal-addw{padding:12px 16px}.os-root .cal-addw summary{cursor:pointer;font-weight:500}.os-root .cal-addw .cal-add{padding:10px 0 0}
+#home-cal .nownext{border-bottom:1px solid var(--line)}
+
+/* ---- Inbox: piles | messages | reading pane ---- */
+.os-root .mail-strip{display:flex;flex-wrap:wrap;gap:6px 18px;margin:4px 0 12px;color:var(--tx2);font-size:13px}.os-root .mail-strip b{color:var(--text);font-size:15px}
+.os-root .mail{display:grid;grid-template-columns:200px minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:start}
+.os-root .mail-piles{display:flex;flex-direction:column;gap:2px;position:sticky;top:8px}
+.os-root .mail-pile{display:flex;justify-content:space-between;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:var(--r-ctl);color:var(--tx2);text-align:left;border:1px solid transparent}
+.os-root .mail-pile:hover{background:var(--hover);color:var(--text)}
+.os-root .mail-pile.on{background:var(--hover);color:var(--text);border-color:var(--line2);box-shadow:inset 2px 0 0 var(--accent)}
+.os-root .mail-pile .num{color:var(--tx3);font-size:12px}.os-root .mail-pile.hot .num{color:var(--bg);background:var(--accent);border-radius:999px;padding:0 7px;line-height:18px;font-weight:600}
+.os-root .mail-list{overflow:hidden}
+.os-root .mail-q{width:100%;height:38px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);padding:0 14px;font:inherit}.os-root .mail-q:focus{outline:none;background:var(--bg2)}
+.os-root .mail-rows{max-height:min(70vh,720px);overflow-y:auto}
+.os-root .mail-row{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;min-width:0}
+.os-root .mail-row:last-child{border-bottom:0}.os-root .mail-row:hover{background:var(--hover)}
+.os-root .mail-row.on{background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+.os-root .mail-row.unread{box-shadow:inset 2px 0 0 var(--accent)}
+.os-root .mail-row.unread .inbox-from,.os-root .mail-row.unread .inbox-subj{font-weight:600;color:var(--text)}
+.os-root .mail-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.os-root .mail-main .inbox-subj,.os-root .mail-main .inbox-snip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.os-root .mail-main .inbox-open{display:none}
+.os-root .avatar{width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#0A0A14}
+.os-root .avatar.t-a{background:#00C2FF}.os-root .avatar.t-b{background:#00F5A0}.os-root .avatar.t-c{background:#FFE03D}.os-root .avatar.t-d{background:#8B7BFF;color:#fff}.os-root .avatar.t-e{background:#FF8A3C}
+.os-root .mail-pane{position:sticky;top:8px}
+.os-root .mail-read{padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.os-root .mail-read.empty{color:var(--tx3);padding:40px 20px;text-align:center}
+.os-root .mail-rh{display:flex;align-items:center;gap:10px}.os-root .mail-rwho{flex:1;min-width:0;display:flex;flex-direction:column}.os-root .mail-rwho small{color:var(--tx3);overflow-wrap:anywhere}
+.os-root .mail-rsubj{font-family:var(--display,inherit);font-size:19px;line-height:1.3;font-weight:600;margin:4px 0 0;overflow-wrap:anywhere}
+.os-root .mail-rbody{color:var(--tx2);line-height:1.6;padding:12px 14px;border-radius:var(--r-ctl);background:var(--bg2);border:1px solid var(--line);overflow-wrap:anywhere;white-space:pre-wrap}
+.os-root .mail-acts{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:1100px){.os-root .mail{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.os-root .mail-piles{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;position:static}.os-root .mail-pile{height:30px}}
+@media(max-width:759px){.os-root .mail{grid-template-columns:minmax(0,1fr)}.os-root .mail-pane{position:static}.os-root .mail-rows{max-height:none}
+  .os-root .cal-scroll{max-height:60vh}.os-root .cal-ev span{display:none}}
+
+/* ---- End of day and launch countdowns ---- */
+.os-root .launches{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:12px 0}
+.os-root .launch{padding:14px 16px;display:flex;flex-direction:column;gap:4px;background:linear-gradient(135deg,color-mix(in srgb,var(--sun) 12%,var(--panel)),var(--panel) 70%);border-color:color-mix(in srgb,var(--sun) 30%,var(--line))}
+.os-root .launch .tag{align-self:flex-start}
+.os-root .launch-n{font-family:var(--display,inherit);font-size:30px;font-weight:800;line-height:1.1}
+.os-root .launch.soon .launch-n{color:var(--sun-ink)}
+.os-root .launch-s{color:var(--tx2);font-size:12.5px}
+.os-root .rc-form{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.os-root .rc-form textarea{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-ctl);color:var(--text);font:inherit;padding:9px 10px;resize:vertical}
+.os-root .rc-form textarea:focus{outline:none;border-color:var(--accent)}
+.os-root .rc-fa{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.os-root .rc-day{margin-top:20px}.os-root .rc-grid{align-items:start}
+.os-root .rc{padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.os-root .rc.mine{border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+.os-root .rc.blocked{border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
+.os-root .rc-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.os-root .rc-t{margin-left:auto;color:var(--tx3);font-size:12px}
+.os-root .rc-part span{display:block;font:600 10.5px/16px var(--mono,monospace);letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
+.os-root .rc-part p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--tx2)}
+.os-root .rc-part.h p{color:var(--text)}.os-root .rc-part.x span{color:var(--bad)}.os-root .rc-part.b span{color:var(--ok)}
+@media(max-width:759px){.os-root .aibar{display:none}.os-root .bizsel{max-width:128px;margin-right:2px}.os-root .hdr-r{min-width:0}}

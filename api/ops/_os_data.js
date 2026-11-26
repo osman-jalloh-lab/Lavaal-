@@ -20,7 +20,7 @@ const path = require('path');
 const { STORE_KEY } = require('./_store');
 const { OFFICE_AGENTS } = require('./_office');
 const { readRoutineHealthView } = require('./_routine_health');
-const { briefView, buildLogView, deskStatusView, healthView, notesView, notePackRow, outreachView, readFeeds, spendRows, validate } = require('./_os_feeds');
+const { briefView, buildLogView, recapView, deskStatusView, healthView, notesView, notePackRow, outreachView, readFeeds, spendRows, validate } = require('./_os_feeds');
 const DATA_PACK = require('../os/_data/index.js');
 
 // Where each widget's data comes from today. `live` is set per load.
@@ -39,6 +39,7 @@ const SOURCES = Object.freeze({
   skills: { label: 'Skills', from: 'skills.json in the LAVAALL OS data pack' },
   rules: { label: 'Founder rules', from: 'rules.json in the LAVAALL OS data pack (matched by FR id)' },
   settings: { label: 'Connections', from: 'presence of existing env var names only' },
+  recap: { label: 'Daily recap', from: 'the daily-recap feed (each agent posts what happened today, with the bridge secret); none has been received yet' },
   build: { label: 'Build log', from: 'the build-log feed (what Claude and the agents are building, posted with the bridge secret); none has been received yet' },
   harness: { label: 'Harness chat', from: 'tools/lavaall-ai/projects.json (grouped from the Projects index snapshot) and bundled handoff snapshots; chat runs through /ops/harness on this deployment' },
 });
@@ -530,6 +531,9 @@ function harnessFrom(env, pack) {
   const groups = groupsIn.map((g) => ({
     id: text(g && g.id, 80),
     label: text((g && g.label) || (g && g.id), 120),
+    // Optional go-live date (YYYY-MM-DD) and one-line goal, shown as a launch countdown on Home and Progress.
+    launch: /^\d{4}-\d{2}-\d{2}$/.test(String(g && g.launch || '')) ? g.launch : '',
+    goal: text(g && g.goal, 160),
     projects: list.filter((p) => p.group === text(g && g.id, 80)),
   })).filter((g) => g.id);
   const status = [
@@ -618,6 +622,7 @@ function buildOsData(sources, opts) {
     settings: settingsFrom(env),
     harness: harnessFrom(env, opts && opts.harnessPack),
     build: buildLogView(feeds.build),
+    recap: recapView(feeds.recap),
   };
   data.sources = Object.keys(SOURCES).reduce((out, key) => {
     const live = key === 'desks' || key === 'settings'
@@ -635,6 +640,7 @@ function buildOsData(sources, opts) {
                     : key === 'skills' ? data.skills !== null
                       : key === 'rules' ? data.rules !== null
                         : key === 'build' ? data.build !== null
+                        : key === 'recap' ? data.recap !== null
                         : key === 'harness' ? Boolean(data.harness && data.harness.projects && data.harness.projects.length)
                           : false;
     out[key] = Object.assign({ live }, SOURCES[key]);
