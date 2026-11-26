@@ -411,6 +411,14 @@
       renderSetup();
       if (meta) meta.textContent = metaLine(currentProject());
       loadHistory();
+      // A question from Home's "Ask anything": open Chat, pick the routed model, fill the request. Sending stays a click.
+      var ask = OS.takeAsk ? OS.takeAsk() : null;
+      if (ask) {
+        showTab('chat');
+        var pickBtn = root.querySelector('.harness-pick[data-harness="' + ask.harness + '"]');
+        if (pickBtn) pickBtn.click();
+        if (input) { input.value = ask.text; input.focus(); }
+      }
     }
   });
 })();

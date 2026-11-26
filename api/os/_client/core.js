@@ -92,6 +92,43 @@
   OS.data = readData();
   OS.nav = NAV;
   OS.sections = SECTIONS;
+
+  // ---- Ask anything: route a question to the best ready model, then open AI models with it filled in ----
+  // Simple, visible rules (no extra model call): code work -> Codex, quick text jobs -> DeepSeek (cheapest),
+  // news and X/trends -> Grok, everything else -> Claude. A model whose key is missing is skipped.
+  var ASK_ORDER = ['claude', 'codex', 'deepseek', 'grok'];
+  OS.routeAsk = function (text) {
+    var t = String(text || '');
+    var pick = /\b(code|coding|bug|fix|refactor|pr|pull request|deploy|build|test|tests|function|api|repo|github|script)\b/i.test(t) ? 'codex'
+      : /\b(grok|x\.com|twitter|tweet|trend|trending|news)\b/i.test(t) ? 'grok'
+        : /\b(translate|summari[sz]e|summary|rewrite|shorten|list|quick)\b/i.test(t) ? 'deepseek'
+          : 'claude';
+    var status = (OS.data.harness && OS.data.harness.status) || [];
+    var ready = {};
+    status.forEach(function (s) { ready[s.id] = s.state === 'ready'; });
+    if (!status.length || ready[pick]) return pick;
+    for (var i = 0; i < ASK_ORDER.length; i++) if (ready[ASK_ORDER[i]]) return ASK_ORDER[i];
+    return pick;
+  };
+  var pendingAsk = null;
+  OS.ask = function (text) {
+    var q = String(text || '').trim();
+    if (!q) return;
+    pendingAsk = { text: q.slice(0, 8000), harness: OS.routeAsk(q) };
+    OS.go('harness');
+  };
+  OS.takeAsk = function () { var a = pendingAsk; pendingAsk = null; return a; };
+
+  // ---- AI bar: which models are connected, at a glance, on every page ----
+  OS.aiBar = function () {
+    var status = (OS.data.harness && OS.data.harness.status) || [];
+    if (!status.length) return '';
+    return status.map(function (s) {
+      var ok = s.state === 'ready';
+      return '<a class="aichip' + (ok ? ' ok' : '') + '" href="#harness" title="' + esc(s.label + ': ' + (s.detail || s.state)) + '"><i aria-hidden="true"></i>' + esc(s.label.split(' ')[0]) +
+        '<span class="sr">' + (ok ? ' connected' : ' not connected') + '</span></a>';
+    }).join('');
+  };
   OS.sectionOf = sectionOf;
   OS.esc = esc;
   OS.icon = icon;
@@ -455,6 +492,8 @@
     });
 
     window.addEventListener('hashchange', render);
+    var bar = $('#aibar');
+    if (bar) bar.innerHTML = OS.aiBar();
     tickClock();
     setInterval(tickClock, 30000);
     render();

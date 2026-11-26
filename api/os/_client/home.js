@@ -178,6 +178,12 @@
       return '<div class="ph"><div><h1>' + esc(greeting()) + '</h1><p>' + esc(subtitle(d)) + '</p></div>' +
         '<div class="r"><button class="btn" type="button" id="home-cmd">' + icon('command') + 'Commands <kbd>⌘K</kbd></button>' +
         '<button class="btn pri" type="button" id="home-review">Review approvals</button></div></div>' +
+        '<form class="card askbar" id="home-ask" autocomplete="off">' +
+          '<label class="sr" for="home-ask-input">Ask anything</label>' +
+          '<input id="home-ask-input" type="text" maxlength="8000" placeholder="Ask anything. Claude, Codex, DeepSeek or Grok picks it up." />' +
+          '<span class="askroute" id="home-ask-route" aria-live="polite"></span>' +
+          '<button class="btn pri" type="submit">Ask</button>' +
+        '</form>' +
         '<div class="grid g4">' +
           kpi('b', 'Awaiting approval', k.awaitingApproval, 'pending proposals') +
           kpi('v', 'Open decisions', k.openDecisions, k.openDecisions == null ? 'no decision log yet' : 'from the decision log') +
@@ -195,6 +201,17 @@
       (ctx.data.approvals || []).forEach(function (a) { byId[a.id] = a; });
       var cmd = root.querySelector('#home-cmd');
       if (cmd) cmd.addEventListener('click', OS.openPalette);
+      var askForm = root.querySelector('#home-ask');
+      var askInput = root.querySelector('#home-ask-input');
+      var askRoute = root.querySelector('#home-ask-route');
+      var NAMES = { claude: 'Claude', codex: 'Codex', deepseek: 'DeepSeek', grok: 'Grok' };
+      if (askInput && askRoute) askInput.addEventListener('input', function () {
+        askRoute.textContent = askInput.value.trim() ? 'to ' + (NAMES[OS.routeAsk(askInput.value)] || '') : '';
+      });
+      if (askForm) askForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (askInput && askInput.value.trim()) OS.ask(askInput.value);
+      });
       var review = root.querySelector('#home-review');
       if (review) review.addEventListener('click', function () {
         var target = root.querySelector('#approvals-card');
