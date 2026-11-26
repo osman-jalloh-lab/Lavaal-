@@ -61,9 +61,9 @@
           "label": "LAVAALL OS Revamp",
           "group": "lavaall",
           "category": "LAVAALL Web and Products",
-          "summary": "Stage 1 approved; draft only. 8 Nov: Stage 1 approved (mock data, flag off). Draft PR #73 open, no merge. 10 Nov check-in still had polish waiting behind #75.",
+          "summary": "25 Nov 2026 (verified on GitHub and Vercel): /os is live with the grouped sidebar in the LAVAALL brand (PR #115), AI bar and Ask anything (#116), Jarvis voice (#117), Build page and build-log feed (#114), Progress and saved Memory (#119), token diet for AI models chat (#113). Inbox (#118) is built but waits on connecting the right Gmail account. Handoff: docs/os/HANDOFF-AGENTIC-OS.md (#120). Earlier: Stage 1 approved; draft only. 8 Nov: Stage 1 approved (mock data, flag off). Draft PR #73 open, no merge. 10 Nov check-in still had polish waiting behind #75.",
           "aliases": "OS revamp, Needs You, PR 73, /ops dashboard, Stage 1",
-          "status": "Stage 1 approved; draft only",
+          "status": "Live: agentic OS build in progress",
           "handoff_snapshot": ""
         },
         {
@@ -177,9 +177,9 @@
           "label": "SaloneWorks",
           "group": "saloneworks",
           "category": "SaloneWorks",
-          "summary": "Active, real CVs blocked. 12 Nov 6:22 PM CT: ranking-hardening local PASS; stacked draft PRs #9/#10/#11 open, no merge. Public preview is off.",
+          "summary": "25 Nov 2026 (verified on GitHub): merged #71 (each CV scanned once; a scanner hiccup no longer loses an application), #72 (GitHub Actions: full pytest + Postgres 16 migrations), #69 (listing expiry), #70 (share-consent wording, migration 0025). 21 stale or superseded PRs closed. Open: #42 (visual polish), #32 (reference only). Launch gaps: Tailwind Play CDN, two placeholder candidate pages, placeholder logo. Earlier: Active, real CVs blocked. 12 Nov 6:22 PM CT: ranking-hardening local PASS; stacked draft PRs #9/#10/#11 open, no merge. Public preview is off.",
           "aliases": "salon walks, Salone Works, SL jobs, CV ranking, SW",
-          "status": "Active, real CVs blocked",
+          "status": "Active; CI on, launch gaps open",
           "handoff_snapshot": ""
         }
       ]
@@ -209,9 +209,9 @@
           "label": "SaloneHire",
           "group": "salonehire",
           "category": "SaloneWorks",
-          "summary": "Recruitment MVP on feature/interview-tools. Shared AI handoff is in tools/lavaall-ai/handoffs/salonehire.md.",
+          "summary": "25 Nov 2026 (verified on GitHub): interview tools (#65) and listing-expiry job (#66) are in the MVP branch; #69, #70, #71 and #72 merged today, so every PR now runs the tests automatically. Launch gaps: Tailwind Play CDN, two placeholder candidate pages, placeholder logo. Deploy target: Cloud Run (deploy/cloudrun/). Earlier: Recruitment MVP on feature/interview-tools. Shared AI handoff is in tools/lavaall-ai/handoffs/salonehire.md.",
           "aliases": "Salone Hire, salon hire, SL hire",
-          "status": "Active",
+          "status": "Active; CI on, launch gaps open",
           "handoff_snapshot": "handoffs/salonehire.md",
           "repo": "/workspace/sw-interview-1121",
           "branch": "feature/interview-tools",
@@ -277,9 +277,9 @@
       "label": "LAVAALL OS Revamp",
       "group": "lavaall",
       "category": "LAVAALL Web and Products",
-      "summary": "Stage 1 approved; draft only. 8 Nov: Stage 1 approved (mock data, flag off). Draft PR #73 open, no merge. 10 Nov check-in still had polish waiting behind #75.",
+      "summary": "25 Nov 2026 (verified on GitHub and Vercel): /os is live with the grouped sidebar in the LAVAALL brand (PR #115), AI bar and Ask anything (#116), Jarvis voice (#117), Build page and build-log feed (#114), Progress and saved Memory (#119), token diet for AI models chat (#113). Inbox (#118) is built but waits on connecting the right Gmail account. Handoff: docs/os/HANDOFF-AGENTIC-OS.md (#120). Earlier: Stage 1 approved; draft only. 8 Nov: Stage 1 approved (mock data, flag off). Draft PR #73 open, no merge. 10 Nov check-in still had polish waiting behind #75.",
       "aliases": "OS revamp, Needs You, PR 73, /ops dashboard, Stage 1",
-      "status": "Stage 1 approved; draft only",
+      "status": "Live: agentic OS build in progress",
       "handoff_snapshot": ""
     },
     {
@@ -387,9 +387,9 @@
       "label": "SaloneWorks",
       "group": "saloneworks",
       "category": "SaloneWorks",
-      "summary": "Active, real CVs blocked. 12 Nov 6:22 PM CT: ranking-hardening local PASS; stacked draft PRs #9/#10/#11 open, no merge. Public preview is off.",
+      "summary": "25 Nov 2026 (verified on GitHub): merged #71 (each CV scanned once; a scanner hiccup no longer loses an application), #72 (GitHub Actions: full pytest + Postgres 16 migrations), #69 (listing expiry), #70 (share-consent wording, migration 0025). 21 stale or superseded PRs closed. Open: #42 (visual polish), #32 (reference only). Launch gaps: Tailwind Play CDN, two placeholder candidate pages, placeholder logo. Earlier: Active, real CVs blocked. 12 Nov 6:22 PM CT: ranking-hardening local PASS; stacked draft PRs #9/#10/#11 open, no merge. Public preview is off.",
       "aliases": "salon walks, Salone Works, SL jobs, CV ranking, SW",
-      "status": "Active, real CVs blocked",
+      "status": "Active; CI on, launch gaps open",
       "handoff_snapshot": ""
     },
     {
@@ -407,9 +407,9 @@
       "label": "SaloneHire",
       "group": "salonehire",
       "category": "SaloneWorks",
-      "summary": "Recruitment MVP on feature/interview-tools. Shared AI handoff is in tools/lavaall-ai/handoffs/salonehire.md.",
+      "summary": "25 Nov 2026 (verified on GitHub): interview tools (#65) and listing-expiry job (#66) are in the MVP branch; #69, #70, #71 and #72 merged today, so every PR now runs the tests automatically. Launch gaps: Tailwind Play CDN, two placeholder candidate pages, placeholder logo. Deploy target: Cloud Run (deploy/cloudrun/). Earlier: Recruitment MVP on feature/interview-tools. Shared AI handoff is in tools/lavaall-ai/handoffs/salonehire.md.",
       "aliases": "Salone Hire, salon hire, SL hire",
-      "status": "Active",
+      "status": "Active; CI on, launch gaps open",
       "handoff_snapshot": "handoffs/salonehire.md",
       "repo": "/workspace/sw-interview-1121",
       "branch": "feature/interview-tools",
