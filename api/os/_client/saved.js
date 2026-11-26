@@ -5,7 +5,14 @@
   var OS = window.OS;
   var esc = OS.esc;
   var HORIZONS = [{ id: 'week', label: 'This week' }, { id: 'month', label: 'This month' }, { id: 'quarter', label: 'This quarter' }];
-  var PROJECTS = { lavaall: 'LAVAALL', salonehire: 'SaloneHire', saloneworks: 'SaloneWorks', personal: 'Personal', other: 'Other' };
+  var PROJECTS = { lavaall: 'LAVAALL', saloneworks: 'SaloneWorks', salonehire: 'SaloneHire' };
+  // Other businesses come from the server's project groups (OS.businesses); then Personal and Other.
+  (OS.businesses || []).forEach(function (b) { if (b.id !== 'all' && !PROJECTS[b.id]) PROJECTS[b.id] = b.label; });
+  PROJECTS.personal = 'Personal';
+  PROJECTS.other = 'Other';
+  // Personal and Other goals belong to no business, so they show only under All businesses.
+  function goalShown(g) { var b = OS.business ? OS.business() : 'all'; return b === 'all' || g.project === b; }
+  function memoryShown(m) { var b = OS.business ? OS.business() : 'all'; return b === 'all' || m.tags.indexOf(b) !== -1; }
   var state = null;
   var listeners = [];
 
@@ -41,7 +48,7 @@
   function progressBody() {
     if (!state) return '<div class="card empty"><b>Loading your goals…</b></div>';
     return '<div class="grid g3 pg-cols">' + HORIZONS.map(function (h) {
-      var goals = state.goals.filter(function (g) { return g.horizon === h.id; });
+      var goals = state.goals.filter(function (g) { return g.horizon === h.id && goalShown(g); });
       var avg = goals.length ? Math.round(goals.reduce(function (n, g) { return n + g.progress; }, 0) / goals.length) : null;
       return '<section class="card"><div class="ch"><h3>' + esc(h.label) + '</h3><div class="r"><span class="num">' + (avg == null ? '—' : avg + '%') + '</span></div></div>' +
         (goals.length ? goals.map(goalRow).join('') : '<div class="empty"><b>No goals yet.</b></div>') + '</section>';
@@ -53,7 +60,7 @@
         '<form class="card pg-add" id="pg-add" autocomplete="off">' +
           '<label class="sr" for="pg-title">New goal</label><input id="pg-title" maxlength="160" placeholder="Add a goal, for example: launch SaloneHire in Freetown" required />' +
           '<label class="sr" for="pg-horizon">When</label><select id="pg-horizon">' + HORIZONS.map(function (h) { return '<option value="' + h.id + '">' + esc(h.label) + '</option>'; }).join('') + '</select>' +
-          '<label class="sr" for="pg-project">Project</label><select id="pg-project">' + Object.keys(PROJECTS).map(function (k) { return '<option value="' + k + '">' + esc(PROJECTS[k]) + '</option>'; }).join('') + '</select>' +
+          '<label class="sr" for="pg-project">Project</label><select id="pg-project">' + Object.keys(PROJECTS).map(function (k) { return '<option value="' + k + '"' + (OS.business && OS.business() === k ? ' selected' : '') + '>' + esc(PROJECTS[k]) + '</option>'; }).join('') + '</select>' +
           '<button class="btn pri" type="submit">Add goal</button></form>' +
         '<div id="pg-body" class="mt">' + progressBody() + '</div>' +
         '<p class="note" id="pg-msg" role="status" aria-live="polite"></p>';
@@ -93,7 +100,7 @@
   function memoryBody() {
     if (!state) return '<div class="card empty"><b>Loading your memories…</b></div>';
     var q = query.toLowerCase();
-    var list = state.memories.filter(function (m) { return !q || (m.text + ' ' + m.tags.join(' ')).toLowerCase().indexOf(q) !== -1; });
+    var list = state.memories.filter(function (m) { return memoryShown(m) && (!q || (m.text + ' ' + m.tags.join(' ')).toLowerCase().indexOf(q) !== -1); });
     return '<section class="card">' + (list.length ? list.map(function (m) {
       return '<div class="mem-row" data-id="' + esc(m.id) + '"><p class="mem-text">' + esc(m.text) + '</p><div class="mem-meta"><span class="num">' + esc(OS.fmtTime(m.createdAt)) + '</span>' +
         m.tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
@@ -119,7 +126,10 @@
       root.querySelector('#mem-add').addEventListener('submit', function (e) {
         e.preventDefault();
         var t = root.querySelector('#mem-text'), tags = root.querySelector('#mem-tags');
-        OS.saved.op({ op: 'memory.add', text: t.value, tags: tags.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean) })
+        var tagList = tags.value.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+        var b = OS.business ? OS.business() : 'all';
+        if (b !== 'all' && tagList.indexOf(b) === -1) tagList.unshift(b);
+        OS.saved.op({ op: 'memory.add', text: t.value, tags: tagList })
           .then(function () { t.value = ''; tags.value = ''; if (msg) msg.textContent = 'Saved.'; }).catch(fail);
       });
       root.querySelector('#mem-q').addEventListener('input', function (e) { query = e.target.value; paint(); });

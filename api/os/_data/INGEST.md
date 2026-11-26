@@ -91,7 +91,7 @@ curl -sS -X POST https://www.lavaall.com/api/os/ingest/notes \
 `[{id, project, status, title, detail, url, updated}]`, 1 to 100 items. It fills the **Build** page: what Claude and the agents are building, in four lanes (Waiting on you, In progress, Done, Up next). **Each post replaces the whole log**, so send every item you want shown.
 
 - `id`: lowercase letters, digits and hyphens, up to 60 characters, unique in the post.
-- `project`: `lavaall-os`, `salonehire`, `saloneworks`, `agents` or `website`.
+- `project`: `lavaall-os`, `salonehire`, `saloneworks`, `agents`, `website`, or any project group id in `tools/lavaall-ai/projects.json`. The OS groups them by business: LAVAALL (`lavaall-os`, `website`, `agents`), SaloneWorks, SaloneHire, and each other project group.
 - `status`: `waiting` (needs Osman), `active`, `done` or `next`.
 - `title`: 1 to 140 characters, one line. `detail`: up to 600 characters (`""` for none); line breaks are kept.
 - `url`: an `https://` link (a pull request, a preview), or `""`.

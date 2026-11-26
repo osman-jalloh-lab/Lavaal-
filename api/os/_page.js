@@ -66,6 +66,7 @@ function osPage({ email, data }) {
   <header>
     <div class="crumb">LAVAALL / <b id="crumb">Home</b></div>
     <div class="hdr-r">
+      <label class="sr" for="bizsel">Business</label><select class="bizsel" id="bizsel"></select>
       <nav class="aibar hide-m" id="aibar" aria-label="AI models"></nav>
       <span class="clock hide-m" id="clock"></span>
       <button class="ib" id="hdr-pal" type="button" title="Command palette" aria-label="Command palette"></button>

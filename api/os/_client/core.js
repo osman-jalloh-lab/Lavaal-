@@ -100,6 +100,38 @@
   OS.nav = NAV;
   OS.sections = SECTIONS;
 
+  // ---- Business switch: All, or one of Osman's businesses. Filters Build, Progress, Memory and AI models chat.
+  // Remembered per browser (a convenience only; nothing is stored on the server).
+  // Fixed businesses, plus any other project group from the harness pack (its name comes from the server data).
+  var BUSINESSES = [
+    { id: 'all', label: 'All businesses' },
+    { id: 'lavaall', label: 'LAVAALL' },
+    { id: 'saloneworks', label: 'SaloneWorks' },
+    { id: 'salonehire', label: 'SaloneHire' }
+  ];
+  ((OS.data.harness && OS.data.harness.groups) || []).forEach(function (g) {
+    var id = String(g && g.id || '');
+    if (/^[a-z0-9-]{2,40}$/.test(id) && !BUSINESSES.some(function (b) { return b.id === id; })) BUSINESSES.push({ id: id, label: String(g.label || id) });
+  });
+  // Which business a Build item or goal belongs to, from its project id.
+  var BUSINESS_OF = { 'lavaall-os': 'lavaall', website: 'lavaall', agents: 'lavaall', lavaall: 'lavaall', saloneworks: 'saloneworks', salonehire: 'salonehire' };
+  BUSINESSES.forEach(function (b) { if (b.id !== 'all' && !BUSINESS_OF[b.id]) BUSINESS_OF[b.id] = b.id; });
+  var business = 'all';
+  try { var saved = localStorage.getItem('os-business'); if (saved && BUSINESS_OF[saved] || saved === 'all') business = saved || 'all'; } catch (e) { /* default */ }
+  OS.businesses = BUSINESSES;
+  OS.businessOf = function (project) { return BUSINESS_OF[project] || 'lavaall'; };
+  OS.business = function () { return business; };
+  OS.inBusiness = function (project) { return business === 'all' || OS.businessOf(project) === business; };
+  OS.setBusiness = function (id) {
+    if (!BUSINESSES.some(function (b) { return b.id === id; })) return;
+    business = id;
+    try { localStorage.setItem('os-business', id); } catch (e) { /* per-browser only */ }
+    var sel = $('#bizsel');
+    if (sel) sel.value = id;
+    render();
+  };
+  OS.businessLabel = function (id) { var want = id || business; var hit = BUSINESSES.filter(function (b) { return b.id === want; })[0]; return hit ? hit.label : want; };
+
   // ---- Ask anything: route a question to the best ready model, then open AI models with it filled in ----
   // Simple, visible rules (no extra model call): code work -> Codex, quick text jobs -> DeepSeek (cheapest),
   // news and X/trends -> Grok, everything else -> Claude. A model whose key is missing is skipped.
@@ -501,6 +533,11 @@
     window.addEventListener('hashchange', render);
     var bar = $('#aibar');
     if (bar) bar.innerHTML = OS.aiBar();
+    var biz = $('#bizsel');
+    if (biz) {
+      biz.innerHTML = BUSINESSES.map(function (b) { return '<option value="' + b.id + '"' + (b.id === business ? ' selected' : '') + '>' + esc(b.label) + '</option>'; }).join('');
+      biz.addEventListener('change', function () { OS.setBusiness(biz.value); });
+    }
     if (OS.mountJarvis) OS.mountJarvis(doc.body);
     tickClock();
     setInterval(tickClock, 30000);

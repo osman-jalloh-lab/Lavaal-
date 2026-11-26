@@ -407,3 +407,8 @@
 .os-root .cal-row{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;padding:10px 16px;border-bottom:1px solid var(--line)}.os-root .cal-row:last-child{border-bottom:0}
 .os-root .cal-when{color:var(--tx2);font-size:12.5px;min-width:150px}.os-root .cal-title{font-weight:500;flex:1;min-width:0;overflow-wrap:anywhere}
 .os-root .cal-where{color:var(--tx3);font-size:12px}.os-root .cal-open{color:var(--accent);font-size:12px}
+
+/* Business switch in the header */
+.os-root .bizsel{height:28px;border:1px solid var(--line2);border-radius:999px;background:var(--panel);color:var(--text);font:500 12px Inter,system-ui,sans-serif;padding:0 10px;margin-right:6px;max-width:150px}
+.os-root .bizsel:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.os-root .biznote{font-size:12px;color:var(--tx3);margin:-16px 0 16px}
