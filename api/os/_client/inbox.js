@@ -55,9 +55,12 @@
     render: function () {
       return '<div class="ph"><div><h1>Inbox</h1><p>Your business Gmail, sorted into piles. Read-only: nothing is sent or changed from here.</p></div>' +
         '<div class="r"><button class="btn" type="button" id="inbox-refresh">Refresh</button></div></div>' +
-        '<div id="inbox-body">' + body(last) + '</div>';
+        '<div id="gpanel">' + (OS.googlePanel ? OS.googlePanel() : '') + '</div>' +
+        '<div id="inbox-body" class="mt">' + body(last) + '</div>' + (OS.draftForm ? OS.draftForm() : '');
     },
     mount: function (root) {
+      if (OS.mountGooglePanel) OS.mountGooglePanel(root);
+      if (OS.mountDraftForm) OS.mountDraftForm(root);
       load(root, false);
       root.addEventListener('click', function (e) {
         var chip = e.target.closest ? e.target.closest('[data-pile]') : null;
