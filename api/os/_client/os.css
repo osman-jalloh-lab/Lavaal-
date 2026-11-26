@@ -1,17 +1,17 @@
 /* LAVAALL OS (/os) styles. Served from /os/app.css by api/os/index.js.
    Every token lives under .os-root, so nothing here can reach /ops (Option I palette v2).
-   Dark tokens: docs/os/DECISIONS.md and jack-palette.md. Light tokens: prototype. */
+   Tokens follow the LAVAALL brand (sun, sky, lime, coral, ink, off-white from assets/css/main.css). */
 
-.os-root[data-theme=dark]{--bg:#060D16;--bg2:#040B13;--panel:#0A1522;--hover:#0C1E30;--line:rgba(140,170,210,.12);--line2:rgba(140,170,210,.2);--text:#E7EEF7;--tx2:#9AA9BD;--muted:#8696AB;--tx3:#66768C;--accent:#1E9BFF;--ok:#22C37A;--warn:#E3AE2A;--bad:#F2554A;--c-orange:#F07A2A;--c-violet:#7C6CF2;--c-amber:#FFB904;--c-skill:#3D6BFF;--c-note:#D0A368;--ok-fill:#042C21;--scrim:rgba(0,0,0,.4)}
-.os-root[data-theme=light]{--bg:#F6F8FB;--bg2:#EEF2F7;--panel:#FFFFFF;--hover:#E8EEF6;--line:#DDE4EE;--line2:#CBD5E2;--text:#0B1320;--tx2:#4A5A70;--muted:#5C6B80;--tx3:#7D8BA0;--accent:#0B7FE0;--ok:#119A5C;--warn:#A87B0A;--bad:#D23C32;--c-orange:#D9631A;--c-violet:#5B4BD8;--c-amber:#C98A00;--c-skill:#2F57E0;--c-note:#9C7440;--ok-fill:#D5F2E4;--scrim:rgba(11,19,32,.25)}
-.os-root{--r-card:10px;--r-ctl:6px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:dark}
+.os-root[data-theme=dark]{--bg:#0A0A14;--bg2:#07070F;--panel:#121221;--hover:#1B1B2E;--line:rgba(244,249,255,.08);--line2:rgba(244,249,255,.15);--text:#F4F9FF;--tx2:#A9B4C6;--muted:#8E9AAE;--tx3:#6E7A8E;--accent:#00C2FF;--ok:#00F5A0;--warn:#FFE03D;--bad:#FF5C5C;--c-orange:#FF8A3C;--c-violet:#8B7BFF;--c-amber:#FFE03D;--c-skill:#00C2FF;--c-note:#E2B97A;--ok-fill:#003D29;--scrim:rgba(0,0,0,.5);--sun:#FFE03D;--sun-ink:#FFE03D;--glow:rgba(0,194,255,.16)}
+.os-root[data-theme=light]{--bg:#F4F9FF;--bg2:#EAF2FC;--panel:#FFFFFF;--hover:#E3EEFA;--line:#D9E3F0;--line2:#C3D1E3;--text:#0A0A14;--tx2:#46536A;--muted:#5A6A80;--tx3:#76849A;--accent:#0089B8;--ok:#008F5D;--warn:#9A7A00;--bad:#D6363B;--c-orange:#D9631A;--c-violet:#5B4BD8;--c-amber:#9A7A00;--c-skill:#0089B8;--c-note:#9C7440;--ok-fill:#D3F7E9;--scrim:rgba(10,10,20,.25);--sun:#FFE03D;--sun-ink:#A37C00;--glow:rgba(0,137,184,.10)}
+.os-root{--r-card:14px;--r-ctl:8px;--display:"Bricolage Grotesque",Inter,system-ui,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:dark}
 .os-root[data-theme=light]{color-scheme:light}
 
 .os-root *{box-sizing:border-box;margin:0;padding:0}
 .os-root,.os-root body{height:100%}
-.os-root body{font:13px/20px Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;display:flex;overflow:hidden}
+.os-root body{font:13.5px/20px Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;display:flex;overflow:hidden}
 .os-root .num,.os-root td.n,.os-root .kpi b{font-variant-numeric:tabular-nums}
-.os-root h1,.os-root h2,.os-root h3{font-weight:600;letter-spacing:-.01em}
+.os-root h1,.os-root h2,.os-root h3{font-family:var(--display);font-weight:700;letter-spacing:-.015em}
 .os-root button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .os-root svg.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .os-root kbd{font:500 11px/16px var(--mono);color:var(--tx3);border:1px solid var(--line2);border-radius:4px;padding:0 4px;background:var(--bg2)}
@@ -323,3 +323,11 @@
 .os-root .subtabs a:hover{color:var(--text)}
 .os-root .subtabs a.on{color:var(--text);border-bottom-color:var(--accent)}
 .os-root .subtabs a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* LAVAALL brand touches: display face on titles and big numbers, a sun mark on the active section. */
+.os-root .ph h1{font-size:28px;line-height:34px}
+.os-root .kpi b{font-family:var(--display);font-weight:700}
+.os-root .brand small{color:var(--sun-ink)}
+.os-root .nav a.on svg{color:var(--sun-ink)}
+.os-root .subtabs a.on{border-bottom-color:var(--sun-ink)}
+.os-root main{background:radial-gradient(900px 420px at 85% -10%,var(--glow),transparent 70%),var(--bg)}
