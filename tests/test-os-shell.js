@@ -140,8 +140,12 @@ async function call(area, extra) {
   const voiceSrc = fs.readFileSync(path.join(root, 'api/os/_client/voice.js'), 'utf8');
   const voiceFetches = voiceSrc.match(/window\.fetch\(/g) || [];
   // Jarvis adds two: a same-origin POST helper (voice session, ask_os) and the WebRTC offer to OpenAI Realtime.
+  const inboxSrc = fs.readFileSync(path.join(root, 'api/os/_client/inbox.js'), 'utf8');
   const savedSrc = fs.readFileSync(path.join(root, 'api/os/_client/saved.js'), 'utf8');
-  check('app.js fetch call sites: talk.js, harness.js, saved.js (same-origin /ops/os/saved), and two in voice.js (same-origin helper, OpenAI Realtime offer)', fetchCount === 5 && (savedSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/saved'/.test(savedSrc) && /credentials: 'same-origin'/.test(savedSrc) && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && harnessFetches.length === 1 && voiceFetches.length === 2 && /credentials: 'same-origin'/.test(voiceSrc) && /window\.fetch\('https:\/\/api\.openai\.com\/v1\/realtime\/calls/.test(voiceSrc));
+  check('app.js fetch call sites: talk.js, harness.js, inbox.js (read-only GET), saved.js (/ops/os/saved), and two in voice.js (same-origin helper, OpenAI Realtime offer)', fetchCount === 6
+    && (inboxSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/inbox'/.test(inboxSrc) && !/method: 'POST'/.test(inboxSrc)
+    && (savedSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/saved'/.test(savedSrc) && /credentials: 'same-origin'/.test(savedSrc)
+    && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && harnessFetches.length === 1 && voiceFetches.length === 2 && /credentials: 'same-origin'/.test(voiceSrc) && /window\.fetch\('https:\/\/api\.openai\.com\/v1\/realtime\/calls/.test(voiceSrc));
   check('talk.js stays same-origin to /ops Talk paths', /credentials: 'same-origin'/.test(talkSrc) && !/https?:\/\//.test(talkSrc.replace(/\/\*[\s\S]*?\*\//, '')) && /'\/ops\/ceo-bridge\/'/.test(talkSrc) && /'\/ops\/desk-talk\/'/.test(talkSrc));
   check('harness.js stays same-origin to /ops/harness/', /credentials(?:\s*:\s*|\s*=\s*)'same-origin'/.test(harnessSrc) && /'\/ops\/harness\/'/.test(harnessSrc) && !/https?:\/\//.test(harnessSrc.replace(/\/\*[\s\S]*?\*\//, '')));
 
