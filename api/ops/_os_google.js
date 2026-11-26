@@ -104,6 +104,11 @@ async function google(fetchImpl, token, url, init) {
   return data;
 }
 
+// One JSON line per failure: the event, the route and Google's status code. Never a token, body or address.
+function logEvent(event, route, status) {
+  try { console.warn(JSON.stringify({ type: 'OsGoogle', event, route, status })); } catch { /* logging never breaks a request */ }
+}
+
 function clip(v, n) { return String(v || '').replace(/[\u0000-\u001F\u007F]+/g, ' ').trim().slice(0, n); }
 const EMAIL_RE = /^[^\s@<>,;"]+@[^\s@<>,;"]+\.[^\s@<>,;"]+$/;
 
@@ -164,7 +169,13 @@ async function handleOsGoogle(req, res, opts) {
     }
 
     if (route === 'os/google/status') {
-      const rec = await readRecord(env, fetchImpl);
+      let rec;
+      try { rec = await readRecord(env, fetchImpl); } catch {
+        // The store did not answer: say so, never "not connected" (that made the OS look disconnected on a refresh).
+        logEvent('status_store_unavailable', route, null);
+        json(res, 503, { error: 'store_unavailable', message: 'Could not check the Google connection. Retrying.' });
+        return true;
+      }
       json(res, 200, { connected: Boolean(rec && rec.enc), email: rec ? rec.email : '', scopes: rec ? rec.scopes : [], configured: Boolean(c.id && c.secret) });
       return true;
     }
@@ -233,6 +244,7 @@ async function handleOsGoogle(req, res, opts) {
   } catch (err) {
     // Say what went wrong in plain words, from Google's status code. Never echo Google's body or a token.
     const status = err && err.status;
+    logEvent(err && err.message === 'kv' ? 'store_unavailable' : 'google_error', route, status || null);
     const api = route.startsWith('os/calendar') ? 'Google Calendar API' : 'Gmail API';
     const message = status === 401 ? 'Google sign-in for the OS has expired or was removed. Disconnect, then Connect Google again.'
       : status === 403 ? `Google refused access. Check that the ${api} is enabled in your Google Cloud project, then Disconnect and Connect Google again so it asks for ${route.startsWith('os/calendar') ? 'Calendar' : 'Gmail'} permission.`

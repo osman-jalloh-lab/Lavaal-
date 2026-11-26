@@ -193,14 +193,12 @@
           "label": "Starlink",
           "group": "starlink",
           "category": "Starlink",
-          "summary": "26 Nov 2026: go-live target is 1 Dec 2026 (production). Not shown on the public LAVAALL website for now. The code lives in Osman's local folder, not in this repo, so the cloud OS tracks it through goals, the Build log and daily recaps. Grok (xAI) is the main front end that talks to the OS.",
+          "summary": "26 Nov 2026: not shown on the public LAVAALL website for now. The code lives in Osman's local folder, not in this repo, so the OS tracks it through goals, the Build log and daily recaps. No launch date set.",
           "aliases": "star link, Starlink v4, Starlink rulebook, NatCA",
-          "status": "Active: go live 1 Dec 2026",
+          "status": "Active (private; not on the website)",
           "handoff_snapshot": ""
         }
-      ],
-      "launch": "2026-12-01",
-      "goal": "Go live in production on 1 December 2026"
+      ]
     },
     {
       "id": "salonehire",
@@ -220,7 +218,9 @@
           "handoff": "/workspace/salonehire-ai/HANDOFF.md",
           "obsidian": "Projects/SaloneWorks/SaloneHire/ai-handoff.md"
         }
-      ]
+      ],
+      "launch": "2026-12-01",
+      "goal": "Launch SaloneHire in Sierra Leone on 1 December 2026"
     }
   ],
   "projects": [
@@ -399,9 +399,9 @@
       "label": "Starlink",
       "group": "starlink",
       "category": "Starlink",
-      "summary": "Waiting on Osman; batch 5 parks Fri 13 Nov if unanswered. Local v4 page edits still unpushed (D-2026-10-03-04). Rulebook step 1 still waiting for the CEO-gate close.",
+      "summary": "26 Nov 2026: not shown on the public LAVAALL website for now. The code lives in Osman's local folder, not in this repo, so the OS tracks it through goals, the Build log and daily recaps. No launch date set.",
       "aliases": "star link, Starlink v4, Starlink rulebook, NatCA",
-      "status": "Waiting on Osman; batch 5 parks Fri 13 Nov if unanswered",
+      "status": "Active (private; not on the website)",
       "handoff_snapshot": ""
     },
     {

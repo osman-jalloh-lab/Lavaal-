@@ -100,8 +100,9 @@
             '</div>' +
             '<p class="harness-meta dim" id="harness-meta"></p>' +
             '<div class="harness-picks" role="group" aria-label="Harness">' + buttons + '</div>' +
-            '<label class="harness-field harness-modelwrap hidden" id="harness-modelwrap">Claude model' +
-              '<select class="harness-sel" id="harness-model" aria-label="Claude model">' + models + '</select>' +
+            '<label class="harness-field harness-modelwrap" id="harness-modelwrap">Model' +
+              '<select class="harness-sel" id="harness-model" aria-label="Model">' + models + '</select>' +
+              '<small class="dim" id="harness-model-note"></small>' +
             '</label>' +
             '<div class="harness-setup" id="harness-setup"><p>To chat with Codex from this page, add <code class="mono">OPENAI_API_KEY</code> in Vercel project settings (Preview and Production). This site cannot open the ChatGPT login. For the Codex CLI with your ChatGPT account, run <code class="mono">codex login</code> on your computer.</p></div>' +
             '<div class="harness-thread" id="harness-thread" aria-live="polite"></div>' +
@@ -181,8 +182,33 @@
         return '<p>To chat with Codex from this page, add <code class="mono">OPENAI_API_KEY</code> in Vercel project settings (Preview and Production). This site cannot open the ChatGPT login. For the Codex CLI with your ChatGPT account, run <code class="mono">codex login</code> on your computer.</p>';
       }
 
+      // Every model each provider offers, read live by the server (/ops/harness/models). Until it answers, Claude
+      // shows Sonnet and Haiku and the others their configured default. The pick is remembered per provider.
+      var modelLists = null;
+      function savedModel(h) { try { return localStorage.getItem('os-model-' + h) || ''; } catch (e) { return ''; } }
+      function fillModels() {
+        var sel = root.querySelector('#harness-model'), note = root.querySelector('#harness-model-note');
+        if (!sel) return;
+        var info = modelLists && modelLists[selectedHarness];
+        var ids = info ? info.models : (selectedHarness === 'claude' ? CLAUDE_MODELS.map(function (m) { return m.id; }) : []);
+        var want = savedModel(selectedHarness) || (info && info.default) || ids[0] || '';
+        if (want && ids.indexOf(want) === -1) want = (info && info.default) || ids[0] || '';
+        sel.innerHTML = ids.length ? ids.map(function (id) {
+          var label = { sonnet: 'Sonnet', haiku: 'Haiku' }[id] || id;
+          return '<option value="' + esc(id) + '"' + (id === want ? ' selected' : '') + '>' + esc(label) + (info && id === info.default ? ' (default)' : '') + '</option>';
+        }).join('') : '<option value="">Default model</option>';
+        if (note) note.textContent = !modelLists ? 'Loading every model…' : info && info.live ? info.models.length + ' models available' : 'Model list unavailable; using the default.';
+      }
+      api('models', { method: 'GET' }).then(function (res) {
+        if (res.ok && res.body.harnesses) { modelLists = res.body.harnesses; fillModels(); }
+        else { modelLists = {}; fillModels(); }
+      }).catch(function () { modelLists = {}; fillModels(); });
+      root.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'harness-model') { try { localStorage.setItem('os-model-' + selectedHarness, e.target.value); } catch (err) { /* per browser */ } }
+      });
+
       function renderSetup() {
-        if (modelWrap) modelWrap.classList.toggle('hidden', selectedHarness !== 'claude');
+        fillModels();
         if (!setup) return;
         var html = setupHtml();
         setup.innerHTML = html;
@@ -195,6 +221,7 @@
         var count = u && (u.inputTokens != null || u.outputTokens != null)
           ? '<small class="dim">Reported tokens: ' + esc(u.inputTokens == null ? '?' : u.inputTokens) + ' in / ' + esc(u.outputTokens == null ? '?' : u.outputTokens) + ' out · Cost not available</small>'
           : '';
+        if (msg.role !== 'user' && typeof msg.model === 'string' && msg.model) who += ' · ' + msg.model;
         return '<div class="harness-msg harness-msg-' + esc(msg.role) + '"><small class="dim">' + esc(who) + '</small><div>' + esc(msg.text || '') + '</div>' + count + '</div>';
       }
 
@@ -327,10 +354,8 @@
             messages.push({ role: 'user', text: text, harness: selectedHarness });
             drawThread(messages, true);
             var payload = { project: proj.name, harness: selectedHarness, message: text };
-            if (selectedHarness === 'claude') {
-              var modelEl = root.querySelector('#harness-model');
-              payload.model = modelEl ? modelEl.value : 'sonnet';
-            }
+            var modelEl = root.querySelector('#harness-model');
+            if (modelEl && modelEl.value) payload.model = modelEl.value;
             return api('chat', { method: 'POST', body: JSON.stringify(payload) }).then(function (res) {
               if (res.ok && res.body.messages) {
                 drawThread(res.body.messages, false);

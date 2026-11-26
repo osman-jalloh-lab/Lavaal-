@@ -24,6 +24,7 @@
   // ---- Google panel (shown on Inbox and Calendar) ----
   function panel() {
     if (!status) return '<div class="card gconn"><span class="dim">Checking Google…</span></div>';
+    if (status.unknown) return '<div class="card gconn"><div><b>Could not check Google right now</b><p class="note">Your connection is probably fine. Refresh in a minute.</p></div></div>';
     if (!status.connected) {
       return '<div class="card gconn"><div><b>Connect Google</b><p class="note">Sign in as support@lavaall.com to read its inbox, write Gmail drafts and see or add calendar events. Nothing is ever sent from the OS.</p></div>' +
         '<a class="btn pri" href="/ops/os/google/connect">Connect Google</a></div>';
@@ -33,14 +34,28 @@
   }
   OS.googlePanel = panel;
   OS.setGoogleStatus = function (s) { status = s; };
+  // The connection check. A failed check is retried and never shown as "not connected": only Google's stored
+  // answer can say that. The last answer is remembered for this tab so a refresh does not flash "Connect Google".
+  function remembered() { try { var v = JSON.parse(sessionStorage.getItem('os-google') || 'null'); return v && typeof v.connected === 'boolean' ? v : null; } catch (e) { return null; } }
+  function remember(s) { try { sessionStorage.setItem('os-google', JSON.stringify({ connected: !!s.connected, email: String(s.email || '') })); } catch (e) { /* per tab only */ } }
+  if (!status) status = remembered();
+  function checkStatus(tries) {
+    return api('/ops/os/google/status').then(function (s) { status = s; remember(s); return s; }, function (err) {
+      if (tries > 1) return new Promise(function (ok) { window.setTimeout(ok, 1500); }).then(function () { return checkStatus(tries - 1); });
+      throw err;
+    });
+  }
+  OS.checkGoogleStatus = checkStatus;
   function mountPanel(root, after) {
     var host = root.querySelector('#gpanel');
     function paint() { if (host) host.innerHTML = panel(); }
-    api('/ops/os/google/status').then(function (s) { status = s; paint(); if (after) after(); })
-      .catch(function () { status = { connected: false }; paint(); });
+    paint();
+    if (status && status.connected && after) after();
+    checkStatus(3).then(function () { paint(); if (after) after(); })
+      .catch(function () { if (!status) status = { connected: false, unknown: true }; paint(); });
     root.addEventListener('click', function (e) {
       if (!(e.target.closest && e.target.closest('[data-gdisconnect]'))) return;
-      api('/ops/os/google/disconnect', 'POST', {}).then(function (s) { status = s; paint(); }).catch(function () {});
+      api('/ops/os/google/disconnect', 'POST', {}).then(function (s) { status = s; remember(s); paint(); }).catch(function () {});
     });
   }
   OS.mountGooglePanel = mountPanel;
@@ -176,6 +191,7 @@
   }
   function calBody() {
     if (!status) return '';
+    if (status.unknown) return '<div class="card empty mt"><b>Could not reach Google just now. Refresh in a minute.</b></div>';
     if (!status.connected) return '<div class="card empty mt"><b>Connect Google to see your calendar.</b></div>';
     if (!events) return '<div class="card empty mt"><b>Loading your calendar…</b></div>';
     if (events.error) return '<div class="card empty mt"><b>' + esc(events.error) + '</b></div>';
@@ -207,8 +223,7 @@
     function load() {
       return api('/ops/os/calendar').then(function (d) { last = d.events || []; if (host.isConnected !== false) host.innerHTML = homeCal(last); });
     }
-    api('/ops/os/google/status').then(function (s) {
-      status = s;
+    checkStatus(3).then(function (s) {
       if (!s.connected) { host.innerHTML = homeCal(null, null, false); return; }
       return load();
     }).catch(function (err) { host.innerHTML = homeCal(null, err.message); });

@@ -26,6 +26,49 @@
       '</div>';
   }
 
+  // ---- Business overview: one card per business with progress, launch countdown and what is left ----
+  function groupOf(id) {
+    var gs = (OS.data.harness && OS.data.harness.groups) || [];
+    for (var i = 0; i < gs.length; i++) if (gs[i].id === id) return gs[i];
+    return null;
+  }
+  function daysTo(day) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '')) return null;
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    return Math.ceil((new Date(day + 'T00:00:00').getTime() - t.getTime()) / 86400000);
+  }
+  function overviewCard(b, items) {
+    var mine = items.filter(function (i) { return OS.businessOf(i.project) === b.id; });
+    var count = function (k) { return mine.filter(function (i) { return i.status === k; }).length; };
+    var done = count('done'), total = mine.length, left = total - done;
+    var pct = total ? Math.round(done * 100 / total) : 0;
+    var g = groupOf(b.id) || {};
+    var lead = (g.projects || [])[0] || {};
+    var d = daysTo(g.launch);
+    var launch = d == null ? '' : '<span class="pill ' + (d <= 7 ? 'flag' : '') + '">' + (d > 1 ? d + ' days to launch' : d === 1 ? 'Launches tomorrow' : d === 0 ? 'Launch day' : 'Launched') + '</span>';
+    var remaining = mine.filter(function (i) { return i.status !== 'done'; })
+      .sort(function (x, y) { var o = { waiting: 0, active: 1, next: 2 }; return o[x.status] - o[y.status]; }).slice(0, 4);
+    var LBL = { waiting: 'Needs you', active: 'In progress', next: 'Up next' };
+    return '<section class="card bz" data-biz="' + esc(b.id) + '">' +
+      '<div class="bz-h"><b>' + esc(b.label) + '</b>' + launch + '</div>' +
+      (lead.status ? '<p class="note bz-s">' + esc(String(lead.status).slice(0, 140)) + '</p>' : '') +
+      '<div class="bz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-label="' + esc(b.label) + ' done"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="bz-n"><span><b class="num">' + done + '</b> done</span><span><b class="num">' + count('active') + '</b> in progress</span><span><b class="num">' + count('next') + '</b> up next</span>' +
+        (count('waiting') ? '<span class="bz-w"><b class="num">' + count('waiting') + '</b> need you</span>' : '') + '</div>' +
+      (remaining.length ? '<ul class="bz-left">' + remaining.map(function (i) { return '<li><span class="bz-k ' + i.status + '">' + LBL[i.status] + '</span>' + esc(i.title) + '</li>'; }).join('') +
+        (left > remaining.length ? '<li class="note">+' + (left - remaining.length) + ' more</li>' : '') + '</ul>'
+        : '<p class="note">' + (total ? 'Everything logged is done.' : 'Nothing logged for this business yet.') + '</p>') +
+    '</section>';
+  }
+  function overviewHtml(items) {
+    var list = (OS.businesses || []).filter(function (b) { return b.id !== 'all' && (OS.business() === 'all' || OS.business() === b.id); });
+    return '<div class="sect">Businesses</div><div class="bz-grid">' + list.map(function (b) { return overviewCard(b, items); }).join('') + '</div>';
+  }
+  OS.businessOverviewHtml = function (data) {
+    var log = data && data.build;
+    return overviewHtml(log && Array.isArray(log.items) ? log.items : []);
+  };
+
   OS.registerView('build', {
     render: function (ctx) {
       var log = ctx.data.build;
@@ -36,13 +79,19 @@
         var n = items.filter(function (i) { return i.status === l.key; }).length;
         return '<div class="card kpi t-' + l.tint + '"><span>' + esc(l.label) + '</span><b class="num">' + (log ? n : '—') + '</b><i>' + (log ? 'items' : 'no build log yet') + '</i></div>';
       }).join('') + '</div>';
-      if (!log) return head + tiles + '<section class="card mt">' + OS.empty('No build log has been received yet.', 'build') + '</section>';
+      if (!log) return head + overviewHtml([]) + tiles + '<section class="card mt">' + OS.empty('No build log has been received yet.', 'build') + '</section>';
       var lanes = LANES.map(function (l) {
         var rows = items.filter(function (i) { return i.status === l.key; });
         return '<section class="card mt bl-lane' + (l.key === 'waiting' && rows.length ? ' wait' : '') + '"><div class="ch"><h3>' + esc(l.label) + '</h3><div class="r"><span class="num">' + rows.length + '</span></div></div>' +
           (rows.length ? rows.map(item).join('') : '<div class="empty"><b>' + esc(l.empty) + '</b></div>') + '</section>';
       }).join('');
-      return head + tiles + lanes;
+      return head + overviewHtml(items) + '<div class="sect">All work</div>' + tiles + lanes;
+    },
+    mount: function (root) {
+      root.addEventListener('click', function (e) {
+        var card = e.target.closest ? e.target.closest('[data-biz]') : null;
+        if (card && OS.business() === 'all' && OS.setBusiness) OS.setBusiness(card.getAttribute('data-biz'));
+      });
     }
   });
 })();
