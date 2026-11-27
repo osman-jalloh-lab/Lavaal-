@@ -19,6 +19,7 @@
 // POST /ops/os/builder/pm/approve  { goals: [..] }   -> { plans }        founder only; saves plans, holds build jobs
 // POST /ops/os/builder/pm/advance  { id }            -> { plan }         runs at most one ready research/design step
 // POST /ops/os/builder/pm/retry    { id }            -> { plan }         founder only; failed and blocked steps run again
+// POST /ops/os/builder/pm/check                     -> { agents, runnerSeenAt }  founder only; one tiny call per chat agent
 // GET  /ops/os/builder/pm                            -> { plans }        latest 20
 'use strict';
 const crypto = require('node:crypto');
@@ -108,11 +109,53 @@ function planGoals(goals, opts) {
   });
 }
 
+// Vercel stops /ops at 30 seconds, so a PM step gets 22 seconds from its provider and asks for a short answer.
+const STEP_TIMEOUT_MS = 22000;
+const STALE_RUNNING_MS = 90000;
+function timeBoxed(fetchImpl, ms) {
+  return (url, init) => {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), ms);
+    if (init && init.signal) init.signal.addEventListener('abort', () => c.abort(), { once: true });
+    return Promise.resolve(fetchImpl(url, Object.assign({}, init, { signal: c.signal }))).finally(() => clearTimeout(t));
+  };
+}
+
 function chatEstimate(env) {
   const raw = env ? env[CHAT_ESTIMATE_NAME] : undefined;
   if (raw === undefined || raw === null || String(raw).trim() === '') return DEFAULT_CHAT_ESTIMATE_USD;
   const s = String(raw).trim();
   return /^\d+(\.\d{1,2})?$/.test(s) && Number(s) > 0 ? Number(s) : NaN;
+}
+
+function explainError(code) {
+  const c = String(code || '');
+  if (c === 'key_missing') return 'no API key on Vercel for this agent';
+  if (/^provider_http_401|^provider_http_403/.test(c)) return 'the API key was rejected (check it on Vercel)';
+  if (/^provider_http_404/.test(c)) return 'the model name was not found (check the model setting on Vercel)';
+  if (/^provider_http_429/.test(c)) return 'rate limit or no credit left on that account';
+  if (/^provider_http_5/.test(c)) return 'the provider is having problems; try again';
+  if (/^provider_http_4/.test(c)) return `the provider refused the request (${c.replace('provider_http_', 'HTTP ')})`;
+  if (/timeout|abort/i.test(c) || c === 'provider_unavailable') return 'no answer in time or could not connect; try again';
+  if (c === 'provider_empty') return 'the provider answered with no text';
+  return c;
+}
+
+// One tiny call per chat agent, so the Build page can show which agents work and why one does not.
+async function checkAgents(env, fetchImpl, opts) {
+  const o = opts || {};
+  const { runHarness, modelFor, keyFor } = require('./_harness_chat');
+  const run = o.runHarness || runHarness;
+  const out = {};
+  await Promise.all(['grok', 'deepseek', 'codex-chat'].map(async (id) => {
+    const h = AGENTS[id].harness;
+    const model = modelFor(h, '', env);
+    if (!keyFor(h, env)) { out[id] = { ok: false, model, why: explainError('key_missing') }; return; }
+    let r;
+    try { r = await run(h, model, { system: 'Reply with the single word OK.', user: 'OK?' }, env, timeBoxed(fetchImpl, 12000)); } catch { r = { error: 'provider_unavailable' }; }
+    out[id] = r && r.text ? { ok: true, model } : { ok: false, model, why: explainError(r && r.error) };
+  }));
+  return out;
 }
 
 function buildObjective(plan, step) {
@@ -123,10 +166,10 @@ function stepPrompt(plan, step) {
   const prior = plan.steps.filter((s) => step.dependsOn.includes(s.id) && s.output)
     .map((s) => `${s.kind.toUpperCase()} (${s.label}):\n${s.output}`).join('\n\n');
   const task = step.kind === 'research'
-    ? 'Research this goal for LAVAALL. Give the key facts, real competitors or examples, and what matters for the build. Cite sources by name. Mark anything you are unsure of as unverified. No invented numbers.'
+    ? 'Research this goal for LAVAALL in under 250 words. Give the key facts, real competitors or examples, and what matters for the build. Cite sources by name. Mark anything you are unsure of as unverified. No invented numbers.'
     : step.kind === 'design'
-      ? 'Write a short build spec for a coding agent: pages or files to change, structure, content blocks, acceptance checks. Plain bullet points, under 400 words. Do not write the code.'
-      : 'Write the requested text in LAVAALL\'s plain, direct voice. Draft only: it will not be sent or posted.';
+      ? 'Write a short build spec for a coding agent: pages or files to change, structure, content blocks, acceptance checks. Plain bullet points, under 250 words. Do not write the code.'
+      : 'Write the requested text in LAVAALL\'s plain, direct voice, under 250 words. Draft only: it will not be sent or posted.';
   return {
     system: [
       'You are one step in the LAVAALL OS project manager. Another agent will use your output.',
@@ -225,6 +268,13 @@ async function advancePlan(env, fetchImpl, id, opts) {
     step.output = job.result && job.result.prUrl ? `Draft PR: ${job.result.prUrl}` : (job.result && job.result.error) || '';
   }
 
+  // A step left "running" by a call that never came back (the function was stopped) times out so it can be retried.
+  for (const st of plan.steps) {
+    if (st.kind !== 'build' && st.state === 'running' && st.startedAt && (o.now || Date.now()) - Date.parse(st.startedAt) > STALE_RUNNING_MS) {
+      st.state = 'failed';
+      st.output = `${st.label}: timed out (no answer in time). Press Retry.`;
+    }
+  }
   const next = plan.steps.find((s) => s.kind !== 'build' && s.state === 'waiting' && s.dependsOn.every(done));
   if (next) {
     const harness = AGENTS[next.agent].harness;
@@ -246,11 +296,14 @@ async function advancePlan(env, fetchImpl, id, opts) {
       next.output = 'Refused: the monthly cap is missing or invalid.';
     } else {
       next.state = 'running';
+      next.startedAt = new Date(o.now || Date.now()).toISOString();
       await save();
       await call(['INCRBYFLOAT', builder.monthKey(env, o.now), String(est)]);
       let out;
-      try { out = await (o.runHarness || runHarness)(harness, modelFor(harness, '', env), stepPrompt(plan, next), env, fetchImpl); } catch { out = { error: 'provider_unavailable' }; }
-      if (out && out.text) { next.state = 'done'; next.output = String(out.text).slice(0, 6000); }
+      const model = modelFor(harness, '', env);
+      try { out = await (o.runHarness || runHarness)(harness, model, stepPrompt(plan, next), env, timeBoxed(fetchImpl, STEP_TIMEOUT_MS)); } catch { out = { error: 'provider_unavailable' }; }
+      if (out && out.error) out.error = `${AGENTS[next.agent].label} (${model}): ${explainError(out.error)}`;
+      if (out && out.text) { next.state = 'done'; next.output = String(out.text).slice(0, 6000); next.endedAt = new Date(o.now || Date.now()).toISOString(); }
       else { next.state = 'failed'; next.output = `Failed: ${(out && out.error) || 'no reply'}`; }
     }
   }
@@ -283,7 +336,7 @@ function routeOf(req) {
   const area = String((Array.isArray(q.area) ? q.area[0] : q.area) || '').replace(/^\/+|\/+$/g, '');
   const p = String(req.url || '').split('?')[0].replace(/^\/+|\/+$/g, '').replace(/^ops\//, '');
   const r = area || p;
-  return ['os/builder/pm', 'os/builder/pm/plan', 'os/builder/pm/approve', 'os/builder/pm/advance', 'os/builder/pm/retry'].includes(r) ? r : '';
+  return ['os/builder/pm', 'os/builder/pm/plan', 'os/builder/pm/approve', 'os/builder/pm/advance', 'os/builder/pm/retry', 'os/builder/pm/check'].includes(r) ? r : '';
 }
 
 function goalsFrom(body) {
@@ -316,6 +369,13 @@ async function handlePm(req, res, opts) {
     }
     if (method !== 'POST') { json(res, 405, { error: 'method_not_allowed' }); return true; }
     const body = readBody(req) || {};
+    if (route === 'os/builder/pm/check') {
+      if (!approvals.isApprover(session.email)) { json(res, 403, { error: 'approver_not_allowed' }); return true; }
+      let heartbeat = null;
+      try { heartbeat = await call(['GET', approvals.rootFor(env) + 'builder-heartbeat']); } catch { heartbeat = null; }
+      json(res, 200, { agents: await checkAgents(env, fetchImpl, { runHarness: opts && opts.runHarness }), runnerSeenAt: heartbeat || null });
+      return true;
+    }
     if (route === 'os/builder/pm/retry') {
       if (!approvals.isApprover(session.email)) { json(res, 403, { error: 'approver_not_allowed' }); return true; }
       const out = await retryPlan(env, fetchImpl, String(body.id || ''));
@@ -343,4 +403,4 @@ async function handlePm(req, res, opts) {
   }
 }
 
-module.exports = { AGENTS, MAX_GOALS, advancePlan, retryPlan, approvePlans, buildAgent, buildObjective, handlePm, planGoal, planGoals, routeOf, stepPrompt };
+module.exports = { AGENTS, MAX_GOALS, advancePlan, checkAgents, explainError, retryPlan, timeBoxed, approvePlans, buildAgent, buildObjective, handlePm, planGoal, planGoals, routeOf, stepPrompt };

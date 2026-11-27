@@ -605,3 +605,50 @@
 .os-root .pm-steps{margin:6px 0 0 18px;padding:0;display:grid;gap:6px;font-size:13px}.os-root .pm-steps details{margin-top:4px}
 .os-root .bd-budget.warn{color:var(--warn,#c98a00)}.os-root .bd-budget.wait{border-left:3px solid var(--warn,#c98a00);padding:12px 16px}
 .os-root .pm-why{margin-top:4px;font-size:12.5px;color:var(--bad,#e0675a)}
+
+/* ---- Build page (revamp) ---- */
+.os-root .bx{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+@media (max-width:980px){.os-root .bx{grid-template-columns:1fr}}
+.os-root .bx-compose{padding:22px}
+.os-root .bx-ask{display:block;font-size:22px;font-weight:650;letter-spacing:-.01em;margin-bottom:12px}
+.os-root .bx-compose textarea{width:100%;min-height:150px;font-family:inherit;font-size:16px;line-height:1.55;padding:14px 16px;border-radius:12px;resize:vertical;background:rgba(255,255,255,.03);border:1px solid var(--line);color:inherit}
+.os-root .bx-compose textarea:focus{outline:2px solid var(--accent,#5bd1ff);outline-offset:1px}
+.os-root .bx-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.os-root .bx-grow{flex:1 1 auto}
+.os-root .bx-seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.os-root .bx-seg button{border:0;background:none;color:inherit;font:inherit;font-size:14px;padding:8px 14px;border-radius:999px;cursor:pointer;opacity:.7}
+.os-root .bx-seg button.on{background:var(--accent,#5bd1ff);color:#06121a;opacity:1;font-weight:600}
+.os-root .bx-pick select{font-size:14px;padding:8px 10px;border-radius:10px}
+.os-root .bx-go{font-size:16px;padding:11px 26px}
+.os-root .bx-msg{min-height:1.2em;margin:10px 0 0;font-size:14px;opacity:.85}
+.os-root .bx-side{padding:18px;display:grid;gap:18px;position:sticky;top:72px}
+.os-root .bx-k{display:flex;justify-content:space-between;align-items:center;font-size:12px;text-transform:uppercase;letter-spacing:.08em;opacity:.65;margin-bottom:8px}
+.os-root .bx-money{display:flex;align-items:baseline;gap:8px}.os-root .bx-money b{font-size:30px;font-weight:700}.os-root .bx-money span{opacity:.6}
+.os-root .bx-bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:8px}.os-root .bx-bar i{display:block;height:100%;background:var(--good,#00f5a0)}
+.os-root .bx-bar.warn i{background:var(--warn,#ffe03d)}.os-root .bx-bar.hold i{background:var(--bad,#ff5c5c)}
+.os-root .bx-hold{margin-top:10px;font-size:13.5px;display:grid;gap:8px}.os-root .bx-warn{margin:8px 0 0}
+.os-root .bx-team{list-style:none;margin:0;padding:0;display:grid;gap:8px}.os-root #bx-team.busy{opacity:.6}
+.os-root .bx-agent{display:flex;gap:10px;align-items:flex-start}.os-root .bx-agent div{display:grid;gap:1px;min-width:0}
+.os-root .bx-agent b{font-size:14px}.os-root .bx-agent b span{font-weight:400;font-size:12.5px;opacity:.65}.os-root .bx-agent small{font-size:12px;overflow-wrap:anywhere}
+.os-root .dot{width:9px;height:9px;border-radius:50%;flex:0 0 9px;margin-top:5px;background:var(--line)}
+.os-root .dot.ok{background:var(--good,#00f5a0)}.os-root .dot.bad{background:var(--bad,#ff5c5c)}.os-root .dot.off{background:#8a8f98}.os-root .dot.unk{background:transparent;border:1px solid #8a8f98}
+.os-root .linkbtn{border:0;background:none;color:var(--accent,#5bd1ff);font:inherit;font-size:12px;cursor:pointer;text-transform:none;letter-spacing:0}
+.os-root .bx-projects{display:grid;gap:14px}
+.os-root .px{padding:18px 20px}
+.os-root .px-h{display:flex;align-items:center;gap:12px;margin-bottom:14px}.os-root .px-h h3{flex:1;font-size:17px;margin:0}
+.os-root .px-badge{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.os-root .px.s-approved .px-badge{border-color:var(--accent,#5bd1ff)}.os-root .px.s-done .px-badge{border-color:var(--good,#00f5a0)}.os-root .px.s-stopped .px-badge{border-color:var(--bad,#ff5c5c)}
+.os-root .px-steps{list-style:none;margin:0 0 12px;padding:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px}
+@media (max-width:760px){.os-root .px-steps{grid-auto-flow:row}}
+.os-root .px-step{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px;align-content:start}
+.os-root .px-top{display:flex;align-items:center;gap:8px}.os-root .px-top .dot{margin-top:0}.os-root .px-who{margin-left:auto;font-size:13px;opacity:.8}
+.os-root .px-st{font-size:13px;font-weight:600}.os-root .px-why{font-size:12px;margin:0}
+.os-root .px-step.s-done .dot{background:var(--good,#00f5a0)}.os-root .px-step.s-running .dot{background:var(--accent,#5bd1ff);animation:bxp 1.2s ease-in-out infinite}
+.os-root .px-step.s-failed,.os-root .px-step.s-blocked{border-color:var(--bad,#ff5c5c)}.os-root .px-step.s-failed .dot,.os-root .px-step.s-blocked .dot{background:var(--bad,#ff5c5c)}
+.os-root .px-step.s-queued .dot{background:var(--warn,#ffe03d)}
+.os-root .px-step details summary{cursor:pointer;font-size:12.5px;color:var(--accent,#5bd1ff)}
+.os-root .bx-pr{font-size:13px;font-weight:600}
+.os-root .bx-empty{display:grid;gap:4px;padding:28px;text-align:center}
+.os-root .bx-log{margin-top:22px}.os-root .bx-log summary{cursor:pointer;font-size:14px;opacity:.8;padding:8px 0}
+@keyframes bxp{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.os-root .px-step.s-running .dot{animation:none}}

@@ -183,6 +183,7 @@ function realAdapter({ env = process.env } = {}) {
 async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, exists = fs.existsSync, now = () => Date.now(), timeout = 20 * 60 * 1000 } = {}) {
   if (!builder.runnerEnabled(env, exists)) return { state: 'disabled' };
   const call = (args) => approvals.command(env, fetchImpl, args);
+  try { await call(['SET', approvals.rootFor(env) + 'builder-heartbeat', new Date(now()).toISOString()]); } catch { /* the page just shows "not seen" */ }
   let spent;
   try { spent = Number(await call(['GET', builder.monthKey(env, now())]) || 0); } catch { return { state: 'not_configured' }; }
   let extra = 0;
