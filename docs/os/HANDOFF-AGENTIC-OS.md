@@ -1,3 +1,5 @@
+> **Start at `docs/os/PICK-UP-HERE.md`.** The shared memory (`docs/os/knowledge/`, `docs/os/DECISIONS.md`, `docs/os/knowledge/ACTIVITY.md`) is the source of truth from 26 Nov 2026, and it is the handoff: there is no separate Drake or builder copy. This file is an older handoff, kept as history.
+
 # HANDOFF: LAVAALL OS "agentic OS" build (for Codex or the next Claude session)
 
 Written 25 Nov 2026, about 9:30 PM CT, by Claude Code (cloud session). Read `AGENTS.md` and `MAGNUM.md` first, as the repo requires.
