@@ -73,9 +73,11 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
   check('a stop file stops the runner', !builder.runnerEnabled({ OS_RUNNER_ENABLED: '1', OS_RUNNER_STOP_FILE: '/tmp/stop' }, () => true));
   check('cap: missing fails closed', builder.capCheck({}, 0).error === 'cap_missing' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '' }, 0).error === 'cap_missing');
   check('cap: invalid or zero fails closed', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: 'fifty' }, 0).ok === false && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '0' }, 0).ok === false);
-  check('cap: reached fails closed', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 50).error === 'cap_reached');
+  check('at the budget, the next run waits for your OK (not a hard stop)', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 50).error === 'needs_ok');
   check('cap: 50 with spend below passes', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 12.5).ok === true && builder.CAP_NAME === 'OS_BUILDER_MONTHLY_CAP_USD');
-  check('cap: a run that would push spend over the cap is refused (49 + 2 > 50)', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 49).error === 'cap_reached' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 48).ok === true);
+  check('a run that would pass the budget asks first (49 + 2 > 50); 48 + 2 still runs', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 49).error === 'needs_ok' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 48).ok === true);
+  check('money Osman adds this month raises the allowance', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 49, null, 50).ok === true && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 49, null, 50).allowance === 100);
+  check('80% of the budget raises a warning', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 38).warn === true && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 10).warn === false);
   check('run estimate defaults to $2 and can be set on the box', builder.runEstimate({}) === 2 && builder.runEstimate({ OS_BUILDER_RUN_ESTIMATE_USD: '5' }) === 5);
   check('an invalid run estimate fails closed', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50', OS_BUILDER_RUN_ESTIMATE_USD: '-1' }, 0).error === 'run_estimate_invalid' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50', OS_BUILDER_RUN_ESTIMATE_USD: '0' }, 0).ok === false);
 
@@ -114,7 +116,25 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     check('cap name missing: no run', noCap.state === 'refused' && noCap.error === 'cap_missing' && a.calls.length === 0);
     kv.store.set(builder.monthKey(ON(kv), Date.now()), '50');
     const capped = await runner.tick({ env: ON(kv), fetchImpl: kv.fetchImpl, adapter: a });
-    check('cap reached: no run', capped.state === 'refused' && capped.error === 'cap_reached' && a.calls.length === 0);
+    check('over budget: the job waits for your OK, nothing runs, nothing is dropped', capped.state === 'waiting_ok' && a.calls.length === 0 && JSON.parse(kv.store.get(builder.jobKey(ON(kv), capped.id))).state === 'queued');
+    const hold = JSON.parse(kv.store.get(builder.holdKey(ON(kv), Date.now())) || 'null');
+    check('the pause says how much is used and what is waiting', hold && hold.spent === 50 && hold.allowance === 50 && /Codex build/.test(hold.what));
+    const stranger = mockRes();
+    await builder.handleBuilder(req('/ops/os/builder/budget', 'POST', { add: '50' }), stranger, { env: ON(kv), fetchImpl: kv.fetchImpl, session: { email: 'drake@example.com' } });
+    check('only Osman can say continue', stranger.statusCode === 403);
+    const yes = mockRes();
+    await builder.handleBuilder(req('/ops/os/builder/budget', 'POST', { add: '50' }), yes, { env: ON(kv), fetchImpl: kv.fetchImpl, session: FOUNDER });
+    const yb = JSON.parse(yes.body);
+    check('Osman says continue: +$50 this month and the pause is lifted', yes.statusCode === 200 && yb.budget.allowance === 100 && yb.budget.hold === null);
+    const bad = mockRes();
+    await builder.handleBuilder(req('/ops/os/builder/budget', 'POST', { add: '9999' }), bad, { env: ON(kv), fetchImpl: kv.fetchImpl, session: FOUNDER });
+    check('a silly top-up amount is refused', bad.statusCode === 400);
+    const after = await runner.tick({ env: ON(kv), fetchImpl: kv.fetchImpl, adapter: a });
+    check('after the OK the waiting job runs', after.state === 'draft_opened' && a.calls.some((c) => c[0] === 'execute'));
+    const view = mockRes();
+    await builder.handleBuilder(req('/ops/os/builder', 'GET'), view, { env: ON(kv), fetchImpl: kv.fetchImpl, session: FOUNDER });
+    const vb = JSON.parse(view.body).budget;
+    check('the Build page sees spend, allowance and the warning', vb.spent === 52 && vb.allowance === 100 && vb.warn === false && vb.cap === 50);
   }
   {
     const kv = fakeKv();
@@ -196,7 +216,7 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     for (let i = 0; i < 3; i++) await approve(kv, Object.assign({}, GOOD, { objective: 'run ' + i }));
     const states = [];
     for (let i = 0; i < 3; i++) states.push((await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter({ noChanges: true }) })).state || '');
-    check('with a $4 cap and $2 runs, the third run is refused', states.join(',') === 'no_changes,no_changes,refused');
+    check('with a $4 budget and $2 runs, the third run waits for your OK', states.join(',') === 'no_changes,no_changes,waiting_ok');
   }
 
   // Codex login: only auth.json is copied into the runner's empty home, 0600; no login fails closed.
@@ -227,7 +247,7 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     && cc[1][cc[1].indexOf('--allowedTools') + 1] === 'Read,Edit,Write,Glob,Grep' && /Bash/.test(cc[1][cc[1].indexOf('--disallowedTools') + 1]) && !cc[1].includes('--dangerously-skip-permissions'));
   check('Claude Sonnet is the default model name for the claude builder command', runner.builderCommand({ executor: 'claude', model: 'weird', objective: 'x' })[1][3] === 'sonnet');
   check('an Opus run is charged more ($6 default) than Codex or Sonnet ($2)', builder.runEstimate({}, { executor: 'claude', model: 'opus' }) === 6 && builder.runEstimate({}, { executor: 'claude', model: 'sonnet' }) === 2 && builder.runEstimate({}, { executor: 'codex' }) === 2);
-  check('an Opus run that would pass the cap is refused while a $2 run still fits (spent 46 of 50)', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'claude', model: 'opus' }).error === 'cap_reached' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'codex' }).ok);
+  check('an Opus run that would pass the budget asks first while a $2 run still fits (spent 46 of 50)', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'claude', model: 'opus' }).error === 'needs_ok' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'codex' }).ok);
   check('the approval binds the builder and model', approvals.requestHash(Object.assign({}, GOOD, { executor: 'claude', model: 'sonnet' })) !== approvals.requestHash(Object.assign({}, GOOD, { executor: 'claude', model: 'opus' })));
   {
     const kv = fakeKv(); const env = ON(kv);

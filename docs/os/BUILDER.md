@@ -22,6 +22,34 @@ Phase 4 of `2026-11-26-os-one-shot-build-prompt.md`. **Draft pull requests only.
    - pushes the branch and opens a **draft** PR.
 4. **Verify, then record.** GitHub must show an open draft PR from that branch whose head is exactly the commit sha. Only then is the sha and PR URL written to the job record, and an "opened" line added to `docs/os/knowledge/ACTIVITY.md` on the same draft branch.
 
+## Budget: pause and ask, not a wall
+
+Osman, 27 Nov 2026: the $50 is the monthly budget to use. It is not a hard stop.
+- Every step is counted: Codex or Sonnet $2, Opus $6, and a research, design or draft step $0.25.
+- **At 80%** of this month's allowance, the Build page warns.
+- **When the next step would pass the allowance**, that step pauses. Builds stay queued and plan steps stay waiting. The Build page shows "Paused: budget reached", how much is used, and what is waiting.
+- **Continue** (Osman's session only) adds $50 to this month's allowance (`POST /ops/os/builder/budget`, up to $500 at a time) and the paused work goes on. Osman tops up his API credits himself.
+- A **missing or invalid** `OS_BUILDER_MONTHLY_CAP_USD` still stops everything, because that is a setup mistake, not a budget.
+
+## Project manager (Phase 6)
+
+On /os → Build → **Project manager**, Osman types up to five goals, one per line. For each goal the PM (`api/ops/_os_pm.js`) writes a plan and gives each step to the agent best at it:
+
+| Step | Agent | Why |
+|---|---|---|
+| Research | Grok (DeepSeek when there is no xAI key) | live web and X |
+| Design / spec | DeepSeek (Codex chat when there is no DeepSeek key) | cheap, good at specs |
+| Draft (text only) | DeepSeek | copy, emails, posts; nothing is built |
+| Build | Claude Opus for big builds (a website, an app), Codex for small fixes, Claude Sonnet otherwise | if that builder already has work, the next free one (Codex or Sonnet) takes it; Opus only when the PM picked it |
+
+- **Plan** is a free preview: nothing is saved or spent.
+- **Approve and run** happens in Osman's session only. It saves the plans and mints one single-use `code_run` approval per build step, bound to its task, branch, builder and model. Each build is held until its design step is done.
+- **While the page is open**, every unfinished plan moves one step forward at the same time.
+  - Research, design and draft steps run here through the provider APIs. Each one is charged `OS_PM_CHAT_STEP_ESTIMATE_USD` (default $0.25) against the same $50 cap.
+  - A finished design releases its build to the box runner, with the design notes attached and wrapped as untrusted.
+- **The runner works on several builds at once:** one per builder (Codex, Claude Sonnet, Claude Opus), each under its own lock. Run `tick` every minute, more than once if needed; each tick takes the oldest queued job whose builder is free.
+- Builds open **draft PRs only**, and the plan shows the PR link. Nothing merges, deploys or sends.
+
 ## What stays off
 
 - `OS_RUNNER_ENABLED` and `OS_BUILDER_MONTHLY_CAP_USD` live on the box only. They are not written to Vercel.

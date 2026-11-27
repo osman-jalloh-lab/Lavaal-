@@ -247,3 +247,18 @@ Source: Osman in the build session, 27 Nov 2026 (evening CT).
 - **Cost against the $50 monthly cap:** Codex or Sonnet $2 a run, Opus $6 a run (box settings `OS_BUILDER_RUN_ESTIMATE_USD`, `OS_BUILDER_OPUS_RUN_ESTIMATE_USD`).
 - **DeepSeek stays in chat.** It has no coding agent of its own; revisit later (for example through aider) if a cheaper builder is wanted.
 - **Lavaal- stays public for now** (Osman, 27 Nov 2026). The repo could not be switched to private from the build session, and Osman said to leave it as it is.
+
+## 2026-11-27 — a project manager assigns work by strength
+
+Source: Osman in the build session, 27 Nov 2026 (evening CT).
+
+- Osman gives several goals at once. The PM splits each into steps and assigns each step by strength: research to Grok, specs and drafts to DeepSeek, and code to Claude Opus (big builds), Codex (small fixes) or Claude Sonnet (everyday). Busy builders hand off to a free one.
+- Goals run side by side. One builder works on one job at a time, so a second task goes to another agent instead of waiting.
+- One approval of the plan by Osman covers its build steps, each bound to its task, branch, builder and model. Everything counts toward the $50 monthly cap, and code only comes back as draft PRs.
+
+## 2026-11-27 — the $50 is a budget that asks, not a hard stop
+
+Source: Osman in the build session, 27 Nov 2026 (evening CT).
+
+- Use the $50 a month. At 80% the OS warns. Before going past it, the OS pauses and asks: "you've used $X, continue?"
+- If Osman says yes, that month's allowance goes up by $50, he tops up his credits, and the paused work carries on. Nothing is dropped.
