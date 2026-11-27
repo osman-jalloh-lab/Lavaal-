@@ -7,7 +7,7 @@ by `api/ops/_os_data.js`. They are never written to the KV store (`normalizeStor
 
 | File | Rows | Used for |
 |---|---|---|
-| `decisions.json` | 52 (22 Open, 30 Closed; 6 with a Jev score) | Decisions, Home "open decisions", Brain. A copy in the store wins if one ever exists. |
+| `decisions.json` | 52 (all Closed after the 25 Nov 2026 cleanup; 6 with a Jev score) | Decisions, Home "open decisions", Brain. A copy in the store wins if one ever exists. |
 | `routines.json` | 14 | Routines (schedule, owner, status, workflow steps), desk drawers, Brain. `lastRunAt` and `lastRunStatus` are stale and ignored. |
 | `desks.json` | 6 desks + 1 in `extraDesks` (Scout) | Desk now line, rules and skills, merged into the desk registry by id. |
 | `skills.json` | 54 | Brain skill nodes (FR-030 override, DECISIONS.md #2). |

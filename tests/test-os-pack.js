@@ -25,8 +25,8 @@ const deskIds = K.desks.map((d) => d.id).concat(K.extraDesks.map((d) => d.id));
 
 // ================= 1. the pack as committed =================
 check('pack loads through require() and is frozen', Object.isFrozen(PACK) && PACK.builtAt === '2026-10-22' && Array.isArray(PACK.decisions) && Array.isArray(PACK.skills));
-check('counts: 52 decisions (22 Open, 30 Closed, 6 with a Jev score)', D.length === 52 && count(D, (r) => r.status === 'Open') === 22 && count(D, (r) => r.status === 'Closed') === 30 && count(D, (r) => r.jev !== null) === 6);
-check('counts: 14 routines (13 active, 1 removed), 54 skills, 30 rules, 6 desks plus Scout', RT.length === 14 && count(RT, (r) => r.status === 'active') === 13 && count(RT, (r) => r.status === 'removed') === 1 && RT.find((r) => r.id === 'lavaall-slack-task-bridge').status === 'removed' && S.length === 54 && R.length === 30 && K.desks.length === 6 && K.extraDesks.length === 1);
+check('counts: 52 decisions (0 Open after the 25 Nov cleanup, 52 Closed, 6 with a Jev score)', D.length === 52 && count(D, (r) => r.status === 'Open') === 0 && count(D, (r) => r.status === 'Closed') === 52 && count(D, (r) => r.jev !== null) === 6);
+check('counts: 14 routines (13 active, 1 removed), 70 skills, 30 rules, 6 desks plus Scout', RT.length === 14 && count(RT, (r) => r.status === 'active') === 13 && count(RT, (r) => r.status === 'removed') === 1 && RT.find((r) => r.id === 'lavaall-slack-task-bridge').status === 'removed' && S.length === 70 && R.length === 30 && K.desks.length === 6 && K.extraDesks.length === 1);
 check('every id is unique (the stale duplicate decision is gone)', [D, RT, S, R].every((rows) => new Set(rows.map((r) => r.id)).size === rows.length));
 check('D-2026-09-25-38 appears once, as Closed', D.filter((r) => r.id === 'D-2026-09-25-38').length === 1 && D.find((r) => r.id === 'D-2026-09-25-38').status === 'Closed');
 check('the files are pure ASCII JSON (no BOM, no replacement characters)', FILES.every((f) => !/[^\x00-\x7F]/.test(raw[f]) && !raw[f].startsWith('﻿')));
@@ -50,7 +50,7 @@ const data = osData.buildOsData({ store: null, health: null }, { env: {} });
 const trim = (v) => String(v).trim();
 check('decisions: all 52 load, none truncated or altered (edge whitespace trimmed only)', data.decisions.length === 52 && D.every((r) => { const o = data.decisions.find((x) => x.id === r.id); return o && o.title === trim(r.title) && o.text === trim(r.text) && o.source === trim(r.source) && o.status === r.status && o.date === r.date && o.jev === r.jev && o.level === r.level; }));
 check('decisions: newest first', data.decisions.every((d, i, a) => i === 0 || d.date <= a[i - 1].date));
-check('Home KPI "open decisions" is 22, from the pack', data.kpis.openDecisions === 22);
+check('Home KPI "open decisions" is 0, from the pack', data.kpis.openDecisions === 0);
 check('decisions are available even when the store is down', data.storeAvailable === false && data.decisions.length === 52);
 check('routines: 14 from the pack with schedule, owner and status', data.routines.length === 14 && RT.every((r) => { const o = data.routines.find((x) => x.id === r.id); return o && o.name === trim(r.name) && o.schedule === trim(r.schedule) && o.owner === r.owner && o.status === r.status; }));
 check("routines: the pack's stale last-run fields are ignored", data.routines.every((r) => r.lastRunAt === 0 && r.lastRunLabel === '' && r.lastRunStatus === ''));
@@ -61,7 +61,7 @@ check('desks: seven, the registry six in order and Scout last', data.desks.lengt
 check('desks: rules and skills are merged by id, unchanged', K.desks.every((d) => { const o = data.desks.find((x) => x.id === d.id); return o.skills.join() === d.skills.join() && o.rules.join() === d.rules.map(trim).join() && o.now === d.now; }));
 check('desks: Scout is outside the registry, has its rules and no skills, and no Talk link', (() => { const s = data.desks.find((d) => d.id === 'scout'); return Boolean(s) && s.inRegistry === false && s.name === 'Scout' && s.talk === '' && s.skills.length === 0 && s.rules.length === 4; })());
 check('desks: registry desks keep their /ops Talk link', data.desks.filter((d) => d.inRegistry).every((d) => /^\/ops\/chat\//.test(d.talk)));
-check('skills: 54 with their purpose; rules: 30 with title and text', data.skills.length === 54 && data.rules.length === 30 && data.skills.every((s, i) => s.whenToUse === trim(S[i].whenToUse)) && data.rules.every((r, i) => r.rule === trim(R[i].rule) && r.title === trim(R[i].title)));
+check('skills: 70 with their purpose; rules: 30 with title and text', data.skills.length === 70 && data.rules.length === 30 && data.skills.every((s, i) => s.whenToUse === trim(S[i].whenToUse)) && data.rules.every((r, i) => r.rule === trim(R[i].rule) && r.title === trim(R[i].title)));
 check('sources: decisions, Jev, routines, desks, skills and rules are live; the rest stay empty', ['decisions', 'jev', 'routines', 'desks', 'skills', 'rules'].every((k) => data.sources[k].live) && ['approvals', 'notes', 'council', 'spend', 'outreach', 'brief', 'hotelBounceRate'].every((k) => !data.sources[k].live));
 check('source labels say where each comes from, with no SOUL deferral left', Object.values(data.sources).every((s) => s.from && s.label) && /data pack/.test(data.sources.decisions.from) && /routines\.json/.test(data.sources.routines.from) && /desks\.json/.test(data.sources.desks.from) && !/SOUL|deferred/i.test(JSON.stringify(data.sources)));
 check('a store decisions copy wins over the pack', (() => { const d = osData.buildOsData({ store: { decisions: [{ id: 'S1', title: 'From the store', status: 'Open', date: 5 }] }, health: null }, { env: {} }); return d.decisions.length === 1 && d.decisions[0].id === 'S1' && d.kpis.openDecisions === 1; })());
@@ -84,11 +84,11 @@ OS.data = data;
 const g = OS.brain.build(data);
 const links = (a, b) => g.links.filter((l) => (l.s.t === a && l.t.t === b) || (l.s.t === b && l.t.t === a));
 const deskSkillPairs = K.desks.reduce((n, d) => n + d.skills.length, 0);
-check('Brain nodes: 7 desks, 14 routines, 52 decisions, 54 skills, 30 rules (157)', g.counts.desk === 7 && g.counts.routine === 14 && g.counts.decision === 52 && g.counts.skill === 54 && g.counts.rule === 30 && g.counts.lead === 0 && g.counts.note === 0 && g.nodes.length === 157);
+check('Brain nodes: 7 desks, 14 routines, 52 decisions, 70 skills, 30 rules (173)', g.counts.desk === 7 && g.counts.routine === 14 && g.counts.decision === 52 && g.counts.skill === 70 && g.counts.rule === 30 && g.counts.lead === 0 && g.counts.note === 0 && g.nodes.length === 173);
 check('Brain node ids are unique', new Set(g.nodes.map((n) => n.id)).size === g.nodes.length);
 check('Brain links: every routine links to its owner desk (14), including Scout', links('routine', 'desk').length === 14 && RT.every((r) => g.links.some((l) => l.why === 'runs' && l.s.id === 'rt:' + r.id && l.t.id === 'd:' + r.owner)) && g.links.filter((l) => l.why === 'runs' && l.t.id === 'd:scout').length === 3);
 check('Brain links: desk to skill exactly follows each desk skill list', links('desk', 'skill').length === deskSkillPairs && K.desks.every((d) => d.skills.every((id) => g.links.some((l) => l.why === 'uses skill' && l.s.id === 'd:' + d.id && l.t.id === 's:' + id))));
-check('Brain: 24 distinct skills are linked, 30 are not, and none is guessed a link', (() => { const linked = new Set(g.links.filter((l) => l.why === 'uses skill').map((l) => l.t.id)); return linked.size === 24 && g.nodes.filter((n) => n.t === 'skill' && n.deg === 0).length === 30; })());
+check('Brain: 24 distinct skills are linked, 46 are not (16 new imports have no desk yet), and none is guessed a link', (() => { const linked = new Set(g.links.filter((l) => l.why === 'uses skill').map((l) => l.t.id)); return linked.size === 24 && g.nodes.filter((n) => n.t === 'skill' && n.deg === 0).length === 46; })());
 check('Brain: 25 decisions link to their desk (technical 16, lavaall-ceo 5, growth 2, sales 2), the other 27 stay unlinked', g.links.filter((l) => l.why === 'decided').length === 25 && g.nodes.filter((n) => n.t === 'decision' && n.deg > 0).length === 25 && g.nodes.filter((n) => n.t === 'decision' && n.deg === 0).length === 27 && ['technical', 'lavaall-ceo', 'growth', 'sales'].map((d) => g.links.filter((l) => l.why === 'decided' && l.t.id === 'd:' + d).length).join() === '16,5,2,2');
 check('Brain: desk rules ending in an FR id link to that rule (14 links, 9 rules), the other 21 rules stay unlinked', g.links.filter((l) => l.why === 'follows rule').length === 14 && new Set(g.links.filter((l) => l.why === 'follows rule').map((l) => l.t.id)).size === 9 && g.nodes.filter((n) => n.t === 'rule' && n.deg === 0).length === 21 && ['FR-001', 'FR-002', 'FR-004', 'FR-005', 'FR-015', 'FR-017', 'FR-027', 'FR-032', 'FR-033'].every((fr) => g.links.some((l) => l.why === 'follows rule' && l.t.id === 'r:' + fr)));
 check('Brain: every desk rule that cites an FR id cites one that exists in rules.json (no extra rule nodes)', g.counts.rule === 30 && K.desks.concat(K.extraDesks).every((d) => d.rules.every((r) => (r.match(/FR-\d+/g) || []).every((fr) => R.some((x) => x.id === fr)))));
@@ -96,13 +96,13 @@ check('Brain: 100 links in all (14 runs, 47 uses skill, 25 decided, 14 follows r
 check('Brain: a note citing an FR id now links to that rule', (() => { const d2 = osData.buildOsData({ store: { notes: [{ id: 'n1', title: 'About rules', body: 'We follow FR-015 and FR-002 here.' }] }, health: null }, { env: {} }); const g2 = OS.brain.build(d2); return g2.links.filter((l) => l.s.id === 'n:n1' && l.why === 'mentions').map((l) => l.t.id).sort().join() === 'r:FR-002,r:FR-015'; })());
 check('Brain: skill and rule nodes carry their text for the side panel', g.ix['s:ceo-router'].info.whenToUse.length > 20 && g.ix['r:FR-001'].info.text.length > 20 && g.ix['r:FR-001'].info.title.length > 5);
 check('Brain legend source names the data pack', g.source === 'desk registry, routines, decision log, data pack 2026-10-22');
-check('Brain chips: Skills (FR-030 override) shows 54', /Skills \(FR-030 override\) <b>54<\/b>/.test(OS.views.brain.render({ id: 'brain', sub: '', data })) && /Rules <b>30<\/b>/.test(OS.views.brain.render({ id: 'brain', sub: '', data })));
+check('Brain chips: Skills (FR-030 override) shows 70', /Skills \(FR-030 override\) <b>70<\/b>/.test(OS.views.brain.render({ id: 'brain', sub: '', data })) && /Rules <b>30<\/b>/.test(OS.views.brain.render({ id: 'brain', sub: '', data })));
 check('Brain: layout settles to finite coordinates for all 157 nodes', (() => { OS.brain.layout(g, 7); return g.nodes.every((n) => Number.isFinite(n.x) && Number.isFinite(n.y)); })());
 
 // ================= 4. views from the real pack =================
 const html = (id, sub) => OS.views[id].render({ id, sub: sub || '', data });
 const dec = html('decisions');
-check('Decisions view: 52 rows, chips All 52 / Open 22 / Closed 30', (dec.match(/<article class="dcard/g) || []).length === 52 && /All <span class="num">52<\/span>/.test(dec) && /Open <span class="num">22<\/span>/.test(dec) && /Closed <span class="num">30<\/span>/.test(dec));
+check('Decisions view: 52 rows, chips All 52 / Open 0 / Closed 52', (dec.match(/<article class="dcard/g) || []).length === 52 && /All <span class="num">52<\/span>/.test(dec) && /Open <span class="num">0<\/span>/.test(dec) && /Closed <span class="num">52<\/span>/.test(dec));
 check('Decisions view: 6 scored (PASS or FLAG), 46 "Jev: not run"', (dec.match(/pill (pass|flag) num/g) || []).length === 6 && (dec.match(/Jev: not run/g) || []).length === 46);
 check('Decisions view: 10 cards have no level; 25 show their desk short name and 27 a dash', (dec.match(/class="lv num">—</g) || []).length === 10 && (dec.match(/<span class="dim">—<\/span><\/span>|<span class="dim">—<\/span><span class="pill/g) || []).length === 27 && ['Technical', 'CEO', 'Growth', 'Sales'].map((d) => (dec.match(new RegExp(`</i>${d}</span>`, 'g')) || []).length).join() === '16,5,2,2');
 check('Decisions view: a decision opens from its id', /data-go="decisions\/D-2026-09-25-38"/.test(dec));
@@ -115,7 +115,7 @@ check('Desks view: seven cards, Lifecycle shows its now line, the other six say 
 check('Desks view: cards show real skill and routine counts', /16 skills · 10 routines/.test(dkv.replace(/·/g, '·')) && /0 skills · 3 routines/.test(dkv.replace(/·/g, '·')));
 check('Desks view: Scout is there and links to its drawer', /data-go="desks\/scout"/.test(dkv));
 const home = html('home');
-check('Home: open decisions 22, five recent decisions, seven desks', /Open decisions<\/span><b class="num">22<\/b>/.test(home) && (home.split('<h3>Recent decisions</h3>')[1].match(/data-go="decisions\/D-/g) || []).length === 5 && (home.match(/data-go="desks\/[a-z-]+"><span class="dot">/g) || []).length === 7);
+check('Home: open decisions 0, five recent decisions, seven desks', /Open decisions<\/span><b class="num">0<\/b>/.test(home) && (home.split('<h3>Recent decisions</h3>')[1].match(/data-go="decisions\/D-/g) || []).length === 5 && (home.match(/data-go="desks\/[a-z-]+"><span class="dot">/g) || []).length === 7);
 
 // ================= 5. bundling and read-only =================
 const adapter = fs.readFileSync(path.join(root, 'api/ops/_os_data.js'), 'utf8');

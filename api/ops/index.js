@@ -35,6 +35,13 @@ const {
 const { handleInboxTriage, inboxTriageEnabled, readInboxTriageView, renderInboxTriage } = require('./_inbox_triage');
 const { getFounderDeskThread, handleDeskTalk } = require('./_agent_thread');
 const { handleHarnessChat } = require('./_harness_chat');
+const { handleVoice } = require('./_voice');
+const { handleOsInbox } = require('./_os_inbox');
+const { handleOsGoogle } = require('./_os_google');
+const { handleSaved } = require('./_os_saved');
+const { handleKnowledge } = require('./_os_knowledge');
+const { handleBuilder } = require('./_os_builder');
+const { handlePm } = require('./_os_pm');
 const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
 const {
   confirmInboxSend,
@@ -741,6 +748,13 @@ async function opsDispatch(req, res) {
   if (await handleCeoBridge(req, res)) return;
   if (await handleInboxTriage(req, res)) return;
   if (await handleDeskTalk(req, res)) return;
+  if (await handleVoice(req, res)) return;
+  if (await handleOsGoogle(req, res)) return;
+  if (await handleOsInbox(req, res)) return;
+  if (await handleSaved(req, res)) return;
+  if (await handleKnowledge(req, res)) return;
+  if (await handlePm(req, res)) return;
+  if (await handleBuilder(req, res)) return;
   if (await handleHarnessChat(req, res)) return;
   if (await handleKitsApi(req, res)) return;
   if (await handleMapApi(req, res)) return;

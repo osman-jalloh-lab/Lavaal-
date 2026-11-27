@@ -227,3 +227,38 @@ Settled by Osman Jalloh. Do not re-ask.
       it, so a pack the feed would refuse is caught on the PC.
     - Still local: nothing is pushed by running the builder, and notes content is never committed.
 
+
+## 2026-11-26 (about 7:05 PM CT) — one shared git memory
+
+Source: Osman's build prompt `2026-11-26-os-one-shot-build-prompt.md`, written by Drake from Osman's answers that evening.
+
+- **One memory.** `docs/os/knowledge/`, this decisions log and `docs/os/knowledge/ACTIVITY.md` are the source of truth. `docs/os/PICK-UP-HERE.md` points into them. KV is only a cache of the git tree (with its content hash); no second copy in another folder, Obsidian or KV saved items.
+- **Changes are draft PRs.** Knowledge and decision edits, and activity lines, arrive as draft PRs. Builders never merge.
+- **Open drafts stay as they are** (Osman, 7:01 PM CT): do not rebase #103 or #105, do not close #107.
+- **SalonWeb** means LAVAALL Web, the `/web/` product (6:58 PM CT). It is not SaloneWorks and not SaloneHire.
+- **Builder cap:** `OS_BUILDER_MONTHLY_CAP_USD=50` (6:58 PM CT). Not written to Vercel until Osman says so.
+
+## 2026-11-27 — builders: Codex and Claude Code (Sonnet or Opus); DeepSeek stays in chat
+
+Source: Osman in the build session, 27 Nov 2026 (evening CT).
+
+- **Claude Code is a second builder**, next to Codex, on the box runner. Osman picks the builder per job on the /os Build page.
+- **Opus is allowed in the builder only**, and only when Osman picks it for that job. It changes the "never Opus" rule for that one case. Chat stays Sonnet/Haiku. The builder uses Claude Code's `opus` alias, which is the newest Opus.
+- **Cost against the $50 monthly cap:** Codex or Sonnet $2 a run, Opus $6 a run (box settings `OS_BUILDER_RUN_ESTIMATE_USD`, `OS_BUILDER_OPUS_RUN_ESTIMATE_USD`).
+- **DeepSeek stays in chat.** It has no coding agent of its own; revisit later (for example through aider) if a cheaper builder is wanted.
+- **Lavaal- stays public for now** (Osman, 27 Nov 2026). The repo could not be switched to private from the build session, and Osman said to leave it as it is.
+
+## 2026-11-27 — a project manager assigns work by strength
+
+Source: Osman in the build session, 27 Nov 2026 (evening CT).
+
+- Osman gives several goals at once. The PM splits each into steps and assigns each step by strength: research to Grok, specs and drafts to DeepSeek, and code to Claude Opus (big builds), Codex (small fixes) or Claude Sonnet (everyday). Busy builders hand off to a free one.
+- Goals run side by side. One builder works on one job at a time, so a second task goes to another agent instead of waiting.
+- One approval of the plan by Osman covers its build steps, each bound to its task, branch, builder and model. Everything counts toward the $50 monthly cap, and code only comes back as draft PRs.
+
+## 2026-11-27 — the $50 is a budget that asks, not a hard stop
+
+Source: Osman in the build session, 27 Nov 2026 (evening CT).
+
+- Use the $50 a month. At 80% the OS warns. Before going past it, the OS pauses and asks: "you've used $X, continue?"
+- If Osman says yes, that month's allowance goes up by $50, he tops up his credits, and the paused work carries on. Nothing is dropped.

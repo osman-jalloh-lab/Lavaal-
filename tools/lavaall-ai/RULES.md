@@ -8,7 +8,7 @@ Every harness (Codex, Claude, DeepSeek, Gemini) must follow these rules. They ar
 - Keep secrets out of commits, handoff files, prompts that get logged, and chat. Never print API keys.
 - For schema changes: Alembic migrations and a database backup first.
 - Run the full test suite after every change. Do not claim tests passed unless you ran them.
-- Claude must use Sonnet only. Never use Opus.
+- Claude must use Sonnet only. Never use Opus. One exception (Osman, 27 Nov 2026): the OS builder may run Claude Code with Opus, only when Osman picks Opus for that job on /os.
 - AI resume scoring may rank but never auto-reject.
 - Do not invent prices, SKUs, suppliers, volumes, contacts, testimonials, or law.
 - Do not scrape Apple, Amazon, or Back Market. No Starlink in public copy.

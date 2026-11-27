@@ -82,7 +82,7 @@ async function call(area, extra) {
   check('no inline event handlers', !/\son[a-z]+\s*=/i.test(html));
   check('no third-party script or style host except Google Fonts', !/(?:src|href)="https?:\/\/(?!fonts\.(?:googleapis|gstatic)\.com)/.test(html));
   check('uses the existing LAVAALL logo files', /\/images\/logo\.webp/.test(html) && /\/images\/logo\.png/.test(html) && /alt="LAVAALL"/.test(html));
-  check('Inter is the UI font', /family=Inter:wght@400;500;600/.test(html) && !/Clash|Bricolage/.test(html));
+  check('Inter for UI text, Bricolage Grotesque (LAVAALL brand) for titles', /family=Inter:wght@400;500;600/.test(html) && /family=Bricolage\+Grotesque/.test(html));
   check('sign-out reuses the ops form', /action="\/api\/ops\/auth"/.test(html) && /value="logout"/.test(html));
   const m = html.match(/<script type="application\/json" id="os-data">([\s\S]*?)<\/script>/);
   let data = null;
@@ -109,25 +109,25 @@ async function call(area, extra) {
   // 4. /os palette stays inside /os.
   const cssText = css.body;
   const dark = [
-    ['--bg', '#060D16'], ['--bg2', '#040B13'], ['--panel', '#0A1522'], ['--hover', '#0C1E30'], ['--text', '#E7EEF7'], ['--muted', '#8696AB'],
-    ['--accent', '#1E9BFF'], ['--ok', '#22C37A'], ['--warn', '#E3AE2A'], ['--bad', '#F2554A'], ['--c-orange', '#F07A2A'], ['--c-violet', '#7C6CF2'],
-    ['--c-amber', '#FFB904'], ['--c-skill', '#3D6BFF'], ['--c-note', '#D0A368'],
+    // LAVAALL brand: ink background, off-white text, sky accent, lime ok, sun warn, coral bad.
+    ['--bg', '#0A0A14'], ['--panel', '#121221'], ['--text', '#F4F9FF'],
+    ['--accent', '#00C2FF'], ['--ok', '#00F5A0'], ['--warn', '#FFE03D'], ['--bad', '#FF5C5C'], ['--sun', '#FFE03D'],
   ];
   const darkBlock = (cssText.match(/\.os-root\[data-theme=dark\]\{[^}]*\}/) || [''])[0];
-  check('dark tokens match the brief', dark.every(([k, v]) => darkBlock.includes(`${k}:${v}`)));
-  check('line token is rgba(140,170,210,.12)', darkBlock.includes('--line:rgba(140,170,210,.12)'));
-  check('light theme tokens exist', /\.os-root\[data-theme=light\]\{[^}]*--bg:#F6F8FB/.test(cssText));
+  check('dark tokens match the LAVAALL brand', dark.every(([k, v]) => darkBlock.includes(`${k}:${v}`)));
+  check('line token is a faint off-white', darkBlock.includes('--line:rgba(244,249,255,.08)'));
+  check('light theme tokens exist', /\.os-root\[data-theme=light\]\{[^}]*--bg:#F4F9FF/.test(cssText));
   check('no :root, html or body-level token leaks', !/(^|[}\s,]):root\b/.test(cssText));
   check('/ops palette v2 is not used', !/#2EC4FF|#3DDC97|#FCE7F3|#FAF8F5/i.test(cssText));
   check('no drop shadows (box-shadow only for the active-nav inset bar)', (cssText.match(/box-shadow:[^;}]*/g) || []).every((s) => /inset 2px 0 0 var\(--accent\)/.test(s)));
-  check('card radius 10px, control radius 6px', /--r-card:10px/.test(cssText) && /--r-ctl:6px/.test(cssText));
+  check('card radius 14px, control radius 8px', /--r-card:14px/.test(cssText) && /--r-ctl:8px/.test(cssText));
   check('tabular numbers on KPIs', /\.kpi b\{[^}]*\}/.test(cssText) && /font-variant-numeric:tabular-nums/.test(cssText));
   check('mobile breakpoint under 760px', /@media\(max-width:759px\)/.test(cssText));
   check('no gradient purple-to-pink, no glass blur', !/backdrop-filter|blur\(/.test(cssText));
 
   // 5. Shell behaviour contract.
-  const hints = ['G H', 'G D', 'G T', 'G J', 'G O', 'G R', 'G N', 'G B', 'G C', 'G S', 'G ,', 'G A'];
-  check('all twelve views with shortcuts', hints.every((h) => js.body.includes(`'${h}'`)));
+  const hints = ['G H', 'G U', 'G D', 'G T', 'G J', 'G O', 'G R', 'G N', 'G B', 'G C', 'G S', 'G ,', 'G A'];
+  check('all thirteen views with shortcuts', hints.every((h) => js.body.includes(`'${h}'`)));
   check('palette offers Open Brain graph and Search Brain', js.body.includes('Open Brain graph') && js.body.includes('Search Brain'));
   check('clock is Chicago time', js.body.includes('America/Chicago') && js.body.includes("' CT'"));
   check('theme is persisted defensively', /try \{[^}]*localStorage/.test(js.body));
@@ -137,7 +137,19 @@ async function call(area, extra) {
   const harnessSrc = fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8');
   const fetchCount = (js.body.match(/fetch\(/g) || []).length;
   const harnessFetches = harnessSrc.match(/window\.fetch\(/g) || [];
-  check('app.js has exactly two fetch call sites: talk.js and harness.js', fetchCount === 2 && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && harnessFetches.length === 1);
+  const voiceSrc = fs.readFileSync(path.join(root, 'api/os/_client/voice.js'), 'utf8');
+  const voiceFetches = voiceSrc.match(/window\.fetch\(/g) || [];
+  // Jarvis adds two: a same-origin POST helper (voice session, ask_os) and the WebRTC offer to OpenAI Realtime.
+  const inboxSrc = fs.readFileSync(path.join(root, 'api/os/_client/inbox.js'), 'utf8');
+  const savedSrc = fs.readFileSync(path.join(root, 'api/os/_client/saved.js'), 'utf8');
+  const googleSrc = fs.readFileSync(path.join(root, 'api/os/_client/google.js'), 'utf8');
+  const buildSrc = fs.readFileSync(path.join(root, 'api/os/_client/build.js'), 'utf8');
+  check('build.js has one same-origin fetch, to /ops/os/builder only', (buildSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/builder' \+ path/.test(buildSrc) && /credentials: 'same-origin'/.test(buildSrc) && !/https?:\/\//.test(buildSrc.replace(/\/\*[\s\S]*?\*\//g, '')));
+  check('app.js fetch call sites: talk.js, harness.js, inbox.js (read-only GET), saved.js (/ops/os/saved), build.js (/ops/os/builder), google.js (same-origin helper), and two in voice.js (same-origin helper, OpenAI Realtime offer)', fetchCount === 8
+    && (googleSrc.match(/window\.fetch\(/g) || []).length === 1 && /credentials: 'same-origin'/.test(googleSrc) && !/https?:\/\/[^'"]*googleapis/.test(googleSrc)
+    && (inboxSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/inbox'/.test(inboxSrc) && !/method: 'POST'/.test(inboxSrc)
+    && (savedSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/saved'/.test(savedSrc) && /credentials: 'same-origin'/.test(savedSrc)
+    && /window\.fetch\(url\(id, kind\)/.test(talkSrc) && harnessFetches.length === 1 && voiceFetches.length === 2 && /credentials: 'same-origin'/.test(voiceSrc) && /window\.fetch\('https:\/\/api\.openai\.com\/v1\/realtime\/calls/.test(voiceSrc));
   check('talk.js stays same-origin to /ops Talk paths', /credentials: 'same-origin'/.test(talkSrc) && !/https?:\/\//.test(talkSrc.replace(/\/\*[\s\S]*?\*\//, '')) && /'\/ops\/ceo-bridge\/'/.test(talkSrc) && /'\/ops\/desk-talk\/'/.test(talkSrc));
   check('harness.js stays same-origin to /ops/harness/', /credentials(?:\s*:\s*|\s*=\s*)'same-origin'/.test(harnessSrc) && /'\/ops\/harness\/'/.test(harnessSrc) && !/https?:\/\//.test(harnessSrc.replace(/\/\*[\s\S]*?\*\//, '')));
 

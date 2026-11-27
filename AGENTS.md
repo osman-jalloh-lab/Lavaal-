@@ -11,3 +11,4 @@ Before any non-trivial task in this repository:
 7. Respect MAGNUM hard-stop gates.
 8. Run relevant tests after changes.
 9. Never expose secrets or commit `.env`.
+10. For LAVAALL OS work, start at `docs/os/PICK-UP-HERE.md`: the shared memory in `docs/os/knowledge/` is the one handoff. Risky actions follow `docs/os/TRUST.md`.

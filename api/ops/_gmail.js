@@ -242,6 +242,14 @@ async function listGmailThreads({ max } = {}) {
   return out;
 }
 
+// Which Google account the saved refresh token actually reads (Google's answer, not the configured From).
+async function readGmailProfile() {
+  const response = await gmailRequest('profile');
+  if (!response.ok) throw deliveryError('profile', response.status);
+  const data = await response.json();
+  return { emailAddress: String((data && data.emailAddress) || '').trim().toLowerCase() };
+}
+
 async function readGmailMessage(id) {
   const response = await gmailRequest(`messages/${encodeURIComponent(id)}?format=full`);
   if (!response.ok) throw deliveryError('read', response.status);
@@ -306,6 +314,7 @@ module.exports = {
   listGmailThreads,
   preferReadableMail,
   readGmailMessage,
+  readGmailProfile,
   refreshGmailAccessToken,
   sendGmailMessage,
   sendGmailReply,

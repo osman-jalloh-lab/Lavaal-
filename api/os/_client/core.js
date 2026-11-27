@@ -36,6 +36,7 @@
     more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
     fit: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>',
     shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+    build: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
     harness: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><path d="M16 8h2a3 3 0 0 1 3 3v1M8 16H6a3 3 0 0 1-3-3v-1"/>'
   };
   function icon(name) {
@@ -45,21 +46,52 @@
   // id, label, icon, shortcut hint, key after "g", crumb, one-line purpose, data source key
   var NAV = [
     { id: 'home', label: 'Home', icon: 'home', hint: 'G H', key: 'h', about: 'What needs you today.', src: null },
+    { id: 'build', label: 'Build', icon: 'build', hint: 'G U', key: 'u', about: 'What Claude and the agents are building, and what waits on you.', src: 'build' },
+    { id: 'progress', label: 'Progress', icon: 'timer', hint: 'G P', key: 'p', about: 'Goals for the week, month and quarter.', src: null },
+    { id: 'recap', label: 'End of day', icon: 'sunrise', hint: 'G E', key: 'e', about: 'What every agent did today, what is blocked, and your own recap.', src: 'recap' },
+    { id: 'saved', label: 'Saved memory', icon: 'brain', hint: 'G M', key: 'm', about: 'Things you asked the OS to remember.', src: null },
     { id: 'desks', label: 'Desks', icon: 'users', hint: 'G D', key: 'd', about: 'The desks, their rules and routines.', src: 'desks' },
-    { id: 'talk', label: 'Talk', icon: 'council', hint: 'G T', key: 't', about: 'One-on-one chats with the desks.', src: null },
-    { id: 'decisions', label: 'Decisions + Jev', icon: 'scale', hint: 'G J', key: 'j', about: 'Decision log with Jev scores.', src: 'decisions' },
+    { id: 'talk', label: 'Desk chats', icon: 'council', hint: 'G T', key: 't', about: 'One-on-one chats with the desks.', src: null },
+    { id: 'calendar', label: 'Calendar', icon: 'timer', hint: 'G K', key: 'k', about: 'Your Google calendar.', src: null },
+    { id: 'inbox', label: 'Inbox', icon: 'inbox', hint: 'G I', key: 'i', about: 'Business Gmail sorted into piles. Read-only.', src: null },
+    { id: 'decisions', label: 'Decisions', icon: 'scale', hint: 'G J', key: 'j', about: 'Decision log with Jev scores.', src: 'decisions' },
     { id: 'outreach', label: 'Outreach', icon: 'send', hint: 'G O', key: 'o', about: 'Leads by stage. View only; nothing is sent from here.', src: 'outreach' },
     { id: 'routines', label: 'Routines', icon: 'timer', hint: 'G R', key: 'r', about: 'Schedules, last runs and health.', src: 'routines' },
     { id: 'notes', label: 'Notes', icon: 'notes', hint: 'G N', key: 'n', about: 'Founder notes.', src: 'notes' },
     { id: 'brain', label: 'Brain', icon: 'brain', hint: 'G B', key: 'b', about: 'How desks, rules, skills, routines and decisions connect.', src: 'desks' },
     { id: 'council', label: 'AI Council', icon: 'council', hint: 'G C', key: 'c', about: 'Drafter and reviewer rounds, read from stored records.', src: 'council' },
-    { id: 'spend', label: 'Spend', icon: 'spend', hint: 'G S', key: 's', about: 'AI spend from real records.', src: 'spend' },
+    { id: 'spend', label: 'Money', icon: 'spend', hint: 'G S', key: 's', about: 'AI spend from real records.', src: 'spend' },
     { id: 'settings', label: 'Settings', icon: 'settings', hint: 'G ,', key: ',', about: 'Connection status. Names only, never values.', src: 'settings' },
-    { id: 'harness', label: 'Harness', icon: 'harness', hint: 'G A', key: 'a', about: 'Type a request to Codex, Claude, or DeepSeek for a project. Gemini is off.', src: 'harness' }
+    { id: 'harness', label: 'AI models', icon: 'harness', hint: 'G A', key: 'a', about: 'Type a request to Codex, Claude, or DeepSeek for a project. Gemini is off.', src: 'harness' }
   ];
-  // Phone tab bar: four views, then "More" for the rest. Routines moves into More so no view is unreachable.
-  var TABS = ['home', 'desks', 'decisions', 'outreach'];
-  var MORE = ['talk', 'notes', 'brain', 'council', 'spend', 'settings', 'routines', 'harness'];
+  // Sidebar sections, grouped like an agentic OS: each section opens its first view, and a section with several
+  // views shows them as tabs. Every view keeps its own route (#talk, #brain, ...), so old links still work.
+  var SECTIONS = [
+    { id: 'home', label: 'Home', icon: 'home', group: 'Today', views: ['home'] },
+    { id: 'build', label: 'Build', icon: 'build', group: 'Today', views: ['build'] },
+    { id: 'progress', label: 'Progress', icon: 'timer', group: 'Today', views: ['progress'] },
+    { id: 'recap', label: 'End of day', icon: 'sunrise', group: 'Today', views: ['recap'] },
+    { id: 'chat', label: 'Chat', icon: 'council', group: 'Work', views: ['talk', 'harness'], tabs: { talk: 'Desks', harness: 'AI models' } },
+    { id: 'inbox', label: 'Inbox', icon: 'inbox', group: 'Work', views: ['inbox'] },
+    { id: 'calendar', label: 'Calendar', icon: 'timer', group: 'Work', views: ['calendar'] },
+    { id: 'decisions', label: 'Decisions', icon: 'scale', group: 'Work', views: ['decisions'] },
+    { id: 'outreach', label: 'Outreach', icon: 'send', group: 'Work', views: ['outreach'] },
+    { id: 'money', label: 'Money', icon: 'spend', group: 'Business', views: ['spend'] },
+    { id: 'memory', label: 'Memory', icon: 'brain', group: 'Knowledge', views: ['saved', 'notes', 'brain'], tabs: { saved: 'Saved', notes: 'Notes', brain: 'Graph' } },
+    { id: 'agents', label: 'Agents', icon: 'users', group: 'Knowledge', views: ['desks', 'routines', 'council'], tabs: { desks: 'Desks', routines: 'Routines', council: 'AI Council' } },
+    { id: 'settings', label: 'Settings', icon: 'settings', group: 'System', views: ['settings'] }
+  ];
+  function sectionOf(viewId) {
+    for (var i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].views.indexOf(viewId) !== -1) return SECTIONS[i];
+    return SECTIONS[0];
+  }
+  function sectionById(id) {
+    for (var i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].id === id) return SECTIONS[i];
+    return null;
+  }
+  // Phone tab bar: four sections, then "More" for the rest, so every section is reachable.
+  var TABS = ['home', 'chat', 'build', 'decisions'];
+  var MORE = ['progress', 'recap', 'inbox', 'calendar', 'outreach', 'money', 'memory', 'agents', 'settings'];
 
   function readData() {
     var node = $('#os-data');
@@ -68,6 +100,96 @@
 
   OS.data = readData();
   OS.nav = NAV;
+  // Sidebar card: is an agent working right now? From the Build log only (active items). Click to talk to Jarvis.
+  function agentCardHtml(data) {
+    var items = (data && data.build && Array.isArray(data.build.items)) ? data.build.items : [];
+    var active = items.filter(function (i) { return i.status === 'active' && OS.inBusiness(i.project); });
+    var waiting = items.filter(function (i) { return i.status === 'waiting' && OS.inBusiness(i.project); }).length;
+    return '<span class="ac-orb' + (active.length ? ' busy' : '') + '" aria-hidden="true"></span>' +
+      '<span class="ac-t"><b>' + (active.length ? (active.length === 1 ? 'An agent is working' : active.length + ' agents are working') : 'All quiet') + '</b>' +
+      '<small>' + esc(active.length ? active[0].title : waiting ? waiting + ' waiting on you' : 'Tap to talk to Jarvis') + '</small></span>';
+  }
+  OS.agentCardHtml = agentCardHtml;
+  function paintAgentCard() {
+    var el = $('#agentcard');
+    if (!el) return;
+    el.innerHTML = agentCardHtml(OS.data);
+    if (!el.getAttribute('data-wired')) {
+      el.setAttribute('data-wired', '1');
+      el.addEventListener('click', function () { if (OS.jarvis && OS.jarvis.start) OS.jarvis.start(); });
+    }
+  }
+  OS.sections = SECTIONS;
+
+  // ---- Business switch: All, or one of Osman's businesses. Filters Build, Progress, Memory and AI models chat.
+  // Remembered per browser (a convenience only; nothing is stored on the server).
+  // Fixed businesses, plus any other project group from the harness pack (its name comes from the server data).
+  var BUSINESSES = [
+    { id: 'all', label: 'All businesses' },
+    { id: 'lavaall', label: 'LAVAALL' },
+    { id: 'saloneworks', label: 'SaloneWorks' },
+    { id: 'salonehire', label: 'SaloneHire' }
+  ];
+  ((OS.data.harness && OS.data.harness.groups) || []).forEach(function (g) {
+    var id = String(g && g.id || '');
+    if (/^[a-z0-9-]{2,40}$/.test(id) && !BUSINESSES.some(function (b) { return b.id === id; })) BUSINESSES.push({ id: id, label: String(g.label || id) });
+  });
+  // Which business a Build item or goal belongs to, from its project id.
+  var BUSINESS_OF = { 'lavaall-os': 'lavaall', website: 'lavaall', agents: 'lavaall', lavaall: 'lavaall', saloneworks: 'saloneworks', salonehire: 'salonehire' };
+  BUSINESSES.forEach(function (b) { if (b.id !== 'all' && !BUSINESS_OF[b.id]) BUSINESS_OF[b.id] = b.id; });
+  var business = 'all';
+  try { var saved = localStorage.getItem('os-business'); if (saved && BUSINESS_OF[saved] || saved === 'all') business = saved || 'all'; } catch (e) { /* default */ }
+  OS.businesses = BUSINESSES;
+  OS.businessOf = function (project) { return BUSINESS_OF[project] || 'lavaall'; };
+  OS.business = function () { return business; };
+  OS.inBusiness = function (project) { return business === 'all' || OS.businessOf(project) === business; };
+  OS.setBusiness = function (id) {
+    if (!BUSINESSES.some(function (b) { return b.id === id; })) return;
+    business = id;
+    try { localStorage.setItem('os-business', id); } catch (e) { /* per-browser only */ }
+    var sel = $('#bizsel');
+    if (sel) sel.value = id;
+    render();
+  };
+  OS.businessLabel = function (id) { var want = id || business; var hit = BUSINESSES.filter(function (b) { return b.id === want; })[0]; return hit ? hit.label : want; };
+
+  // ---- Ask anything: route a question to the best ready model, then open AI models with it filled in ----
+  // Simple, visible rules (no extra model call): code work -> Codex, quick text jobs -> DeepSeek (cheapest),
+  // news and X/trends -> Grok, everything else -> Claude. A model whose key is missing is skipped.
+  var ASK_ORDER = ['claude', 'codex', 'deepseek', 'grok'];
+  OS.routeAsk = function (text) {
+    var t = String(text || '');
+    var pick = /\b(code|coding|bug|fix|refactor|pr|pull request|deploy|build|test|tests|function|api|repo|github|script)\b/i.test(t) ? 'codex'
+      : /\b(grok|x\.com|twitter|tweet|trend|trending|news)\b/i.test(t) ? 'grok'
+        : /\b(translate|summari[sz]e|summary|rewrite|shorten|list|quick)\b/i.test(t) ? 'deepseek'
+          : 'claude';
+    var status = (OS.data.harness && OS.data.harness.status) || [];
+    var ready = {};
+    status.forEach(function (s) { ready[s.id] = s.state === 'ready'; });
+    if (!status.length || ready[pick]) return pick;
+    for (var i = 0; i < ASK_ORDER.length; i++) if (ready[ASK_ORDER[i]]) return ASK_ORDER[i];
+    return pick;
+  };
+  var pendingAsk = null;
+  OS.ask = function (text) {
+    var q = String(text || '').trim();
+    if (!q) return;
+    pendingAsk = { text: q.slice(0, 8000), harness: OS.routeAsk(q) };
+    OS.go('harness');
+  };
+  OS.takeAsk = function () { var a = pendingAsk; pendingAsk = null; return a; };
+
+  // ---- AI bar: which models are connected, at a glance, on every page ----
+  OS.aiBar = function () {
+    var status = (OS.data.harness && OS.data.harness.status) || [];
+    if (!status.length) return '';
+    return status.map(function (s) {
+      var ok = s.state === 'ready';
+      return '<a class="aichip' + (ok ? ' ok' : '') + '" href="#harness" title="' + esc(s.label + ': ' + (s.detail || s.state)) + '"><i aria-hidden="true"></i>' + esc(s.label.split(' ')[0]) +
+        '<span class="sr">' + (ok ? ' connected' : ' not connected') + '</span></a>';
+    }).join('');
+  };
+  OS.sectionOf = sectionOf;
   OS.esc = esc;
   OS.icon = icon;
   OS.$ = $;
@@ -210,14 +332,20 @@
   // ---- nav ---------------------------------------------------------------
   var cur = 'home';
   function renderNav() {
-    $('#nav').innerHTML = '<div class="navlbl">Workspace</div>' + NAV.map(function (n) {
-      return '<a href="#' + n.id + '" data-nav="' + n.id + '"' + (n.id === cur ? ' class="on" aria-current="page"' : '') + '>' +
-        icon(n.icon) + esc(n.label) + '<kbd>' + esc(n.hint) + '</kbd></a>';
+    var active = sectionOf(cur).id;
+    var group = '';
+    paintAgentCard();
+    $('#nav').innerHTML = SECTIONS.map(function (sec) {
+      var first = navItem(sec.views[0]);
+      var lbl = sec.group !== group ? '<div class="navlbl">' + esc(sec.group) + '</div>' : '';
+      group = sec.group;
+      return lbl + '<a href="#' + sec.views[0] + '" data-nav="' + sec.id + '"' + (sec.id === active ? ' class="on" aria-current="page"' : '') + '>' +
+        icon(sec.icon) + esc(sec.label) + '<kbd>' + esc(first.hint) + '</kbd></a>';
     }).join('');
     $('#tabbar').innerHTML = TABS.map(function (id) {
-      var n = navItem(id);
-      return '<a href="#' + id + '"' + (id === cur ? ' class="on" aria-current="page"' : '') + '>' + icon(n.icon) + esc(n.label.split(' ')[0]) + '</a>';
-    }).join('') + '<button type="button" id="tab-more" class="tab' + (MORE.indexOf(cur) !== -1 ? ' on' : '') + '" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet">' + icon('more') + 'More</button>';
+      var sec = sectionById(id);
+      return '<a href="#' + sec.views[0] + '"' + (id === active ? ' class="on" aria-current="page"' : '') + '>' + icon(sec.icon) + esc(sec.label) + '</a>';
+    }).join('') + '<button type="button" id="tab-more" class="tab' + (MORE.indexOf(active) !== -1 ? ' on' : '') + '" aria-haspopup="dialog" aria-expanded="false" aria-controls="sheet">' + icon('more') + 'More</button>';
   }
 
   // ---- router ------------------------------------------------------------
@@ -251,27 +379,62 @@
     if (mounted && mounted.unmount) { try { mounted.unmount(); } catch (e) { /* ignore */ } }
     mounted = null;
     cur = route.id;
-    $('#crumb').textContent = n.label;
-    doc.title = n.label + ' · LAVAALL OS';
+    var sec = sectionOf(route.id);
+    var tabLabel = sec.tabs && sec.tabs[route.id];
+    $('#crumb').textContent = tabLabel ? sec.label + ' / ' + tabLabel : n.label;
+    doc.title = (tabLabel ? sec.label + ': ' + tabLabel : n.label) + ' · LAVAALL OS';
     renderNav();
     closeMore();
     closeDrawer();
     var view = OS.views[route.id];
     var ctx = { id: route.id, sub: route.sub, data: OS.data, esc: esc, icon: icon, go: OS.go };
     var host = $('#view');
-    host.innerHTML = '<div class="fade">' + (view ? view.render(ctx) : placeholder(n)) + '</div>';
+    var tabs = sec.views.length > 1 ? '<nav class="subtabs" aria-label="' + esc(sec.label) + '">' + sec.views.map(function (id) {
+      return '<a href="#' + id + '"' + (id === route.id ? ' class="on" aria-current="page"' : '') + '>' + esc((sec.tabs && sec.tabs[id]) || navItem(id).label) + '</a>';
+    }).join('') + '</nav>' : '';
+    host.innerHTML = '<div class="fade">' + tabs + (view ? view.render(ctx) : placeholder(n)) + '</div>';
     if (view) {
       mounted = view;
       if (view.mount) view.mount(host, ctx);
     }
+    motionPass(host);
+  }
+
+  // Motion pass (Claude Design Blueprint, hack 03): cards and sections rise in with a 40ms stagger, and whole KPI
+  // numbers count up once in under a second. Only transform and opacity move. Reduced motion turns it all off.
+  function reducedMotion() { try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
+  function motionPass(host) {
+    if (!host || !host.querySelectorAll || reducedMotion()) return;
+    var cards = host.querySelectorAll('.fade > .grid > .card, .fade > .card, .fade > section.card, .bz, .launch, .rc, .kpi');
+    for (var i = 0; i < cards.length && i < 16; i++) { cards[i].classList.add('reveal'); cards[i].style.setProperty('--i', String(i)); }
+    // Drop the class once it has played, so its final frame does not hold the hover lift down.
+    var done = cards;
+    window.setTimeout(function () { for (var j = 0; j < done.length; j++) done[j].classList.remove('reveal'); }, 16 * 40 + 340);
+    var nums = host.querySelectorAll('.kpi b.num, .bz-n b.num, .launch-n');
+    for (var k = 0; k < nums.length; k++) countUp(nums[k]);
+  }
+  function countUp(el) {
+    var m = /^(\D*)(\d{1,6})(\D*)$/.exec(String(el.textContent || '').trim());
+    if (!m || !window.requestAnimationFrame) return;
+    var to = Number(m[2]), start = 0, ms = 800;
+    if (to < 2) return;
+    function tick(now) {
+      if (!start) start = now;
+      var t = Math.min(1, (now - start) / ms), v = Math.round(to * (1 - Math.pow(1 - t, 3)));
+      el.textContent = m[1] + v + m[3];
+      if (t < 1) window.requestAnimationFrame(tick);
+    }
+    el.textContent = m[1] + '0' + m[3];
+    window.requestAnimationFrame(tick);
   }
 
   // ---- More sheet (phone) ------------------------------------------------
   function openMore() {
     var panel = $('#sheet-panel');
+    var active = sectionOf(cur).id;
     panel.innerHTML = '<div class="sheet-h">More</div>' + MORE.map(function (id) {
-      var n = navItem(id);
-      return '<a class="sheet-i' + (id === cur ? ' on' : '') + '" href="#' + id + '"' + (id === cur ? ' aria-current="page"' : '') + '>' + icon(n.icon) + '<span>' + esc(n.label) + '</span></a>';
+      var sec = sectionById(id);
+      return '<a class="sheet-i' + (id === active ? ' on' : '') + '" href="#' + sec.views[0] + '"' + (id === active ? ' aria-current="page"' : '') + '>' + icon(sec.icon) + '<span>' + esc(sec.label) + '</span></a>';
     }).join('');
     $('#sheet').classList.add('on');
     $('#tab-more').setAttribute('aria-expanded', 'true');
@@ -419,6 +582,14 @@
     });
 
     window.addEventListener('hashchange', render);
+    var bar = $('#aibar');
+    if (bar) bar.innerHTML = OS.aiBar();
+    var biz = $('#bizsel');
+    if (biz) {
+      biz.innerHTML = BUSINESSES.map(function (b) { return '<option value="' + b.id + '"' + (b.id === business ? ' selected' : '') + '>' + esc(b.label) + '</option>'; }).join('');
+      biz.addEventListener('change', function () { OS.setBusiness(biz.value); });
+    }
+    if (OS.mountJarvis) OS.mountJarvis(doc.body);
     tickClock();
     setInterval(tickClock, 30000);
     render();

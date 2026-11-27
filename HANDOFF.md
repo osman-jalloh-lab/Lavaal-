@@ -1,3 +1,5 @@
+> **Start at `docs/os/PICK-UP-HERE.md`.** The shared memory (`docs/os/knowledge/`, `docs/os/DECISIONS.md`, `docs/os/knowledge/ACTIVITY.md`) is the source of truth from 26 Nov 2026, and it is the handoff for Drake, the OS and the builders (no second copy). Trust rules: `docs/os/TRUST.md`. This file is an older handoff, kept as history.
+
 # HANDOFF — OS harness chat
 
 - Branch: `feature/os-harness-chat`

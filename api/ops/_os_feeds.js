@@ -13,7 +13,7 @@ const path = require('path');
 
 const { formatChicago } = require('./_routine_health');
 
-const FEEDS = Object.freeze(['morning-brief', 'routine-health', 'spend', 'outreach-stats', 'desk-status', 'notes']);
+const FEEDS = Object.freeze(['morning-brief', 'routine-health', 'spend', 'outreach-stats', 'desk-status', 'notes', 'build-log', 'daily-recap']);
 const MAX_BYTES = 20 * 1024;
 // The notes pack is a few hundred notes of text, so that one feed gets a larger cap. 900 KB stays under Vercel's
 // 4.5 MB request limit and Upstash's 1 MB request size; every other feed keeps 20 KB.
@@ -217,7 +217,90 @@ function validateNotes(body, ctx) {
   return { ok: true, value: rows };
 }
 
+// ---- build log: what Claude and the agents are building, shown on the /os Build page ----------------
+// Each push replaces the whole log. Same privacy filter as notes: no emails, phones, blocked words or lead data.
+// Fixed ids plus every project group id in tools/lavaall-ai/projects.json (one per business), so a new
+// business line needs no code change here.
+const PROJECT_GROUP_IDS = (() => {
+  try {
+    const pack = require('../../tools/lavaall-ai/projects.json');
+    return (Array.isArray(pack.groups) ? pack.groups : []).map((g) => String(g && g.id || '')).filter((id) => /^[a-z0-9-]{2,40}$/.test(id));
+  } catch { return []; }
+})();
+const BUILD_PROJECTS = Object.freeze(Array.from(new Set(['lavaall-os', 'salonehire', 'saloneworks', 'agents', 'website'].concat(PROJECT_GROUP_IDS))));
+const BUILD_STATUSES = Object.freeze(['waiting', 'active', 'done', 'next']);
+const BUILD_KEYS = ['id', 'project', 'status', 'title', 'detail', 'url', 'updated'];
+const MAX_BUILD_ITEMS = 100;
+
+function validateBuildLog(body, ctx) {
+  if (!Array.isArray(body) || body.length < 1 || body.length > MAX_BUILD_ITEMS) return bad('body');
+  const seen = new Set();
+  const rows = [];
+  for (let i = 0; i < body.length; i += 1) {
+    const r = body[i];
+    if (!exactKeys(r, BUILD_KEYS)) return bad(`[${i}]`);
+    if (typeof r.id !== 'string' || r.id.length > 60 || !SLUG_RE.test(r.id) || seen.has(r.id)) return bad(`[${i}].id`);
+    seen.add(r.id);
+    if (!BUILD_PROJECTS.includes(r.project)) return bad(`[${i}].project`);
+    if (!BUILD_STATUSES.includes(r.status)) return bad(`[${i}].status`);
+    const title = plain(r.title, 1, 140, false);
+    if (title === null) return bad(`[${i}].title`);
+    const detail = r.detail === '' ? '' : plain(r.detail, 0, 600, true);
+    if (detail === null) return bad(`[${i}].detail`);
+    if (r.url !== '' && (typeof r.url !== 'string' || r.url.length > 300 || !/^https:\/\/[^\s@]+$/.test(r.url))) return bad(`[${i}].url`);
+    if (!pastIso(r.updated, ctx.now)) return bad(`[${i}].updated`);
+    if (dropReasons({ title, body: detail, url: r.url }).length) return bad(`[${i}].detail`);
+    rows.push({ id: r.id, project: r.project, status: r.status, title, detail, url: r.url, updated: r.updated });
+  }
+  return { ok: true, value: rows };
+}
+
+// ---- daily-recap: each agent's end-of-day report -------------------------------------------------------
+// [{id, agent, project, date, happened, built, blocked, next, updated}]. Entries merge by id (re-sending is safe);
+// the newest 14 days are kept. Grok (xAI), Claude, Codex, DeepSeek and the desks post here at the end of the day.
+const RECAP_KEYS = ['id', 'agent', 'project', 'date', 'happened', 'built', 'blocked', 'next', 'updated'];
+const MAX_RECAP_POST = 40;
+const MAX_RECAP_STORED = 300;
+const RECAP_DAYS = 14;
+
+function recapText(v, max) { return v === '' ? '' : plain(v, 0, max, true); }
+
+function validateRecap(body, ctx) {
+  if (!Array.isArray(body) || body.length < 1 || body.length > MAX_RECAP_POST) return bad('body');
+  const seen = new Set();
+  const rows = [];
+  for (let i = 0; i < body.length; i += 1) {
+    const r = body[i];
+    if (!exactKeys(r, RECAP_KEYS)) return bad(`[${i}]`);
+    if (typeof r.id !== 'string' || r.id.length > 60 || !SLUG_RE.test(r.id) || seen.has(r.id)) return bad(`[${i}].id`);
+    seen.add(r.id);
+    if (typeof r.agent !== 'string' || r.agent.length > 30 || !SLUG_RE.test(r.agent)) return bad(`[${i}].agent`);
+    if (!BUILD_PROJECTS.includes(r.project)) return bad(`[${i}].project`);
+    if (!validDay(r.date, ctx.now)) return bad(`[${i}].date`);
+    const happened = plain(r.happened, 1, 800, true);
+    if (happened === null) return bad(`[${i}].happened`);
+    const built = recapText(r.built, 600); const blocked = recapText(r.blocked, 600); const next = recapText(r.next, 600);
+    if (built === null) return bad(`[${i}].built`);
+    if (blocked === null) return bad(`[${i}].blocked`);
+    if (next === null) return bad(`[${i}].next`);
+    if (!pastIso(r.updated, ctx.now)) return bad(`[${i}].updated`);
+    if (dropReasons({ title: happened, body: [built, blocked, next].join('\n'), url: '' }).length) return bad(`[${i}].happened`);
+    rows.push({ id: r.id, agent: r.agent, project: r.project, date: r.date, happened, built, blocked, next, updated: r.updated });
+  }
+  return { ok: true, value: rows };
+}
+
+function mergeRecap(existing, value) {
+  const byId = new Map((existing && Array.isArray(existing.entries) ? existing.entries : []).map((e) => [e.id, e]));
+  value.forEach((e) => byId.set(e.id, e));
+  const all = Array.from(byId.values()).sort((a, b) => (a.date === b.date ? (a.updated < b.updated ? 1 : -1) : a.date < b.date ? 1 : -1));
+  const days = Array.from(new Set(all.map((e) => e.date))).slice(0, RECAP_DAYS);
+  return all.filter((e) => days.includes(e.date)).slice(0, MAX_RECAP_STORED);
+}
+
 const VALIDATORS = {
+  'daily-recap': validateRecap,
+  'build-log': validateBuildLog,
   notes: validateNotes,
   'morning-brief': validateBrief,
   'routine-health': validateRoutineHealth,
@@ -255,6 +338,10 @@ function applyPayload(feed, existing, value, now) {
       const keep = Object.keys(days).sort().reverse().slice(0, MAX_OUTREACH_DAYS);
       return { receivedAt, days: keep.reduce((o, d) => { o[d] = days[d]; return o; }, {}) };
     }
+    case 'build-log':
+      return { receivedAt, items: value.slice() };
+    case 'daily-recap':
+      return { receivedAt, entries: mergeRecap(existing, value) };
     case 'notes':
       // Each push replaces the whole pack: the vault is the source of truth, so a note removed there leaves /os too.
       return { receivedAt, notes: value.slice() };
@@ -384,6 +471,18 @@ function normalizeRecord(feed, raw) {
       const v = validateNotes(raw.notes, ctx);
       return v.ok ? Object.assign(rec, { notes: v.value }) : null;
     }
+    case 'build-log': {
+      const v = validateBuildLog(raw.items, ctx);
+      return v.ok ? Object.assign(rec, { items: v.value }) : null;
+    }
+    case 'daily-recap': {
+      if (!Array.isArray(raw.entries) || raw.entries.length > MAX_RECAP_STORED) return null;
+      if (!raw.entries.length) return Object.assign(rec, { entries: [] });
+      const v = validateRecap(raw.entries.slice(0, MAX_RECAP_POST), ctx);
+      if (!v.ok) return null;
+      const rest = raw.entries.length > MAX_RECAP_POST ? validateRecapAll(raw.entries.slice(MAX_RECAP_POST), ctx) : [];
+      return rest === null ? null : Object.assign(rec, { entries: v.value.concat(rest) });
+    }
     case 'desk-status': {
       if (!isObject(raw.desks)) return null;
       const desks = {};
@@ -399,11 +498,11 @@ function normalizeRecord(feed, raw) {
   }
 }
 
-// Reads all six. One unreadable feed never hides the others.
+// Reads all seven. One unreadable feed never hides the others.
 async function readFeeds(opts) {
   if (opts && opts.feeds !== undefined) return opts.feeds;
-  const [brief, health, spend, outreach, desks, notes] = await Promise.all(FEEDS.map((f) => readFeed(f, opts)));
-  return { brief, health, spend, outreach, desks, notes };
+  const [brief, health, spend, outreach, desks, notes, build, recap] = await Promise.all(FEEDS.map((f) => readFeed(f, opts)));
+  return { brief, health, spend, outreach, desks, notes, build, recap };
 }
 
 // ---- views for the adapter (pure) --------------------------------------------------------------------
@@ -479,6 +578,41 @@ function notePackRow(n) {
   };
 }
 
+// Newest first inside each lane; the client groups by status.
+function buildLogView(rec) {
+  if (!rec) return null;
+  return {
+    receivedAt: rec.receivedAt,
+    items: rec.items.map((r) => ({
+      id: r.id, project: r.project, status: r.status, title: r.title, detail: r.detail, url: r.url,
+      updatedAt: Date.parse(r.updated),
+    })).sort((a, b) => b.updatedAt - a.updatedAt),
+  };
+}
+
+// Stored rows past the first post-sized chunk, checked in chunks (ids are unique across the whole record).
+function validateRecapAll(rows, ctx) {
+  const out = [];
+  for (let i = 0; i < rows.length; i += MAX_RECAP_POST) {
+    const v = validateRecap(rows.slice(i, i + MAX_RECAP_POST), ctx);
+    if (!v.ok) return null;
+    out.push(...v.value);
+  }
+  return out;
+}
+
+// Newest day first; inside a day, the latest report first. The client groups by day and filters by business.
+function recapView(rec) {
+  if (!rec) return null;
+  return {
+    receivedAt: rec.receivedAt,
+    entries: rec.entries.map((e) => ({
+      id: e.id, agent: e.agent, project: e.project, date: e.date, happened: e.happened, built: e.built,
+      blocked: e.blocked, next: e.next, updatedAt: Date.parse(e.updated),
+    })),
+  };
+}
+
 function deskStatusView(rec) {
   if (!rec) return null;
   return Object.keys(rec.desks).reduce((o, id) => {
@@ -488,6 +622,8 @@ function deskStatusView(rec) {
 }
 
 module.exports = {
+  BUILD_PROJECTS,
+  BUILD_STATUSES,
   COUNT_KEYS,
   FEEDS,
   HEALTH_STATUSES,
@@ -495,7 +631,9 @@ module.exports = {
   NOTES_MAX_BYTES,
   applyPayload,
   briefView,
+  buildLogView,
   deskStatusView,
+  recapView,
   feedKey,
   healthView,
   maxBytesFor,

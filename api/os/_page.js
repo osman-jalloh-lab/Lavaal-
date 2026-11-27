@@ -11,7 +11,8 @@ const OS_CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data:",
-  "connect-src 'self'",
+  // Jarvis: the browser sends its WebRTC offer to OpenAI Realtime with a short-lived secret.
+  "connect-src 'self' https://api.openai.com",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
@@ -42,7 +43,7 @@ function osPage({ email, data }) {
 <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/os/app.css"/>
 </head>
 <body>
@@ -56,6 +57,7 @@ function osPage({ email, data }) {
   </div>
   <button class="search" id="side-search" type="button">${'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>'}Search or jump to<kbd>&#8984;K</kbd></button>
   <nav class="nav" id="nav" aria-label="LAVAALL OS"></nav>
+  <button class="agentcard" id="agentcard" type="button" aria-label="Talk to Jarvis"></button>
   <div class="me">
     <div class="av" id="me-av" aria-hidden="true"></div>
     <div class="me-id"><div class="me-email" title="${safeEmail}">${safeEmail}</div><div class="me-sub">Founder</div></div>
@@ -67,6 +69,8 @@ function osPage({ email, data }) {
   <header>
     <div class="crumb">LAVAALL / <b id="crumb">Home</b></div>
     <div class="hdr-r">
+      <label class="sr" for="bizsel">Business</label><select class="bizsel" id="bizsel"></select>
+      <nav class="aibar hide-m" id="aibar" aria-label="AI models"></nav>
       <span class="clock hide-m" id="clock"></span>
       <button class="ib" id="hdr-pal" type="button" title="Command palette" aria-label="Command palette"></button>
       <button class="ib" id="hdr-theme" type="button" title="Toggle theme" aria-label="Toggle theme"></button>

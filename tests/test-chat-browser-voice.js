@@ -255,7 +255,9 @@ const submit = { preventDefault() {} };
   assert.equal(policy('/'), 'camera=(), microphone=(self), geolocation=()');
   assert.equal(policy('/ops(.*)'), 'camera=(), microphone=(self), geolocation=()');
   assert.equal(policy('/web/(.*)'), undefined);
-  assert.equal(policy('/os/:path*') || policy('/os/') || policy('/os(.*)'), undefined);
+  // /os allows the same-origin microphone for Jarvis voice, like /ops; no other /os policy rule.
+  assert.equal(policy('/os(.*)'), 'camera=(), microphone=(self), geolocation=()');
+  assert.equal(policy('/os/:path*') || policy('/os/'), undefined);
   let network = 0;
   const isolated = {
     speechSynthesis: {
