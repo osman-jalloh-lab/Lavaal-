@@ -105,13 +105,37 @@
     return '<section class="card">' + (list.length ? list.map(function (m) {
       return '<div class="mem-row" data-id="' + esc(m.id) + '"><p class="mem-text">' + esc(m.text) + '</p><div class="mem-meta"><span class="num">' + esc(OS.fmtTime(m.createdAt)) + '</span>' +
         m.tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
+        (know().propose_base ? '<a class="btn" href="' + esc(proposeHref(m)) + '" target="_blank" rel="noopener" title="Opens a pull request on GitHub for Osman to review">Propose to shared memory</a>' : '') +
         '<button type="button" class="btn" data-del="1" aria-label="Delete memory">Delete</button></div></div>';
     }).join('') : '<div class="empty"><b>' + (q ? 'No memory matches that.' : 'Nothing saved yet. Write something above, or tell Jarvis to remember it.') + '</b></div>') + '</section>';
   }
+  // ---- Memory: shared (git, docs/os/knowledge/) ----
+  // The canonical memory. Read from the compiled pack the page already carries; edits are proposals that open
+  // GitHub's new-file page on a fresh branch and pull request. A Saved note above is local until proposed.
+  function know() { return (OS.data && OS.data.knowledge) || { files: [], businesses: [] }; }
+  function proposeHref(m) {
+    var k = know(), biz = OS.business ? OS.business() : 'all';
+    if (k.businesses.indexOf(biz) === -1) biz = m.tags.filter(function (t) { return k.businesses.indexOf(t) !== -1; })[0] || 'lavaall';
+    var day = new Date().toISOString().slice(0, 10);
+    var title = m.text.split('\n')[0].slice(0, 80);
+    var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'note';
+    var body = ['# ' + title, '', 'source: LAVAALL OS Memory page, proposed by Osman', 'date: ' + day, '', m.text, ''].join('\n');
+    return k.propose_base + '?filename=' + encodeURIComponent('docs/os/knowledge/' + biz + '/notes/' + day + '-' + slug + '.md') + '&value=' + encodeURIComponent(body);
+  }
+  function sharedBody() {
+    var k = know(), b = OS.business ? OS.business() : 'all';
+    var list = k.files.filter(function (f) { return b === 'all' || !f.business || f.business === b; });
+    return '<section class="card mt sm-shared"><div class="cx-sh"><b>Shared memory</b><span class="note">git · ' + esc(k.tree_hash || 'none') + ' · ' + list.length + (list.length === 1 ? ' file' : ' files') + '</span></div>' +
+      (list.length ? list.map(function (f) {
+        return '<details class="mem-row"><summary><b>' + esc(f.title) + '</b> <span class="tag">' + esc(f.business || 'all') + '</span> <span class="note num">' + esc(f.path) + '</span></summary><pre class="sm-text">' + esc(f.text) + '</pre></details>';
+      }).join('') : '<div class="empty"><b>No shared notes for this business yet. Propose one from a saved memory below.</b></div>') + '</section>';
+  }
+
   OS.registerView('saved', {
     render: function () {
       return '<div class="ph"><div><h1>Memory</h1><p>Your knowledge, connected. Everything the OS remembers, and a place to add more. Jarvis can save here too: just say "remember that…".</p></div></div>' +
         '<div id="cortex">' + (OS.cortexHtml ? OS.cortexHtml() : '') + '</div>' +
+        sharedBody() +
         '<form class="card mem-add mt" id="mem-add" autocomplete="off">' +
           '<label class="sr" for="mem-text">Remember</label><textarea id="mem-text" rows="3" maxlength="2000" placeholder="Write a note, paste a link, or tell the OS what to remember…" required></textarea>' +
           '<div class="mem-add-r"><label class="sr" for="mem-tags">Tags</label><input id="mem-tags" maxlength="120" placeholder="Tags, comma separated (optional)" />' +
@@ -145,5 +169,7 @@
   });
   OS.progressBody = progressBody;
   OS.memoryBody = memoryBody;
+  OS.sharedBody = sharedBody;
+  OS.proposeHref = proposeHref;
   OS.setSavedState = set;
 })();

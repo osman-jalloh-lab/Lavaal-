@@ -623,6 +623,7 @@ function buildOsData(sources, opts) {
     harness: harnessFrom(env, opts && opts.harnessPack),
     build: buildLogView(feeds.build),
     recap: recapView(feeds.recap),
+    knowledge: require('./_os_knowledge').knowledgeView(),
   };
   data.sources = Object.keys(SOURCES).reduce((out, key) => {
     const live = key === 'desks' || key === 'settings'

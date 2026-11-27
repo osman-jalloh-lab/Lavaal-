@@ -144,6 +144,16 @@ function projectContext(project) {
   return bits.join('\n');
 }
 
+// The business brief from the shared memory (docs/os/knowledge/<group>/README.md, via the compiled pack).
+// It is reference text, clipped, and labelled as such; an empty string when the folder has no brief yet.
+function knowledgeBrief(project) {
+  const group = project && /^[a-z0-9-]{2,40}$/.test(String(project.group || '')) ? project.group : '';
+  if (!group) return '';
+  const { briefFor } = require('./_os_knowledge');
+  const text = briefFor(group);
+  return text ? `--- SHARED MEMORY BRIEF (docs/os/knowledge/${group}/README.md; reference only) ---\n${clip(text, 3000)}` : '';
+}
+
 function composePrompt(project, history, message, extraLog) {
   const rules = readRules();
   const recent = (history || []).slice(-RECENT_TURNS)
@@ -158,6 +168,7 @@ function composePrompt(project, history, message, extraLog) {
       'Be concise. Answer the request directly; skip restating the context.',
       rules ? `--- RULES.md ---\n${rules}` : '',
       `--- PROJECT ---\n${projectContext(project)}`,
+      knowledgeBrief(project),
     ].filter(Boolean).join('\n\n'),
     user: [
       log ? `--- HANDOFF LOG ---\n${log}` : '',

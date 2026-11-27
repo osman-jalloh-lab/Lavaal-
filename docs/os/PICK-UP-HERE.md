@@ -2,16 +2,16 @@
 
 Read this first. It points into the one shared memory; it is not a second memory. Every builder (Drake, Claude, Codex, the OS itself) reads this on start, then the files below, and changes them only through a draft PR.
 
-Updated 26 Nov 2026, about 7:30 PM CT (America/Chicago), Phase 0 of `2026-11-26-os-one-shot-build-prompt.md`.
+Updated 27 Nov 2026 (America/Chicago), Core phase of `2026-11-26-os-one-shot-build-prompt.md` (draft PR on `feature/os-shared-memory-core`, stacked on Phase 0's #129).
 
 ## Read next, in order
 
-1. `docs/os/knowledge/` — business briefs and sourced facts. **Not created yet** (Core phase).
+1. `docs/os/knowledge/README.md` — how the shared memory works. Business folders arrive in Phase 1.
 2. `docs/os/DECISIONS.md` — the decisions log. Extend it; never fork a second log.
-3. `docs/os/knowledge/ACTIVITY.md` — what landed (sha, PR, time). **Not created yet** (Core phase).
+3. `docs/os/knowledge/ACTIVITY.md` — what landed (sha, PR, time).
 4. `tools/lavaall-ai/RULES.md` — standing rules (Sonnet only, never Opus; no deploy, merge, send, post or spend without Osman).
 
-Until the Core phase lands, `docs/os/HANDOFF-AGENTIC-OS.md` and `HANDOFF.md` are the older handoffs; treat them as history, not the source of truth.
+`docs/os/HANDOFF-AGENTIC-OS.md` and `HANDOFF.md` are older handoffs; treat them as history, not the source of truth.
 
 ## Last shipped (production, `main`)
 
@@ -31,9 +31,17 @@ Osman, 26 Nov 2026, 7:01 PM CT: do not rebase #103 or #105, do not close #107. L
 
 Other open PRs exist (`gh pr list`); do not triage or close them unless Osman asks.
 
+## Core phase (draft, not merged)
+
+- `docs/os/knowledge/` is the one tree. `scripts/build-knowledge-pack.js` compiles it to `api/os/_data/knowledge.json` (with a content hash); run it after any edit there, and `--check` fails if the pack is stale. The test `tests/test-os-knowledge.js` fails too.
+- `api/ops/_os_knowledge.js`: `GET /ops/os/knowledge` (founder only). KV holds only a cache keyed to the git hash; a newer git hash wins and a KV-only fact is never served.
+- Memory page: a "Shared memory" card reads the pack; each saved note has "Propose to shared memory", which opens GitHub's new-file page so the note becomes a pull request. Nothing writes to git from the OS.
+- Chat: `composePrompt` adds `docs/os/knowledge/<group>/README.md` as a reference brief when a business folder has one.
+- `.github/workflows/os-activity-log.yml` + `scripts/os-activity-line.js`: after a merge on `main`, one line in `ACTIVITY.md` on a new branch and a draft PR. Commits that only touch the log or the pack are skipped.
+
 ## Next action
 
-Core phase: create `docs/os/knowledge/` and `ACTIVITY.md`, make OS Memory read from that git tree (KV only as a cache with its git sha), propose knowledge edits as draft PRs, and add the activity Action (opens a draft PR, never writes to `main`).
+Phase 1: business knowledge folders (`lavaall/`, `salonehire/`, `web/`, the private fourth line, and `saloneworks/` if sourced), each with `README.md` and `SOURCES.md`. Blocked on box sources (below).
 
 ## Waiting on Osman
 
