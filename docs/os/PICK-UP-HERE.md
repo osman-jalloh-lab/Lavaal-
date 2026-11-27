@@ -2,7 +2,7 @@
 
 Read this first. It points into the one shared memory; it is not a second memory. Every builder (Drake, Claude, Codex, the OS itself) reads this on start, then the files below, and changes them only through a draft PR.
 
-Updated 27 Nov 2026 (America/Chicago), Phase 1 of `2026-11-26-os-one-shot-build-prompt.md` (draft PR on `feature/os-knowledge-folders`). Phase 0 (#129) and Core (#130) are merged.
+Updated 26 Nov 2026, 9:00 PM CT (America/Chicago), Phase 2 of `2026-11-26-os-one-shot-build-prompt.md` (draft PR #135 on `feature/os-skills-import`). Phase 0 (#129), Core (#130) and Phase 1 (#133) are merged.
 
 ## Read next, in order
 
@@ -39,13 +39,19 @@ Other open PRs exist (`gh pr list`); do not triage or close them unless Osman as
 - Chat: `composePrompt` adds `docs/os/knowledge/<group>/README.md` as a reference brief when a business folder has one.
 - `.github/workflows/os-activity-log.yml` + `scripts/os-activity-line.js`: after a merge on `main`, one line in `ACTIVITY.md` on a new branch and a draft PR. Commits that only touch the log or the pack are skipped.
 
-## Phase 1 (draft)
+## Phase 1 (merged, #133)
 
 Five folders from repo sources only: `lavaall/`, `salonehire/`, `web/`, `starlink/` (founder only, with `RULES.md`), `saloneworks/`. Every brief line cites a path and date; box-only sources are listed in each `SOURCES.md` as not copied yet. "SalonWeb" routes to `web`. The public chat pack is unchanged.
 
+## Phase 2 (draft, #135)
+
+- `api/os/_data/skills.json` is the one skills registry (70 rows, no KV copy). 40 rows are imported instructional skills: `instructions_only: true`, `execution_allowed: false`, `reviewed: false`, with `source_path` (box) and `sha256` pinned.
+- Their text is in `docs/os/skills/<id>/SKILL.md` (hash-checked by `tests/test-os-skills-registry.js`), next to `docs/os/skills/NEVER-LOAD.md`. No scripts or sidecar files. Never set `reviewed: true` or `execution_allowed: true` without Osman.
+- Source: Drake's `os-phase2-handoff` drop, 26 Nov 2026, 8:52 PM CT. `supplier-outreach` line 26 stays `[REDACTED]`.
+
 ## Next action
 
-Phase 2: skills and tools import. Blocked on the box (`/home/box/agent-data/workflows/`). Fill the Phase 1 gaps from the box at the same time.
+Phase 3: intent router (reuse `resolveBusiness` in `api/ops/_os_knowledge.js` for business names). Phase 1 gaps: the box knowledge files are confirmed present on the box (handoff README) but still not copied into the repo.
 
 ## Waiting on Osman
 
