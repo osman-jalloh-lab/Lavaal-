@@ -27,15 +27,15 @@ const DROPPED = [
   ['email in the title', { title: 'Mail me@example.org' }, 'email'],
   ['email in the path', { path: 'Ideas/me@example.org.md' }, 'email'],
   ['email in a tag', { tags: ['x@y.zz'] }, 'email'],
-  ['phone, dashes', { body: 'call 737-704-4182 tomorrow' }, 'phone'],
-  ['phone, brackets', { body: 'call (737) 704 4182' }, 'phone'],
+  ['phone, dashes', { body: 'call 202-555-0188 tomorrow' }, 'phone'],
+  ['phone, brackets', { body: 'call (202) 555 0188' }, 'phone'],
   ['phone, international', { body: 'whatsapp +232 79 121651 now' }, 'phone'],
-  ['phone, +1 with brackets', { body: 'whatsapp +1 (737) 704-4182' }, 'phone'],
-  ['phone, plain digits', { body: 'number 7377044182' }, 'phone'],
-  ['phone, dotted 3.3.4', { body: 'call 737.704.4182' }, 'phone'],
+  ['phone, +1 with brackets', { body: 'whatsapp +1 (202) 555-0188' }, 'phone'],
+  ['phone, plain digits', { body: 'number 2025550188' }, 'phone'],
+  ['phone, dotted 3.3.4', { body: 'call 202.555.0188' }, 'phone'],
   ['phone, seven digits', { body: 'ring 5551234 after lunch' }, 'phone'],
   ['phone, local with brackets', { body: 'the shop (555-1234)' }, 'phone'],
-  ['phone in the title', { title: 'Call 737-704-4182' }, 'phone'],
+  ['phone in the title', { title: 'Call 202-555-0188' }, 'phone'],
   ['blocked word one', { body: 'we looked at ' + W1 + ' kits' }, 'blocked-word'],
   ['blocked word two, any case', { body: 'market: ' + W2.toUpperCase() + ' is blocked' }, 'blocked-word'],
   ['blocked word three', { body: 'ask the ' + W3 + ' contact' }, 'blocked-word'],
@@ -59,7 +59,7 @@ const DROPPED = [
   ['table with a School column', { body: '| School | Year |\n|---|---|\n| a | 1 |' }, 'lead-data'],
   ['table with a Hotel column', { body: '| Hotel | Rooms |\n|---|---|\n| a | 9 |' }, 'lead-data'],
   ['table with Business Name header', { body: '| Business name | x |\n|---|---|\n| a | b |' }, 'lead-data'],
-  ['two reasons are both reported', { body: 'mail a@b.cc and call 737-704-4182' }, 'email,phone'],
+  ['two reasons are both reported', { body: 'mail a@b.cc and call 202-555-0188' }, 'email,phone'],
 ];
 DROPPED.forEach(([label, fields, want]) => check(`dropped (${want}): ${label}`, reasonsOf(fields) === want));
 
@@ -93,7 +93,7 @@ const KEPT = [
   ['outreach with no batch or sent word', { title: 'Outreach plan ideas' }],
 ];
 KEPT.forEach(([label, fields]) => check(`kept: ${label}`, reasonsOf(fields) === ''));
-check('a reason names a category, never a piece of the note', reasonsOf({ body: 'secret ' + W1 + ' plan 737-704-4182 a@b.cc' }) === 'blocked-word,email,phone');
+check('a reason names a category, never a piece of the note', reasonsOf({ body: 'secret ' + W1 + ' plan 202-555-0188 a@b.cc' }) === 'blocked-word,email,phone');
 
 // ================= 2. building from a vault with planted files =================
 const vault = fs.mkdtempSync(path.join(os.tmpdir(), 'lavaall-vault-'));
@@ -113,7 +113,7 @@ put('Skills/Skill one.md', fm({ name: 'skill-one', description: '"A skill"' }, '
 put('Decisions/Dec.md', fm({ id: 'D-1', title: 'Dec', level: 'L3', status: 'open' }, 'Decision text.'));
 // dropped, one per reason
 put('Ideas/Bad blocked.md', fm({ title: 'Bad one' }, 'about ' + W1));
-put('Ideas/Bad phone.md', fm({ title: 'Phone' }, 'call 737-704-4182'));
+put('Ideas/Bad phone.md', fm({ title: 'Phone' }, 'call 202-555-0188'));
 put('Ideas/Bad email.md', fm({ title: 'Email' }, 'ask me@example.com'));
 put('Research/Lead list 2026.md', fm({ title: 'A list' }, 'clean body'));
 put('Research/Names table.md', fm({ title: 'Tools' }, '| Name | Use |\n|---|---|\n| a | b |\n'));
@@ -142,7 +142,7 @@ check('.os-exclude drops by glob: a file pattern, a folder, and **/ patterns', r
 check('Skills/_NEVER-LOAD.md is never shipped', reasonFor('Skills/_NEVER-LOAD.md') === 'excluded' && !titles.includes('Never load'));
 check('exactly nine dropped, no more', pack.dropped.length === 9);
 check('dropped entries hold a file name and reasons only', pack.dropped.every((d) => Object.keys(d).sort().join() === 'file,reasons' && Array.isArray(d.reasons) && d.reasons.length > 0));
-check('no dropped content is in the pack', !JSON.stringify(pack.notes).includes(W1) && !JSON.stringify(pack.notes).includes('737-704') && !JSON.stringify(pack.notes).includes('me@example.com') && !JSON.stringify(pack.notes).includes('Never load'));
+check('no dropped content is in the pack', !JSON.stringify(pack.notes).includes(W1) && !JSON.stringify(pack.notes).includes('202-555') && !JSON.stringify(pack.notes).includes('me@example.com') && !JSON.stringify(pack.notes).includes('Never load'));
 const one = pack.notes.find((n) => n.title === 'Clean idea');
 check('front matter: tags, status, level, desk (known desks only), dates, type', one.tags.join() === 'alpha,beta' && one.status === 'open' && one.level === 'L2' && one.desk === 'growth' && one.date === '2026-10-01' && one.type === 'idea' && one.folder === 'Ideas');
 const second = pack.notes.find((n) => n.title === 'Second idea');

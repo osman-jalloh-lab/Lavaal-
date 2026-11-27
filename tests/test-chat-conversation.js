@@ -10,7 +10,7 @@ function noCatalogDump(text) {
 const contact = respond('how can I contact this person?');
 assert.equal(shouldSkipModel(contact), 'contact-info');
 assert.match(contact.text, /support@lavaall\.com/);
-assert.match(contact.text, /\+1 \(737\) 704-4182/);
+assert.doesNotMatch(contact.text, /737\D*704\D*4182/);
 assert.match(contact.text, /connect you with someone/i);
 assert.doesNotMatch(contact.text, /epson|printer|iPhone|Which model/i);
 noCatalogDump(contact.text);

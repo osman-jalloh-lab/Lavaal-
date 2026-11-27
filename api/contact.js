@@ -168,8 +168,6 @@ async function contact(req, res) {
       message: "We couldn't confirm your request was sent. Please try again, or contact us directly.",
       fallback: {
         email: 'support@lavaall.com',
-        whatsapp: '+1 (737) 704-4182',
-        whatsappUrl: 'https://wa.me/17377044182',
       },
     });
   }

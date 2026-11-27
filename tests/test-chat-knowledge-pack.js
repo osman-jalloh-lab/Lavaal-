@@ -48,8 +48,10 @@ check('no prices, stock claims, time promises, stats or internal identities in s
 
 check('approved public contacts only', () => {
   assert.equal(committed.contact.email, 'support@lavaall.com');
-  assert.equal(committed.contact.whatsapp, '+1 (737) 704-4182');
-  assert.equal(committed.contact.reachability, "We're reachable 24/7 on WhatsApp and email");
+  assert.ok(!committed.contact.whatsapp);
+  assert.match(committed.contact.reachability, /support@lavaall\.com|email/i);
+  assert.doesNotMatch(JSON.stringify(committed), /737\D*704\D*4182/);
+  assert.doesNotMatch(JSON.stringify(committed), /704-4182|\b737\b/);
   const emails = new Set(allText.match(/[a-z0-9.]+@lavaall\.com/gi));
   assert.deepEqual([...emails], ['support@lavaall.com']);
 });
