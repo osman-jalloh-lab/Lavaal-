@@ -75,7 +75,7 @@
     }
     if (look && form.elements.message && !form.elements.message.value) form.elements.message.value = 'I like the "' + look + '" template.';
   } catch (e) {}
-  form.addEventListener('submit', function (e) {
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
     if (busy) return;
     var bad = Array.prototype.filter.call(form.querySelectorAll('[required]'), function (f) { return !f.value.trim(); });
@@ -90,6 +90,9 @@
     ['name', 'business', 'type', 'country', 'need', 'contact', 'message', 'website'].forEach(function (k) {
       if (form.elements[k]) data[k] = form.elements[k].value;
     });
+    var verification = await window.LavaallTurnstile.token(document.getElementById('web-turnstile'));
+    if (verification.required && !verification.value) { say('Please complete the verification and try again.', 'error'); return; }
+    data.turnstileToken = verification.value;
     busy = true; btn.disabled = true; btn.setAttribute('aria-busy', 'true');
     say('Sending...', 'busy');
     var ctrl = 'AbortController' in window ? new AbortController() : null;
@@ -115,7 +118,7 @@
       .catch(function () {
         say('We could not reach our server, so nothing was sent. Please try again, or', 'error', true);
       })
-      .then(function () { clearTimeout(timer); busy = false; btn.disabled = false; btn.removeAttribute('aria-busy'); });
+      .then(function () { window.LavaallTurnstile.reset(document.getElementById('web-turnstile')); clearTimeout(timer); busy = false; btn.disabled = false; btn.removeAttribute('aria-busy'); });
   });
 })();
 

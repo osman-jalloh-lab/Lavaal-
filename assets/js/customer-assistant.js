@@ -288,10 +288,15 @@
     }
     var turnPrivacy = createPrivacyConsent('customer-assistant-privacy-consent');
     panel.appendChild(turnPrivacy.label);
+    var handoffVerification = createElement('div');
+    handoffVerification.hidden = true;
+    panel.appendChild(handoffVerification);
+    if (root.LavaallTurnstile) root.LavaallTurnstile.mount(handoffVerification);
     var awaiting = null;
     function renderTurnConsent(nextAwaiting) {
       awaiting = nextAwaiting || null;
       turnPrivacy.label.hidden = awaiting !== 'handoff-confirm';
+      handoffVerification.hidden = awaiting !== 'handoff-confirm';
       turnPrivacy.checkbox.checked = false;
     }
     function requirePrivacyConsent(control) {
@@ -535,6 +540,9 @@
     form.appendChild(review);
     var reviewPrivacy = createPrivacyConsent('customer-assistant-review-privacy-consent');
     form.appendChild(reviewPrivacy.label);
+    var reviewVerification = createElement('div');
+    form.appendChild(reviewVerification);
+    if (root.LavaallTurnstile) root.LavaallTurnstile.mount(reviewVerification);
     form.hidden = true;
     corrections.hidden = true;
     var details = createElement('dl');
@@ -604,6 +612,8 @@
       if (!text || busy || text.length>2000) return;
       var confirmsHandoff = awaiting === 'handoff-confirm' && /^(confirm|yes|yes,? confirm|yes please|correct|ok|okay)[.!]?$/i.test(text);
       if (confirmsHandoff && !requirePrivacyConsent(turnPrivacy)) return;
+      var verification = confirmsHandoff && root.LavaallTurnstile ? root.LavaallTurnstile.current(handoffVerification) : {value:'', required:false};
+      if (verification.required && !verification.value) { status.textContent = 'Please complete the verification and try again.'; return; }
       var privacyConsent = confirmsHandoff && turnPrivacy.checkbox.checked === true;
       stopRecognition();
       invalidateReview();
@@ -630,7 +640,7 @@
       log.appendChild(visitorBubble);
       try {
         var result = await config.transport('turn', {
-          text:text, fields:currentFields(), ...(privacyConsent ? {privacyConsent:true} : {})
+          text:text, fields:currentFields(), ...(privacyConsent ? {privacyConsent:true, turnstileToken:verification.value} : {})
         });
         if (current !== generation) return;
         if ((!result || typeof result.text !== 'string') && config.localTestStub !== true) throw new Error('reply_unavailable');
@@ -661,6 +671,7 @@
         renderFollowups();
       }
       finally {
+        if (confirmsHandoff && root.LavaallTurnstile) root.LavaallTurnstile.reset(handoffVerification);
         busy = false;
         turnPrivacy.checkbox.disabled = false;
         composer.setAttribute('aria-busy', 'false');
@@ -755,8 +766,10 @@
     send.addEventListener('click', async function () {
       if (busy || !proof) return;
       if (!requirePrivacyConsent(reviewPrivacy)) return;
+      var verification = root.LavaallTurnstile ? root.LavaallTurnstile.current(reviewVerification) : {value:'', required:false};
+      if (verification.required && !verification.value) { status.textContent = 'Please complete the verification and try again.'; return; }
       stopRecognition();
-      var consent = Object.assign({}, proof, {privacyConsent:true});
+      var consent = Object.assign({}, proof, {privacyConsent:true, turnstileToken:verification.value});
       reviewPrivacy.label.hidden = true;
       reviewPrivacy.checkbox.checked = false;
       proof = null;
@@ -772,6 +785,7 @@
         status.textContent = copy[lang].unknown;
       }
       finally{
+        if (root.LavaallTurnstile) root.LavaallTurnstile.reset(reviewVerification);
         busy = false;
         renderVoice();
         review.disabled = false;
@@ -815,7 +829,7 @@
       if (!browserCrypto || typeof browserCrypto.getRandomValues !== 'function') throw new Error('random_unavailable');
       var bytes = browserCrypto.getRandomValues(new Uint8Array(32));
       var eventId = Array.prototype.map.call(bytes, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
-      return post('turn', {sessionId:session.sessionId, csrf:session.csrf, eventId:eventId, text:payload.text, ...(payload.privacyConsent === true ? {privacyConsent:true} : {}), ...(typeof pageUrl === 'string' ? {pageUrl:pageUrl} : {})});
+      return post('turn', {sessionId:session.sessionId, csrf:session.csrf, eventId:eventId, text:payload.text, ...(payload.privacyConsent === true ? {privacyConsent:true, turnstileToken:payload.turnstileToken} : {}), ...(typeof pageUrl === 'string' ? {pageUrl:pageUrl} : {})});
     };
   }
   async function boot(browser) {

@@ -14,6 +14,7 @@
 // a profile link + consent for 'messenger'). lastName, country, and
 // company are always optional.
 
+const { verifyTurnstile } = require('./_lib/turnstile');
 const { savePendingBooking } = require('./ops/_store');
 const { recordPublicBooking } = require('./ops/_booking');
 
@@ -139,6 +140,9 @@ async function schedule(req, res) {
     }
     if (errors.length) return json(res, 400, { error: 'invalid_registration', errors });
 
+    const verification = await verifyTurnstile(body, req.headers);
+    if (verification) return json(res, 400, verification);
+
     const rateKey = 'reg_' + (email || phone).toLowerCase();
     if (rateLimited(rateKey)) {
       return json(res, 429, { error: 'rate_limited', message: 'Please wait a moment before trying again.' });
@@ -186,6 +190,9 @@ async function schedule(req, res) {
     const time = clean(body.time, 5);
     if (!leadId || !token) return json(res, 400, { error: 'missing_lead_or_token' });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return json(res, 400, { error: 'invalid_date_or_time' });
+
+    const verification = await verifyTurnstile(body, req.headers);
+    if (verification) return json(res, 400, verification);
 
     if (rateLimited('book_' + leadId, 5_000)) {
       return json(res, 429, { error: 'rate_limited', message: 'Please wait a moment before trying again.' });

@@ -1,12 +1,13 @@
 'use strict';
+const { verifyTurnstile } = require('./_lib/turnstile');
 const { createService, equal } = require('./_chat/service');
 
 const ACTION_FIELDS = Object.freeze({
   session: [],
   draft: ['sessionId', 'fields', 'eventId'],
   review: ['sessionId', 'csrf', 'draftId'],
-  confirm: ['sessionId', 'csrf', 'draftId', 'token', 'idempotencyKey', 'privacyConsent'],
-  turn: ['sessionId', 'csrf', 'eventId', 'text', 'pageUrl', 'privacyConsent'],
+  confirm: ['sessionId', 'csrf', 'draftId', 'token', 'idempotencyKey', 'privacyConsent', 'turnstileToken', 'cf-turnstile-response'],
+  turn: ['sessionId', 'csrf', 'eventId', 'text', 'pageUrl', 'privacyConsent', 'turnstileToken', 'cf-turnstile-response'],
 });
 const OPAQUE_FIELDS = ['sessionId', 'draftId', 'token', 'csrf', 'idempotencyKey'];
 const isOpaque = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -152,13 +153,19 @@ function createHandler(options = {}) {
       if (action === 'review') {
         result = await service.review(body.sessionId, proof, body.csrf, body.draftId);
       } else if (action === 'confirm') {
+        const verification = await verifyTurnstile(body, headers);
+        if (verification) return reply(res, 400, verification);
         result = await service.confirm(body.sessionId, proof, body.csrf, body.draftId, body.token, body.idempotencyKey, body.privacyConsent);
       } else if (action === 'turn') {
         // Text turns compute their reservation on the server before vendor I/O.
-        result = await service.turn(body.sessionId, proof, body.eventId, options.turnReservationCents, body.csrf, body.text, { pageUrl: body.pageUrl, privacyConsent: body.privacyConsent });
+        result = await service.turn(body.sessionId, proof, body.eventId, options.turnReservationCents, body.csrf, body.text, { pageUrl: body.pageUrl, privacyConsent: body.privacyConsent, verifyHandoff: async () => {
+          const verification = await verifyTurnstile(body, headers);
+          if (verification) throw Object.assign(new Error(verification.error), { code: verification.error, publicMessage: verification.message });
+        } });
       }
       return reply(res, 200, result);
     } catch (error) {
+      if (error.code === 'turnstile_required' || error.code === 'turnstile_failed') return reply(res, 400, { error: error.code, message: error.publicMessage });
       const codes = ['quota', 'cost_cap', 'billing_unverified', 'session', 'csrf', 'draft', 'consent', 'privacy_consent', 'event', 'replay', 'fields', 'store_unavailable', 'turn_pending'];
       const code = codes.includes(error.code) ? error.code : 'invalid_request';
       if (config?.preview) console.warn('chat_inquiry', req.query && req.query.action, code);

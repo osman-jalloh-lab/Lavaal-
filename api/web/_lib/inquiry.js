@@ -9,6 +9,7 @@
 // an honest message); Preview/local default on. WEB_INQUIRY_TRANSPORT=mock
 // records instead of sending (never honoured on Production). Tests replace
 // the transport with setTransport() so nothing is ever sent from a test.
+const { verifyTurnstile } = require('../../_lib/turnstile');
 const { envFlag, isProduction, deployEnv } = require('./flag');
 
 const SUPPORT_EMAIL = 'support@lavaall.com';
@@ -130,7 +131,7 @@ const MESSAGES = {
 };
 
 // Returns { status, body } for the handler to send.
-async function handleInquiry(body, ip) {
+async function handleInquiry(body, ip, headers = {}) {
   if (!isEnabled()) return { status: 503, body: { error: 'inquiry_off', message: MESSAGES.inquiry_off } };
   if (body.website) return { status: 200, body: { ok: true, accepted: true } }; // honeypot: say nothing
   if (limited(ip)) return { status: 429, body: { error: 'rate_limited', message: MESSAGES.rate_limited } };
@@ -139,6 +140,8 @@ async function handleInquiry(body, ip) {
     const msg = v.fields.includes('contact') ? 'Please add your name and a phone, WhatsApp number or email we can reply to.' : 'Please check the highlighted fields.';
     return { status: 400, body: { error: 'invalid_inquiry', fields: v.fields, message: msg } };
   }
+  const verification = await verifyTurnstile(body, headers);
+  if (verification) return { status: 400, body: verification };
   const p = payload(v.value, v.email, v.phone);
   const send = transport();
   const result = await send(p);

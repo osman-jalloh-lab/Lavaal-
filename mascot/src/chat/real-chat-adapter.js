@@ -101,7 +101,7 @@ export class RealChatAdapter extends EventTarget {
     }
   }
 
-  send(userText, { privacyConsent = false } = {}) {
+  send(userText, { privacyConsent = false, turnstileToken = '' } = {}) {
     const text = String(userText || '').trim().slice(0, 2000);
     if (!text || this._busy) return;
     const confirming = this.isConfirmText(text);
@@ -123,7 +123,7 @@ export class RealChatAdapter extends EventTarget {
       if (generation !== this._generation) return null;
       this._emit('turn:thinking', {});
       this._emit('chat:thinking', {});
-      return this._turn(text, consent);
+      return this._turn(text, consent, turnstileToken);
     }).then(result => {
       if (generation !== this._generation || result === null) return;
       this._busy = false;
@@ -205,22 +205,22 @@ export class RealChatAdapter extends EventTarget {
     this._emit('chat:error', { message, code: code || 'error' });
   }
 
-  async _turn(text, privacyConsent) {
+  async _turn(text, privacyConsent, turnstileToken) {
     try {
-      return await this._turnOnce(text, privacyConsent);
+      return await this._turnOnce(text, privacyConsent, turnstileToken);
     } catch (error) {
       // An expired 30-minute session is renewed once; everything else surfaces as an error.
       if (error && (error.code === 'session' || error.code === 'csrf')) {
         this._session = null;
-        return this._turnOnce(text, privacyConsent);
+        return this._turnOnce(text, privacyConsent, turnstileToken);
       }
       throw error;
     }
   }
 
-  async _turnOnce(text, privacyConsent) {
+  async _turnOnce(text, privacyConsent, turnstileToken) {
     const session = await this._ensureSession();
-    return this._post('turn', { sessionId: session.sessionId, csrf: session.csrf, eventId: this._eventId(), text, ...(privacyConsent === true ? { privacyConsent: true } : {}), ...(globalThis.location?.href ? { pageUrl: globalThis.location.href } : {}) });
+    return this._post('turn', { sessionId: session.sessionId, csrf: session.csrf, eventId: this._eventId(), text, ...(privacyConsent === true ? { privacyConsent: true, turnstileToken } : {}), ...(globalThis.location?.href ? { pageUrl: globalThis.location.href } : {}) });
   }
 
   async _ensureSession() {

@@ -132,7 +132,9 @@ async function run() {
   check(`asset paths named in app.js are served (${jsRefs.length} checked${jsMissing.length ? ': ' + jsMissing.join(', ') : ''})`, jsMissing.length === 0);
   for (const f of ['index.html', 'work/index.html']) {
     const absRefs = [...fs.readFileSync(path.join(SITE, f), 'utf8').matchAll(/\b(?:src|href|poster|data-src|data-poster)=["'](\/[^/"'][^"']*)["']/gi)].map((m) => m[1]);
-    check(`${f}: root-absolute links are the umbrella's legal pages and icons (${absRefs.join(', ') || 'none'})`, absRefs.every((u) => ['/privacy.html', '/terms.html', '/favicon.ico', '/images/favicon-32.png', '/images/apple-touch-icon.png'].includes(u)));
+    const allowed = ['/privacy.html', '/terms.html', '/favicon.ico', '/images/favicon-32.png', '/images/apple-touch-icon.png'];
+    if (f === 'index.html') allowed.push('/assets/js/turnstile.js');
+    check(`${f}: root-absolute links are the umbrella's legal pages, icons and shared helper (${absRefs.join(', ') || 'none'})`, absRefs.every((u) => allowed.includes(u)));
   }
 
   // ---- Static file types, caching, ranges ----
@@ -185,7 +187,15 @@ async function run() {
   check('no em dashes in visible copy (main page, Our work page, app.js)', !/\u2014|&mdash;/.test(idx + work + appJs));
   check('no prices on the Our work page', !/\b(SLE|SLL|NLe|USD|GNF|LRD)\s?[0-9]|[$€£]\s?[0-9]|\bLe\s?[0-9]/.test(work));
   check('Illustrative demo badges kept on the moved demos', (work.match(/Illustrative demo/g) || []).length >= 4 && idx.includes('<span class="lp-badge">Illustrative demo</span>'));
-  check('main page makes no external requests (fonts self-hosted)', !/<(script|link|img|video|source|iframe)[^>]+(src|href)=["'](https?:)?\/\//i.test(idx));
+  const externalTags = [...idx.matchAll(/<(script|link|img|video|source|iframe)\b[^>]*>/gi)];
+  check('main page external resources are limited to Turnstile (fonts self-hosted)', externalTags.every(([tag, type]) => {
+    const urls = [...tag.matchAll(/\b(src|href)=["']((?:https?:)?\/\/[^"']*)["']/gi)];
+    return urls.every(([, attr, url]) => {
+      if (type.toLowerCase() === 'script' && attr.toLowerCase() === 'src') return /^https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js(?:\?[^#]*)?$/.test(url);
+      return type.toLowerCase() === 'link' && attr.toLowerCase() === 'href' && /^https:\/\/challenges\.cloudflare\.com\/?$/.test(url)
+        && /\brel=["'](?:preconnect|prefetch)["']/i.test(tag);
+    });
+  }));
 
   // ---- Snapshot: byte-identical to Osman's folder except the integration edits ----
   const manifest = fs.readFileSync(path.join(root, 'docs/web/WEB-SOURCE.md'), 'utf8');
@@ -340,6 +350,9 @@ async function run() {
   check('vercel.json rewrites /web, /web/ and /web/:path* to the function', ['/web', '/web/', '/web/:path*'].every((s) => vercel.rewrites.some((r) => r.source === s && r.destination.startsWith('/api/web?area='))));
   check('/web rewrites come before the "/" catch-all', vercel.rewrites.findIndex((r) => r.source === '/web/:path*') < vercel.rewrites.findIndex((r) => r.source === '/'));
   check('vercel.json bundles _site into the function', vercel.functions['api/web/index.js'] && vercel.functions['api/web/index.js'].includeFiles === 'api/web/_site/**');
+  const marketingSources = ['/', '/index.html', '/schedule', '/privacy.html', '/terms.html', '/sierra-leone/(.*)', '/web', '/web/(.*)'];
+  const marketingPolicies = marketingSources.map((source) => vercel.headers.find((h) => h.source === source && h.headers.some((entry) => entry.key === 'Content-Security-Policy'))?.headers.find((entry) => entry.key === 'Content-Security-Policy').value);
+  check('all eight marketing CSPs are identical and allow same-origin and Turnstile frames', marketingPolicies.every((policy) => policy === marketingPolicies[0] && policy?.split(';').some((directive) => directive.trim() === "frame-src 'self' https://challenges.cloudflare.com")));
   const hdr = vercel.headers.find((h) => h.source === '/web/(.*)' && h.headers.some((entry) => entry.key === 'X-Frame-Options'));
   const globalIdx = vercel.headers.findIndex((h) => h.source === '/(.*)');
   check('vercel.json allows same-origin framing under /web/ after the site-wide DENY', hdr && hdr.headers.some((h) => h.key === 'X-Frame-Options' && h.value === 'SAMEORIGIN') && vercel.headers.indexOf(hdr) > globalIdx);
