@@ -206,11 +206,16 @@ async function advancePlan(env, fetchImpl, id, opts) {
     const harness = AGENTS[next.agent].harness;
     const { runHarness, modelFor } = require('./_harness_chat');
     const spent = Number(await call(['GET', builder.monthKey(env, o.now)]) || 0);
+    const extra = Number(await call(['GET', builder.extraKey(env, o.now)]) || 0);
     const est = chatEstimate(env);
-    const capRaw = env[builder.CAP_NAME];
-    if (!Number.isFinite(est) || !capRaw || !(Number(capRaw) > 0) || spent + est > Number(capRaw)) {
+    const check = Number.isFinite(est) ? builder.capCheck(Object.assign({}, env, { [builder.RUN_ESTIMATE_NAME]: String(est) }), spent, null, extra) : { ok: false, error: 'run_estimate_invalid' };
+    if (!check.ok && check.error === 'needs_ok') {
+      // Over this month's budget: pause this step and ask Osman; it continues once he says yes.
+      await builder.holdForOk(env, call, check, `${next.kind} by ${next.label}: ${plan.goal.slice(0, 80)}`, o.now);
+      next.output = 'Paused: $' + check.spent + ' of $' + check.allowance + ' used this month. Waiting for your OK to continue.';
+    } else if (!check.ok) {
       next.state = 'failed';
-      next.output = 'Refused: the monthly cap is missing or would be passed.';
+      next.output = 'Refused: the monthly cap is missing or invalid.';
     } else {
       next.state = 'running';
       await save();

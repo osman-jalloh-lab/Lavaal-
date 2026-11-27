@@ -53,9 +53,10 @@ function runEstimate(env, job) {
   return MONEY.test(s) && Number(s) > 0 ? Number(s) : NaN;
 }
 
-// Fail closed: the cap must be present, a plain positive number, and big enough that this month's recorded spend
-// plus one more run still fits under it.
-function capCheck(env, spentUsd, job) {
+// The cap is a budget, not a wall (Osman, 27 Nov 2026). It must be present and valid (a missing or broken cap still
+// fails closed). When the next run would pass this month's allowance (the cap plus whatever Osman has added this month),
+// work pauses with 'needs_ok' and the OS asks him; nothing is dropped. At 80% the Build page warns.
+function capCheck(env, spentUsd, job, extraUsd) {
   const raw = env ? env[CAP_NAME] : undefined;
   if (raw === undefined || raw === null || String(raw).trim() === '') return { ok: false, error: 'cap_missing' };
   if (!MONEY.test(String(raw).trim())) return { ok: false, error: 'cap_invalid' };
@@ -65,8 +66,33 @@ function capCheck(env, spentUsd, job) {
   if (!Number.isFinite(spent) || spent < 0) return { ok: false, error: 'spend_unknown' };
   const next = runEstimate(env, job);
   if (!Number.isFinite(next)) return { ok: false, error: 'run_estimate_invalid' };
-  if (spent + next > cap) return { ok: false, error: 'cap_reached', cap, spent, next };
-  return { ok: true, cap, spent, next };
+  const extra = Number.isFinite(Number(extraUsd)) && Number(extraUsd) > 0 ? Number(extraUsd) : 0;
+  const allowance = cap + extra;
+  if (spent + next > allowance) return { ok: false, error: 'needs_ok', cap, extra, allowance, spent, next };
+  return { ok: true, cap, extra, allowance, spent, next, warn: spent + next >= 0.8 * allowance };
+}
+
+function extraKey(env, now) { return approvals.rootFor(env) + 'builder-extra:' + new Date(now || Date.now()).toISOString().slice(0, 7); }
+function holdKey(env, now) { return approvals.rootFor(env) + 'builder-hold:' + new Date(now || Date.now()).toISOString().slice(0, 7); }
+
+// What the Build page shows: this month's spend, the allowance, an 80% warning, and a pause waiting for Osman.
+async function budgetState(env, call, now) {
+  const num = async (k) => { const v = Number(await call(['GET', k]) || 0); return Number.isFinite(v) ? v : 0; };
+  const spent = await num(monthKey(env, now));
+  const extra = await num(extraKey(env, now));
+  const capRaw = env ? env[CAP_NAME] : undefined;
+  const cap = capRaw && MONEY.test(String(capRaw).trim()) ? Number(capRaw) : null;
+  let hold = null;
+  try { hold = JSON.parse(await call(['GET', holdKey(env, now)]) || 'null'); } catch { hold = null; }
+  const allowance = cap === null ? null : cap + extra;
+  return { spent: Math.round(spent * 100) / 100, cap, extra, allowance, warn: allowance !== null && spent >= 0.8 * allowance, hold };
+}
+
+// Pause and ask: record why work is waiting, for the Build page.
+async function holdForOk(env, call, check, what, now) {
+  const hold = { spent: check.spent, allowance: check.allowance, next: check.next, what: String(what || '').slice(0, 140), at: new Date(now || Date.now()).toISOString() };
+  await call(['SET', holdKey(env, now), JSON.stringify(hold)]);
+  return hold;
 }
 
 function monthKey(env, now) { return approvals.rootFor(env) + 'builder-spend:' + new Date(now || Date.now()).toISOString().slice(0, 7); }
@@ -82,7 +108,7 @@ function routeOf(req) {
   const area = String((Array.isArray(q.area) ? q.area[0] : q.area) || '').replace(/^\/+|\/+$/g, '');
   const p = String(req.url || '').split('?')[0].replace(/^\/+|\/+$/g, '').replace(/^ops\//, '');
   const r = area || p;
-  return ['os/builder', 'os/builder/approve'].includes(r) ? r : '';
+  return ['os/builder', 'os/builder/approve', 'os/builder/budget'].includes(r) ? r : '';
 }
 
 async function handleBuilder(req, res, opts) {
@@ -104,7 +130,20 @@ async function handleBuilder(req, res, opts) {
       for (const id of Array.isArray(ids) ? ids : []) {
         try { const j = JSON.parse(await approvals.command(env, fetchImpl, ['GET', jobKey(env, id)]) || 'null'); if (j) jobs.push(j); } catch { /* skip */ }
       }
-      json(res, 200, { jobs, draft_only: true });
+      let budget = null;
+      try { budget = await budgetState(env, (a) => approvals.command(env, fetchImpl, a), now); } catch { budget = null; }
+      json(res, 200, { jobs, budget, draft_only: true });
+      return true;
+    }
+    if (route === 'os/builder/budget') {
+      // Osman says "yes, continue": add to this month's allowance (he tops up his credits himself) and lift the pause.
+      if (method !== 'POST') { json(res, 405, { error: 'method_not_allowed' }); return true; }
+      if (!approvals.isApprover(session.email)) { json(res, 403, { error: 'approver_not_allowed' }); return true; }
+      const add = String((readBody(req) || {}).add || '').trim();
+      if (!MONEY.test(add) || !(Number(add) > 0) || Number(add) > 500) { json(res, 400, { error: 'amount_invalid' }); return true; }
+      await approvals.command(env, fetchImpl, ['INCRBYFLOAT', extraKey(env, now), add]);
+      await approvals.command(env, fetchImpl, ['DEL', holdKey(env, now)]);
+      json(res, 200, { budget: await budgetState(env, (a) => approvals.command(env, fetchImpl, a), now) });
       return true;
     }
     if (method !== 'POST') { json(res, 405, { error: 'method_not_allowed' }); return true; }
@@ -134,4 +173,4 @@ async function handleBuilder(req, res, opts) {
   }
 }
 
-module.exports = { lockKey, BUILDERS, CAP_NAME, DEFAULT_OPUS_ESTIMATE_USD, OPUS_ESTIMATE_NAME, validBuilder, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };
+module.exports = { budgetState, extraKey, holdForOk, holdKey, lockKey, BUILDERS, CAP_NAME, DEFAULT_OPUS_ESTIMATE_USD, OPUS_ESTIMATE_NAME, validBuilder, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };

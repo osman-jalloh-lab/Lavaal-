@@ -112,12 +112,27 @@
           '<label>Branch <input id="bd-branch" maxlength="100" placeholder="os-build/…" /></label>' +
           '<button class="btn pri" type="submit">Approve and queue</button>' +
         '</div></form>' +
-      '<p class="note">Your approval works once, for exactly this task, builder and branch. The box runner picks it up only when it is turned on, keeps under the $50 monthly cap, and opens a draft PR. It never merges or deploys.</p>' +
+      '<p class="note">Your approval works once, for exactly this task, builder and branch. The box runner picks it up only when it is turned on and opens a draft PR. If a run would pass this month\'s budget, it pauses and asks you first. It never merges or deploys.</p>' +
       '<p class="note" id="bd-msg" role="status" aria-live="polite"></p>' +
+      '<div id="bd-budget">' + budgetHtml() + '</div>' +
       '<div class="sect">Recent builds</div><div id="bd-jobs">' + jobsHtml() + '</div></section>';
   }
+  // This month's budget: spend vs allowance, a warning at 80%, and when work is paused, a Continue button.
+  // Continue adds $50 to this month's allowance (Osman tops up his API credits himself) and lets the work go on.
+  var budget = null;
+  function money(n) { return '$' + (Math.round(Number(n || 0) * 100) / 100).toFixed(2).replace(/\.00$/, ''); }
+  function budgetHtml() {
+    if (!budget || budget.allowance === null || budget.allowance === undefined) return '';
+    var line = 'This month: <b>' + money(budget.spent) + '</b> of ' + money(budget.allowance) + ' used' + (budget.extra ? ' (' + money(budget.cap) + ' budget + ' + money(budget.extra) + ' you added)' : '') + '.';
+    if (budget.hold) {
+      return '<div class="card mt bd-budget wait" role="alert"><b>Paused: budget reached.</b> ' + line + ' Waiting: ' + esc(budget.hold.what) + ' (next step ' + money(budget.hold.next) + ').' +
+        '<div class="bd-row"><button class="btn pri" type="button" data-budget="50">Continue: add $50 this month</button></div>' +
+        '<p class="note">Top up your API credits if needed. Nothing was dropped; the paused work runs once you continue.</p></div>';
+    }
+    return '<p class="note bd-budget' + (budget.warn ? ' warn' : '') + '">' + line + (budget.warn ? ' Heads up: over 80% of this month\'s budget. I will ask before going past it.' : '') + '</p>';
+  }
   function loadJobs(root) {
-    builderApi('GET', '').then(function (d) { jobs = Array.isArray(d.jobs) ? d.jobs : []; })
+    builderApi('GET', '').then(function (d) { jobs = Array.isArray(d.jobs) ? d.jobs : []; budget = d.budget || null; var h = root.querySelector('#bd-budget'); if (h) h.innerHTML = budgetHtml(); })
       .catch(function () { jobs = []; })
       .then(function () { var host = root.querySelector('#bd-jobs'); if (host) host.innerHTML = jobsHtml(); });
   }
@@ -141,7 +156,7 @@
       '<form id="pm-form" autocomplete="off"><label class="sr" for="pm-goals">Goals</label>' +
         '<textarea id="pm-goals" rows="4" maxlength="3000" placeholder="One goal per line, e.g.&#10;Build a landing page for SaloneHire employers&#10;Research competitors for LAVAALL Web in Freetown&#10;Fix the footer typo on lavaall.com"></textarea>' +
         '<div class="bd-row"><button class="btn" type="submit" data-pm="plan">Plan</button><button class="btn pri" type="button" data-pm="approve">Approve and run</button></div></form>' +
-      '<p class="note">Research goes to Grok, specs and drafts to DeepSeek, and code to Codex, Claude Sonnet or Claude Opus, whichever fits and is free. Plan is a free preview. Approve and run starts the research and design steps here and queues the builds for the box runner. Everything counts toward the $50 monthly cap. Builds open draft PRs only.</p>' +
+      '<p class="note">Research goes to Grok, specs and drafts to DeepSeek, and code to Codex, Claude Sonnet or Claude Opus, whichever fits and is free. Plan is a free preview. Approve and run starts the research and design steps here and queues the builds for the box runner. Everything counts toward this month\'s $50 budget; past it, work pauses and asks you to continue. Builds open draft PRs only.</p>' +
       '<p class="note" id="pm-msg" role="status" aria-live="polite"></p>' +
       '<div id="pm-preview">' + (pmPreview ? '<div class="sect">Preview</div>' + pmPreview.map(planHtml).join('') : '') + '</div>' +
       '<div class="sect">Plans</div><div id="pm-plans">' + (pmPlans === null ? '<p class="note">Loading plans…</p>' : pmPlans.length ? pmPlans.map(planHtml).join('') : '<div class="empty"><b>No plans yet.</b></div>') + '</div></section>';
@@ -180,7 +195,7 @@
     root.querySelector('[data-pm="approve"]').addEventListener('click', function () {
       var g = goals();
       if (!g.length) return;
-      if (!window.confirm('Approve ' + g.length + (g.length === 1 ? ' goal' : ' goals') + '? Research and design run now; builds queue for the box runner and open draft PRs. All of it counts toward the $50 cap.')) return;
+      if (!window.confirm('Approve ' + g.length + (g.length === 1 ? ' goal' : ' goals') + '? Research and design run now; builds queue for the box runner and open draft PRs. All of it counts toward this month\'s budget, and I will ask before going past it.')) return;
       builderApi('POST', '/pm/approve', { goals: g }).then(function () {
         pmPreview = null; root.querySelector('#pm-goals').value = '';
         if (msg) msg.textContent = 'Approved. The plans below move forward while this page is open.';
@@ -192,6 +207,13 @@
 
   function mountBuilder(root) {
     mountPm(root);
+    root.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-budget]') : null;
+      if (!b) return;
+      var add = b.getAttribute('data-budget');
+      if (!window.confirm('Add $' + add + ' to this month\'s budget and continue the paused work? Make sure your API credits are topped up.')) return;
+      builderApi('POST', '/budget', { add: add }).then(function () { loadJobs(root); }).catch(function (err) { var m = root.querySelector('#bd-msg'); if (m) m.textContent = 'Could not continue: ' + err.message.replace(/_/g, ' ') + '.'; });
+    });
     var form = root.querySelector('#bd-form');
     if (!form) return;
     loadJobs(root);
@@ -202,7 +224,7 @@
       var branch = root.querySelector('#bd-branch').value.trim() || ('os-build/' + slug(task));
       var msg = root.querySelector('#bd-msg');
       if (!task) return;
-      if (pick[1] === 'opus' && !window.confirm('Claude Opus costs $6 of the $50 monthly cap per run. Queue it?')) return;
+      if (pick[1] === 'opus' && !window.confirm('Claude Opus counts $6 toward this month\'s budget per run. Queue it?')) return;
       builderApi('POST', '/approve', { repo: root.querySelector('#bd-repo').value, branch: branch, objective: task, executor: pick[0], model: pick[1] })
         .then(function (d) { if (msg) msg.textContent = 'Queued ' + d.job_id + ' on ' + branch + '. It runs when the box runner is on.'; root.querySelector('#bd-task').value = ''; loadJobs(root); })
         .catch(function (err) { if (msg) msg.textContent = 'Not queued: ' + err.message.replace(/_/g, ' ') + '.'; });

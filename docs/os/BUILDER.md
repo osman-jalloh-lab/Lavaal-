@@ -22,6 +22,15 @@ Phase 4 of `2026-11-26-os-one-shot-build-prompt.md`. **Draft pull requests only.
    - pushes the branch and opens a **draft** PR.
 4. **Verify, then record.** GitHub must show an open draft PR from that branch whose head is exactly the commit sha. Only then is the sha and PR URL written to the job record, and an "opened" line added to `docs/os/knowledge/ACTIVITY.md` on the same draft branch.
 
+## Budget: pause and ask, not a wall
+
+Osman, 27 Nov 2026: the $50 is the monthly budget to use. It is not a hard stop.
+- Every step is counted: Codex or Sonnet $2, Opus $6, and a research, design or draft step $0.25.
+- **At 80%** of this month's allowance, the Build page warns.
+- **When the next step would pass the allowance**, that step pauses. Builds stay queued and plan steps stay waiting. The Build page shows "Paused: budget reached", how much is used, and what is waiting.
+- **Continue** (Osman's session only) adds $50 to this month's allowance (`POST /ops/os/builder/budget`, up to $500 at a time) and the paused work goes on. Osman tops up his API credits himself.
+- A **missing or invalid** `OS_BUILDER_MONTHLY_CAP_USD` still stops everything, because that is a setup mistake, not a budget.
+
 ## Project manager (Phase 6)
 
 On /os → Build → **Project manager**, Osman types up to five goals, one per line. For each goal the PM (`api/ops/_os_pm.js`) writes a plan and gives each step to the agent best at it:

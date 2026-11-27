@@ -185,8 +185,10 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
   const call = (args) => approvals.command(env, fetchImpl, args);
   let spent;
   try { spent = Number(await call(['GET', builder.monthKey(env, now())]) || 0); } catch { return { state: 'not_configured' }; }
-  const preCap = builder.capCheck(env, spent);
-  if (!preCap.ok) return { state: 'refused', error: preCap.error };
+  let extra = 0;
+  try { extra = Number(await call(['GET', builder.extraKey(env, now())]) || 0); } catch { extra = 0; }
+  const preCap = builder.capCheck(env, spent, null, extra);
+  if (!preCap.ok && preCap.error !== 'needs_ok') return { state: 'refused', error: preCap.error };
   const ids = await call(['LRANGE', builder.queueKey(env), 0, 199]);
   // Several ticks may run at once (one per builder): each takes the oldest queued job whose builder is free. A lock
   // per builder (Codex, Claude Sonnet, Claude Opus) keeps one job per builder at a time; a claim stops two ticks from
@@ -222,7 +224,13 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
     return job;
   }
   // The cap check again with this job's own estimate (an Opus run is charged more than a Codex or Sonnet run).
-  const cap = builder.capCheck(env, spent, { executor, model });
+  const cap = builder.capCheck(env, spent, { executor, model }, extra);
+  if (!cap.ok && cap.error === 'needs_ok') {
+    // Over this month's budget: pause and ask Osman. The job stays queued (claim dropped) and runs once he says yes.
+    await builder.holdForOk(env, call, cap, `${executor === 'claude' ? 'Claude ' + model : 'Codex'} build: ${String(job.objective).slice(0, 80)}`, now());
+    try { await call(['DEL', builder.jobKey(env, job.id) + ':claim']); } catch { /* expires */ }
+    return { state: 'waiting_ok', id: job.id, spent: cap.spent, allowance: cap.allowance };
+  }
   if (!cap.ok) return { state: 'refused', error: cap.error, id: job.id };
   const a = adapter || realAdapter({ env });
   job.state = 'running';

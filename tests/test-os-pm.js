@@ -127,6 +127,18 @@ const kinds = (p) => p.steps.map((s) => `${s.kind}:${s.agent}`).join(' > ');
     check('no cap: the research step is refused and nothing is called', r.plan.steps[0].state === 'failed' && /cap/.test(r.plan.steps[0].output));
   }
 
+  // Budget: over the allowance, a research step pauses and asks; after Osman's OK it runs.
+  {
+    const kv3 = fakeKv();
+    const a3 = await hit(kv3, '/ops/os/builder/pm/approve', 'POST', { goals: ['Research LAVAALL Web competitors'] });
+    kv3.store.set(builder.monthKey(ENV, Date.now()), '50');
+    let r = await pm.advancePlan(ENV, kv3.fetchImpl, a3.out.plans[0].id, { runHarness: fakeProvider });
+    check('over budget: the step pauses (not failed) and says why', r.plan.steps[0].state === 'waiting' && /Waiting for your OK/.test(r.plan.steps[0].output) && kv3.store.has(builder.holdKey(ENV, Date.now())));
+    kv3.store.set(builder.extraKey(ENV, Date.now()), '50');
+    r = await pm.advancePlan(ENV, kv3.fetchImpl, a3.out.plans[0].id, { runHarness: fakeProvider });
+    check('after the OK the paused step runs', r.plan.steps[0].state === 'done' && r.plan.state === 'done');
+  }
+
   // Guards.
   const src = fs.readFileSync(path.join(root, 'api/ops/_os_pm.js'), 'utf8').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
   check('the PM never merges, deploys or sends', !/\/merge\b|['"`]merge['"`]|vercel\s+deploy|sendMessage|gmail/i.test(src));
