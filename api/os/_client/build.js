@@ -69,6 +69,76 @@
     return overviewHtml(log && Array.isArray(log.items) ? log.items : []);
   };
 
+  // ---- Start a build (Phase 4 builder) ----
+  // Osman approves one job: repo, feature branch, task, builder. The server mints a single-use approval and queues it;
+  // the box runner (off by default) picks it up and opens a DRAFT PR. Nothing here runs code or merges.
+  var BUILDERS = [
+    { v: 'codex|', label: 'Codex', cost: '$2' },
+    { v: 'claude|sonnet', label: 'Claude Sonnet', cost: '$2' },
+    { v: 'claude|opus', label: 'Claude Opus', cost: '$6' }
+  ];
+  var jobs = null;
+  function builderApi(method, path, body) {
+    return window.fetch('/ops/os/builder' + path, {
+      method: method, credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (d) {
+        if (!res.ok) throw new Error(d.error || ('HTTP ' + res.status));
+        return d;
+      });
+    });
+  }
+  function slug(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'task'; }
+  function jobRow(j) {
+    var who = j.executor === 'claude' ? 'Claude ' + (j.model === 'opus' ? 'Opus' : 'Sonnet') : 'Codex';
+    var pr = j.result && j.result.prUrl ? ' · <a href="' + esc(j.result.prUrl) + '" target="_blank" rel="noopener">draft PR</a>' : '';
+    var err = j.result && j.result.error ? ' · <span class="dim">' + esc(j.result.error) + '</span>' : '';
+    return '<div class="bl-item"><div class="bl-top"><span class="tag">' + esc(j.state) + '</span><span class="bl-title">' + esc(String(j.objective || '').slice(0, 90)) + '</span></div>' +
+      '<p class="note">' + esc(who) + ' · ' + esc(j.repo) + ' · <code>' + esc(j.branch) + '</code>' + pr + err + '</p></div>';
+  }
+  function jobsHtml() {
+    if (jobs === null) return '<p class="note">Loading builds…</p>';
+    return jobs.length ? jobs.map(jobRow).join('') : '<div class="empty"><b>No builds yet.</b></div>';
+  }
+  function builderCard() {
+    return '<section class="card mt bd-start"><div class="ch"><h3>Start a build</h3><div class="r"><span class="pill">Draft PR only</span></div></div>' +
+      '<form id="bd-form" autocomplete="off">' +
+        '<label class="sr" for="bd-task">Task</label><textarea id="bd-task" rows="3" maxlength="2000" required placeholder="What should the builder change? Be specific."></textarea>' +
+        '<div class="bd-row">' +
+          '<label>Builder <select id="bd-builder">' + BUILDERS.map(function (b) { return '<option value="' + b.v + '">' + esc(b.label) + ' (' + b.cost + ' of the cap)</option>'; }).join('') + '</select></label>' +
+          '<label>Repo <select id="bd-repo"><option>osman-jalloh-lab/Lavaal-</option><option>osman-jalloh-lab/saloneworks</option></select></label>' +
+          '<label>Branch <input id="bd-branch" maxlength="100" placeholder="os-build/…" /></label>' +
+          '<button class="btn pri" type="submit">Approve and queue</button>' +
+        '</div></form>' +
+      '<p class="note">Your approval works once, for exactly this task, builder and branch. The box runner picks it up only when it is turned on, keeps under the $50 monthly cap, and opens a draft PR. It never merges or deploys.</p>' +
+      '<p class="note" id="bd-msg" role="status" aria-live="polite"></p>' +
+      '<div class="sect">Recent builds</div><div id="bd-jobs">' + jobsHtml() + '</div></section>';
+  }
+  function loadJobs(root) {
+    builderApi('GET', '').then(function (d) { jobs = Array.isArray(d.jobs) ? d.jobs : []; })
+      .catch(function () { jobs = []; })
+      .then(function () { var host = root.querySelector('#bd-jobs'); if (host) host.innerHTML = jobsHtml(); });
+  }
+  function mountBuilder(root) {
+    var form = root.querySelector('#bd-form');
+    if (!form) return;
+    loadJobs(root);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var task = root.querySelector('#bd-task').value.trim();
+      var pick = root.querySelector('#bd-builder').value.split('|');
+      var branch = root.querySelector('#bd-branch').value.trim() || ('os-build/' + slug(task));
+      var msg = root.querySelector('#bd-msg');
+      if (!task) return;
+      if (pick[1] === 'opus' && !window.confirm('Claude Opus costs $6 of the $50 monthly cap per run. Queue it?')) return;
+      builderApi('POST', '/approve', { repo: root.querySelector('#bd-repo').value, branch: branch, objective: task, executor: pick[0], model: pick[1] })
+        .then(function (d) { if (msg) msg.textContent = 'Queued ' + d.job_id + ' on ' + branch + '. It runs when the box runner is on.'; root.querySelector('#bd-task').value = ''; loadJobs(root); })
+        .catch(function (err) { if (msg) msg.textContent = 'Not queued: ' + err.message.replace(/_/g, ' ') + '.'; });
+    });
+  }
+
   OS.registerView('build', {
     render: function (ctx) {
       var log = ctx.data.build;
@@ -79,15 +149,16 @@
         var n = items.filter(function (i) { return i.status === l.key; }).length;
         return '<div class="card kpi t-' + l.tint + '"><span>' + esc(l.label) + '</span><b class="num">' + (log ? n : '—') + '</b><i>' + (log ? 'items' : 'no build log yet') + '</i></div>';
       }).join('') + '</div>';
-      if (!log) return head + overviewHtml([]) + tiles + '<section class="card mt">' + OS.empty('No build log has been received yet.', 'build') + '</section>';
+      if (!log) return head + builderCard() + overviewHtml([]) + tiles + '<section class="card mt">' + OS.empty('No build log has been received yet.', 'build') + '</section>';
       var lanes = LANES.map(function (l) {
         var rows = items.filter(function (i) { return i.status === l.key; });
         return '<section class="card mt bl-lane' + (l.key === 'waiting' && rows.length ? ' wait' : '') + '"><div class="ch"><h3>' + esc(l.label) + '</h3><div class="r"><span class="num">' + rows.length + '</span></div></div>' +
           (rows.length ? rows.map(item).join('') : '<div class="empty"><b>' + esc(l.empty) + '</b></div>') + '</section>';
       }).join('');
-      return head + overviewHtml(items) + '<div class="sect">All work</div>' + tiles + lanes;
+      return head + builderCard() + overviewHtml(items) + '<div class="sect">All work</div>' + tiles + lanes;
     },
     mount: function (root) {
+      mountBuilder(root);
       root.addEventListener('click', function (e) {
         var card = e.target.closest ? e.target.closest('[data-biz]') : null;
         if (card && OS.business() === 'all' && OS.setBusiness) OS.setBusiness(card.getAttribute('data-biz'));

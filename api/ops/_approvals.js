@@ -31,10 +31,11 @@ async function command(env, fetchImpl, args) {
   return out ? out.result : null;
 }
 
-// Stable hash of what is being approved, so an approval cannot be reused for a different repo, branch or task.
+// Stable hash of what is being approved, so an approval cannot be reused for a different repo, branch, task,
+// builder or model.
 function requestHash(payload) {
   const p = payload || {};
-  const canon = JSON.stringify({ repo: String(p.repo || ''), branch: String(p.branch || ''), objective: String(p.objective || ''), baseSha: String(p.baseSha || '') });
+  const canon = JSON.stringify({ repo: String(p.repo || ''), branch: String(p.branch || ''), objective: String(p.objective || ''), baseSha: String(p.baseSha || ''), executor: String(p.executor || 'codex'), model: String(p.model || '') });
   return crypto.createHash('sha256').update(canon).digest('hex');
 }
 

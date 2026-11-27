@@ -601,3 +601,4 @@
 @media(prefers-reduced-motion:reduce){.os-root .reveal{opacity:1;transform:none;animation:none}.os-root .bz:hover,.os-root .kpi:hover,.os-root .launch:hover,.os-root .dcard:hover,.os-root .agentcard:hover{transform:none}}
 /* Phone: tap targets 44px (blueprint rule 4) */
 @media(max-width:759px){.os-root .btn,.os-root .chip,.os-root .mail-pile,.os-root .hx-row,.os-root .harness-tab{min-height:44px}.os-root .cal-bar .seg .btn{min-width:44px;justify-content:center}}
+.os-root .bd-start textarea{width:100%;margin:8px 0}.os-root .bd-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}.os-root .bd-row label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;flex:1 1 160px}.os-root .bd-row .btn{flex:0 0 auto}

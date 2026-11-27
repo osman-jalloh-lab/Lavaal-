@@ -15,6 +15,13 @@ const approvals = require('./_approvals');
 const REPOS = Object.freeze(['osman-jalloh-lab/Lavaal-', 'osman-jalloh-lab/saloneworks']);
 const PROTECTED = Object.freeze(['main', 'master', 'production', 'prod']);
 const MAX_OBJECTIVE = 2000;
+// Builders: Codex, or Claude Code with Sonnet or Opus (Osman, 27 Nov 2026: Opus is allowed in the builder only, per job,
+// when he picks it; chat stays Sonnet/Haiku). Model names are Claude Code aliases, so "opus" is the newest Opus.
+const BUILDERS = Object.freeze({ codex: [''], claude: ['sonnet', 'opus'] });
+function validBuilder(executor, model) {
+  const e = String(executor || ''); const m = String(model || '');
+  return Object.prototype.hasOwnProperty.call(BUILDERS, e) && BUILDERS[e].includes(m);
+}
 const CAP_NAME = 'OS_BUILDER_MONTHLY_CAP_USD';
 
 // Builders work only on feature/ or os-build/ branches; main, master and production are refused anywhere in the name.
@@ -36,16 +43,19 @@ const MONEY = /^\d+(\.\d{1,2})?$/;
 
 // What one run is charged against the cap. The Codex CLI reports no dollar cost, so every run that reaches Codex is
 // charged this flat amount (default $2; a box-only, non-secret setting may change it). Invalid means no run.
-function runEstimate(env) {
-  const raw = env ? env[RUN_ESTIMATE_NAME] : undefined;
-  if (raw === undefined || raw === null || String(raw).trim() === '') return DEFAULT_RUN_ESTIMATE_USD;
+const OPUS_ESTIMATE_NAME = 'OS_BUILDER_OPUS_RUN_ESTIMATE_USD';
+const DEFAULT_OPUS_ESTIMATE_USD = 6;
+function runEstimate(env, job) {
+  const opus = job && job.executor === 'claude' && job.model === 'opus';
+  const raw = env ? env[opus ? OPUS_ESTIMATE_NAME : RUN_ESTIMATE_NAME] : undefined;
+  if (raw === undefined || raw === null || String(raw).trim() === '') return opus ? DEFAULT_OPUS_ESTIMATE_USD : DEFAULT_RUN_ESTIMATE_USD;
   const s = String(raw).trim();
   return MONEY.test(s) && Number(s) > 0 ? Number(s) : NaN;
 }
 
 // Fail closed: the cap must be present, a plain positive number, and big enough that this month's recorded spend
 // plus one more run still fits under it.
-function capCheck(env, spentUsd) {
+function capCheck(env, spentUsd, job) {
   const raw = env ? env[CAP_NAME] : undefined;
   if (raw === undefined || raw === null || String(raw).trim() === '') return { ok: false, error: 'cap_missing' };
   if (!MONEY.test(String(raw).trim())) return { ok: false, error: 'cap_invalid' };
@@ -53,7 +63,7 @@ function capCheck(env, spentUsd) {
   if (!(cap > 0)) return { ok: false, error: 'cap_invalid' };
   const spent = Number(spentUsd);
   if (!Number.isFinite(spent) || spent < 0) return { ok: false, error: 'spend_unknown' };
-  const next = runEstimate(env);
+  const next = runEstimate(env, job);
   if (!Number.isFinite(next)) return { ok: false, error: 'run_estimate_invalid' };
   if (spent + next > cap) return { ok: false, error: 'cap_reached', cap, spent, next };
   return { ok: true, cap, spent, next };
@@ -96,7 +106,10 @@ async function handleBuilder(req, res, opts) {
     if (method !== 'POST') { json(res, 405, { error: 'method_not_allowed' }); return true; }
     if (!approvals.isApprover(session.email)) { json(res, 403, { error: 'approver_not_allowed' }); return true; }
     const body = readBody(req) || {};
-    const payload = { repo: String(body.repo || ''), branch: String(body.branch || ''), objective: String(body.objective || '').trim() };
+    const executor = String(body.executor || 'codex');
+    const model = executor === 'claude' ? String(body.model || 'sonnet') : '';
+    const payload = { repo: String(body.repo || ''), branch: String(body.branch || ''), objective: String(body.objective || '').trim(), executor, model };
+    if (!validBuilder(executor, model)) { json(res, 400, { error: 'builder_not_allowed' }); return true; }
     if (!REPOS.includes(payload.repo)) { json(res, 400, { error: 'repo_not_allowed' }); return true; }
     if (!validBranch(payload.branch)) { json(res, 400, { error: 'branch_not_allowed' }); return true; }
     if (!payload.objective || payload.objective.length > MAX_OBJECTIVE) { json(res, 400, { error: 'objective_invalid' }); return true; }
@@ -117,4 +130,4 @@ async function handleBuilder(req, res, opts) {
   }
 }
 
-module.exports = { CAP_NAME, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };
+module.exports = { BUILDERS, CAP_NAME, DEFAULT_OPUS_ESTIMATE_USD, OPUS_ESTIMATE_NAME, validBuilder, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };

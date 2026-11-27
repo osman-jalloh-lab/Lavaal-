@@ -143,7 +143,9 @@ async function call(area, extra) {
   const inboxSrc = fs.readFileSync(path.join(root, 'api/os/_client/inbox.js'), 'utf8');
   const savedSrc = fs.readFileSync(path.join(root, 'api/os/_client/saved.js'), 'utf8');
   const googleSrc = fs.readFileSync(path.join(root, 'api/os/_client/google.js'), 'utf8');
-  check('app.js fetch call sites: talk.js, harness.js, inbox.js (read-only GET), saved.js (/ops/os/saved), google.js (same-origin helper), and two in voice.js (same-origin helper, OpenAI Realtime offer)', fetchCount === 7
+  const buildSrc = fs.readFileSync(path.join(root, 'api/os/_client/build.js'), 'utf8');
+  check('build.js has one same-origin fetch, to /ops/os/builder only', (buildSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/builder' \+ path/.test(buildSrc) && /credentials: 'same-origin'/.test(buildSrc) && !/https?:\/\//.test(buildSrc.replace(/\/\*[\s\S]*?\*\//g, '')));
+  check('app.js fetch call sites: talk.js, harness.js, inbox.js (read-only GET), saved.js (/ops/os/saved), build.js (/ops/os/builder), google.js (same-origin helper), and two in voice.js (same-origin helper, OpenAI Realtime offer)', fetchCount === 8
     && (googleSrc.match(/window\.fetch\(/g) || []).length === 1 && /credentials: 'same-origin'/.test(googleSrc) && !/https?:\/\/[^'"]*googleapis/.test(googleSrc)
     && (inboxSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/inbox'/.test(inboxSrc) && !/method: 'POST'/.test(inboxSrc)
     && (savedSrc.match(/window\.fetch\(/g) || []).length === 1 && /window\.fetch\('\/ops\/os\/saved'/.test(savedSrc) && /credentials: 'same-origin'/.test(savedSrc)
