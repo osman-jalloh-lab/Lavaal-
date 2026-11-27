@@ -23,7 +23,7 @@ function walk(dir) {
 }
 
 // Business briefs: docs/os/knowledge/<business>/README.md and RULES.md. Every line that is not a heading or blank
-// must end with "[src: <repo path or github.com/...>, YYYY-MM-DD]", and the repo path must exist. Notes proposed
+// must end with "[src: <repo path, github.com/osman-jalloh-lab/... or app.notion.com/p/<id>>, YYYY-MM-DD]", and the repo path must exist. Notes proposed
 // from the OS carry their own source:/date: header and are checked separately.
 const SRC_TAG = /\[src: ([^,\]]+), (\d{4}-\d{2}-\d{2})\]\s*$/;
 function isBrief(rel) { return /^docs\/os\/knowledge\/[a-z0-9-]+\/(README|RULES)\.md$/.test(rel); }
@@ -36,6 +36,7 @@ function unsourcedLines(rel, text, root) {
     if (!m) return true;
     const ref = m[1].trim();
     if (/^github\.com\/osman-jalloh-lab\/[\w.-]+(\/[\w./#-]*)?$/.test(ref)) return false;
+    if (/^app\.notion\.com\/p\/[0-9a-f]{32}$/.test(ref)) return false;
     return !fs.existsSync(path.join(base, ref));
   }).map(({ n, line }) => `${rel}:${n}: ${line.slice(0, 80)}`);
 }

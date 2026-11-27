@@ -108,6 +108,9 @@ function req(url, method, body) { return { url, method: method || 'GET', headers
   check('an unsourced number is rejected', unsourcedLines(brief0, '# x\n\n- 3 million job seekers use it.\n').length === 1);
   check('a source path that does not exist is rejected', unsourcedLines(brief0, '- 3 million users. [src: docs/nope.md, 2026-11-26]\n').length === 1);
   check('a source without a date is rejected', unsourcedLines(brief0, '- Free plan is 5 jobs. [src: tools/lavaall-ai/projects.json]\n').length === 1);
+  check('a Notion page source passes', unsourcedLines(brief0, '- Outreach is drafts only. [src: app.notion.com/p/408c49c22fef81049e3ee6f24027e7d4, 2026-10-29]\n').length === 0);
+  check('a malformed Notion source is rejected', unsourcedLines(brief0, '- x. [src: app.notion.com/p/not-an-id, 2026-10-29]\n').length === 1 && unsourcedLines(brief0, '- x. [src: notion.so/anything, 2026-10-29]\n').length === 1);
+  check('the Jack library note is in the pack with a source and date', K.PACK.files.some((f) => f.path === 'docs/os/knowledge/lavaall/notes/2026-11-27-jack-roberts-library.md' && /^source: Notion/m.test(f.text) && /^date: 2026-11-27$/m.test(f.text)));
   check('a sourced line passes', unsourcedLines(brief0, '- Free plan is 5 jobs. [src: github.com/osman-jalloh-lab/saloneworks/pull/73, 2026-11-26]\n').length === 0);
   check('unsourced lines only apply to business briefs, not root files', unsourcedLines('docs/os/knowledge/README.md', 'no tag here').length === 0);
   const builder = fs.readFileSync(path.join(root, 'scripts/build-knowledge-pack.js'), 'utf8');
