@@ -7,7 +7,7 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const K = require(path.join(root, 'api/ops/_os_knowledge.js'));
-const { buildPack } = require(path.join(root, 'scripts/build-knowledge-pack.js'));
+const { buildPack, unsourcedLines } = require(path.join(root, 'scripts/build-knowledge-pack.js'));
 const A = require(path.join(root, 'scripts/os-activity-line.js'));
 const { composePrompt } = require(path.join(root, 'api/ops/_harness_chat.js'));
 
@@ -91,6 +91,28 @@ function req(url, method, body) { return { url, method: method || 'GET', headers
   const chatSrc = fs.readFileSync(path.join(root, 'api/ops/_harness_chat.js'), 'utf8');
   check('chat prompt includes the shared-memory brief', /knowledgeBrief\(project\)/.test(chatSrc) && /SHARED MEMORY BRIEF/.test(chatSrc));
   check('composePrompt still builds', typeof composePrompt === 'function');
+
+  // 5b. Phase 1: business folders, aliases, sources, public pack untouched.
+  ['lavaall', 'starlink', 'salonehire', 'web', 'saloneworks'].forEach((b) => {
+    check(`${b}/ has README.md and SOURCES.md`, ['README.md', 'SOURCES.md'].every((f) => fs.existsSync(path.join(root, 'docs/os/knowledge', b, f))));
+    check(`${b} brief reaches chat`, K.briefFor(b).length > 40);
+  });
+  check('starlink/ has its RULES.md', /No Starlink in public copy/.test(fs.readFileSync(path.join(root, 'docs/os/knowledge/starlink/RULES.md'), 'utf8')));
+  check('no salonweb/ folder', !fs.existsSync(path.join(root, 'docs/os/knowledge/salonweb')));
+  [['SalonWeb', 'web'], ['Laval Web', 'web'], ['LAVAALL Web', 'web'], ['open /web/', 'web'], ['Salone Works', 'saloneworks'], ['salon walks', 'saloneworks'],
+    ['SaloneHire', 'salonehire'], ['salon hire', 'salonehire'], ['Starlink v4', 'starlink'], ['LAVAALL', 'lavaall'], ['the weather', '']]
+    .forEach(([t, want]) => check(`"${t}" routes to ${want || 'nothing'}`, K.resolveBusiness(t) === want));
+  check('every committed brief line is sourced', K.PACK.files.every((f) => unsourcedLines(f.path, f.text).length === 0));
+  const brief0 = 'docs/os/knowledge/salonehire/README.md';
+  check('an unsourced number is rejected', unsourcedLines(brief0, '# x\n\n- 3 million job seekers use it.\n').length === 1);
+  check('a source path that does not exist is rejected', unsourcedLines(brief0, '- 3 million users. [src: docs/nope.md, 2026-11-26]\n').length === 1);
+  check('a source without a date is rejected', unsourcedLines(brief0, '- Free plan is 5 jobs. [src: tools/lavaall-ai/projects.json]\n').length === 1);
+  check('a sourced line passes', unsourcedLines(brief0, '- Free plan is 5 jobs. [src: github.com/osman-jalloh-lab/saloneworks/pull/73, 2026-11-26]\n').length === 0);
+  check('unsourced lines only apply to business briefs, not root files', unsourcedLines('docs/os/knowledge/README.md', 'no tag here').length === 0);
+  const builder = fs.readFileSync(path.join(root, 'scripts/build-knowledge-pack.js'), 'utf8');
+  check('buildPack refuses to compile an unsourced brief', /const bad = unsourcedLines\(rel, text\);\s*if \(bad\.length\) throw/.test(builder));
+  const pub = fs.readFileSync(path.join(root, 'api/_chat/knowledge/pack.v1.json'), 'utf8');
+  check('public chat pack carries no founder knowledge', !/docs\/os\/knowledge|\[src: |founder only/i.test(pub));
 
   // 6. Activity log: a mocked merge gives one line; the log's own commits are skipped.
   const line = A.activityLine('f804749aaaa', '2026-11-27T00:58:00Z', 'Merge pull request #128 from osman-jalloh-lab/x', 'Parked: design skills\n\nmore');

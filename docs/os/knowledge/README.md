@@ -13,7 +13,19 @@ Source: Osman's build prompt `2026-11-26-os-one-shot-build-prompt.md` (26 Nov 20
 | `docs/os/knowledge/ACTIVITY.md` | What landed: sha, PR, title, time (America/Chicago). |
 | `docs/os/PICK-UP-HERE.md` | One-page start pointer into the three above. |
 
-Business folders come in Phase 1: `lavaall/`, `salonehire/`, `web/` (LAVAALL Web, the `/web/` product; also called SalonWeb or Laval Web), the private fourth line, and `saloneworks/` if sourced. Each gets a `README.md` (the brief) and a `SOURCES.md`.
+## Business folders
+
+| Folder | What | Also called |
+|---|---|---|
+| `lavaall/` | The company, the OS, MAGNUM, desks | Laval, lava all |
+| `salonehire/` | SaloneHire only | Salone Hire, salon hire, SL hire |
+| `web/` | LAVAALL Web, the `/web/` product. Not SaloneWorks, not SaloneHire | SalonWeb, Laval Web, `/web/` |
+| `starlink/` | Founder only; see its `RULES.md` | star link, Starlink v4 |
+| `saloneworks/` | The jobs platform behind SaloneHire | Salone Works, salon walks, SW |
+
+Each has `README.md` (the brief, read by chat) and `SOURCES.md` (what was copied, and what is still on the box). The `aliases:` line in each README is how the OS routes a name to a folder (`resolveBusiness` in `api/ops/_os_knowledge.js`); the longest alias wins, so "SalonWeb" goes to `web/`.
+
+Every non-heading line in a `README.md` or `RULES.md` ends with `[src: <repo path or github.com/osman-jalloh-lab/...>, YYYY-MM-DD]`, and the path must exist. `scripts/build-knowledge-pack.js` refuses to build otherwise.
 
 ## Rules
 
