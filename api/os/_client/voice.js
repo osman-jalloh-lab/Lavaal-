@@ -55,7 +55,7 @@
       var model = OS.routeAsk ? OS.routeAsk(q) : 'claude';
       setState('thinking', 'Asking ' + model + '…');
       post('/ops/harness/chat', { project: 'lavaall', harness: model, message: q }).then(function (r) {
-        var text = r.ok ? (r.body.reply || 'It came back empty.') : (r.body.message || r.body.error || 'The OS could not answer (HTTP ' + r.status + ').');
+        var text = r.ok ? (r.body.ask ? r.body.ask + ' Say it again with the business name.' : (r.body.reply || 'It came back empty.')) : (r.body.message || r.body.error || 'The OS could not answer (HTTP ' + r.status + ').');
         toolResult(callId, text);
       }).catch(function () { toolResult(callId, 'The OS could not be reached.'); });
       return;

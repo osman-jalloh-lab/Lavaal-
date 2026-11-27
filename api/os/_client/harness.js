@@ -389,8 +389,30 @@
             var payload = { project: proj.name, harness: selectedHarness, message: text };
             var modelEl = root.querySelector('#harness-model');
             if (modelEl && modelEl.value) payload.model = modelEl.value;
+            return postChat(payload, messages);
+          }).catch(function () {
+            if (OS.toast) OS.toast('The request did not complete.');
+          }).then(function () {
+            if (send) send.disabled = false;
+          });
+        });
+      }
+
+      // Phase 3 intent router: when the server is not sure which business a message is about, it asks one question
+      // and calls no model. The founder picks a business; the same message is sent again with that business.
+      var pendingRoute = null;
+      function askBubble(ask, choices) {
+        return '<div class="harness-msg harness-msg-assistant hx-route"><small class="dim">OS router · no model called</small><div>' + esc(ask) + '</div>' +
+          '<div class="hx-chips">' + (choices || []).map(function (c) {
+            return '<button type="button" class="chip" data-route-choice="' + esc(c) + '">' + esc((OS.businessLabel && OS.businessLabel(c)) || c) + '</button>'; }).join('') + '</div></div>';
+      }
+      function postChat(payload, messages) {
             return api('chat', { method: 'POST', body: JSON.stringify(payload) }).then(function (res) {
-              if (res.ok && res.body.messages) {
+              if (res.ok && res.body.ask) {
+                pendingRoute = { payload: payload, messages: messages };
+                drawThread(messages, false);
+                if (thread) { thread.insertAdjacentHTML('beforeend', askBubble(res.body.ask, res.body.choices)); thread.scrollTop = thread.scrollHeight; }
+              } else if (res.ok && res.body.messages) {
                 drawThread(res.body.messages, false);
                 if (input) input.value = '';
               } else {
@@ -400,11 +422,17 @@
                 if (OS.toast) OS.toast('The request did not complete.');
               }
             });
-          }).catch(function () {
-            if (OS.toast) OS.toast('The request did not complete.');
-          }).then(function () {
-            if (send) send.disabled = false;
-          });
+      }
+      if (thread) {
+        thread.addEventListener('click', function (e) {
+          var b = e.target.closest ? e.target.closest('[data-route-choice]') : null;
+          if (!b || !pendingRoute) return;
+          var next = pendingRoute; pendingRoute = null;
+          next.payload.business = b.getAttribute('data-route-choice');
+          drawThread(next.messages, true);
+          if (send) send.disabled = true;
+          postChat(next.payload, next.messages).catch(function () { if (OS.toast) OS.toast('The request did not complete.'); })
+            .then(function () { if (send) send.disabled = false; });
         });
       }
 

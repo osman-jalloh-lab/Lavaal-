@@ -89,7 +89,8 @@ function req(url, method, body) { return { url, method: method || 'GET', headers
   const savedSrc = fs.readFileSync(path.join(root, 'api/os/_client/saved.js'), 'utf8');
   check('Memory page shows Shared memory and a Propose link', /Shared memory/.test(savedSrc) && /Propose to shared memory/.test(savedSrc) && /notes\//.test(savedSrc));
   const chatSrc = fs.readFileSync(path.join(root, 'api/ops/_harness_chat.js'), 'utf8');
-  check('chat prompt includes the shared-memory brief', /knowledgeBrief\(project\)/.test(chatSrc) && /SHARED MEMORY BRIEF/.test(chatSrc));
+  const sysP = composePrompt({ name: 'salonehire', label: 'SaloneHire', group: 'salonehire' }, [], 'what is left', []).system;
+  check('chat prompt includes the shared-memory brief', /SHARED MEMORY BRIEF \(docs\/os\/knowledge\/salonehire\/README\.md/.test(sysP) && /SHARED MEMORY BRIEF/.test(chatSrc));
   check('composePrompt still builds', typeof composePrompt === 'function');
 
   // 5b. Phase 1: business folders, aliases, sources, public pack untouched.
