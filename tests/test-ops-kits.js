@@ -429,7 +429,8 @@ async function run() {
       && !html.includes("Couldn't load kits · try Refresh"));
     check('Kits page is table-first with no vanity KPIs',
       html.includes('kits-table')
-      && !/productivity|streak|points|kpi/i.test(html));
+      // Ignore long token-like runs (the random CSRF token can contain "kpi" by chance).
+      && !/productivity|streak|points|kpi/i.test(html.replace(/[A-Za-z0-9_\-.]{24,}/g, '')));
     check('Kits search and status filter are present',
       html.includes('id="kits-search"')
       && html.includes('Search name or kit #')

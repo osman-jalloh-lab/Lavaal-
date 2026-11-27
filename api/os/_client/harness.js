@@ -8,15 +8,14 @@
   var icon = OS.icon;
 
   var HARNESSES = [
-    { id: 'codex', label: 'OpenAI API' },
+    { id: 'codex', label: 'ChatGPT (Codex)' },
     { id: 'claude', label: 'Claude' },
     { id: 'deepseek', label: 'DeepSeek' },
     { id: 'grok', label: 'Grok' }
   ];
   var CLAUDE_MODELS = [
     { id: 'sonnet', label: 'Sonnet' },
-    { id: 'haiku', label: 'Haiku' },
-    { id: 'opus', label: 'Opus' }
+    { id: 'haiku', label: 'Haiku' }
   ];
 
   function pack(data) {
@@ -79,45 +78,52 @@
         var src = (data.sources && data.sources.harness && data.sources.harness.from) || 'tools/lavaall-ai/projects.json';
         return head + '<section class="card"><div class="empty"><b>No projects are listed.</b><small>Source: ' + esc(src) + '</small></div></section>';
       }
-      return head +
-        '<div class="harness-tabs" role="tablist">' +
-          '<button type="button" class="btn harness-tab on" data-harness-tab="home" role="tab" aria-selected="false">Usage</button>' +
-          '<button type="button" class="btn harness-tab on" data-harness-tab="chat" role="tab" aria-selected="true">Chat</button>' +
+      return '<div class="hx-top">' +
+          '<div class="harness-tabs" role="tablist">' +
+            '<button type="button" class="btn harness-tab on" data-harness-tab="chat" role="tab" aria-selected="true">Chat</button>' +
+            '<button type="button" class="btn harness-tab" data-harness-tab="home" role="tab" aria-selected="false">Usage</button>' +
+          '</div>' +
+          '<div class="harness-picks" role="group" aria-label="Model provider">' + buttons + '</div>' +
         '</div>' +
         '<section class="card harness-home hidden" id="harness-home">' +
           '<div class="ch">' + icon('spend') + '<h3>Usage and credit</h3></div>' +
           '<p class="dim" id="harness-usage-note">Loading usage from each provider’s free balance or usage endpoint. Totals are shown only when the provider returns them.</p>' +
           '<div class="harness-usage" id="harness-usage"><div class="empty"><b>Loading usage…</b></div></div>' +
         '</section>' +
-        '<section class="harness-chat" id="harness-chat">' +
-          '<div class="card harness-card">' +
-            '<div class="harness-pickers">' +
-              '<label class="harness-field">Group' +
-                '<select class="harness-sel" id="harness-group" aria-label="Project group">' + groupOpts + '</select>' +
-              '</label>' +
-              '<label class="harness-field">Project' +
-                '<select class="harness-sel" id="harness-project" aria-label="Project">' + projOpts + '</select>' +
+        '<section class="harness-chat hx" id="harness-chat">' +
+          '<aside class="hx-side card" aria-label="Your chats">' +
+            '<div class="hx-sh"><b>Your chats</b></div>' +
+            '<button type="button" class="btn hx-new" id="hx-new">+ New chat</button>' +
+            '<label class="harness-field">Business' +
+              '<select class="harness-sel" id="harness-group" aria-label="Project group">' + groupOpts + '</select>' +
+            '</label>' +
+            '<label class="sr" for="harness-project">Project</label><select class="harness-sel sr" id="harness-project" aria-label="Project">' + projOpts + '</select>' +
+            '<div class="hx-list" id="hx-list" role="list"></div>' +
+          '</aside>' +
+          '<div class="hx-main">' +
+            '<div class="hx-voice">' +
+              '<button type="button" class="hx-orb" id="hx-orb" aria-label="Start voice mode with Jarvis"></button>' +
+              '<div class="hx-vt"><span class="hx-k">Voice mode</span><b>Tap the orb and talk.</b><span class="dim">Jarvis answers, saves memories and opens any page for you.</span></div>' +
+              '<label class="harness-field harness-modelwrap hx-model" id="harness-modelwrap">Model' +
+                '<select class="harness-sel" id="harness-model" aria-label="Model">' + models + '</select>' +
+                '<small class="dim" id="harness-model-note"></small>' +
               '</label>' +
             '</div>' +
             '<p class="harness-meta dim" id="harness-meta"></p>' +
-            '<div class="harness-picks" role="group" aria-label="Harness">' + buttons + '</div>' +
-            '<label class="harness-field harness-modelwrap hidden" id="harness-modelwrap">Claude model' +
-              '<select class="harness-sel" id="harness-model" aria-label="Claude model">' + models + '</select>' +
-            '</label>' +
-            '<div class="harness-setup" id="harness-setup"><p>To chat with Codex from this page, add <code class="mono">OPENAI_API_KEY</code> in Vercel project settings (Preview and Production). This site cannot open the ChatGPT login. For the Codex CLI with your ChatGPT account, run <code class="mono">codex login</code> on your computer.</p></div>' +
+            '<div class="harness-setup" id="harness-setup"></div>' +
             '<div class="harness-thread" id="harness-thread" aria-live="polite"></div>' +
-            '<form class="harness-composer" id="harness-form">' +
-              '<label class="harness-field" for="harness-input">Request</label>' +
-              '<textarea class="harness-input" id="harness-input" rows="3" maxlength="8000" placeholder="Type what you want done, for example: add a receipt hold for hired applicants." required></textarea>' +
+            '<form class="harness-composer hx-comp" id="harness-form">' +
+              '<label class="sr" for="harness-input">Request</label>' +
+              '<textarea class="harness-input" id="harness-input" rows="2" maxlength="8000" placeholder="Ask anything. Ctrl+Enter to send." required></textarea>' +
               '<button type="submit" class="btn pri" id="harness-send">Send</button>' +
             '</form>' +
-            '<div class="harness-execution" id="harness-execution">' +
-              '<h3>Execute code in GitHub</h3>' +
+            '<p class="note hx-cap">Connected provider APIs can answer here; repository edits need the separately approved coding runner below. Gemini is off.</p>' +
+            '<details class="harness-execution" id="harness-execution"><summary>Run a code task in GitHub</summary>' +
               '<p class="dim">Runs a separate Codex coding agent on the LAVAALL repository. It writes a reviewable patch and runs tests in GitHub Actions. It does not merge or deploy code, and API usage may be billed.</p>' +
               '<label><input type="checkbox" id="harness-execute-confirm"/> I approve a coding run that may incur API charges.</label>' +
               '<button type="button" class="btn" id="harness-execute">Run code task</button>' +
               '<div class="note" id="harness-execute-result" role="status" aria-live="polite"></div>' +
-            '</div>' +
+            '</details>' +
           '</div>' +
         '</section>';
     },
@@ -182,20 +188,59 @@
         return '<p>To chat with Codex from this page, add <code class="mono">OPENAI_API_KEY</code> in Vercel project settings (Preview and Production). This site cannot open the ChatGPT login. For the Codex CLI with your ChatGPT account, run <code class="mono">codex login</code> on your computer.</p>';
       }
 
+      // Every model each provider offers, read live by the server (/ops/harness/models). Until it answers, Claude
+      // shows Sonnet and Haiku and the others their configured default. The pick is remembered per provider.
+      var modelLists = null;
+      function savedModel(h) { try { return localStorage.getItem('os-model-' + h) || ''; } catch (e) { return ''; } }
+      function fillModels() {
+        var sel = root.querySelector('#harness-model'), note = root.querySelector('#harness-model-note');
+        if (!sel) return;
+        var info = modelLists && modelLists[selectedHarness];
+        var ids = info ? info.models : (selectedHarness === 'claude' ? CLAUDE_MODELS.map(function (m) { return m.id; }) : []);
+        var want = savedModel(selectedHarness) || (info && info.default) || ids[0] || '';
+        if (want && ids.indexOf(want) === -1) want = (info && info.default) || ids[0] || '';
+        sel.innerHTML = ids.length ? ids.map(function (id) {
+          var label = { sonnet: 'Sonnet', haiku: 'Haiku' }[id] || id;
+          return '<option value="' + esc(id) + '"' + (id === want ? ' selected' : '') + '>' + esc(label) + (info && id === info.default ? ' (default)' : '') + '</option>';
+        }).join('') : '<option value="">Default model</option>';
+        if (note) note.textContent = !modelLists ? 'Loading every model…' : info && info.live ? info.models.length + ' models available' : 'Model list unavailable; using the default.';
+      }
+      api('models', { method: 'GET' }).then(function (res) {
+        if (res.ok && res.body.harnesses) { modelLists = res.body.harnesses; fillModels(); }
+        else { modelLists = {}; fillModels(); }
+      }).catch(function () { modelLists = {}; fillModels(); });
+      root.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'harness-model') { try { localStorage.setItem('os-model-' + selectedHarness, e.target.value); } catch (err) { /* per browser */ } }
+      });
+
       function renderSetup() {
-        if (modelWrap) modelWrap.classList.toggle('hidden', selectedHarness !== 'claude');
+        fillModels();
         if (!setup) return;
         var html = setupHtml();
         setup.innerHTML = html;
         setup.classList.toggle('hidden', !html);
       }
 
+      function labelOf(h) { for (var i = 0; i < HARNESSES.length; i++) if (HARNESSES[i].id === h) return HARNESSES[i].label; return h; }
+      // The left list mirrors the (visually hidden) project select: one row per project in the business.
+      function drawList() {
+        var host = root.querySelector('#hx-list');
+        if (!host) return;
+        var cur = currentProject();
+        host.innerHTML = (currentGroup().projects || []).map(function (p) {
+          var on = cur && cur.name === p.name;
+          return '<button type="button" role="listitem" class="hx-row' + (on ? ' on' : '') + '" data-proj="' + esc(p.name) + '" aria-current="' + (on ? 'true' : 'false') + '">' +
+            '<b>' + esc(p.label || p.name) + '</b><small>' + esc(String(p.status || '').slice(0, 60)) + '</small></button>';
+        }).join('') || '<p class="note">No projects in this business.</p>';
+      }
+
       function bubble(msg) {
-        var who = msg.role === 'user' ? 'You' : (msg.harness === 'codex' ? 'OpenAI API' : (msg.harness || 'Assistant'));
+        var who = msg.role === 'user' ? 'You' : (msg.harness === 'codex' ? 'ChatGPT' : (msg.harness || 'Assistant'));
         var u = msg.role !== 'user' && msg.usage;
         var count = u && (u.inputTokens != null || u.outputTokens != null)
           ? '<small class="dim">Reported tokens: ' + esc(u.inputTokens == null ? '?' : u.inputTokens) + ' in / ' + esc(u.outputTokens == null ? '?' : u.outputTokens) + ' out · Cost not available</small>'
           : '';
+        if (msg.role !== 'user' && typeof msg.model === 'string' && msg.model) who += ' · ' + msg.model;
         return '<div class="harness-msg harness-msg-' + esc(msg.role) + '"><small class="dim">' + esc(who) + '</small><div>' + esc(msg.text || '') + '</div>' + count + '</div>';
       }
 
@@ -203,7 +248,10 @@
         if (!thread) return;
         var rows = (messages || []).map(bubble).join('');
         if (pending) rows += '<div class="harness-msg harness-msg-assistant" id="harness-pending"><small class="dim">Working…</small><div>Sending your request.</div></div>';
-        if (!rows) rows = '<div class="empty"><b>No messages yet for this project.</b><small>Type a request and press Send.</small></div>';
+        if (!rows) rows = '<div class="hx-hero"><div class="hx-glyph" aria-hidden="true"></div><h2>Ask anything.</h2>' +
+          '<p class="dim">Chat with ' + esc(labelOf(selectedHarness)) + ' about ' + esc((currentProject() || {}).label || 'this project') + '. It knows the project, its rules and its recent work.</p>' +
+          '<div class="hx-chips">' + ['Plan my day', 'What is left before launch?', 'Find something in my memory', 'Work through an idea'].map(function (t) {
+            return '<button type="button" class="chip" data-suggest="' + esc(t) + '">' + esc(t) + '</button>'; }).join('') + '</div></div>';
         thread.innerHTML = rows;
         thread.scrollTop = thread.scrollHeight;
       }
@@ -283,12 +331,23 @@
       }
 
       function refresh() {
+        drawList();
         if (meta) meta.textContent = metaLine(currentProject());
         if (executeBtn) executeBtn.disabled = !currentProject() || currentProject().name !== 'lavaall';
         renderSetup();
         if (tab === 'chat') loadHistory();
       }
 
+      root.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target : null;
+        if (!t) return;
+        var sug = t.closest('[data-suggest]');
+        if (sug && input) { input.value = sug.getAttribute('data-suggest'); input.focus(); return; }
+        var row = t.closest('[data-proj]');
+        if (row && projEl) { projEl.value = row.getAttribute('data-proj'); refresh(); return; }
+        if (t.closest('#hx-new')) { if (input) { input.value = ''; input.focus(); } return; }
+        if (t.closest('#hx-orb')) { if (OS.jarvis && OS.jarvis.start) OS.jarvis.start(); return; }
+      });
       root.addEventListener('click', function (e) {
         var tabBtn = e.target.closest ? e.target.closest('[data-harness-tab]') : null;
         if (tabBtn) {
@@ -328,12 +387,32 @@
             messages.push({ role: 'user', text: text, harness: selectedHarness });
             drawThread(messages, true);
             var payload = { project: proj.name, harness: selectedHarness, message: text };
-            if (selectedHarness === 'claude') {
-              var modelEl = root.querySelector('#harness-model');
-              payload.model = modelEl ? modelEl.value : 'sonnet';
-            }
+            var modelEl = root.querySelector('#harness-model');
+            if (modelEl && modelEl.value) payload.model = modelEl.value;
+            return postChat(payload, messages);
+          }).catch(function () {
+            if (OS.toast) OS.toast('The request did not complete.');
+          }).then(function () {
+            if (send) send.disabled = false;
+          });
+        });
+      }
+
+      // Phase 3 intent router: when the server is not sure which business a message is about, it asks one question
+      // and calls no model. The founder picks a business; the same message is sent again with that business.
+      var pendingRoute = null;
+      function askBubble(ask, choices) {
+        return '<div class="harness-msg harness-msg-assistant hx-route"><small class="dim">OS router · no model called</small><div>' + esc(ask) + '</div>' +
+          '<div class="hx-chips">' + (choices || []).map(function (c) {
+            return '<button type="button" class="chip" data-route-choice="' + esc(c) + '">' + esc((OS.businessLabel && OS.businessLabel(c)) || c) + '</button>'; }).join('') + '</div></div>';
+      }
+      function postChat(payload, messages) {
             return api('chat', { method: 'POST', body: JSON.stringify(payload) }).then(function (res) {
-              if (res.ok && res.body.messages) {
+              if (res.ok && res.body.ask) {
+                pendingRoute = { payload: payload, messages: messages };
+                drawThread(messages, false);
+                if (thread) { thread.insertAdjacentHTML('beforeend', askBubble(res.body.ask, res.body.choices)); thread.scrollTop = thread.scrollHeight; }
+              } else if (res.ok && res.body.messages) {
                 drawThread(res.body.messages, false);
                 if (input) input.value = '';
               } else {
@@ -343,11 +422,17 @@
                 if (OS.toast) OS.toast('The request did not complete.');
               }
             });
-          }).catch(function () {
-            if (OS.toast) OS.toast('The request did not complete.');
-          }).then(function () {
-            if (send) send.disabled = false;
-          });
+      }
+      if (thread) {
+        thread.addEventListener('click', function (e) {
+          var b = e.target.closest ? e.target.closest('[data-route-choice]') : null;
+          if (!b || !pendingRoute) return;
+          var next = pendingRoute; pendingRoute = null;
+          next.payload.business = b.getAttribute('data-route-choice');
+          drawThread(next.messages, true);
+          if (send) send.disabled = true;
+          postChat(next.payload, next.messages).catch(function () { if (OS.toast) OS.toast('The request did not complete.'); })
+            .then(function () { if (send) send.disabled = false; });
         });
       }
 
@@ -409,9 +494,21 @@
             .then(function () { executeBtn.disabled = false; executeConfirm.checked = false; });
         });
       }
+      // Open on the selected business's project group.
+      var biz = OS.business ? OS.business() : 'all';
+      if (biz !== 'all' && groupEl.querySelector('option[value="' + biz + '"]')) { groupEl.value = biz; fillProjects(); }
       renderSetup();
+      drawList();
       if (meta) meta.textContent = metaLine(currentProject());
       loadHistory();
+      // A question from Home's "Ask anything": open Chat, pick the routed model, fill the request. Sending stays a click.
+      var ask = OS.takeAsk ? OS.takeAsk() : null;
+      if (ask) {
+        showTab('chat');
+        var pickBtn = root.querySelector('.harness-pick[data-harness="' + ask.harness + '"]');
+        if (pickBtn) pickBtn.click();
+        if (input) { input.value = ask.text; input.focus(); }
+      }
     }
   });
 })();

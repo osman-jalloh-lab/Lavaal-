@@ -31,7 +31,7 @@ function loadOS() {
 
 const { OS } = loadOS();
 check('harness is a registered view', Boolean(OS.views.harness && OS.views.harness.render));
-check('harness is in the nav and in More, not in the primary tabs', OS.nav.some((n) => n.id === 'harness') && OS.mobile.MORE.includes('harness') && !OS.mobile.TABS.includes('harness'));
+check('harness is a view under Chat (AI models tab), reachable from the Chat tab on phones', OS.nav.some((n) => n.id === 'harness') && OS.sectionOf('harness').id === 'chat' && OS.mobile.TABS.includes('chat'));
 check('harness shortcut is G A', OS.nav.find((n) => n.id === 'harness').hint === 'G A' && OS.nav.find((n) => n.id === 'harness').key === 'a');
 check('nav about is type-and-send, Gemini off', /Type a request/.test(OS.nav.find((n) => n.id === 'harness').about) && !/Gemini/.test(OS.nav.find((n) => n.id === 'harness').about.replace('Gemini is off.', '')));
 
@@ -48,17 +48,17 @@ check('codex shows key present without the secret, claude and deepseek show key 
 check('page data never includes the API key value', !JSON.stringify(data.harness).includes(SECRET));
 
 const html = OS.views.harness.render({ id: 'harness', sub: '', data });
-check('page heading is Harness', /<h1>Harness<\/h1>/.test(html));
+check('chat layout: your chats list, voice banner with the Jarvis orb, composer', /class="hx-side card"/.test(html) && /id="hx-orb"/.test(html) && /id="harness-form"/.test(html) && /Ask anything\./.test(fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8')));
 check('explains real capabilities and that Gemini is off', /Connected provider APIs can answer here/.test(html) && /Gemini is off/.test(html));
 check('Home and Chat tabs are present', /data-harness-tab="home"/.test(html) && /data-harness-tab="chat"/.test(html));
 check('group picker lists the four groups', /id="harness-group"/.test(html) && /value="lavaall"/.test(html) && /LAVAALL/.test(html) && /SaloneWorks/.test(html) && /Starlink/.test(html) && /SaloneHire/.test(html));
 check('project dropdown includes SaloneHire', /id="harness-project"/.test(html) && /value="salonehire"/.test(html) && /SaloneHire/.test(html));
 check('four visible harness buttons, Gemini off', /data-harness="codex"/.test(html) && /data-harness="claude"/.test(html) && /data-harness="deepseek"/.test(html) && /data-harness="grok"/.test(html) && !/data-harness="gemini"/.test(html));
 check('no copy-command UI', !/id="harness-copy"/.test(html) && !/Copy command/.test(html) && !/lavaall-ai codex/.test(html));
-check('Claude model picker defaults to Sonnet and offers Haiku and Opus', /id="harness-model"/.test(html) && /value="sonnet" selected/.test(html) && /value="haiku"/.test(html) && /value="opus"/.test(html));
+check('Claude model picker defaults to Sonnet, offers Haiku, and never Opus', /id="harness-model"/.test(html) && /value="sonnet" selected/.test(html) && /value="haiku"/.test(html) && !/value="opus"/.test(html));
 check('composer lets the founder type a request and send it', /id="harness-form"/.test(html) && /id="harness-input"/.test(html) && /id="harness-send">Send</.test(html));
 check('usage home is present', /id="harness-usage"/.test(html) && /Usage and credit/.test(html));
-check('Codex setup mentions OPENAI_API_KEY and local codex login', /OPENAI_API_KEY/.test(html) && /codex login/.test(html));
+check('Codex setup mentions OPENAI_API_KEY and local codex login', /OPENAI_API_KEY/.test(fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8')) && /codex login/.test(fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8')));
 check('rendered HTML does not contain the API key', !html.includes(SECRET));
 const harnessSrc = fs.readFileSync(path.join(root, 'api/os/_client/harness.js'), 'utf8');
 check('no inline handlers; harness fetch is same-origin /ops/harness/ only', !/\son[a-z]+\s*=/i.test(html) && /window\.fetch\(/.test(harnessSrc) && /\/ops\/harness\//.test(harnessSrc) && /credentials(?:\s*:\s*|\s*=\s*)'same-origin'/.test(harnessSrc) && !/https?:\/\//.test(harnessSrc.replace(/\/\*[\s\S]*?\*\//, '')));
