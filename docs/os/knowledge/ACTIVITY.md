@@ -4,6 +4,7 @@ What landed on `main` in `osman-jalloh-lab/Lavaal-`, newest first. One line per 
 
 New lines are added by the `os-activity-log` GitHub Action, which opens a draft PR for each merge (it never writes to `main`). Earlier lines below were copied from `git log origin/main --merges` on 26 Nov 2026.
 
+- 26 Nov 2026, 11:21 PM CT · d9a913c · #148 · OS Phase 6: project manager (assigns by strength, runs side by side)
 - 26 Nov 2026, 10:34 PM CT · 8f50f7f · #145 · OS memory: LAVAALL rules and Jack library verdicts from Notion
 - 26 Nov 2026, 10:24 PM CT · 6b71d4e · #143 · OS builder: Codex login in the run, flat cost per run against the cap
 - 26 Nov 2026, 9:52 PM CT · 312ea2c · #141 · OS Phase 5: trust (one handoff, founder-only code_run, untrusted wrappers)
