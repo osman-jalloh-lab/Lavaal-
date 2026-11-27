@@ -350,6 +350,9 @@ async function run() {
   check('vercel.json rewrites /web, /web/ and /web/:path* to the function', ['/web', '/web/', '/web/:path*'].every((s) => vercel.rewrites.some((r) => r.source === s && r.destination.startsWith('/api/web?area='))));
   check('/web rewrites come before the "/" catch-all', vercel.rewrites.findIndex((r) => r.source === '/web/:path*') < vercel.rewrites.findIndex((r) => r.source === '/'));
   check('vercel.json bundles _site into the function', vercel.functions['api/web/index.js'] && vercel.functions['api/web/index.js'].includeFiles === 'api/web/_site/**');
+  const marketingSources = ['/', '/index.html', '/schedule', '/privacy.html', '/terms.html', '/sierra-leone/(.*)', '/web', '/web/(.*)'];
+  const marketingPolicies = marketingSources.map((source) => vercel.headers.find((h) => h.source === source && h.headers.some((entry) => entry.key === 'Content-Security-Policy'))?.headers.find((entry) => entry.key === 'Content-Security-Policy').value);
+  check('all eight marketing CSPs are identical and allow same-origin and Turnstile frames', marketingPolicies.every((policy) => policy === marketingPolicies[0] && policy?.split(';').some((directive) => directive.trim() === "frame-src 'self' https://challenges.cloudflare.com")));
   const hdr = vercel.headers.find((h) => h.source === '/web/(.*)' && h.headers.some((entry) => entry.key === 'X-Frame-Options'));
   const globalIdx = vercel.headers.findIndex((h) => h.source === '/(.*)');
   check('vercel.json allows same-origin framing under /web/ after the site-wide DENY', hdr && hdr.headers.some((h) => h.key === 'X-Frame-Options' && h.value === 'SAMEORIGIN') && vercel.headers.indexOf(hdr) > globalIdx);
