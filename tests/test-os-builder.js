@@ -151,7 +151,7 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     check('mocked success records the draft PR URL and sha', out.state === 'draft_opened' && out.result.prUrl === 'https://github.com/osman-jalloh-lab/Lavaal-/pull/999' && out.result.sha === 'a'.repeat(40) && out.result.verified === true && out.result.draftOnly === true);
     const order = a.calls.map((c) => c[0]).join(',');
     check('GitHub verifies the sha before anything is recorded', order === 'execute,githubGet,recordActivity,cleanup');
-    check('the activity line has the sha, PR and "verified"', /· aaaaaaa · #999 · builder draft \(verified on GitHub\)/.test(out.result.activity));
+    check('the activity line has the sha, PR and "verified"', /· aaaaaaa · #999 · Codex builder draft \(verified on GitHub\)/.test(out.result.activity));
     check('nothing calls merge', !a.calls.some((c) => /merge/i.test(String(c[1] || ''))));
     check('the job is saved as draft_opened', JSON.parse(kv.store.get(builder.jobKey(env, queued.job_id))).state === 'draft_opened');
     check('each run that reaches Codex is charged the flat estimate ($2 by default)', Number(kv.store.get(builder.monthKey(env, Date.now()))) === 2 && out.result.chargedUsd === 2);
@@ -217,7 +217,48 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     fs.rmSync(tmp, { recursive: true, force: true });
   }
   const runnerSrc = fs.readFileSync(path.join(root, 'scripts/os-runner/index.js'), 'utf8');
-  check('the real adapter copies the login and charges before Codex starts', /prepareCodexHome\(env, home\);\s*if \(typeof onCodexStart === 'function'\) await onCodexStart\(\);\s*await run\('codex'/.test(runnerSrc));
+  check('the real adapter copies the right login and charges before the builder starts', /if \(job\.executor === 'claude'\) prepareClaudeHome\(env, home\); else prepareCodexHome\(env, home\);\s*if \(typeof onCodexStart === 'function'\) await onCodexStart\(\);\s*const \[bin, args\] = builderCommand\(job\);\s*await run\(bin, args/.test(runnerSrc));
+
+  // Claude Code builder (Sonnet or Opus, picked per job by Osman).
+  check('builders: codex, claude sonnet, claude opus; nothing else', builder.validBuilder('codex', '') && builder.validBuilder('claude', 'sonnet') && builder.validBuilder('claude', 'opus')
+    && !builder.validBuilder('claude', 'haiku') && !builder.validBuilder('deepseek', '') && !builder.validBuilder('codex', 'opus') && !builder.validBuilder('claude', ''));
+  const cc = runner.builderCommand({ executor: 'claude', model: 'opus', objective: 'x' });
+  check('Claude Code runs in print mode with file tools only (no shell, no web)', cc[0] === 'claude' && cc[1].includes('-p') && cc[1][cc[1].indexOf('--model') + 1] === 'opus'
+    && cc[1][cc[1].indexOf('--allowedTools') + 1] === 'Read,Edit,Write,Glob,Grep' && /Bash/.test(cc[1][cc[1].indexOf('--disallowedTools') + 1]) && !cc[1].includes('--dangerously-skip-permissions'));
+  check('Claude Sonnet is the default model name for the claude builder command', runner.builderCommand({ executor: 'claude', model: 'weird', objective: 'x' })[1][3] === 'sonnet');
+  check('an Opus run is charged more ($6 default) than Codex or Sonnet ($2)', builder.runEstimate({}, { executor: 'claude', model: 'opus' }) === 6 && builder.runEstimate({}, { executor: 'claude', model: 'sonnet' }) === 2 && builder.runEstimate({}, { executor: 'codex' }) === 2);
+  check('an Opus run that would pass the cap is refused while a $2 run still fits (spent 46 of 50)', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'claude', model: 'opus' }).error === 'cap_reached' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'codex' }).ok);
+  check('the approval binds the builder and model', approvals.requestHash(Object.assign({}, GOOD, { executor: 'claude', model: 'sonnet' })) !== approvals.requestHash(Object.assign({}, GOOD, { executor: 'claude', model: 'opus' })));
+  {
+    const kv = fakeKv(); const env = ON(kv);
+    const bad = await approve(kv, Object.assign({}, GOOD, { executor: 'deepseek' }));
+    check('approving an unknown builder is refused', bad.res.statusCode === 400 && bad.out.error === 'builder_not_allowed');
+    const { out: q } = await approve(kv, Object.assign({}, GOOD, { executor: 'claude', model: 'opus' }));
+    const j = JSON.parse(kv.store.get(builder.jobKey(env, q.job_id)));
+    j.model = 'sonnet';
+    kv.store.set(builder.jobKey(env, j.id), JSON.stringify(j));
+    const out = await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter() });
+    check('switching the model after approval is refused', out.state === 'refused');
+  }
+  {
+    const kv = fakeKv(); const env = ON(kv);
+    await approve(kv, Object.assign({}, GOOD, { executor: 'claude', model: 'opus' }));
+    const out = await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter() });
+    check('a Claude Opus job runs, is charged $6, and the log says Claude Opus', out.state === 'draft_opened' && Number(kv.store.get(builder.monthKey(env, Date.now()))) === 6 && /Claude Opus builder draft/.test(out.result.activity));
+  }
+  {
+    const os = require('os');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-auth-'));
+    fs.mkdirSync(path.join(tmp, 'home', '.claude'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'home', '.claude', '.credentials.json'), '{"fake":1}');
+    fs.mkdirSync(path.join(tmp, 'run'));
+    const dest = runner.prepareClaudeHome({ HOME: path.join(tmp, 'home') }, path.join(tmp, 'run'));
+    check('the Claude login is copied with mode 0600', (fs.statSync(dest).mode & 0o777) === 0o600);
+    let threw = '';
+    try { runner.prepareClaudeHome({ HOME: path.join(tmp, 'nobody') }, path.join(tmp, 'run2')); } catch (e) { threw = e.message; }
+    check('no Claude login: fails closed', threw === 'claude_not_logged_in');
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 
   // Source guards and docs.
   const src = ['api/ops/_os_builder.js', 'api/ops/_approvals.js', 'scripts/os-runner/index.js'].map((f) => fs.readFileSync(path.join(root, f), 'utf8')).join('\n')

@@ -4,18 +4,20 @@ Phase 4 of `2026-11-26-os-one-shot-build-prompt.md`. **Draft pull requests only.
 
 ## How a build happens
 
-1. **Osman approves one build** from his signed-in session: `POST /ops/os/builder/approve` with `{ repo, branch, objective }`.
+1. **Osman approves one build** on the /os **Build** page ("Start a build"), or by calling `POST /ops/os/builder/approve` with `{ repo, branch, objective, executor, model }`.
+   - **Builder:** `codex`, or `claude` with `sonnet` or `opus`. Opus is for the builder only, when Osman picks it.
    - The repo must be `osman-jalloh-lab/Lavaal-` or `osman-jalloh-lab/saloneworks`.
    - The branch must start with `feature/` or `os-build/`. A branch with `main`, `master`, `production` or `prod` anywhere in its path is refused.
    - This mints a single-use approval (`api/ops/_approvals.js`, 15 minutes) bound to exactly that repo, branch and objective, takes it for one job, and queues the job. Nothing runs on Vercel.
 2. **The box runner** (`node scripts/os-runner/index.js tick`) picks the oldest queued job. It refuses the job and records why unless all of these hold:
    - `OS_RUNNER_ENABLED` is exactly `1`, and the optional `OS_RUNNER_STOP_FILE` does not exist.
    - `OS_BUILDER_MONTHLY_CAP_USD` is set (50, per Osman on 26 Nov 2026, 6:58 PM CT), and this month's recorded spend plus one more run still fits under it. A missing cap means no run.
-   - **How spend is counted.** The Codex CLI reports no dollar cost. So every run that reaches Codex is charged a flat `OS_BUILDER_RUN_ESTIMATE_USD` (default $2), even if it then fails. A $50 cap is therefore at most 25 runs a month. If a run ever reports a real cost above the estimate, the full amount is charged.
+   - **How spend is counted.** The Codex CLI reports no dollar cost. So every run that reaches Codex is charged a flat `OS_BUILDER_RUN_ESTIMATE_USD` (default $2), even if it then fails. A $50 cap is therefore at most 25 Codex or Sonnet runs a month. An Opus run is charged `OS_BUILDER_OPUS_RUN_ESTIMATE_USD` (default $6). If a run ever reports a real cost above the estimate, the full amount is charged.
    - The approval was minted by the founder session, for this exact request, and its single-use marker belongs to this job.
 3. **The run.** The runner:
    - makes a fresh clone and an isolated worktree on the feature branch;
-   - runs Codex with `--sandbox workspace-write` in an empty home. Only the Codex login (`auth.json`, from `OS_RUNNER_CODEX_AUTH_FILE` or the box's `~/.codex`) is copied in, with mode 0600. If there is no login, the job fails before Codex starts, and nothing is charged. The environment has no GitHub or KV credentials, and the objective is wrapped as untrusted text;
+   - runs the builder in an empty home. **Codex** runs with `--sandbox workspace-write`. **Claude Code** runs with `-p --model sonnet|opus --permission-mode acceptEdits`, with file tools only (Read, Edit, Write, Glob, Grep) and no shell or web. Only its login (`~/.claude/.credentials.json`, or `OS_RUNNER_CLAUDE_AUTH_FILE`) is copied in.
+   - Codex details: Only the Codex login (`auth.json`, from `OS_RUNNER_CODEX_AUTH_FILE` or the box's `~/.codex`) is copied in, with mode 0600. If there is no login, the job fails before Codex starts, and nothing is charged. The environment has no GitHub or KV credentials, and the objective is wrapped as untrusted text;
    - runs the repo's tests (`node tests/run-safe-suite.js` or pytest) and commits;
    - pushes the branch and opens a **draft** PR.
 4. **Verify, then record.** GitHub must show an open draft PR from that branch whose head is exactly the commit sha. Only then is the sha and PR URL written to the job record, and an "opened" line added to `docs/os/knowledge/ACTIVITY.md` on the same draft branch.
@@ -24,7 +26,8 @@ Phase 4 of `2026-11-26-os-one-shot-build-prompt.md`. **Draft pull requests only.
 
 - `OS_RUNNER_ENABLED` and `OS_BUILDER_MONTHLY_CAP_USD` live on the box only. They are not written to Vercel.
 - The #102 workflow (`.github/workflows/os-code-task.yml`) is still the Preview patch-artifact path. It does not open PRs.
-- The Claude Code builder (`anthropics/claude-code-action`, Sonnet only, draft PRs only) comes after a local Codex dry run. It is not added here: no Claude GitHub App, no new secrets.
+- Claude Code runs on the box next to Codex. There is no Claude GitHub App and no GitHub secret, and `anthropics/claude-code-action` is not used.
+- Box setup step by step: `docs/os/BOX-SETUP.md`.
 - A ChatGPT or Codex subscription is not the OpenAI API key. The 2-dispatches-a-day limit on #102 is not a dollar cap.
 
 ## Before turning it on (Osman)

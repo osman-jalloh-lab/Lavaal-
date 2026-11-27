@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/os-runner/index.js — the LAVAALL OS Codex box runner (Phase 4). Runs on Drake's box, never on Vercel.
+// scripts/os-runner/index.js — the LAVAALL OS box runner (Phase 4): Codex, or Claude Code (Sonnet or Opus). Runs on Drake's box, never on Vercel.
 //
 // DEFAULT OFF. One tick picks the oldest queued job and fails closed unless ALL of these hold:
 //   - OS_RUNNER_ENABLED is exactly "1" (and OS_RUNNER_STOP_FILE, if set, does not exist)
@@ -52,8 +52,9 @@ function activityLine(job, sha, prUrl, nowMs) {
   const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
     .formatToParts(d).reduce((o, x) => { o[x.type] = x.value; return o; }, {});
   const pr = /\/pull\/(\d+)$/.exec(prUrl);
+  const who = job.executor === 'claude' ? `Claude ${job.model === 'opus' ? 'Opus' : 'Sonnet'}` : 'Codex';
   const title = String(job.objective || '').replace(/[\r\n|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100);
-  return `- ${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute} ${p.dayPeriod} CT · ${sha.slice(0, 7)} · #${pr ? pr[1] : '?'} · builder draft (verified on GitHub): ${title} · ${prUrl}`;
+  return `- ${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute} ${p.dayPeriod} CT · ${sha.slice(0, 7)} · #${pr ? pr[1] : '?'} · ${who} builder draft (verified on GitHub): ${title} · ${prUrl}`;
 }
 
 function run(cmd, args, options = {}) {
@@ -93,6 +94,36 @@ function prepareCodexHome(env, home) {
   return path.join(dest, 'auth.json');
 }
 
+// Claude Code gets the same treatment: an empty home with only its login copied in (0600), from
+// OS_RUNNER_CLAUDE_AUTH_FILE or ~/.claude/.credentials.json. No login: fail closed before Claude starts.
+function claudeAuthSource(env) {
+  const e = env || {};
+  if (e.OS_RUNNER_CLAUDE_AUTH_FILE) return e.OS_RUNNER_CLAUDE_AUTH_FILE;
+  return e.HOME ? path.join(e.HOME, '.claude', '.credentials.json') : '';
+}
+function prepareClaudeHome(env, home) {
+  const src = claudeAuthSource(env);
+  let stat = null;
+  try { stat = src ? fs.statSync(src) : null; } catch { stat = null; }
+  if (!stat || !stat.isFile() || stat.size === 0) throw new Error('claude_not_logged_in');
+  const dest = path.join(home, '.claude');
+  fs.mkdirSync(dest, { recursive: true, mode: 0o700 });
+  fs.copyFileSync(src, path.join(dest, '.credentials.json'));
+  fs.chmodSync(path.join(dest, '.credentials.json'), 0o600);
+  return path.join(dest, '.credentials.json');
+}
+
+// The command each builder runs inside the worktree. Claude Code gets file tools only (no shell, no web), in
+// print mode, with the model Osman picked; Codex gets its workspace-write sandbox.
+function builderCommand(job) {
+  if (job.executor === 'claude') {
+    const model = job.model === 'opus' ? 'opus' : 'sonnet';
+    return ['claude', ['-p', promptFor(job), '--model', model, '--permission-mode', 'acceptEdits',
+      '--allowedTools', 'Read,Edit,Write,Glob,Grep', '--disallowedTools', 'Bash,WebFetch,WebSearch']];
+  }
+  return ['codex', ['exec', '--sandbox', 'workspace-write', promptFor(job)]];
+}
+
 // The real box adapter. Codex and the tests get a bare environment (no GitHub or KV credentials); only git and gh
 // get the publishing credentials, with repository hooks disabled.
 function realAdapter({ env = process.env } = {}) {
@@ -112,9 +143,10 @@ function realAdapter({ env = process.env } = {}) {
       await git(['-C', clone, 'worktree', 'add', '-b', job.branch, work, 'origin/HEAD'], { timeout });
       const home = path.join(dir, 'codex-home');
       fs.mkdirSync(home, { mode: 0o700 });
-      prepareCodexHome(env, home);
+      if (job.executor === 'claude') prepareClaudeHome(env, home); else prepareCodexHome(env, home);
       if (typeof onCodexStart === 'function') await onCodexStart();
-      await run('codex', ['exec', '--sandbox', 'workspace-write', promptFor(job)], { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, CODEX_HOME: path.join(home, '.codex'), TMPDIR: home }) });
+      const [bin, args] = builderCommand(job);
+      await run(bin, args, { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, CODEX_HOME: path.join(home, '.codex'), TMPDIR: home }) });
       const tests = job.repo === 'osman-jalloh-lab/Lavaal-' ? ['node', ['tests/run-safe-suite.js']] : ['python3', ['-m', 'pytest', 'tests/', '-q']];
       await run(tests[0], tests[1], { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, TMPDIR: home, APP_ENV: 'test', EMAIL_ENABLED: 'false' }) });
       await git(['add', '-A'], { cwd: work, timeout });
@@ -149,8 +181,8 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
   const call = (args) => approvals.command(env, fetchImpl, args);
   let spent;
   try { spent = Number(await call(['GET', builder.monthKey(env, now())]) || 0); } catch { return { state: 'not_configured' }; }
-  const cap = builder.capCheck(env, spent);
-  if (!cap.ok) return { state: 'refused', error: cap.error };
+  const preCap = builder.capCheck(env, spent);
+  if (!preCap.ok) return { state: 'refused', error: preCap.error };
   const ids = await call(['LRANGE', builder.queueKey(env), 0, 199]);
   let job = null;
   for (const id of (Array.isArray(ids) ? ids.slice().reverse() : [])) {
@@ -158,14 +190,19 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
   }
   if (!job) return { state: 'idle' };
   const save = () => call(['SET', builder.jobKey(env, job.id), JSON.stringify(Object.assign(job, { updatedAt: new Date(now()).toISOString() }))]);
-  const payload = { repo: job.repo, branch: job.branch, objective: job.objective };
+  const executor = job.executor || 'codex';
+  const model = executor === 'claude' ? String(job.model || '') : '';
+  const payload = { repo: job.repo, branch: job.branch, objective: job.objective, executor, model };
   const approved = await approvals.verifyConsumed(env, fetchImpl, { id: job.approvalId, action: 'code_run', requestHash: approvals.requestHash(payload), consumer: 'code_run:' + job.id });
-  if (!approved || !builder.REPOS.includes(job.repo) || !builder.validBranch(job.branch)) {
+  if (!approved || !builder.REPOS.includes(job.repo) || !builder.validBranch(job.branch) || !builder.validBuilder(executor, model)) {
     job.state = 'refused';
     job.result = { sha: '', prUrl: '', verified: false, error: 'approval or policy refused' };
     await save();
     return job;
   }
+  // The cap check again with this job's own estimate (an Opus run is charged more than a Codex or Sonnet run).
+  const cap = builder.capCheck(env, spent, { executor, model });
+  if (!cap.ok) return { state: 'refused', error: cap.error, id: job.id };
   const a = adapter || realAdapter({ env });
   job.state = 'running';
   await save();
@@ -194,7 +231,8 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
     if (charged) job.result.chargedUsd = Math.max(charged, out && Number.isFinite(out.costUsd) ? out.costUsd : 0);
   } catch (e) {
     job.state = 'failed';
-    job.result = { sha: '', prUrl: '', verified: false, error: e && e.message === 'codex_not_logged_in' ? 'Codex is not logged in on the box (run codex login)' : 'execution failed', chargedUsd: charged };
+    job.result = { sha: '', prUrl: '', verified: false, error: e && e.message === 'codex_not_logged_in' ? 'Codex is not logged in on the box (run codex login)'
+      : e && e.message === 'claude_not_logged_in' ? 'Claude Code is not logged in on the box (run claude, then /login)' : 'execution failed', chargedUsd: charged };
   } finally {
     if (a.cleanup) { try { a.cleanup(); } catch { /* best effort */ } }
   }
@@ -209,4 +247,4 @@ if (require.main === module) {
     .catch(() => { process.stdout.write(JSON.stringify({ state: 'failed' }) + '\n'); process.exitCode = 1; });
 }
 
-module.exports = { activityLine, codexAuthSource, prepareCodexHome, promptFor, realAdapter, tick, verifyRunEvidence };
+module.exports = { activityLine, builderCommand, claudeAuthSource, codexAuthSource, prepareClaudeHome, prepareCodexHome, promptFor, realAdapter, tick, verifyRunEvidence };

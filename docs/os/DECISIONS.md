@@ -237,3 +237,13 @@ Source: Osman's build prompt `2026-11-26-os-one-shot-build-prompt.md`, written b
 - **Open drafts stay as they are** (Osman, 7:01 PM CT): do not rebase #103 or #105, do not close #107.
 - **SalonWeb** means LAVAALL Web, the `/web/` product (6:58 PM CT). It is not SaloneWorks and not SaloneHire.
 - **Builder cap:** `OS_BUILDER_MONTHLY_CAP_USD=50` (6:58 PM CT). Not written to Vercel until Osman says so.
+
+## 2026-11-27 — builders: Codex and Claude Code (Sonnet or Opus); DeepSeek stays in chat
+
+Source: Osman in the build session, 27 Nov 2026 (evening CT).
+
+- **Claude Code is a second builder**, next to Codex, on the box runner. Osman picks the builder per job on the /os Build page.
+- **Opus is allowed in the builder only**, and only when Osman picks it for that job. It changes the "never Opus" rule for that one case. Chat stays Sonnet/Haiku. The builder uses Claude Code's `opus` alias, which is the newest Opus.
+- **Cost against the $50 monthly cap:** Codex or Sonnet $2 a run, Opus $6 a run (box settings `OS_BUILDER_RUN_ESTIMATE_USD`, `OS_BUILDER_OPUS_RUN_ESTIMATE_USD`).
+- **DeepSeek stays in chat.** It has no coding agent of its own; revisit later (for example through aider) if a cheaper builder is wanted.
+- **Lavaal- stays public for now** (Osman, 27 Nov 2026). The repo could not be switched to private from the build session, and Osman said to leave it as it is.

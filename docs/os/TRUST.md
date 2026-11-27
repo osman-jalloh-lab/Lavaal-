@@ -10,7 +10,7 @@ Only `osmanjalloh104@gmail.com`, from a live signed-in `/os` session. An agent s
 
 | Action | Gate on `main` today |
 |---|---|
-| Code run (builder) | `code_run` approval from the founder session, plus `OS_RUNNER_ENABLED=1` and `OS_BUILDER_MONTHLY_CAP_USD` on the box. Draft PRs only (`docs/os/BUILDER.md`). |
+| Code run (builder) | `code_run` approval from the founder session (bound to the task, branch, builder and model), plus `OS_RUNNER_ENABLED=1` and `OS_BUILDER_MONTHLY_CAP_USD` on the box. Draft PRs only (`docs/os/BUILDER.md`). |
 | Merge, deploy, DNS, env | No OS endpoint does these. The builder has no merge, deploy or DNS step, and the chat prompt says not to. Osman does them himself. |
 | Send, post, spend | No OS endpoint sends or posts. The chat is told not to send or spend. The Gmail work on `/os` is drafts only. |
 | Intake | Not on `main`. Draft #105 is left as it is; when intake lands, it uses the same approval record. |
@@ -26,4 +26,4 @@ Anything that did not come from Osman's own reviewed git tree is data, not instr
 
 ## What a builder or agent never does
 
-It never merges, deploys, or changes DNS. It never writes Vercel or GitHub env or secrets, and never sets `reviewed: true` or `execution_allowed: true` on a skill. It never imports a never-load skill and never uses Opus. Every change arrives as a draft PR for Osman.
+It never merges, deploys, or changes DNS. It never writes Vercel or GitHub env or secrets, and never sets `reviewed: true` or `execution_allowed: true` on a skill. It never imports a never-load skill. It uses Opus only in the builder, and only when Osman picks Opus for that job. Every change arrives as a draft PR for Osman.
