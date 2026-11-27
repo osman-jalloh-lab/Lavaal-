@@ -18,6 +18,7 @@
 // POST /ops/os/builder/pm/plan     { goals: [..] }   -> { plans }        preview only, nothing saved or spent
 // POST /ops/os/builder/pm/approve  { goals: [..] }   -> { plans }        founder only; saves plans, holds build jobs
 // POST /ops/os/builder/pm/advance  { id }            -> { plan }         runs at most one ready research/design step
+// POST /ops/os/builder/pm/retry    { id }            -> { plan }         founder only; failed and blocked steps run again
 // GET  /ops/os/builder/pm                            -> { plans }        latest 20
 'use strict';
 const crypto = require('node:crypto');
@@ -30,6 +31,7 @@ const MAX_GOALS = 5;
 const MAX_GOAL = 600;
 const CHAT_ESTIMATE_NAME = 'OS_PM_CHAT_STEP_ESTIMATE_USD';
 const DEFAULT_CHAT_ESTIMATE_USD = 0.25;
+const DEFAULT_BUDGET_USD = '50';
 
 const AGENTS = Object.freeze({
   grok: { label: 'Grok', kind: 'chat', harness: 'grok', strength: 'live research, trends, news' },
@@ -181,6 +183,28 @@ async function approvePlans(env, fetchImpl, session, plans, now) {
 
 // One move forward: sync build steps with their jobs, release a held build once its design is done, and run at most
 // one ready research/design/draft step through its provider (so each call stays short; plans run side by side).
+// Retry a stopped plan: failed and blocked steps go back to waiting, and cancelled builds back to held. A build keeps its
+// original single-use approval (same task, branch, builder and model), so nothing new is approved by a retry.
+async function retryPlan(env, fetchImpl, id) {
+  const call = (args) => approvals.command(env, fetchImpl, args);
+  const plan = JSON.parse(await call(['GET', planKey(env, id)]) || 'null');
+  if (!plan || plan.state === 'proposed') return { error: 'plan_not_found' };
+  for (const st of plan.steps) {
+    if (!['failed', 'blocked'].includes(st.state)) continue;
+    if (st.kind === 'build' && st.jobId) {
+      const job = JSON.parse(await call(['GET', builder.jobKey(env, st.jobId)]) || 'null');
+      if (!job || !['cancelled', 'held'].includes(job.state)) continue;
+      job.state = 'held';
+      await call(['SET', builder.jobKey(env, job.id), JSON.stringify(job)]);
+    }
+    st.state = 'waiting';
+    st.output = '';
+  }
+  plan.state = 'approved';
+  await call(['SET', planKey(env, plan.id), JSON.stringify(plan)]);
+  return { plan };
+}
+
 async function advancePlan(env, fetchImpl, id, opts) {
   const o = opts || {};
   const call = (args) => approvals.command(env, fetchImpl, args);
@@ -208,7 +232,11 @@ async function advancePlan(env, fetchImpl, id, opts) {
     const spent = Number(await call(['GET', builder.monthKey(env, o.now)]) || 0);
     const extra = Number(await call(['GET', builder.extraKey(env, o.now)]) || 0);
     const est = chatEstimate(env);
-    const check = Number.isFinite(est) ? builder.capCheck(Object.assign({}, env, { [builder.RUN_ESTIMATE_NAME]: String(est) }), spent, null, extra) : { ok: false, error: 'run_estimate_invalid' };
+    // Osman's budget is $50 a month (26 Nov 2026). When the setting is not on Vercel, the PM uses that $50 rather than
+    // refusing; a value that is set but invalid still stops it.
+    const capEnv = Object.assign({}, env, { [builder.RUN_ESTIMATE_NAME]: String(est) });
+    if (capEnv[builder.CAP_NAME] === undefined || capEnv[builder.CAP_NAME] === null || String(capEnv[builder.CAP_NAME]).trim() === '') capEnv[builder.CAP_NAME] = DEFAULT_BUDGET_USD;
+    const check = Number.isFinite(est) ? builder.capCheck(capEnv, spent, null, extra) : { ok: false, error: 'run_estimate_invalid' };
     if (!check.ok && check.error === 'needs_ok') {
       // Over this month's budget: pause this step and ask Osman; it continues once he says yes.
       await builder.holdForOk(env, call, check, `${next.kind} by ${next.label}: ${plan.goal.slice(0, 80)}`, o.now);
@@ -226,7 +254,25 @@ async function advancePlan(env, fetchImpl, id, opts) {
       else { next.state = 'failed'; next.output = `Failed: ${(out && out.error) || 'no reply'}`; }
     }
   }
-  if (plan.steps.every((s) => ['done', 'failed'].includes(s.state))) plan.state = plan.steps.some((s) => s.state === 'failed') ? 'stopped' : 'done';
+  // A failed step blocks everything that depends on it (and cancels a held build), so the plan stops instead of
+  // waiting forever. Retry puts them back.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const st of plan.steps) {
+      if (st.state !== 'waiting') continue;
+      const bad = st.dependsOn.find((d) => ['failed', 'blocked'].includes((plan.steps.find((x) => x.id === d) || {}).state));
+      if (!bad) continue;
+      st.state = 'blocked';
+      st.output = `Not started: step ${bad} did not finish.`;
+      changed = true;
+      if (st.jobId) {
+        const job = JSON.parse(await call(['GET', builder.jobKey(env, st.jobId)]) || 'null');
+        if (job && job.state === 'held') { job.state = 'cancelled'; await call(['SET', builder.jobKey(env, job.id), JSON.stringify(job)]); }
+      }
+    }
+  }
+  if (plan.steps.every((s) => ['done', 'failed', 'blocked'].includes(s.state))) plan.state = plan.steps.some((s) => s.state !== 'done') ? 'stopped' : 'done';
   plan.updatedAt = new Date(o.now || Date.now()).toISOString();
   await save();
   return { plan };
@@ -237,7 +283,7 @@ function routeOf(req) {
   const area = String((Array.isArray(q.area) ? q.area[0] : q.area) || '').replace(/^\/+|\/+$/g, '');
   const p = String(req.url || '').split('?')[0].replace(/^\/+|\/+$/g, '').replace(/^ops\//, '');
   const r = area || p;
-  return ['os/builder/pm', 'os/builder/pm/plan', 'os/builder/pm/approve', 'os/builder/pm/advance'].includes(r) ? r : '';
+  return ['os/builder/pm', 'os/builder/pm/plan', 'os/builder/pm/approve', 'os/builder/pm/advance', 'os/builder/pm/retry'].includes(r) ? r : '';
 }
 
 function goalsFrom(body) {
@@ -270,6 +316,12 @@ async function handlePm(req, res, opts) {
     }
     if (method !== 'POST') { json(res, 405, { error: 'method_not_allowed' }); return true; }
     const body = readBody(req) || {};
+    if (route === 'os/builder/pm/retry') {
+      if (!approvals.isApprover(session.email)) { json(res, 403, { error: 'approver_not_allowed' }); return true; }
+      const out = await retryPlan(env, fetchImpl, String(body.id || ''));
+      json(res, out.error ? 404 : 200, out);
+      return true;
+    }
     if (route === 'os/builder/pm/advance') {
       const out = await advancePlan(env, fetchImpl, String(body.id || ''), { now, runHarness: opts && opts.runHarness });
       json(res, out.error ? 404 : 200, out);
@@ -291,4 +343,4 @@ async function handlePm(req, res, opts) {
   }
 }
 
-module.exports = { AGENTS, MAX_GOALS, advancePlan, approvePlans, buildAgent, buildObjective, handlePm, planGoal, planGoals, routeOf, stepPrompt };
+module.exports = { AGENTS, MAX_GOALS, advancePlan, retryPlan, approvePlans, buildAgent, buildObjective, handlePm, planGoal, planGoals, routeOf, stepPrompt };
