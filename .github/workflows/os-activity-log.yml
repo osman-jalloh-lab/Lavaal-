@@ -1,0 +1,50 @@
+name: LAVAALL OS activity log
+# After a merge on main, add one line to docs/os/knowledge/ACTIVITY.md (and rebuild the compiled pack) on a new
+# branch, then open a DRAFT pull request for Osman. It never pushes to main, never merges, never deploys.
+# A commit that only touches the log or the pack is the Action's own and is skipped.
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: os-activity-log
+  cancel-in-progress: false
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 2
+      - name: Skip the log's own commits
+        id: skip
+        run: |
+          files=$(git diff --name-only HEAD~1 HEAD || true)
+          if node scripts/os-activity-line.js skip $files; then echo "skip=1" >> "$GITHUB_OUTPUT"; fi
+      - name: Write the line and open a draft PR
+        if: steps.skip.outputs.skip != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          subject=$(git log -1 --format=%s "$SHA")
+          body=$(git log -1 --format=%b "$SHA")
+          when=$(git log -1 --format=%cI "$SHA")
+          line=$(node scripts/os-activity-line.js line "$SHA" "$when" "$subject" "$body")
+          if [ -z "$line" ]; then echo "Not a PR merge; nothing to log."; exit 0; fi
+          echo "$line" | node scripts/os-activity-line.js insert || { echo "Already logged."; exit 0; }
+          node scripts/build-knowledge-pack.js
+          branch="os-activity/${SHA:0:7}"
+          git config user.name "lavaall-os-activity"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add docs/os/knowledge/ACTIVITY.md api/os/_data/knowledge.json
+          git commit -m "docs(os): activity line for ${SHA:0:7}"
+          git push origin "$branch"
+          gh pr create --draft --base main --head "$branch" \
+            --title "Activity: ${SHA:0:7}" \
+            --body "Adds one line to docs/os/knowledge/ACTIVITY.md for the merge ${SHA:0:7}, and rebuilds the compiled pack. Review and merge when ready; nothing else changes."

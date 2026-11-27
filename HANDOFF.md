@@ -1,3 +1,5 @@
+> **Start at `docs/os/PICK-UP-HERE.md`.** The shared memory (`docs/os/knowledge/`, `docs/os/DECISIONS.md`, `docs/os/knowledge/ACTIVITY.md`) is the source of truth from 26 Nov 2026. This file is an older handoff, kept as history.
+
 # HANDOFF — OS harness chat
 
 - Branch: `feature/os-harness-chat`

@@ -227,3 +227,13 @@ Settled by Osman Jalloh. Do not re-ask.
       it, so a pack the feed would refuse is caught on the PC.
     - Still local: nothing is pushed by running the builder, and notes content is never committed.
 
+
+## 2026-11-26 (about 7:05 PM CT) — one shared git memory
+
+Source: Osman's build prompt `2026-11-26-os-one-shot-build-prompt.md`, written by Drake from Osman's answers that evening.
+
+- **One memory.** `docs/os/knowledge/`, this decisions log and `docs/os/knowledge/ACTIVITY.md` are the source of truth. `docs/os/PICK-UP-HERE.md` points into them. KV is only a cache of the git tree (with its content hash); no second copy in another folder, Obsidian or KV saved items.
+- **Changes are draft PRs.** Knowledge and decision edits, and activity lines, arrive as draft PRs. Builders never merge.
+- **Open drafts stay as they are** (Osman, 7:01 PM CT): do not rebase #103 or #105, do not close #107.
+- **SalonWeb** means LAVAALL Web, the `/web/` product (6:58 PM CT). It is not SaloneWorks and not SaloneHire.
+- **Builder cap:** `OS_BUILDER_MONTHLY_CAP_USD=50` (6:58 PM CT). Not written to Vercel until Osman says so.
