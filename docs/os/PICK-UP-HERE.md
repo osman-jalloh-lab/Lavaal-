@@ -2,7 +2,7 @@
 
 Read this first. It points into the one shared memory; it is not a second memory. Every builder (Drake, Claude, Codex, the OS itself) reads this on start, then the files below, and changes them only through a draft PR.
 
-Updated 26 Nov 2026, 9:18 PM CT (America/Chicago), Phase 3 of `2026-11-26-os-one-shot-build-prompt.md` (draft PR on `feature/os-intent-router`). Phases 0, Core, 1 and 2 are merged (#129, #130, #133, #135).
+Updated 26 Nov 2026, 9:30 PM CT (America/Chicago), Phase 4 of `2026-11-26-os-one-shot-build-prompt.md` (draft PR on `feature/os-builder-harness`). Phases 0 to 3 are merged (#129, #130, #133, #135, #137).
 
 ## Read next, in order
 
@@ -49,7 +49,7 @@ Five folders from repo sources only: `lavaall/`, `salonehire/`, `web/`, `starlin
 - Their text is in `docs/os/skills/<id>/SKILL.md` (hash-checked by `tests/test-os-skills-registry.js`), next to `docs/os/skills/NEVER-LOAD.md`. No scripts or sidecar files. Never set `reviewed: true` or `execution_allowed: true` without Osman.
 - Source: Drake's `os-phase2-handoff` drop, 26 Nov 2026, 8:52 PM CT. `supplier-outreach` line 26 stays `[REDACTED]`.
 
-## Phase 3 (draft)
+## Phase 3 (merged, #137)
 
 - `api/ops/_os_intent.js` `routeIntent(text)` -> `{ business, skill, action, risk, confidence, ask, choices }`, run in `/ops/harness/chat` before any model call. Business aliases come from each knowledge folder's `aliases:` line; skills from `api/os/_data/skills.json`; action and risk from `api/ops/_router/classify.js`.
 - Two businesses, or a tiny half-match: the chat answers with one question and buttons, calls no model and saves nothing. The chosen business comes back as `business` on the same message.
@@ -57,9 +57,16 @@ Five folders from repo sources only: `lavaall/`, `salonehire/`, `web/`, `starlin
 - Krio: a small `KRIO_ALIASES` table in `_os_intent.js`, marked UNVERIFIED until Osman confirms the words.
 - The router suggests only. It never spends, sends, merges or starts a builder.
 
+## Phase 4 (draft)
+
+Builder harness, **default off, draft PRs only**. Read `docs/os/BUILDER.md`.
+- `POST /ops/os/builder/approve`: Osman's signed-in session mints a single-use `code_run` approval (`api/ops/_approvals.js`) bound to repo, branch and objective, and queues one job.
+- `scripts/os-runner/index.js tick` on the box refuses unless `OS_RUNNER_ENABLED` is exactly `1`, `OS_BUILDER_MONTHLY_CAP_USD` (50) is set and not reached, and the approval matches. It never works on `main`, `master` or `production`, and it records the sha and PR URL only after GitHub shows a draft PR at that sha. It never merges, deploys or touches DNS.
+- Neither variable is on Vercel. The Claude Code builder waits for a local Codex dry run.
+
 ## Next action
 
-Phase 4: builder harness (default off). Phase 1 gaps (box knowledge files) are still not copied.
+Phase 5: Drake / OS / builder trust (`HANDOFF.md` points at this tree, `code_run` refused without founder approval, untrusted wrappers in chat and runner paths). Phase 1 gaps (box knowledge files) are still not copied.
 
 ## Waiting on Osman
 
