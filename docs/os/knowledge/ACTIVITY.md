@@ -4,6 +4,7 @@ What landed on `main` in `osman-jalloh-lab/Lavaal-`, newest first. One line per 
 
 New lines are added by the `os-activity-log` GitHub Action, which opens a draft PR for each merge (it never writes to `main`). Earlier lines below were copied from `git log origin/main --merges` on 26 Nov 2026.
 
+- 26 Nov 2026, 10:24 PM CT · 6b71d4e · #143 · OS builder: Codex login in the run, flat cost per run against the cap
 - 26 Nov 2026, 9:52 PM CT · 312ea2c · #141 · OS Phase 5: trust (one handoff, founder-only code_run, untrusted wrappers)
 - 26 Nov 2026, 9:43 PM CT · opened · #141 · OS Phase 5: trust (handoff pointers, founder-only code_run, untrusted wrappers) (draft PR opened)
 - 26 Nov 2026, 9:41 PM CT · 3e783ed · #138 · OS Phase 4: builder harness (default off, draft PRs only)
