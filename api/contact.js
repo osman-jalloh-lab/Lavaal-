@@ -1,3 +1,4 @@
+const { verifyTurnstile } = require('./_lib/turnstile');
 // api/contact.js — LAVAALL "Send an Inquiry" form: Vercel serverless
 // function. Validates + sanitizes the submission server-side, resolves the
 // correct department mailbox from the inquiry type, folds whichever
@@ -116,6 +117,9 @@ async function contact(req, res) {
   if (REQUIRES_ORDER_NUMBER.has(inquiryType) && !clean(body.orderNumber)) errors.push('An order or reference number is required for this inquiry type.');
   if (!consent) errors.push('Consent is required.');
   if (errors.length) return json(res, 400, { error: 'invalid_contact_request', errors });
+
+  const verification = await verifyTurnstile(body, req.headers);
+  if (verification) return json(res, 400, verification);
 
   const route = ROUTES[inquiryType];
   const emailSubject = `${route.tag} ${subject}`.slice(0, 180);

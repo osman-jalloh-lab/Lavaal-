@@ -399,6 +399,13 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
     const { reservationCents, SpendCapError } = require('./llm-gateway');
     const eventKey = 'turn:' + id + ':' + eventId;
     const digest = hash(text);
+    // Determine whether this turn submits a handoff before reserving it. The
+    // reservation checks again so a concurrent context change cannot bypass it.
+    const handoff = await transaction((records, time) => {
+      const session = browserSession(records, id, proof, csrf, time);
+      return Boolean(respond(text, session.context || {}, request).handoffPayload);
+    });
+    if (handoff && request.verifyHandoff) await request.verifyHandoff();
     const reservation = await transaction((records, time) => {
       const session = browserSession(records, id, proof, csrf, time);
       const previous = records.get(eventKey);
@@ -412,6 +419,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       const context = session.context || {};
       if (!text.trim() && !['handoff-location', 'handoff-organisation'].includes(context.awaiting)) fail('fields');
       const rule = respond(text, context, request);
+      if (rule.handoffPayload && request.verifyHandoff && !handoff) fail('turn_pending');
       const skip = shouldSkipModel(rule);
       if (!skip && typeof chat !== 'function') fail('unconfigured');
       const estimate = skip ? 0 : reservationCents(buildMessages(text, rule, context));

@@ -17,6 +17,10 @@ let fetchCalls = 0;
 let timeoutCalls = 0;
 const context = {
   module: { exports: {} },
+  require: (id) => {
+    assert.equal(id, './_lib/turnstile');
+    return { verifyTurnstile: async () => null };
+  },
   process: { env: { CONTACT_WEBHOOK_URL: 'https://example.test/mock-only', CONTACT_WEBHOOK_SECRET: 'fixture-secret' } },
   console: { log: (line) => logs.push(line) },
   AbortSignal: { timeout(ms) {

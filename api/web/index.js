@@ -118,7 +118,7 @@ async function api(req, res, parts) {
   if (parts[0] === 'inquiry' && parts.length === 1) {
     if (m !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { error: 'method_not_allowed' }); }
     const body = await readBody(req);
-    const r = await inquiry.handleInquiry(body, clientIp(req));
+    const r = await inquiry.handleInquiry(body, clientIp(req), req.headers);
     return json(res, r.status, r.body);
   }
   if (parts[0] === 'outbox' && parts.length === 1 && m === 'GET') {

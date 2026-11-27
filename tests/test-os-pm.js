@@ -123,8 +123,27 @@ const kinds = (p) => p.steps.map((s) => `${s.kind}:${s.agent}`).join(' > ');
   {
     const kv2 = fakeKv();
     const a2 = await hit(kv2, '/ops/os/builder/pm/approve', 'POST', { goals: ['Research LAVAALL Web competitors'] });
-    const r = await pm.advancePlan(Object.assign({}, ENV, { OS_BUILDER_MONTHLY_CAP_USD: '' }), kv2.fetchImpl, a2.out.plans[0].id, { runHarness: fakeProvider });
-    check('no cap: the research step is refused and nothing is called', r.plan.steps[0].state === 'failed' && /cap/.test(r.plan.steps[0].output));
+    const bad = await pm.advancePlan(Object.assign({}, ENV, { OS_BUILDER_MONTHLY_CAP_USD: 'fifty' }), kv2.fetchImpl, a2.out.plans[0].id, { runHarness: fakeProvider });
+    check('an invalid budget setting stops the step and says why', bad.plan.steps[0].state === 'failed' && /cap/.test(bad.plan.steps[0].output) && bad.plan.state === 'stopped');
+    const again = await pm.retryPlan(ENV, kv2.fetchImpl, a2.out.plans[0].id);
+    check('Retry puts the failed step back to waiting', again.plan.state === 'approved' && again.plan.steps[0].state === 'waiting');
+    const noSetting = await pm.advancePlan(Object.assign({}, ENV, { OS_BUILDER_MONTHLY_CAP_USD: undefined }), kv2.fetchImpl, a2.out.plans[0].id, { runHarness: fakeProvider });
+    check('no budget setting on Vercel: the PM uses the $50 budget and runs', noSetting.plan.steps[0].state === 'done');
+  }
+  {
+    const kv4 = fakeKv();
+    const a4 = await hit(kv4, '/ops/os/builder/pm/approve', 'POST', { goals: ['Fix the typo in the LAVAALL footer'] });
+    const failing = async () => ({ error: 'key_missing' });
+    const r = await pm.advancePlan(ENV, kv4.fetchImpl, a4.out.plans[0].id, { runHarness: failing });
+    const job = JSON.parse(kv4.store.get(builder.jobKey(ENV, r.plan.steps[1].jobId)));
+    check('a failed design blocks its build, cancels the held job, and stops the plan', r.plan.steps[0].state === 'failed' && /key_missing/.test(r.plan.steps[0].output) && r.plan.steps[1].state === 'blocked' && job.state === 'cancelled' && r.plan.state === 'stopped');
+    const stranger = await hit(kv4, '/ops/os/builder/pm/retry', 'POST', { id: a4.out.plans[0].id }, { session: { email: 'drake@example.com' } });
+    check('only Osman can retry', stranger.res.statusCode === 403);
+    const rt = await hit(kv4, '/ops/os/builder/pm/retry', 'POST', { id: a4.out.plans[0].id });
+    const job2 = JSON.parse(kv4.store.get(builder.jobKey(ENV, rt.out.plan.steps[1].jobId)));
+    check('Retry brings the build back to held with its original approval', rt.res.statusCode === 200 && rt.out.plan.steps.every((x) => x.state === 'waiting') && job2.state === 'held');
+    const ok = await pm.advancePlan(ENV, kv4.fetchImpl, a4.out.plans[0].id, { runHarness: fakeProvider });
+    check('after Retry the design runs', ok.plan.steps[0].state === 'done');
   }
 
   // Budget: over the allowance, a research step pauses and asks; after Osman's OK it runs.
@@ -143,6 +162,7 @@ const kinds = (p) => p.steps.map((s) => `${s.kind}:${s.agent}`).join(' > ');
   const src = fs.readFileSync(path.join(root, 'api/ops/_os_pm.js'), 'utf8').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
   check('the PM never merges, deploys or sends', !/\/merge\b|['"`]merge['"`]|vercel\s+deploy|sendMessage|gmail/i.test(src));
   const page = fs.readFileSync(path.join(root, 'api/os/_client/build.js'), 'utf8');
+  check('the Build page shows failure reasons inline and a Retry button', /pm-why/.test(page) && /data-pm-retry/.test(page));
   check('the Build page has the PM card with Plan and Approve and run', /Project manager/.test(page) && /data-pm="plan"/.test(page) && /data-pm="approve"/.test(page) && (page.match(/window\.fetch\(/g) || []).length === 1);
 
   const failed = results.filter((r) => !r.pass);

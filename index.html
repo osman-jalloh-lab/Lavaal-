@@ -593,6 +593,7 @@
 <span data-i18n="ct.lbl.consent">I consent to my data being processed according to the <a href="/privacy.html">Privacy Policy</a>, so LAVAALL can respond to my inquiry.</span>
 </label>
 </div>
+<div data-turnstile id="iq-turnstile"></div>
 <button type="submit" class="fsub" id="iq-fsub" data-i18n="form.submit">Send Inquiry &#8594;</button>
 <p class="fnote" data-i18n="form.note">We will only contact you regarding this inquiry. No spam.</p>
 </form>
@@ -933,6 +934,10 @@ class InquiryFormHandler {
     const formData = this.sanitizeFormData();
     if (!formData) return false;
 
+    const verification = await window.LavaallTurnstile.token(document.getElementById('iq-turnstile'));
+    if (verification.required && !verification.value) { this.showError('Please complete the verification and try again.'); return false; }
+    formData.turnstileToken = verification.value;
+
     this.submitBtn.textContent = 'Sending...';
     this.submitBtn.disabled = true;
 
@@ -959,6 +964,7 @@ class InquiryFormHandler {
     } catch (error) {
       this.showDeliveryFallback();
     } finally {
+      window.LavaallTurnstile.reset(document.getElementById('iq-turnstile'));
       this.submitBtn.disabled = false;
       this.submitBtn.textContent = 'Send Inquiry →';
     }
@@ -1289,6 +1295,9 @@ class ScheduleModal {
       return;
     }
 
+    const verification = await window.LavaallTurnstile.token(document.getElementById('sched-reg-turnstile'));
+    if (verification.required && !verification.value) { this.showStep1Error('Please complete the verification and try again.'); return; }
+    payload.turnstileToken = verification.value;
     this.regSubmitBtn.disabled = true;
     this.regSubmitBtn.textContent = 'Sending...';
 
@@ -1322,6 +1331,7 @@ class ScheduleModal {
       console.error('Schedule registration error:', error);
       this.showStep1Error('An error occurred. Please try again or email us directly.');
     } finally {
+      window.LavaallTurnstile.reset(document.getElementById('sched-reg-turnstile'));
       this.regSubmitBtn.disabled = false;
       const label = this.tr('sch.step1.submit', 'Continue to Select a Time &#8594;');
       if (typeof DOMPurify !== 'undefined') {
@@ -1381,6 +1391,8 @@ class ScheduleModal {
 
   async bookSlot(date, time, btnEl) {
     if (!this.lead) return;
+    const verification = await window.LavaallTurnstile.token(document.getElementById('sched-book-turnstile'));
+    if (verification.required && !verification.value) { this.showStep2Error('Please complete the verification and try again.'); return; }
     Array.from(this.slotsEl.querySelectorAll('.sched-slot')).forEach(b => b.disabled = true);
     try {
       const response = await fetch('/api/schedule', {
@@ -1388,6 +1400,7 @@ class ScheduleModal {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'book',
+          turnstileToken: verification.value,
           leadId: this.lead.leadId,
           token: this.lead.token,
           date,
@@ -1413,6 +1426,7 @@ class ScheduleModal {
       console.error('Booking error:', error);
       this.showStep2Error('Could not reach the scheduler. Please try again.');
     } finally {
+      window.LavaallTurnstile.reset(document.getElementById('sched-book-turnstile'));
       Array.from(this.slotsEl.querySelectorAll('.sched-slot')).forEach(b => b.disabled = false);
     }
   }
@@ -2697,6 +2711,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script src="assets/js/catalog-data.js"></script>
 <script src="assets/js/catalog.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="/assets/js/turnstile.js"></script>
 <script src="assets/js/customer-assistant.js" defer></script>
 <div id="cs-toast" class="cs-toast" role="status" aria-live="polite"></div>
 
@@ -2806,6 +2822,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <span data-i18n="ct.lbl.consent">I consent to my data being processed according to the <a href="/privacy.html">Privacy Policy</a>, so LAVAALL can respond to my inquiry.</span>
 </label>
 </div>
+<div data-turnstile id="sched-reg-turnstile"></div>
 <button type="submit" class="fsub" id="sched-reg-submit" data-i18n="sch.step1.submit">Continue to Select a Time &#8594;</button>
 <div class="error-message" id="sched-step1-error" hidden></div>
 </form>
@@ -2819,6 +2836,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <input type="date" id="sched-date-input"/>
 </div>
 <div id="sched-loading" data-i18n="sch.loading" hidden>Loading available times...</div>
+<div data-turnstile id="sched-book-turnstile"></div>
 <div id="sched-slots" class="sched-slots" role="group" aria-label="Available times"></div>
 <div id="sched-slots-empty" class="fnote" data-i18n="sch.noSlots" hidden>No available times on this date. Please try another date.</div>
 <div class="error-message" id="sched-step2-error" hidden></div>

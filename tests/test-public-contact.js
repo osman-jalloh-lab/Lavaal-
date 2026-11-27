@@ -38,6 +38,11 @@ function run() {
     gmailComposeHref('sales@lavaall.com', 'Quote', 'Hello').startsWith('https://mail.google.com/mail/?view=cm&fs=1&to=sales%40lavaall.com'));
 
   const index = read('index.html');
+  const web = read('api/web/_site/index.html');
+  check('public forms load Turnstile and include widgets',
+    index.includes('challenges.cloudflare.com/turnstile/v0/api.js')
+    && ['iq-turnstile', 'sched-reg-turnstile', 'sched-book-turnstile'].every(id => index.includes('id="' + id + '"'))
+    && web.includes('challenges.cloudflare.com/turnstile/v0/api.js') && web.includes('id="web-turnstile"'));
   const catalog = read('assets/js/catalog.js');
   const privacy = read('privacy.html');
   const terms = read('terms.html');

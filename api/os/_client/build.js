@@ -144,12 +144,15 @@
   var pmPreview = null;
   var pmTimer = null;
   function stepHtml(st) {
-    var out = st.output ? '<details><summary class="dim">output</summary><pre class="sm-text">' + esc(String(st.output).slice(0, 1500)) + '</pre></details>' : '';
+    var bad = st.state === 'failed' || st.state === 'blocked' || /^Paused:/.test(String(st.output || ''));
+    var out = !st.output ? '' : bad ? '<div class="pm-why">' + esc(String(st.output).slice(0, 300)) + '</div>'
+      : '<details><summary class="dim">output</summary><pre class="sm-text">' + esc(String(st.output).slice(0, 1500)) + '</pre></details>';
     return '<li><span class="tag">' + esc(st.state) + '</span> <b>' + esc(st.kind) + '</b> → ' + esc(st.label) + ' <span class="dim">(' + esc(st.why) + ')</span>' + out + '</li>';
   }
   function planHtml(p) {
     return '<div class="bl-item"><div class="bl-top"><span class="tag">' + esc(p.state) + '</span><span class="bl-title">' + esc(p.goal) + '</span></div>' +
-      '<p class="note">' + esc(p.business) + ' · ' + esc(p.repo) + ' · <code>' + esc(p.branch) + '</code></p><ol class="pm-steps">' + p.steps.map(stepHtml).join('') + '</ol></div>';
+      '<p class="note">' + esc(p.business) + ' · ' + esc(p.repo) + ' · <code>' + esc(p.branch) + '</code></p><ol class="pm-steps">' + p.steps.map(stepHtml).join('') + '</ol>' +
+      (p.state === 'stopped' ? '<button class="btn" type="button" data-pm-retry="' + esc(p.id) + '">Retry</button>' : '') + '</div>';
   }
   function pmCard() {
     return '<section class="card mt bd-start"><div class="ch"><h3>Project manager</h3><div class="r"><span class="pill">Up to 5 goals</span></div></div>' +
@@ -191,6 +194,14 @@
       if (!goals().length) return;
       builderApi('POST', '/pm/plan', { goals: goals() }).then(function (d) { pmPreview = d.plans || []; paintPm(root); if (msg) msg.textContent = 'Preview only. Nothing is saved or spent yet.'; })
         .catch(function (err) { if (msg) msg.textContent = 'Could not plan: ' + err.message.replace(/_/g, ' ') + '.'; });
+    });
+    root.addEventListener('click', function (e) {
+      var r = e.target.closest ? e.target.closest('[data-pm-retry]') : null;
+      if (!r) return;
+      builderApi('POST', '/pm/retry', { id: r.getAttribute('data-pm-retry') })
+        .then(function () { if (msg) msg.textContent = 'Retrying. The plan moves forward while this page is open.'; return loadPlans(root); })
+        .then(function () { tickPlans(root); })
+        .catch(function (err) { if (msg) msg.textContent = 'Could not retry: ' + err.message.replace(/_/g, ' ') + '.'; });
     });
     root.querySelector('[data-pm="approve"]').addEventListener('click', function () {
       var g = goals();
