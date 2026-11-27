@@ -1,3 +1,4 @@
+const { verifyTurnstile } = require('./_lib/turnstile');
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_BODY = 12_000;
 const recent = new Map();
@@ -25,6 +26,8 @@ async function quote(req, res) {
   if (requestType === 'verified-product') {
     if (!clean(context.productName, 240) || !clean(context.sourceProductId, 64) || !clean(context.mpn, 128) || context.verified !== true) return json(res, 400, { error: 'invalid_verified_context' });
   } else if (!clean(context.category, 80) || !clean(context.requestedModel, 240) || context.sourceProductId || context.mpn || context.gtin) return json(res, 400, { error: 'invalid_sourcing_context' });
+  const verification = await verifyTurnstile(body, req.headers);
+  if (verification) return json(res, 400, verification);
   recent.set(ip, now);
   const webhook = process.env.QUOTE_WEBHOOK_URL;
   if (webhook) {

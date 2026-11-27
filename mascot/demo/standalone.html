@@ -1805,6 +1805,10 @@ class ChatPanel {
     consentLabel.appendChild(this._privacyLink('Privacy Policy'));
     consentLabel.appendChild(consentAfter);
     consent.appendChild(consentLabel);
+    const verification = document.createElement('div');
+    consent.appendChild(verification);
+    this._turnstile = verification;
+    if (globalThis.LavaallTurnstile) globalThis.LavaallTurnstile.mount(verification);
     this._privacyConsent = checkbox;
     this._consentArea = consent;
     const consentMessage = document.createElement('li');
@@ -1982,11 +1986,17 @@ class ChatPanel {
       this._privacyConsent.focus();
       return false;
     }
+    const verification = confirming && globalThis.LavaallTurnstile ? globalThis.LavaallTurnstile.current(this._turnstile) : { value: '', required: false };
+    if (verification.required && !verification.value) {
+      this._setStatus('Please complete the verification and try again.');
+      return false;
+    }
     this._renderChips([]);
     this._appendMessage('user', value);
     this._textarea && this._textarea.focus();
     this._setSendEnabled(false);
-    this._adapter && this._adapter.send(value, { privacyConsent });
+    this._adapter && this._adapter.send(value, { privacyConsent, turnstileToken: verification.value });
+    if (confirming && globalThis.LavaallTurnstile) globalThis.LavaallTurnstile.reset(this._turnstile);
     return true;
   }
 
