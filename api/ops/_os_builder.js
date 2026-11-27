@@ -30,17 +30,33 @@ function runnerEnabled(env, exists) {
   return Boolean(env) && env.OS_RUNNER_ENABLED === '1' && !(env.OS_RUNNER_STOP_FILE && has(env.OS_RUNNER_STOP_FILE));
 }
 
-// Fail closed: the cap must be present, a plain positive number, and above what this month has already used.
+const RUN_ESTIMATE_NAME = 'OS_BUILDER_RUN_ESTIMATE_USD';
+const DEFAULT_RUN_ESTIMATE_USD = 2;
+const MONEY = /^\d+(\.\d{1,2})?$/;
+
+// What one run is charged against the cap. The Codex CLI reports no dollar cost, so every run that reaches Codex is
+// charged this flat amount (default $2; a box-only, non-secret setting may change it). Invalid means no run.
+function runEstimate(env) {
+  const raw = env ? env[RUN_ESTIMATE_NAME] : undefined;
+  if (raw === undefined || raw === null || String(raw).trim() === '') return DEFAULT_RUN_ESTIMATE_USD;
+  const s = String(raw).trim();
+  return MONEY.test(s) && Number(s) > 0 ? Number(s) : NaN;
+}
+
+// Fail closed: the cap must be present, a plain positive number, and big enough that this month's recorded spend
+// plus one more run still fits under it.
 function capCheck(env, spentUsd) {
   const raw = env ? env[CAP_NAME] : undefined;
   if (raw === undefined || raw === null || String(raw).trim() === '') return { ok: false, error: 'cap_missing' };
-  if (!/^\d+(\.\d{1,2})?$/.test(String(raw).trim())) return { ok: false, error: 'cap_invalid' };
+  if (!MONEY.test(String(raw).trim())) return { ok: false, error: 'cap_invalid' };
   const cap = Number(raw);
   if (!(cap > 0)) return { ok: false, error: 'cap_invalid' };
   const spent = Number(spentUsd);
   if (!Number.isFinite(spent) || spent < 0) return { ok: false, error: 'spend_unknown' };
-  if (spent >= cap) return { ok: false, error: 'cap_reached', cap, spent };
-  return { ok: true, cap, spent };
+  const next = runEstimate(env);
+  if (!Number.isFinite(next)) return { ok: false, error: 'run_estimate_invalid' };
+  if (spent + next > cap) return { ok: false, error: 'cap_reached', cap, spent, next };
+  return { ok: true, cap, spent, next };
 }
 
 function monthKey(env, now) { return approvals.rootFor(env) + 'builder-spend:' + new Date(now || Date.now()).toISOString().slice(0, 7); }
@@ -101,4 +117,4 @@ async function handleBuilder(req, res, opts) {
   }
 }
 
-module.exports = { CAP_NAME, PROTECTED, REPOS, capCheck, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };
+module.exports = { CAP_NAME, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };

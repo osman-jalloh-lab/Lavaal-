@@ -48,7 +48,13 @@ function mockAdapter(opts) {
   const sha = 'a'.repeat(40);
   return {
     calls,
-    async execute(job) { calls.push(['execute', job.branch]); return o.noChanges ? { sha: '', prUrl: '', tests: 'passed; no changes' } : { sha, prUrl: 'https://github.com/osman-jalloh-lab/Lavaal-/pull/999', tests: 'passed', costUsd: 1.25 }; },
+    async execute(job, timeout, onCodexStart) {
+      calls.push(['execute', job.branch]);
+      if (o.failBeforeCodex) throw new Error('codex_not_logged_in');
+      if (typeof onCodexStart === 'function') await onCodexStart();
+      if (o.failAfterCodex) throw new Error('command_failed');
+      return o.noChanges ? { sha: '', prUrl: '', tests: 'passed; no changes' } : { sha, prUrl: 'https://github.com/osman-jalloh-lab/Lavaal-/pull/999', tests: 'passed', costUsd: o.costUsd === undefined ? 1.25 : o.costUsd };
+    },
     async githubGet(endpoint) {
       calls.push(['githubGet', endpoint]);
       return { draft: o.notDraft ? false : true, state: 'open', merged: false, head: { ref: o.wrongRef || 'os-build/test-change', sha: o.wrongSha || sha, repo: { full_name: 'osman-jalloh-lab/Lavaal-' } }, base: { ref: 'main' } };
@@ -69,6 +75,9 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
   check('cap: invalid or zero fails closed', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: 'fifty' }, 0).ok === false && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '0' }, 0).ok === false);
   check('cap: reached fails closed', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 50).error === 'cap_reached');
   check('cap: 50 with spend below passes', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 12.5).ok === true && builder.CAP_NAME === 'OS_BUILDER_MONTHLY_CAP_USD');
+  check('cap: a run that would push spend over the cap is refused (49 + 2 > 50)', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 49).error === 'cap_reached' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 48).ok === true);
+  check('run estimate defaults to $2 and can be set on the box', builder.runEstimate({}) === 2 && builder.runEstimate({ OS_BUILDER_RUN_ESTIMATE_USD: '5' }) === 5);
+  check('an invalid run estimate fails closed', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50', OS_BUILDER_RUN_ESTIMATE_USD: '-1' }, 0).error === 'run_estimate_invalid' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50', OS_BUILDER_RUN_ESTIMATE_USD: '0' }, 0).ok === false);
 
   // Approvals: founder session only.
   {
@@ -145,7 +154,7 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     check('the activity line has the sha, PR and "verified"', /· aaaaaaa · #999 · builder draft \(verified on GitHub\)/.test(out.result.activity));
     check('nothing calls merge', !a.calls.some((c) => /merge/i.test(String(c[1] || ''))));
     check('the job is saved as draft_opened', JSON.parse(kv.store.get(builder.jobKey(env, queued.job_id))).state === 'draft_opened');
-    check('reported cost goes to the monthly ledger', Number(kv.store.get(builder.monthKey(env, Date.now()))) === 1.25);
+    check('each run that reaches Codex is charged the flat estimate ($2 by default)', Number(kv.store.get(builder.monthKey(env, Date.now()))) === 2 && out.result.chargedUsd === 2);
     const again = await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter() });
     check('the same job never runs twice', again.state === 'idle');
   }
@@ -162,6 +171,53 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     const out = await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter({ wrongSha: 'b'.repeat(40) }) });
     check('a PR whose head is a different sha is not recorded', out.state === 'failed' && !out.result.prUrl);
   }
+
+  // Charging: a failed run that reached Codex still counts; one that never reached Codex does not.
+  {
+    const kv = fakeKv(); const env = ON(kv);
+    await approve(kv, GOOD);
+    const out = await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter({ failAfterCodex: true }) });
+    check('a run that fails after Codex started is still charged', out.state === 'failed' && Number(kv.store.get(builder.monthKey(env, Date.now()))) === 2);
+  }
+  {
+    const kv = fakeKv(); const env = ON(kv);
+    await approve(kv, GOOD);
+    const out = await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter({ failBeforeCodex: true }) });
+    check('Codex not logged in: the job fails with a clear reason and nothing is charged', out.state === 'failed' && /not logged in/.test(out.result.error) && !kv.store.get(builder.monthKey(env, Date.now())));
+  }
+  {
+    const kv = fakeKv(); const env = ON(kv);
+    await approve(kv, GOOD);
+    await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter({ costUsd: 3.5 }) });
+    check('a reported cost above the estimate is charged in full', Number(kv.store.get(builder.monthKey(env, Date.now()))) === 3.5);
+  }
+  {
+    const kv = fakeKv(); const env = Object.assign(ON(kv), { OS_BUILDER_MONTHLY_CAP_USD: '4' });
+    for (let i = 0; i < 3; i++) await approve(kv, Object.assign({}, GOOD, { objective: 'run ' + i }));
+    const states = [];
+    for (let i = 0; i < 3; i++) states.push((await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter({ noChanges: true }) })).state || '');
+    check('with a $4 cap and $2 runs, the third run is refused', states.join(',') === 'no_changes,no_changes,refused');
+  }
+
+  // Codex login: only auth.json is copied into the runner's empty home, 0600; no login fails closed.
+  {
+    const os = require('os');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-auth-'));
+    const fakeHome = path.join(tmp, 'home'); fs.mkdirSync(path.join(fakeHome, '.codex'), { recursive: true });
+    fs.writeFileSync(path.join(fakeHome, '.codex', 'auth.json'), '{"fake":"login"}');
+    fs.writeFileSync(path.join(fakeHome, '.codex', 'config.toml'), 'other = 1');
+    const runHome = path.join(tmp, 'run'); fs.mkdirSync(runHome);
+    const dest = runner.prepareCodexHome({ HOME: fakeHome }, runHome);
+    check('the Codex login is copied into the runner home with mode 0600', fs.readFileSync(dest, 'utf8') === '{"fake":"login"}' && (fs.statSync(dest).mode & 0o777) === 0o600);
+    check('nothing else from the box Codex folder is copied', fs.readdirSync(path.join(runHome, '.codex')).join() === 'auth.json');
+    check('OS_RUNNER_CODEX_AUTH_FILE wins over HOME', runner.codexAuthSource({ HOME: '/h', OS_RUNNER_CODEX_AUTH_FILE: '/x/auth.json' }) === '/x/auth.json' && runner.codexAuthSource({ HOME: '/h' }) === path.join('/h', '.codex', 'auth.json'));
+    let threw = '';
+    try { runner.prepareCodexHome({ HOME: path.join(tmp, 'nobody') }, path.join(tmp, 'run2')); } catch (e) { threw = e.message; }
+    check('no Codex login: fails closed before Codex runs', threw === 'codex_not_logged_in');
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+  const runnerSrc = fs.readFileSync(path.join(root, 'scripts/os-runner/index.js'), 'utf8');
+  check('the real adapter copies the login and charges before Codex starts', /prepareCodexHome\(env, home\);\s*if \(typeof onCodexStart === 'function'\) await onCodexStart\(\);\s*await run\('codex'/.test(runnerSrc));
 
   // Source guards and docs.
   const src = ['api/ops/_os_builder.js', 'api/ops/_approvals.js', 'scripts/os-runner/index.js'].map((f) => fs.readFileSync(path.join(root, f), 'utf8')).join('\n')

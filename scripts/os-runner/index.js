@@ -73,6 +73,26 @@ function run(cmd, args, options = {}) {
   });
 }
 
+// Codex runs with a fresh, empty home so it cannot read the box's other files or credentials. Copy in only the
+// Codex login (auth.json), 0600, from OS_RUNNER_CODEX_AUTH_FILE or the box's own Codex home. No login: fail closed.
+function codexAuthSource(env) {
+  const e = env || {};
+  if (e.OS_RUNNER_CODEX_AUTH_FILE) return e.OS_RUNNER_CODEX_AUTH_FILE;
+  const codexHome = e.CODEX_HOME || (e.HOME ? path.join(e.HOME, '.codex') : '');
+  return codexHome ? path.join(codexHome, 'auth.json') : '';
+}
+function prepareCodexHome(env, home) {
+  const src = codexAuthSource(env);
+  let stat = null;
+  try { stat = src ? fs.statSync(src) : null; } catch { stat = null; }
+  if (!stat || !stat.isFile() || stat.size === 0) throw new Error('codex_not_logged_in');
+  const dest = path.join(home, '.codex');
+  fs.mkdirSync(dest, { recursive: true, mode: 0o700 });
+  fs.copyFileSync(src, path.join(dest, 'auth.json'));
+  fs.chmodSync(path.join(dest, 'auth.json'), 0o600);
+  return path.join(dest, 'auth.json');
+}
+
 // The real box adapter. Codex and the tests get a bare environment (no GitHub or KV credentials); only git and gh
 // get the publishing credentials, with repository hooks disabled.
 function realAdapter({ env = process.env } = {}) {
@@ -84,7 +104,7 @@ function realAdapter({ env = process.env } = {}) {
   let work = '';
   let dir = '';
   return {
-    async execute(job, timeout) {
+    async execute(job, timeout, onCodexStart) {
       dir = fs.mkdtempSync(path.join(os.tmpdir(), 'os-build-'));
       const clone = path.join(dir, 'repo');
       work = path.join(dir, 'worktree');
@@ -92,18 +112,20 @@ function realAdapter({ env = process.env } = {}) {
       await git(['-C', clone, 'worktree', 'add', '-b', job.branch, work, 'origin/HEAD'], { timeout });
       const home = path.join(dir, 'codex-home');
       fs.mkdirSync(home, { mode: 0o700 });
+      prepareCodexHome(env, home);
+      if (typeof onCodexStart === 'function') await onCodexStart();
       await run('codex', ['exec', '--sandbox', 'workspace-write', promptFor(job)], { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, CODEX_HOME: path.join(home, '.codex'), TMPDIR: home }) });
       const tests = job.repo === 'osman-jalloh-lab/Lavaal-' ? ['node', ['tests/run-safe-suite.js']] : ['python3', ['-m', 'pytest', 'tests/', '-q']];
       await run(tests[0], tests[1], { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, TMPDIR: home, APP_ENV: 'test', EMAIL_ENABLED: 'false' }) });
       await git(['add', '-A'], { cwd: work, timeout });
       const changed = await git(['diff', '--cached', '--quiet'], { cwd: work, timeout, accept: [1] });
-      if (changed.code !== 1) return { sha: '', prUrl: '', tests: 'passed; no changes', costUsd: 0 };
+      if (changed.code !== 1) return { sha: '', prUrl: '', tests: 'passed; no changes' };
       await git(['commit', '-m', `OS builder: ${String(job.objective).slice(0, 60)}`], { cwd: work, timeout });
       const sha = (await git(['rev-parse', 'HEAD'], { cwd: work, timeout })).out;
       await git(['push', 'origin', `HEAD:refs/heads/${job.branch}`], { cwd: work, timeout });
       const pr = await gh(['api', `repos/${job.repo}/pulls`, '-f', `title=OS builder: ${String(job.objective).slice(0, 60)}`, '-f', `head=${job.branch}`, '-f', 'base=main',
         '-f', 'body=Draft from an approved OS builder job. Review before merging; the builder never merges.', '-F', 'draft=true', '--jq', '.html_url'], { cwd: work, timeout });
-      return { sha, prUrl: pr.out, tests: 'passed', costUsd: null };
+      return { sha, prUrl: pr.out, tests: 'passed' };
     },
     async githubGet(endpoint) { return JSON.parse((await gh(['api', endpoint], {})).out); },
     async recordActivity(job, line) {
@@ -147,8 +169,16 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
   const a = adapter || realAdapter({ env });
   job.state = 'running';
   await save();
+  // Charge the flat run estimate when Codex is about to start (once), whatever happens after. If an adapter ever
+  // reports a real cost above the estimate, the difference is charged too.
+  let charged = 0;
+  const charge = async () => {
+    if (charged) return;
+    charged = cap.next;
+    await call(['INCRBYFLOAT', builder.monthKey(env, now()), String(cap.next)]);
+  };
   try {
-    const out = await a.execute(job, timeout);
+    const out = await a.execute(job, timeout, charge);
     const verified = Boolean(out && out.prUrl) && await verifyRunEvidence({ repo: job.repo, branch: job.branch, sha: out.sha, prUrl: out.prUrl, githubGet: (e) => a.githubGet(e) });
     if (verified) {
       const line = activityLine(job, out.sha, out.prUrl, now());
@@ -160,10 +190,11 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
       job.state = out && !out.prUrl && !out.sha ? 'no_changes' : 'failed';
       job.result = { sha: '', prUrl: '', verified: false, tests: out ? out.tests : '', error: out && out.prUrl ? 'GitHub did not verify a draft PR at that sha' : '' };
     }
-    if (out && Number.isFinite(out.costUsd) && out.costUsd > 0) await call(['INCRBYFLOAT', builder.monthKey(env, now()), String(out.costUsd)]);
-  } catch {
+    if (charged && out && Number.isFinite(out.costUsd) && out.costUsd > charged) await call(['INCRBYFLOAT', builder.monthKey(env, now()), String(out.costUsd - charged)]);
+    if (charged) job.result.chargedUsd = Math.max(charged, out && Number.isFinite(out.costUsd) ? out.costUsd : 0);
+  } catch (e) {
     job.state = 'failed';
-    job.result = { sha: '', prUrl: '', verified: false, error: 'execution failed' };
+    job.result = { sha: '', prUrl: '', verified: false, error: e && e.message === 'codex_not_logged_in' ? 'Codex is not logged in on the box (run codex login)' : 'execution failed', chargedUsd: charged };
   } finally {
     if (a.cleanup) { try { a.cleanup(); } catch { /* best effort */ } }
   }
@@ -178,4 +209,4 @@ if (require.main === module) {
     .catch(() => { process.stdout.write(JSON.stringify({ state: 'failed' }) + '\n'); process.exitCode = 1; });
 }
 
-module.exports = { activityLine, promptFor, realAdapter, tick, verifyRunEvidence };
+module.exports = { activityLine, codexAuthSource, prepareCodexHome, promptFor, realAdapter, tick, verifyRunEvidence };
