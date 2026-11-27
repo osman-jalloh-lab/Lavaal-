@@ -81,7 +81,9 @@ async function budgetState(env, call, now) {
   const spent = await num(monthKey(env, now));
   const extra = await num(extraKey(env, now));
   const capRaw = env ? env[CAP_NAME] : undefined;
-  const cap = capRaw && MONEY.test(String(capRaw).trim()) ? Number(capRaw) : null;
+  // Same rule as the PM: no setting on Vercel means Osman's $50; a value that is set but invalid shows no budget.
+  const unset = capRaw === undefined || capRaw === null || String(capRaw).trim() === '';
+  const cap = unset ? 50 : MONEY.test(String(capRaw).trim()) ? Number(capRaw) : null;
   let hold = null;
   try { hold = JSON.parse(await call(['GET', holdKey(env, now)]) || 'null'); } catch { hold = null; }
   const allowance = cap === null ? null : cap + extra;

@@ -136,7 +136,7 @@ const kinds = (p) => p.steps.map((s) => `${s.kind}:${s.agent}`).join(' > ');
     const failing = async () => ({ error: 'key_missing' });
     const r = await pm.advancePlan(ENV, kv4.fetchImpl, a4.out.plans[0].id, { runHarness: failing });
     const job = JSON.parse(kv4.store.get(builder.jobKey(ENV, r.plan.steps[1].jobId)));
-    check('a failed design blocks its build, cancels the held job, and stops the plan', r.plan.steps[0].state === 'failed' && /key_missing/.test(r.plan.steps[0].output) && r.plan.steps[1].state === 'blocked' && job.state === 'cancelled' && r.plan.state === 'stopped');
+    check('a failed design blocks its build, cancels the held job, and stops the plan', r.plan.steps[0].state === 'failed' && /DeepSeek \(deepseek-flash\): no API key on Vercel/.test(r.plan.steps[0].output) && r.plan.steps[1].state === 'blocked' && job.state === 'cancelled' && r.plan.state === 'stopped');
     const stranger = await hit(kv4, '/ops/os/builder/pm/retry', 'POST', { id: a4.out.plans[0].id }, { session: { email: 'drake@example.com' } });
     check('only Osman can retry', stranger.res.statusCode === 403);
     const rt = await hit(kv4, '/ops/os/builder/pm/retry', 'POST', { id: a4.out.plans[0].id });
@@ -158,10 +158,45 @@ const kinds = (p) => p.steps.map((s) => `${s.kind}:${s.agent}`).join(' > ');
     check('after the OK the paused step runs', r.plan.steps[0].state === 'done' && r.plan.state === 'done');
   }
 
+  const page = fs.readFileSync(path.join(root, 'api/os/_client/build.js'), 'utf8');
+  // Agent check, plain-English errors, time limits.
+  check('provider errors are explained in plain English', /model name was not found/.test(pm.explainError('provider_http_404')) && /API key was rejected/.test(pm.explainError('provider_http_401')) && /no credit/.test(pm.explainError('provider_http_429')) && /no API key on Vercel/.test(pm.explainError('key_missing')));
+  {
+    const fakeCheck = async (h) => (h === 'grok' ? { error: 'provider_http_404' } : { text: 'OK' });
+    const r = await pm.checkAgents(ENV, async () => ({}), { runHarness: fakeCheck });
+    check('Check agents: says which agent fails and why, with its model', r.grok.ok === false && /model name was not found/.test(r.grok.why) && r.grok.model && r.deepseek.ok === true && r['codex-chat'].ok === true);
+    const noKey = await pm.checkAgents({ KV_REST_API_URL: 'x', KV_REST_API_TOKEN: 't' }, async () => ({}), { runHarness: fakeCheck });
+    check('Check agents: a missing key is reported without calling the provider', /no API key/.test(noKey.grok.why) && /no API key/.test(noKey.deepseek.why));
+    const kvc = fakeKv();
+    kvc.store.set('lavaall-os:builder-heartbeat', '2026-11-27T12:00:00.000Z');
+    const c = await hit(kvc, '/ops/os/builder/pm/check', 'POST', {}, { runHarness: fakeCheck });
+    check('the check route is founder only and reports when the box runner was last seen', c.res.statusCode === 200 && c.out.runnerSeenAt === '2026-11-27T12:00:00.000Z' && c.out.agents.grok.ok === false);
+    const c2 = await hit(kvc, '/ops/os/builder/pm/check', 'POST', {}, { runHarness: fakeCheck, session: { email: 'drake@example.com' } });
+    check('no one else can run the check', c2.res.statusCode === 403);
+  }
+  {
+    let aborted = false;
+    const slow = (u, init) => new Promise((resolve, reject) => { init.signal.addEventListener('abort', () => { aborted = true; reject(new Error('aborted')); }); });
+    const boxed = pm.timeBoxed(slow, 30);
+    let threw = false;
+    try { await boxed('https://x', {}); } catch { threw = true; }
+    check('a PM step gives up on a slow provider before Vercel stops the function', threw && aborted);
+    const kv5 = fakeKv();
+    const a5 = await hit(kv5, '/ops/os/builder/pm/approve', 'POST', { goals: ['Research LAVAALL Web competitors'] });
+    const key = 'lavaall-os:pm-plans:' + a5.out.plans[0].id;
+    const stuck = JSON.parse(kv5.store.get(key));
+    stuck.steps[0].state = 'running'; stuck.steps[0].startedAt = new Date(Date.now() - 5 * 60000).toISOString();
+    kv5.store.set(key, JSON.stringify(stuck));
+    const r5 = await pm.advancePlan(ENV, kv5.fetchImpl, a5.out.plans[0].id, { runHarness: fakeProvider });
+    check('a step stuck on "running" (function stopped mid-call) times out so it can be retried', r5.plan.steps[0].state === 'failed' && /timed out/.test(r5.plan.steps[0].output) && r5.plan.state === 'stopped');
+  }
+  const runnerSrc = fs.readFileSync(path.join(root, 'scripts/os-runner/index.js'), 'utf8');
+  check('the box runner leaves a heartbeat the page can show', /builder-heartbeat/.test(runnerSrc));
+  check('the Build page has the composer, team panel, budget and a build-log drawer', /What should the team build\?/.test(page) && /data-check="1"/.test(page) && /bd-budget/.test(page) && /class="bx-log"/.test(page) && /data-mode="one"/.test(page));
+
   // Guards.
   const src = fs.readFileSync(path.join(root, 'api/ops/_os_pm.js'), 'utf8').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
   check('the PM never merges, deploys or sends', !/\/merge\b|['"`]merge['"`]|vercel\s+deploy|sendMessage|gmail/i.test(src));
-  const page = fs.readFileSync(path.join(root, 'api/os/_client/build.js'), 'utf8');
   check('the Build page shows failure reasons inline and a Retry button', /pm-why/.test(page) && /data-pm-retry/.test(page));
   check('the Build page has the PM card with Plan and Approve and run', /Project manager/.test(page) && /data-pm="plan"/.test(page) && /data-pm="approve"/.test(page) && (page.match(/window\.fetch\(/g) || []).length === 1);
 
