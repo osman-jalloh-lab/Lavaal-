@@ -441,6 +441,10 @@ function skillsFrom(pack) {
       name: text(row.name, 120) || text(row.id, 80),
       whenToUse: text(row.whenToUse, 4000),
       desks: Array.isArray(row.desks) ? row.desks.map((d) => text(d, 40)).filter(Boolean) : [],
+      // Imported instructional skills (Phase 2) are never run and stay unreviewed until a person reviews them.
+      instructionsOnly: row.instructions_only === true,
+      executionAllowed: false,
+      reviewed: row.reviewed === true,
     }));
 }
 
