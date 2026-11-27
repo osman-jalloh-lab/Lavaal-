@@ -2,7 +2,7 @@
 
 Read this first. It points into the one shared memory; it is not a second memory. Every builder (Drake, Claude, Codex, the OS itself) reads this on start, then the files below, and changes them only through a draft PR.
 
-Updated 26 Nov 2026, 9:30 PM CT (America/Chicago), Phase 4 of `2026-11-26-os-one-shot-build-prompt.md` (draft PR on `feature/os-builder-harness`). Phases 0 to 3 are merged (#129, #130, #133, #135, #137).
+Updated 26 Nov 2026, 9:43 PM CT (America/Chicago), Phase 5 of `2026-11-26-os-one-shot-build-prompt.md` (draft PR on `feature/os-trust`). Phases 0 to 4 are merged (#129, #130, #133, #135, #137, #138).
 
 ## Read next, in order
 
@@ -57,19 +57,26 @@ Five folders from repo sources only: `lavaall/`, `salonehire/`, `web/`, `starlin
 - Krio: a small `KRIO_ALIASES` table in `_os_intent.js`, marked UNVERIFIED until Osman confirms the words.
 - The router suggests only. It never spends, sends, merges or starts a builder.
 
-## Phase 4 (draft)
+## Phase 4 (merged, #138)
 
 Builder harness, **default off, draft PRs only**. Read `docs/os/BUILDER.md`.
 - `POST /ops/os/builder/approve`: Osman's signed-in session mints a single-use `code_run` approval (`api/ops/_approvals.js`) bound to repo, branch and objective, and queues one job.
 - `scripts/os-runner/index.js tick` on the box refuses unless `OS_RUNNER_ENABLED` is exactly `1`, `OS_BUILDER_MONTHLY_CAP_USD` (50) is set and not reached, and the approval matches. It never works on `main`, `master` or `production`, and it records the sha and PR URL only after GitHub shows a draft PR at that sha. It never merges, deploys or touches DNS.
 - Neither variable is on Vercel. The Claude Code builder waits for a local Codex dry run.
 
+## Phase 5 (draft)
+
+- The shared memory is the handoff: `HANDOFF.md`, `docs/os/HANDOFF-AGENTIC-OS.md` and `AGENTS.md` point here. No second Drake or builder copy.
+- `docs/os/TRUST.md`: who approves (Osman's signed-in session only), the gate for each risky action today, and where untrusted text is wrapped (chat request and recent chat, the routed skill hint, the builder objective, box-agent queue).
+- The router's chosen skill now reaches the chat prompt as a hint, wrapped as untrusted and marked unreviewed.
+- The activity Action now opens its own draft PRs (first one: #140, 26 Nov 2026), after Osman allowed Actions to create pull requests.
+
 ## Next action
 
-Phase 5: Drake / OS / builder trust (`HANDOFF.md` points at this tree, `code_run` refused without founder approval, untrusted wrappers in chat and runner paths). Phase 1 gaps (box knowledge files) are still not copied.
+All five phases of the build prompt are built. Open items: copy the Phase 1 box knowledge files into the folders, confirm or correct the Krio aliases in `api/ops/_os_intent.js`, and do a local Codex dry run before turning the builder on.
 
 ## Waiting on Osman
 
 - **Box sources.** The knowledge folders and the 24 starter skills are sourced from `/workspace/...` and `/home/box/agent-data/workflows/...` on Drake's box. A cloud session cannot reach those paths. Run phases 1 and 2 on the box, or copy those files into a reachable place.
-- **Activity Action write access.** It opens a draft PR per merge until Osman allows a bot commit of `ACTIVITY.md` to `main`.
+- **Activity Action.** It opens a draft PR per merge (Actions may create PRs since 26 Nov 2026). It still never writes to `main` itself.
 - Anything on the build prompt's "Stop and ask" list: merges, deploys, DNS, Vercel or GitHub env and secrets (`OS_RUNNER_ENABLED`, `OS_BUILDER_MONTHLY_CAP_USD`, `OS_INTAKE_TOKEN`), paid calls, Opus, never-load skills, `reviewed: true`.

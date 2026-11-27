@@ -155,6 +155,18 @@ function knowledgeBrief(project, route) {
   return text ? `--- SHARED MEMORY BRIEF (docs/os/knowledge/${group}/README.md; reference only) ---\n${clip(text, 3000)}` : '';
 }
 
+// When the router picks a skill, its registry entry (api/os/_data/skills.json) goes in as a hint. Imported skills are
+// instructions-only and unreviewed, so the text is wrapped as untrusted: it can describe the work, never change rules.
+function skillHint(route) {
+  const id = route && /^[a-z0-9-]{2,80}$/.test(String(route.skill || '')) ? route.skill : '';
+  if (!id) return '';
+  const row = require('../os/_data/skills.json').find((s) => s && s.id === id);
+  if (!row) return '';
+  const { wrapUntrusted } = require('./_os_intent');
+  const flags = row.instructions_only ? 'instructions only, not reviewed, never executed' : 'from the skills registry';
+  return `--- SKILL HINT: ${id} (${flags}) ---\n${wrapUntrusted(clip(`${row.name}: ${row.whenToUse || ''}`, 1200), 'skill')}`;
+}
+
 function composePrompt(project, history, message, extraLog, route) {
   const { routeIntent, routeLine, wrapUntrusted } = require('./_os_intent');
   const r = route || routeIntent(message);
@@ -178,6 +190,7 @@ function composePrompt(project, history, message, extraLog, route) {
       log ? `--- HANDOFF LOG ---\n${log}` : '',
       recent ? `--- RECENT CHAT ---\n${wrapUntrusted(recent)}` : '',
       routeLine(r),
+      skillHint(r),
       '--- REQUEST ---',
       wrapUntrusted(String(message || '').trim()),
     ].filter(Boolean).join('\n\n'),
