@@ -76,7 +76,7 @@ try {
     if (['/sierra-leone/computers/', '/sierra-leone/it-procurement/'].includes(pathname)) check(description.length <= 155, `${loc}: description at most 155 characters`);
     check(schema.every(obj => !obj['@type'] || [obj['@type']].flat().every(type => ['Organization', 'WebPage', 'CollectionPage', 'BreadcrumbList', 'ListItem'].includes(type))), `${loc}: permitted guide schema types`);
     check(schema.every(obj => !('address' in obj)), `${loc}: no guide address schema`);
-    check(schema.every(obj => !('telephone' in obj) || obj.telephone === '+1-737-704-4182'), `${loc}: only founder-approved telephone (+1-737-704-4182)`);
+    check(schema.every(obj => !('telephone' in obj)), `${loc}: no guide telephone schema`);
     const breadcrumbs = schema.filter(obj => obj['@type'] === 'BreadcrumbList');
     check(breadcrumbs.length === 1 && breadcrumbs[0].itemListElement?.at(-1)?.item === loc, `${loc}: matching final breadcrumb`);
     const links = tags(html, 'a').map(t => t.href);
@@ -90,22 +90,19 @@ try {
       check(fs.existsSync(targetFile) && fs.statSync(targetFile).isFile(), `${loc}: local reference ${ref}`);
     }
     const text = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    const APPROVED_247 = 'We\u0027re reachable 24/7 on WhatsApp and email';
-    check(!/\b(?:in stock|since 2018|24\/7|certified|authori[sz]ed (?:dealer|partner|reseller))\b|\b(?:200|500)\+/i.test(text.split(APPROVED_247).join(' ')), `${loc}: no unsupported claims (only founder-approved 24/7 line)`);
+    check(!/\b(?:in stock|since 2018|24\/7|certified|authori[sz]ed (?:dealer|partner|reseller))\b|\b(?:200|500)\+/i.test(text), `${loc}: no unsupported claims`);
     check(!/\$\s*\d|\bLe\s+\d/i.test(text), `${loc}: no currency amounts`);
   }
   const homeHtml = read('index.html');
   check(!homeHtml.includes('+232-76-658-960'), 'homepage JSON-LD no longer uses superseded +232-76-658-960');
-  check(homeHtml.includes('"telephone": "+1-737-704-4182"'), 'homepage JSON-LD uses founder-approved telephone');
-  check(homeHtml.includes('https://wa.me/17377044182'), 'homepage includes approved WhatsApp URL');
+  check(!homeHtml.includes('"telephone": "+1-737-704-4182"'), 'homepage JSON-LD excludes US telephone');
+  check(!homeHtml.includes('https://wa.me/17377044182'), 'homepage excludes US WhatsApp URL');
   const homeMarkup = homeHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
-  check(/>\s*(?:WhatsApp\s+)?\+1 \(737\) 704-4182\s*<\/a>/i.test(homeMarkup), 'homepage has visible approved phone number');
-  check(tags(homeMarkup, 'a').some(t => t.href === 'tel:+17377044182'), 'homepage has approved phone link');
-  const whatsappControls = [...homeMarkup.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].filter(match => attrs(match[1])['data-i18n-aria'] === 'cs.aria.whatsapp');
-  check(whatsappControls.length === 1, 'homepage WhatsApp social control is one anchor');
-  const whatsapp = attrs(whatsappControls[0][1]);
-  check(whatsapp.href === 'https://wa.me/17377044182' && whatsapp.class === 'social-icon' && whatsapp.target === '_blank' && whatsapp.rel === 'noopener noreferrer' && whatsapp['aria-label'] === 'WhatsApp +1 (737) 704-4182', 'homepage WhatsApp social link attributes');
-  check(!/coming-soon|showComingSoon|cs\.badge/i.test(whatsappControls[0][0]) && !/showComingSoon\(['"]WhatsApp['"]\)/.test(homeHtml), 'homepage WhatsApp social control has no coming-soon behavior or badge');
+  check(!/>\s*(?:WhatsApp\s+)?\+1 \(737\) 704-4182\s*<\/a>/i.test(homeMarkup), 'homepage excludes visible US phone number');
+  check(!tags(homeMarkup, 'a').some(t => t.href === 'tel:+17377044182'), 'homepage excludes US phone link');
+  check(!tags(homeMarkup, 'a').some(t => t['data-i18n-aria'] === 'cs.aria.whatsapp'), 'homepage excludes WhatsApp social control');
+  const emailControl = tags(homeMarkup, 'a').find(t => t['data-i18n-aria'] === 'cs.aria.email');
+  check(emailControl && emailControl.href === 'mailto:support@lavaall.com' && emailControl.class === 'social-icon' && emailControl['aria-label'] === 'Email support@lavaall.com', 'homepage email social control');
   check(!/URLSearchParams\(window\.location\.search\)\.get\('sourcing'\)/.test(homeHtml), 'no quote-form changes in this PR');
   const homeLinks = tags(homeHtml, 'a').map(t => t.href);
   for (const guide of guidePaths) check(homeLinks.includes(guide), `homepage links to ${guide}`);

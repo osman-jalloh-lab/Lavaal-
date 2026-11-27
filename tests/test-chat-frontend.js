@@ -238,8 +238,8 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   failInput.value = 'I want an iPhone';
   await failComposer.events.submit({preventDefault(){}});
   assert.match(failLog.textContent, /I want an iPhone/);
-  assert.match(failLog.textContent, /support@lavaall\.com/);
-  assert.match(failLog.textContent, /\+1 \(737\) 704-4182/);
+  assert.match(failLog.textContent, /email support@lavaall\.com/);
+  assert.doesNotMatch(failLog.textContent, /\+1 \(737\) 704-4182/);
   assert.doesNotMatch(failLog.textContent, /Submission unavailable/);
   const failStatus = byClass(failPanel, 'customer-assistant-status');
   assert.doesNotMatch(failStatus.textContent, /Submission unavailable/);
@@ -309,7 +309,7 @@ function byClass(node, name) { const result = node.querySelector('.' + name); as
   assert.match(css, /min\(100% - 24px, 640px\)/);
   assert.equal(doc.body.children[0].href,'/assets/css/customer-assistant.css');
   assert.ok(descendants(panel).some(child=>child.tag === 'a' && child.href === '/privacy.html'));
-  assert.match(panel.textContent, /We're reachable 24\/7 on WhatsApp and email/);
+  assert.match(panel.textContent, /Email support@lavaall\.com/);
   console.log(`PASS chat frontend: ${assertions} assertions; greeting, chips, typeahead, follow-ups, conversational intake, loading, safety and brand checks`);
 })().catch(error=>{ console.error(error); process.exitCode = 1; });
 

@@ -137,7 +137,8 @@ async function main() {
     handoffFetch: async () => { failedAttempts++; throw Error('synthetic timeout'); } });
   check(() => assert.equal(failed.confirmed.handoff.status, 'uncertain'));
   check(() => assert.equal(failedAttempts, 1));
-  check(() => assert.ok(HANDOFF_FALLBACK.includes('WhatsApp +1 (737) 704-4182')));
+  check(() => assert.match(HANDOFF_FALLBACK, /support@lavaall\.com/));
+  check(() => assert.doesNotMatch(HANDOFF_FALLBACK, /737\D*704\D*4182/));
   check(() => assert.ok(!HANDOFF_FALLBACK.includes('076 658 960')));
   check(() => noPii(failed.logs));
   check(() => assert.equal(JSON.parse(failed.logs[0]).status, 'network'));

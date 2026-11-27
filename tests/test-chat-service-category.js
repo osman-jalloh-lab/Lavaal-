@@ -22,7 +22,7 @@ assert.equal(shouldSkipModel(order), 'service-help');
 assert.match(order.text, /existing order/i);
 assert.match(order.text, /\*\*existing order\*\*/);
 assert.match(order.text, /support@lavaall\.com/);
-assert.match(order.text, /\+1 \(737\) 704-4182/);
+assert.doesNotMatch(order.text, /737\D*704\D*4182/);
 assert.match(order.text, /I can help you fill out a quick form/);
 assert.match(order.text, /\[request form\]\(#signup\)/);
 assert.match(order.text, new RegExp(sla.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));

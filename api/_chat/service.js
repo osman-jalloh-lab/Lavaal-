@@ -452,7 +452,7 @@ function createService({ store, now = Date.now, salt, billing, alert = () => {},
       response = reservation.skip ? reservation.rule : await respondWithLlm(text, { session: reservation.context, chat });
     } catch (error) {
       // Gateway accounts for every attempt; unknown failures keep the reservation.
-      response = { costUsd: error.costUsd, text: "I couldn't complete that reply. We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182." };
+      response = { costUsd: error.costUsd, text: "I couldn't complete that reply. You can reach us at support@lavaall.com." };
     }
     const result = { text: response.text };
     if (Array.isArray(response.chips)) result.chips = response.chips.slice(0, 6);

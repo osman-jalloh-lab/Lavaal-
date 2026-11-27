@@ -94,8 +94,23 @@ function planGuardrails(md) {
 }
 
 const { terms: keywords } = require(path.join(ROOT, 'api/_chat/knowledge/terms.js'));
+// Older public source documents still contain a retired contact number and claim.
+// Normalize all source-derived facts before generating text or search keywords.
+function emailOnly(text) {
+  return String(text)
+    .replace(/(?:support@lavaall\.com\s*(?:or|;)\s*)?WhatsApp\s*\*{0,2}\s*\+?1?[\s.()\-]*737[\s.()\-]*704[\s.()\-]*4182\*{0,2}/gi, 'support@lavaall.com')
+    .replace(/\+?1?[\s.()\-]*737[\s.()\-]*704[\s.()\-]*4182/g, 'support@lavaall.com')
+    .replace(/[“"]We're reachable 24\/7 on WhatsApp and email[”"]\.?\s*/gi, '')
+    .replace(/Messages are accepted anytime; the team is not staffed continuously\.\s*/gi, '')
+    .replace(/Use the exact reachability line and staffing clarification above\.\s*/gi, '')
+    .replace(/Reach out via WhatsApp or use the quote form below\./gi, 'Email support@lavaall.com or use the quote form below.')
+    .replace(/These contacts are human channels\./gi, 'This email is a human contact channel.')
+    .replace(/\s+([.,;])/g, '$1').trim();
+}
 function fact(id, topic, text, extra = {}) {
-  return { id, topic, text, keywords: keywords(topic, text, extra.alias || ''), source: extra.source };
+  topic = emailOnly(topic);
+  text = emailOnly(text);
+  return { id, topic, text, keywords: keywords(topic, text, emailOnly(extra.alias || '')), source: extra.source };
 }
 
 function build() {
@@ -109,15 +124,15 @@ function build() {
   const webCopy = JSON.parse(read(path.join(ROOT, 'api/web/_site/content/en.json')));
   read(path.join(ROOT, 'api/_chat/responder.js'));
   read(path.join(ROOT, 'api/_chat/llm-responder.js'));
-  const { REACHABILITY, EMAIL, WHATSAPP } = require(path.join(ROOT, 'api/_chat/responder.js'));
+  const { REACHABILITY, EMAIL } = require(path.join(ROOT, 'api/_chat/responder.js'));
   const { PHRASES } = require(path.join(ROOT, 'api/_chat/llm-responder.js'));
   const { SERVICE_SLA } = require(path.join(ROOT, 'api/_chat/conversation.js'));
   const { loadCatalog } = require(path.join(ROOT, 'api/_chat/catalog.js'));
   const planTech = read(path.join(PLAN_DIR, 'kb-technology.md'), { optional: true });
   const planWeb = read(path.join(PLAN_DIR, 'kb-web.md'), { optional: true });
 
-  const contact = { email: EMAIL, whatsapp: WHATSAPP, reachability: REACHABILITY };
-  const contactLine = REACHABILITY + ': **' + EMAIL + '** or WhatsApp **' + WHATSAPP + '**.';
+  const contact = { email: EMAIL, reachability: REACHABILITY };
+  const contactLine = 'Email **' + EMAIL + '**.';
   // Routing line, not a delivery promise: Mark's 24-hour team route + form offer when contact is missing.
   const missing = {
     technology: SERVICE_SLA + ' Would you like to fill out a quick form?',

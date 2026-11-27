@@ -4,9 +4,8 @@ const { searchCatalog, loadCatalog, normalizeInput, purchaseDetails } = require(
 const narrow = require('./narrow');
 const { isPowerAsk } = require('./knowledge');
 const EMAIL = 'support@lavaall.com';
-const WHATSAPP = '+1 (737) 704-4182';
 
-const CONTACT_ASK = /\b(how (?:can|do) i contact|contact (?:this |a |the )?(?:person|someone|you|the team|support)|how (?:can|do) i reach|reach (?:you|the team|a person|someone)|your (?:email|whatsapp|contact)|whatsapp number|support@lavaall)\b/i;
+const CONTACT_ASK = /\b(how (?:can|do) i contact|contact (?:this |a |the )?(?:person|someone|you|the team|support)|how (?:can|do) i reach|reach (?:you|the team|a person|someone)|your (?:email|whatsapp|contact|phone number)|whatsapp number|(?:can|may|could) (?:i|we) call you|una (?:(?:fon|phone) )?(?:nomba|namba)|aw a go kol una|(?:watsap|watsapp|whatsap|whatsapp) (?:nomba|namba|number)|support@lavaall)\b/i;
 const HAVE_ASK = /\b(do you (?:have|carry|sell|stock)|have you got|is there (?:an? |any )?|are there |in (?:the|your) catalogu?e)\b/i;
 const WANT_ASK = /\b(?:i\s+)?(?:want|need|would like|wanna|looking for|looking to buy|need to (?:get|buy)|want to (?:get|buy|order))|i['’]d like|get me\b/i;
 const HELP_ASK = /^(ask assistant|demander à l['’]assistant|perguntar ao assistente|help|hello|hi|hey)\s*[?.!]*$/i;
@@ -140,7 +139,7 @@ function joinBlocks(parts) {
 }
 
 function serviceContacts(offerForm) {
-  const line = 'Email **' + EMAIL + '** or WhatsApp **' + WHATSAPP + '**' + (offerForm ? ', or I can help you fill out a quick form.' : '.');
+  const line = 'Email **' + EMAIL + '**' + (offerForm ? ', or I can help you fill out a quick form.' : '.');
   return joinBlocks([line, 'You can also use the ' + FORM_LINK + ' on this page.', SERVICE_SLA]);
 }
 
@@ -795,9 +794,9 @@ function guidedReply(rawInput, session, lang, flags) {
   }
 
   // Contact intent always wins over catalogue matching.
-  if (CONTACT_ASK.test(text) && !PRICE_ASK.test(text)) {
+  if ((CONTACT_ASK.test(rawInput) || CONTACT_ASK.test(text)) && !PRICE_ASK.test(text)) {
     return result(
-      'You can reach us at ' + EMAIL + ' or WhatsApp ' + WHATSAPP + '. I can connect you with someone from the team if you like.',
+      'You can reach us at ' + EMAIL + '. I can connect you with someone from the team if you like.',
       ['contact-info'],
       { chips: ['Talk to someone', 'Request a quote'] }
     );
@@ -895,7 +894,7 @@ function guidedReply(rawInput, session, lang, flags) {
 
   if (TRUST_ASK.test(text)) {
     return result(
-      'You can reach LAVAALL at ' + EMAIL + ' or WhatsApp ' + WHATSAPP + '. Nothing is charged until a written quote is agreed. Would you prefer WhatsApp or email?',
+      'You can reach LAVAALL at ' + EMAIL + '. Nothing is charged until a written quote is agreed. Would you prefer WhatsApp or email?',
       ['faq-trust'],
       { chips: ['Talk to someone', 'Request a quote'] }
     );

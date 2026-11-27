@@ -10,11 +10,30 @@ function noCatalogDump(text) {
 const contact = respond('how can I contact this person?');
 assert.equal(shouldSkipModel(contact), 'contact-info');
 assert.match(contact.text, /support@lavaall\.com/);
-assert.match(contact.text, /\+1 \(737\) 704-4182/);
+assert.doesNotMatch(contact.text, /737\D*704\D*4182/);
 assert.match(contact.text, /connect you with someone/i);
 assert.doesNotMatch(contact.text, /epson|printer|iPhone|Which model/i);
 noCatalogDump(contact.text);
 assert.ok((contact.chips || []).includes('Talk to someone'));
+
+for (const prompt of [
+  'una nomba', 'una namba', 'una fon nomba', 'una phone namba', 'una nomba?',
+  'aw a go kol una', 'watsap nomba', 'watsap namba', 'whatsapp nomba',
+  'watsapp nomba', 'whatsap number', "what's your phone number",
+  'what is your phone number', 'your phone number', 'whatsapp number?',
+  'can I call you', 'can we call you', 'may I call you', 'could we call you',
+]) {
+  const reply = respond(prompt);
+  assert.equal(shouldSkipModel(reply), 'contact-info', prompt);
+  assert.match(reply.text, /support@lavaall\.com/, prompt);
+  assert.doesNotMatch(reply.text, /737\D*704\D*4182|iPhone|epson|printer/i, prompt);
+}
+
+for (const prompt of ['I need a phone', 'do you have phones']) {
+  const reply = respond(prompt);
+  assert.notEqual(shouldSkipModel(reply), 'contact-info', prompt);
+  assert.match(reply.text, /phone|iphone|catalogue/i, prompt);
+}
 
 const ip15 = respond('do you have iPhone 15?');
 assert.equal(shouldSkipModel(ip15), 'product-guide');

@@ -206,7 +206,7 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
       ['url with an at sign', [noteOf({ url: 'https://example.com/@someone' })]],
       ['body over 4000', [noteOf({ body: 'x'.repeat(4001) })]],
       ['a blocked word in the body', [noteOf({ body: 'about ' + 'Star' + 'link' })]],
-      ['a phone number in the body', [noteOf({ body: 'call 737-704-4182' })]],
+      ['a phone number in the body', [noteOf({ body: 'call 202-555-0188' })]],
       ['a names table in the body', [noteOf({ body: '| Name | Use |\n|---|---|\n| a | b |' })]],
       ['a lead list title', [noteOf({ title: 'Lead list for the week' })]],
       ['an at sign in the title', [noteOf({ title: 'write to me@example.com' })]],
@@ -229,7 +229,7 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
     ['javascript url', buildOf({ url: 'javascript:alert(1)' })],
     ['future time', buildOf({ updated: '2026-10-24T15:00:00Z' })],
     ['an email in the detail', buildOf({ detail: 'write to me@example.com' })],
-    ['a phone number in the detail', buildOf({ detail: 'call 737-704-4182' })],
+    ['a phone number in the detail', buildOf({ detail: 'call 202-555-0188' })],
     ['over 100 items', Array.from({ length: 101 }, (_, i) => ({ id: 'i' + i, project: 'agents', status: 'next', title: 'x', detail: '', url: '', updated: '2026-10-23T14:00:00Z' }))],
   ];
   BAD['daily-recap'] = [
@@ -247,7 +247,7 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
     ['blocked over 600', recapOf({ blocked: 'x'.repeat(601) })],
     ['future time', recapOf({ updated: '2026-10-24T15:00:00Z' })],
     ['an email in what happened', recapOf({ happened: 'write to me@example.com' })],
-    ['a phone number in next', recapOf({ next: 'call 737-704-4182' })],
+    ['a phone number in next', recapOf({ next: 'call 202-555-0188' })],
     ['over 40 entries', Array.from({ length: 41 }, (_, i) => Object.assign({}, GOOD['daily-recap'][0], { id: 'r' + i }))],
   ];
   for (const feed of feeds.FEEDS) {

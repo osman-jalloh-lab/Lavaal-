@@ -165,19 +165,24 @@ async function run() {
   const idx = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
   const en = JSON.parse(fs.readFileSync(path.join(SITE, 'content/en.json'), 'utf8'));
   const work = fs.readFileSync(path.join(SITE, 'work/index.html'), 'utf8');
-  const waTags = (h) => [...h.matchAll(/<a [^>]*\bdata-wa\b[^>]*>/g)].map((m) => m[0]);
-  check('main page has WhatsApp CTAs in the hero, the artists section and the contact, all hidden', waTags(idx).length === 3 && waTags(idx).every((t) => /\bhidden\b/.test(t))
-    && idx.indexOf('data-wa') < idx.indexOf('id="lava"') && idx.lastIndexOf('data-wa') > idx.indexOf('id="contact"'));
-  check('Our work page WhatsApp CTA is hidden too', waTags(work).length === 1 && /\bhidden\b/.test(waTags(work)[0]));
+  const noPhoneContacts = (text) => !/\bdata-wa\b|tel:|(?:wa\.me|api\.whatsapp\.com)\/|(?:\+?1[\s().-]*)?\(?737\)?[\s.-]*704[\s.-]*4182/i.test(text);
+  check('main and work sources and en.json have no phone number or WhatsApp-to-us links', [idx, work, JSON.stringify(en)].every(noPhoneContacts));
+  check('main page keeps inquiry and artist support CTAs', /<header class="hero">[\s\S]*?<a class="btn btn-glass" href="#contact">Send an inquiry<\/a>/.test(idx)
+    && /id="artists"[\s\S]*?href="mailto:support@lavaall\.com\?subject=[^"]+">Start your hub: support@lavaall\.com<\/a>[\s\S]*?<a class="btn btn-line" href="#contact">Send an inquiry<\/a>/.test(idx));
+  check('Our work keeps inquiry and support email CTAs', work.includes('<a class="btn btn-sun" href="../#contact">Send an inquiry</a>')
+    && work.includes('<a class="btn btn-line" href="mailto:support@lavaall.com">Email support@lavaall.com</a>'));
   check('WhatsApp number is empty in en.json and the page gets it from the server (LV_WEB), not a hard-coded value',
-    en.whatsapp && en.whatsapp.number === "17377044182" && page.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":"17377044182"}')
-    && /var WHATSAPP_NUMBER = String\(CFG\.whatsapp \|\| ''\)\.replace\(\/\\D\/g, ''\);/.test(appJs) && /if \(WHATSAPP_NUMBER\) \{/.test(appJs));
+    en.whatsapp && en.whatsapp.number === "" && page.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":""}')
+    && /var WHATSAPP_NUMBER = String\(CFG\.whatsapp \|\| ''\)\.replace\(\/\\D\/g, ''\);/.test(appJs) && /if \(WHATSAPP_NUMBER\) \{/.test(appJs)
+    && appJs.includes("document.querySelectorAll('[data-wa]')"));
+  check('served main page has no phone number or WhatsApp-to-us links', noPhoneContacts(page.text));
   const emails = [...new Set([...(idx + appJs + JSON.stringify(en)).matchAll(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}/g)].map((m) => m[0].toLowerCase()))];
   check(`the only email on the page is support@lavaall.com (${emails.join(', ')})`, emails.length === 1 && emails[0] === 'support@lavaall.com');
   check('no prices on the main page, app.js or en.json', !/\b(SLE|SLL|NLe|USD|GNF|LRD)\s?[0-9]|[$€£]\s?[0-9]|\bLe\s?[0-9]/.test(idx + appJs + JSON.stringify(en)));
   check('no client logos, testimonials or "trusted by" claims on the main page', !/testimonial|trusted by|our clients|happy clients|\b[0-9]{2,}\+? (clients|businesses|customers)\b/i.test(idx));
   check('form posts to /web/api/inquiry (server side), never mailto or Outlook', /var API = \(CFG\.api \|\| '\/web\/api'\) \+ '\/inquiry';/.test(appJs) && /fetch\(API, \{ method: 'POST'/.test(appJs)
-    && !/mailto:|outlook|office365|live\.com/i.test(appJs + work) && !/outlook|office365|live\.com/i.test(idx));
+    && !/mailto:|outlook|office365|live\.com/i.test(appJs) && !/outlook|office365|live\.com/i.test(idx + work)
+    && [...work.matchAll(/mailto:([^"?\s]+)/gi)].every((m) => m[1] === 'support@lavaall.com'));
   const mails = [...idx.matchAll(/<a class="mail" href="([^"]+)"/g)].map((m) => m[1]);
   check('contact cards: Gmail compose to support@ first, "Open in mail app" (mailto) only as the fallback', mails.length === 3 && mails.every((h) => h.startsWith('https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=support%40lavaall.com'))
     && [...idx.matchAll(/href="mailto:([^"?]+)/g)].every((m) => m[1] === 'support@lavaall.com') && (idx.match(/<a class="app" href="mailto:/g) || []).length === 3);
@@ -231,7 +236,8 @@ async function run() {
   const wkNoSlash = await call('GET', 'work');
   check('/web/work/ serves the Our work page with base /web/work/', wk.status === 200 && wk.text.includes('<base href="/web/work/">') && wk.text.includes('<title>Our work | LAVAALL Web</title>'));
   check('/web/work (no slash) serves the same page and moves the address bar to /web/work/', wkNoSlash.status === 200 && wkNoSlash.text === wk.text && wk.text.includes('var p="/web/work/";'));
-  check('/web/work/ gets the same LV_WEB config, noindex and SAMEORIGIN', wk.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":"17377044182"}') && wk.headers['x-robots-tag'] === 'noindex, nofollow' && wk.headers['x-frame-options'] === 'SAMEORIGIN');
+  check('/web/work/ gets the same LV_WEB config, noindex and SAMEORIGIN', wk.text.includes('window.LV_WEB={"api":"/web/api","whatsapp":""}') && wk.headers['x-robots-tag'] === 'noindex, nofollow' && wk.headers['x-frame-options'] === 'SAMEORIGIN');
+  check('served Our work page has no phone number or WhatsApp-to-us links', noPhoneContacts(wk.text));
   check('Our work page loads ../styles.css and ../app.js and sets data-root="../" for script-built paths', work.includes('<link rel="stylesheet" href="../styles.css">') && work.includes('<script src="../app.js"></script>') && work.includes('<html lang="en" class="no-js" data-root="../">'));
   const MAIN_KEEP = ['lava', 'for', 'work-teaser', 'how', 'contact'];
   const MOVED = ['work', 'auto', 'os', 'flow', 'artists', 'templates'];

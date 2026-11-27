@@ -4,9 +4,8 @@ const { loadCatalog, searchCatalog, normalize, normalizeInput } = require('./cat
 const { SERVICE_SLA, guidedReply, guidedHandoff, handoffPrompt, handoffChips, CONTACT_ASK, shouldResetContext, topicOf } = require('./conversation');
 const { knowledgeReply } = require('./knowledge-answers');
 
-const REACHABILITY = "We're reachable 24/7 on WhatsApp and email";
+const REACHABILITY = 'Email';
 const EMAIL = 'support@lavaall.com';
-const WHATSAPP = '+1 (737) 704-4182';
 const FIRST = {
   en: "I'm LAVAALL Assistant, an AI assistant. I can help with Technology questions or prepare an inquiry for your review.",
   fr: "Je suis LAVAALL Assistant, un assistant IA. Je peux répondre aux questions sur la technologie ou préparer une demande à vérifier.",
@@ -174,7 +173,7 @@ function isInjection(text) {
 }
 
 function contacts() {
-  return `${REACHABILITY}: ${EMAIL} or WhatsApp ${WHATSAPP}.`;
+  return `${REACHABILITY} ${EMAIL}.`;
 }
 
 function offer(lang, wantsAgent) {
@@ -484,7 +483,7 @@ function respond(text, session = {}, request = {}) {
     return attachTopic({ text: line, language: lang, events: ['redirected-offtopic'], fields: {}, chips: ['Talk to someone', 'Browse catalogue'] }, rawInput, context, reset);
   }
 
-  const special = require('./intents').specialIntent(rawInput, lang, session);
+  const special = !CONTACT_ASK.test(rawInput) && require('./intents').specialIntent(rawInput, lang, session);
   if (special) return attachTopic(special, rawInput, context, reset);
 
   const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : /\b(invoice|refund|damaged|legal|lawyer)\b/i.test(rawInput) || (AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput)), lang, request.privacyConsent);
@@ -637,4 +636,4 @@ function respond(text, session = {}, request = {}) {
   return attachTopic({ text: fallback, language: lang, events, fields: {} }, rawInput, context, reset);
 }
 
-module.exports = { AGENT_ASK, QUOTE_ASK, respond, REACHABILITY, EMAIL, WHATSAPP, FIRST, detectLanguage, extractQuantity, resolveQuery, isFollowUp, extractIdentity, productParts };
+module.exports = { AGENT_ASK, QUOTE_ASK, respond, REACHABILITY, EMAIL, FIRST, detectLanguage, extractQuantity, resolveQuery, isFollowUp, extractIdentity, productParts };

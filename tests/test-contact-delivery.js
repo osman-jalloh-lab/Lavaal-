@@ -55,7 +55,7 @@ function failed(res) {
   assert.equal(res.body.error, 'delivery_failed');
   assert.ok(res.body.message);
   assert.deepEqual(res.body.fallback, {
-    email: 'support@lavaall.com', whatsapp: '+1 (737) 704-4182', whatsappUrl: 'https://wa.me/17377044182',
+    email: 'support@lavaall.com',
   });
 }
 async function run() {
