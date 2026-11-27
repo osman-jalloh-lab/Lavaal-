@@ -40,6 +40,7 @@ const { handleOsInbox } = require('./_os_inbox');
 const { handleOsGoogle } = require('./_os_google');
 const { handleSaved } = require('./_os_saved');
 const { handleKnowledge } = require('./_os_knowledge');
+const { handleBuilder } = require('./_os_builder');
 const { handleCeoAssign, onDeskThreadPoll, synthesizeOpenAssigns } = require('./_assign');
 const {
   confirmInboxSend,
@@ -751,6 +752,7 @@ async function opsDispatch(req, res) {
   if (await handleOsInbox(req, res)) return;
   if (await handleSaved(req, res)) return;
   if (await handleKnowledge(req, res)) return;
+  if (await handleBuilder(req, res)) return;
   if (await handleHarnessChat(req, res)) return;
   if (await handleKitsApi(req, res)) return;
   if (await handleMapApi(req, res)) return;
