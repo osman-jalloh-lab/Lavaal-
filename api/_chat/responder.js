@@ -483,7 +483,7 @@ function respond(text, session = {}, request = {}) {
     return attachTopic({ text: line, language: lang, events: ['redirected-offtopic'], fields: {}, chips: ['Talk to someone', 'Browse catalogue'] }, rawInput, context, reset);
   }
 
-  const special = require('./intents').specialIntent(rawInput, lang, session);
+  const special = !CONTACT_ASK.test(rawInput) && require('./intents').specialIntent(rawInput, lang, session);
   if (special) return attachTopic(special, rawInput, context, reset);
 
   const handoff = guidedHandoff(rawInput, handoffSession, QUOTE_ASK.test(rawInput) ? 'quote' : /\b(invoice|refund|damaged|legal|lawyer)\b/i.test(rawInput) || (AGENT_ASK.test(rawInput) && !CONTACT_ASK.test(rawInput)), lang, request.privacyConsent);

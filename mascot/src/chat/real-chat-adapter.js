@@ -31,7 +31,7 @@
  */
 
 export const ENDPOINT = '/api/chat-inquiry';
-export const CONTACT_LINE = 'email support@lavaall.com or WhatsApp +1 (737) 704-4182';
+export const CONTACT_LINE = 'email support@lavaall.com';
 export const COPY = Object.freeze({
   greeting: {
     technology: "Hi, I'm Lavaal, the AI chatbot. How can I help?",

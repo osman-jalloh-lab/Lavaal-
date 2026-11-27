@@ -10,7 +10,11 @@ const { createHandler } = require('../api/chat-inquiry');
 const { memoryStore } = require('../api/_chat/store');
 
 (async () => {
-  const { RealChatAdapter } = await import(pathToFileURL(path.join(__dirname, '../mascot/src/chat/real-chat-adapter.js')).href);
+  const { RealChatAdapter, CONTACT_LINE, COPY } = await import(pathToFileURL(path.join(__dirname, '../mascot/src/chat/real-chat-adapter.js')).href);
+  for (const text of [CONTACT_LINE, COPY.busy, COPY.unavailable, COPY.network]) {
+    assert.match(text, /support@lavaall\.com/);
+    assert.doesNotMatch(text, /737|704-4182|17377044182|whatsapp\s*\+?\d/i);
+  }
   const store = memoryStore();
   let modelCalls = 0, transportCalls = 0;
   const prompts = [];
