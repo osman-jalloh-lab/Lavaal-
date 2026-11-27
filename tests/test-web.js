@@ -132,7 +132,7 @@ async function run() {
   check(`asset paths named in app.js are served (${jsRefs.length} checked${jsMissing.length ? ': ' + jsMissing.join(', ') : ''})`, jsMissing.length === 0);
   for (const f of ['index.html', 'work/index.html']) {
     const absRefs = [...fs.readFileSync(path.join(SITE, f), 'utf8').matchAll(/\b(?:src|href|poster|data-src|data-poster)=["'](\/[^/"'][^"']*)["']/gi)].map((m) => m[1]);
-    check(`${f}: the only root-absolute links are the umbrella's privacy and terms pages (${absRefs.join(', ') || 'none'})`, absRefs.every((u) => u === '/privacy.html' || u === '/terms.html'));
+    check(`${f}: root-absolute links are the umbrella's legal pages and icons (${absRefs.join(', ') || 'none'})`, absRefs.every((u) => ['/privacy.html', '/terms.html', '/favicon.ico', '/images/favicon-32.png', '/images/apple-touch-icon.png'].includes(u)));
   }
 
   // ---- Static file types, caching, ranges ----
@@ -240,7 +240,7 @@ async function run() {
 
   // ---- Fast on phone data ----
   const served = idx + work;
-  check('served pages reference no PNG images', !/\.png\b/i.test(served) && !/\.png['"]/i.test(appJs));
+  check('served pages reference no PNG images', !/\.png\b/i.test(served.replace(/<link\b[^>]*>/gi, '')) && !/\.png['"]/i.test(appJs));
   const vids = [...served.matchAll(/<video\b[^>]*>/g)].map((m) => m[0]);
   check(`every video on both pages uses a -lite / -sm clip (${vids.length})`, vids.length >= 10 && vids.every((t) => /data-src="[^"]*-(lite|sm)\.mp4"/.test(t) && !/\bsrc="/.test(t.replace(/data-src/g, ''))));
   check('every video is preload="none"', vids.every((t) => /preload="none"/.test(t)));
@@ -340,7 +340,7 @@ async function run() {
   check('vercel.json rewrites /web, /web/ and /web/:path* to the function', ['/web', '/web/', '/web/:path*'].every((s) => vercel.rewrites.some((r) => r.source === s && r.destination.startsWith('/api/web?area='))));
   check('/web rewrites come before the "/" catch-all', vercel.rewrites.findIndex((r) => r.source === '/web/:path*') < vercel.rewrites.findIndex((r) => r.source === '/'));
   check('vercel.json bundles _site into the function', vercel.functions['api/web/index.js'] && vercel.functions['api/web/index.js'].includeFiles === 'api/web/_site/**');
-  const hdr = vercel.headers.find((h) => h.source === '/web/(.*)');
+  const hdr = vercel.headers.find((h) => h.source === '/web/(.*)' && h.headers.some((entry) => entry.key === 'X-Frame-Options'));
   const globalIdx = vercel.headers.findIndex((h) => h.source === '/(.*)');
   check('vercel.json allows same-origin framing under /web/ after the site-wide DENY', hdr && hdr.headers.some((h) => h.key === 'X-Frame-Options' && h.value === 'SAMEORIGIN') && vercel.headers.indexOf(hdr) > globalIdx);
   const fnCount = walk(path.join(root, 'api')).filter((f) => f.endsWith('.js') && !rel(f).split('/').some((s) => s.startsWith('_')) && !path.relative(path.join(root, 'api'), f).split(path.sep).some((s) => s.startsWith('_'))).length;

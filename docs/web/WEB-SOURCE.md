@@ -593,7 +593,7 @@ converted to LF to match the repo (marked `CRLF→LF`). `tests/test-web.js` chec
 | `videos/hotel.html` | `505641739c70caacfc84486878234b36504c71ca1c7640a60720777577eb37c5` | identical | site, CRLF→LF |
 | `videos/restaurant.html` | `e148757f30081bf5185ac6c11fffd77f5282efc6ae4c5802f112af34e343c230` | identical | site, CRLF→LF |
 | `videos/shop.html` | `4ec4676881b66b3ea92e5470bec0ee8f7c860a6aa12fca1b711d132747701270` | identical | site, CRLF→LF |
-| `work/index.html` | `4e69b251b8162e37a4e772106c66d805b7fb181c5740f81f50e3f368db95c87d` | added | site |
+| `work/index.html` | `e098644729a691f8c33f764160ed131efa858cf4924fa94c544d02fca184057b` | added | site |
 
 ## Integration edits
 - `index.html`: `<meta name="robots" content="noindex, nofollow">` (hidden section, same as Starlink); the

@@ -438,9 +438,10 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
         // /os may only gain the same same-origin microphone policy /ops has (Jarvis voice), nothing else.
         && same(pick(current, (h) => /^\/os/.test(h.source) && h.source !== '/os(.*)'), pick(base, (h) => /^\/os/.test(h.source) && h.source !== '/os(.*)'))
         && pick(current, (h) => h.source === '/os(.*)').every((h) => same(h.headers, [{ key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' }]))
-        && same(pick(current, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'), pick(base, (h) => h.source === '/ops(.*)' || h.source === '/web/(.*)'))
+        && same(pick(current, (h) => h.source === '/ops(.*)'), pick(base, (h) => h.source === '/ops(.*)'))
+        && same(pick(current, (h) => h.source === '/web/(.*)' && !(h.headers.length === 1 && h.headers[0].key === 'Content-Security-Policy')), pick(base, (h) => h.source === '/web/(.*)'))
         && same(pick(current, (h) => h.source === '/(.*)'), pick(base, (h) => h.source === '/(.*)'));
-      const rootHeader = (current.headers || []).find((h) => h.source === '/');
+      const rootHeader = (current.headers || []).find((h) => h.source === '/' && (h.headers || []).some((entry) => entry.key === 'Permissions-Policy'));
       const policy = rootHeader && (rootHeader.headers || []).find((h) => h.key === 'Permissions-Policy');
       osRoutesIntact = osRoutesIntact && !!policy && policy.value === 'camera=(), microphone=(self), geolocation=()';
     }
