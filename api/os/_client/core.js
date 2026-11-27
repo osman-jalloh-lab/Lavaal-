@@ -397,6 +397,35 @@
       mounted = view;
       if (view.mount) view.mount(host, ctx);
     }
+    motionPass(host);
+  }
+
+  // Motion pass (Claude Design Blueprint, hack 03): cards and sections rise in with a 40ms stagger, and whole KPI
+  // numbers count up once in under a second. Only transform and opacity move. Reduced motion turns it all off.
+  function reducedMotion() { try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
+  function motionPass(host) {
+    if (!host || !host.querySelectorAll || reducedMotion()) return;
+    var cards = host.querySelectorAll('.fade > .grid > .card, .fade > .card, .fade > section.card, .bz, .launch, .rc, .kpi');
+    for (var i = 0; i < cards.length && i < 16; i++) { cards[i].classList.add('reveal'); cards[i].style.setProperty('--i', String(i)); }
+    // Drop the class once it has played, so its final frame does not hold the hover lift down.
+    var done = cards;
+    window.setTimeout(function () { for (var j = 0; j < done.length; j++) done[j].classList.remove('reveal'); }, 16 * 40 + 340);
+    var nums = host.querySelectorAll('.kpi b.num, .bz-n b.num, .launch-n');
+    for (var k = 0; k < nums.length; k++) countUp(nums[k]);
+  }
+  function countUp(el) {
+    var m = /^(\D*)(\d{1,6})(\D*)$/.exec(String(el.textContent || '').trim());
+    if (!m || !window.requestAnimationFrame) return;
+    var to = Number(m[2]), start = 0, ms = 800;
+    if (to < 2) return;
+    function tick(now) {
+      if (!start) start = now;
+      var t = Math.min(1, (now - start) / ms), v = Math.round(to * (1 - Math.pow(1 - t, 3)));
+      el.textContent = m[1] + v + m[3];
+      if (t < 1) window.requestAnimationFrame(tick);
+    }
+    el.textContent = m[1] + '0' + m[3];
+    window.requestAnimationFrame(tick);
   }
 
   // ---- More sheet (phone) ------------------------------------------------

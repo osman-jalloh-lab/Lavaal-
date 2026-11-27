@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=1080"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0A0A14;--panel:#121221;--text:#F4F9FF;--tx2:#A9B4C6;--accent:#00C2FF;--ok:#00F5A0;--sun:#FFE03D;--violet:#8B7BFF}
+html,body{width:var(--w);height:var(--h);background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;overflow:hidden}
+.ad{position:relative;width:var(--w);height:var(--h);overflow:hidden;
+ background:radial-gradient(60% 45% at 85% 8%,rgba(0,194,255,.28),transparent 70%),radial-gradient(55% 40% at 5% 95%,rgba(139,123,255,.30),transparent 70%),var(--bg)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,249,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(244,249,255,.05) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(70% 60% at 50% 40%,#000,transparent)}
+.safe{position:absolute;left:6%;right:6%;top:var(--top);bottom:var(--bot);display:flex;flex-direction:column;gap:var(--gap)}
+.brand{display:flex;align-items:center;gap:14px;font:700 34px 'Bricolage Grotesque',sans-serif;letter-spacing:-.01em}
+.brand i{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--accent),var(--ok));display:inline-block}
+.kick{font:600 26px 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+h1{font:800 var(--h1) 'Bricolage Grotesque',sans-serif;line-height:1.02;letter-spacing:-.02em}
+h1 mark{background:linear-gradient(transparent 72%,var(--sun) 72%,var(--sun) 90%,transparent 90%);color:inherit;padding:0 .05em}
+p.sub{font:500 var(--sub) Inter,sans-serif;line-height:1.35;color:var(--tx2);max-width:22ch}
+.cta{margin-top:auto;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.pill{font:700 34px Inter,sans-serif;background:var(--sun);color:#0A0A14;border-radius:999px;padding:22px 40px}
+.date{font:600 30px 'JetBrains Mono',monospace;color:var(--text);letter-spacing:.06em}
+.card{background:rgba(18,18,33,.85);border:1.5px solid rgba(244,249,255,.12);border-radius:28px;padding:30px 34px;display:flex;flex-direction:column;gap:16px;backdrop-filter:blur(6px)}
+.row{display:flex;align-items:center;gap:18px;font:600 30px Inter,sans-serif}
+.ck{width:44px;height:44px;border-radius:50%;background:var(--ok);color:#0A0A14;display:grid;place-items:center;font:800 26px Inter;flex:none}
+.ck.b{background:var(--accent)}.ck.v{background:var(--violet);color:#fff}
+.muted{color:var(--tx2);font-weight:500}
+.big{font:800 var(--big) 'Bricolage Grotesque',sans-serif;line-height:.9;letter-spacing:-.03em;color:var(--sun)}
+.flag{display:flex;height:14px;width:180px;border-radius:999px;overflow:hidden}.flag span{flex:1}
+:root{--w:1080px;--h:1350px;--top:6%;--bot:6%;--h1:118px;--sub:40px;--gap:34px;--big:300px}.rings{position:absolute;right:-180px;bottom:-180px;width:720px;height:720px;border-radius:50%;border:2px solid rgba(0,194,255,.35);box-shadow:0 0 0 90px rgba(0,194,255,.05),0 0 0 180px rgba(139,123,255,.05)}.rings::before,.rings::after{content:'';position:absolute;inset:120px;border-radius:50%;border:2px solid rgba(255,224,61,.45)}.rings::after{inset:250px;background:radial-gradient(circle,rgba(255,224,61,.9),rgba(255,138,60,.5) 60%,transparent 70%);border:0}</style></head><body><div class="ad"><div class="grid"></div><div class="rings" aria-hidden="true"></div><div class="safe"><div class="brand"><i></i>SaloneHire</div><div class="flag" aria-hidden="true"><span style="background:#1EB53A"></span><span style="background:#fff"></span><span style="background:#0072C6"></span></div>
+<div class="kick">For job seekers in Sierra Leone</div>
+<h1>Your next job <mark>starts here.</mark></h1>
+<div class="card"><div class="row"><span class="ck">✓</span>Upload your CV once</div><div class="row"><span class="ck b">✓</span>Apply in a few taps</div><div class="row"><span class="ck v">✓</span>Track every application</div></div>
+<div class="cta"><span class="pill">Launching 1 December</span></div></div></div></body></html>
