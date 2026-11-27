@@ -12,7 +12,7 @@
       edit: 'Edit inquiry',
       unknown: 'Delivery is uncertain. Do not send again; contact the team.',
       accepted: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).",
-      disabled: 'I could not complete that just now. Email support@lavaall.com or WhatsApp +1 (737) 704-4182.',
+      disabled: 'I could not complete that just now. Email support@lavaall.com.',
       answer: 'Local test response: the team can confirm your Technology request. I cannot access internal systems or confirm stock, dates or pricing.',
       language: 'Language',
       notice: 'Krio text is best-effort.',
@@ -26,7 +26,7 @@
       edit: 'Modifier la demande',
       unknown: 'La livraison est incertaine. Ne renvoyez pas la demande ; contactez l’équipe.',
       accepted: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).",
-      disabled: 'Je n’ai pas pu terminer cette réponse. Écrivez à support@lavaall.com ou WhatsApp +1 (737) 704-4182.',
+      disabled: 'Je n’ai pas pu terminer cette réponse. Écrivez à support@lavaall.com.',
       answer: 'Réponse de test locale : l’équipe peut vérifier votre demande Technology. Aucun accès aux systèmes internes ; aucun engagement sur les stocks, dates ou tarifs.',
       language: 'Langue',
       notice: 'Le krio écrit est proposé au mieux.',
@@ -40,7 +40,7 @@
       edit: 'Editar pedido',
       unknown: 'A entrega é incerta. Não envie novamente; contacte a equipa.',
       accepted: "Thanks, we've got your message. Someone from our team will reply by WhatsApp or email within 1 business day (Monday to Friday).",
-      disabled: 'Não consegui concluir essa resposta. Email support@lavaall.com ou WhatsApp +1 (737) 704-4182.',
+      disabled: 'Não consegui concluir essa resposta. Email support@lavaall.com.',
       answer: 'Resposta de teste local: a equipa pode verificar o seu pedido Technology. Sem acesso a sistemas internos nem confirmação de stock, datas ou preços.',
       language: 'Idioma',
       notice: 'Texto em krio é uma tentativa sem garantia.',
@@ -551,7 +551,7 @@
     edit.hidden = true;
     send.hidden = true;
     panel.appendChild(status);
-    var reachability = createElement('p', "We're reachable 24/7 on WhatsApp and email: support@lavaall.com or WhatsApp +1 (737) 704-4182");
+    var reachability = createElement('p', "Email support@lavaall.com");
     reachability.className = 'customer-assistant-reachability';
     panel.appendChild(reachability);
     function renderLanguage() {
@@ -651,7 +651,7 @@
           .replace(/A catalogue listing is not a stock or price confirmation\./g, '')
           .replace(/[ \t]{2,}/g, ' ')
           .trim();
-        if (!replyText) replyText = 'You can reach us at support@lavaall.com or WhatsApp +1 (737) 704-4182. How can I help?';
+        if (!replyText) replyText = 'You can reach us at support@lavaall.com. How can I help?';
         if (result && result.reset) clearEarlierTurns([first, visitorBubble]);
         appendAssistant(replyText);
         renderTurnConsent(result.awaiting || (Array.isArray(result.chips) && result.chips.indexOf('Confirm') !== -1 ? 'handoff-confirm' : null));
@@ -664,8 +664,8 @@
       }
       catch (error) {
         var unavailable = (error && (error.code === 'quota' || error.code === 'cost_cap'))
-          ? 'This chat is temporarily busy. Please try again shortly, or email support@lavaall.com or WhatsApp +1 (737) 704-4182.'
-          : (copy[lang] && copy[lang].disabled) || 'I could not complete that just now. Email support@lavaall.com or WhatsApp +1 (737) 704-4182.';
+          ? 'This chat is temporarily busy. Please try again shortly, or email support@lavaall.com.'
+          : (copy[lang] && copy[lang].disabled) || 'I could not complete that just now. Email support@lavaall.com.';
         log.appendChild(createElement('p', unavailable));
         status.textContent = unavailable;
         renderFollowups();

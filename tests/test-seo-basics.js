@@ -18,7 +18,7 @@ const blocks = [...html.matchAll(/<script\b[^>]*\btype\s*=\s*["']application\/ld
   .map(match => JSON.parse(match[1]));
 const organization = blocks.find(block => block['@type'] === 'Organization');
 assert.ok(organization, 'existing Organization exists');
-assert.equal(organization.contactPoint[0].telephone, '+1-737-704-4182');
+assert.ok(!('telephone' in organization.contactPoint[0]));
 assert.equal(organization.contactPoint[0].email, 'support@lavaall.com');
 const graphs = blocks.filter(block => Array.isArray(block['@graph']));
 assert.equal(graphs.length, 1, 'one branch graph');
