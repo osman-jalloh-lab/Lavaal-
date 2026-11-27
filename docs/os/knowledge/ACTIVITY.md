@@ -4,6 +4,7 @@ What landed on `main` in `osman-jalloh-lab/Lavaal-`, newest first. One line per 
 
 New lines are added by the `os-activity-log` GitHub Action, which opens a draft PR for each merge (it never writes to `main`). Earlier lines below were copied from `git log origin/main --merges` on 26 Nov 2026.
 
+- 26 Nov 2026, 9:00 PM CT · opened · #135 · OS Phase 2: 40 instructional skills imported into skills.json (draft PR opened)
 - 26 Nov 2026, 8:17 PM CT · b4c5270 · #133 · OS Phase 1: five sourced business folders
 - 26 Nov 2026, 7:55 PM CT · 020b3fc · #130 · OS core: one shared memory in git
 - 26 Nov 2026, 6:58 PM CT · f804749 · #128 · Parked: design skills and motion pass (merged on Osman's "merge 128")
