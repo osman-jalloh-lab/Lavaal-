@@ -4,6 +4,7 @@ What landed on `main` in `osman-jalloh-lab/Lavaal-`, newest first. One line per 
 
 New lines are added by the `os-activity-log` GitHub Action, which opens a draft PR for each merge (it never writes to `main`). Earlier lines below were copied from `git log origin/main --merges` on 26 Nov 2026.
 
+- 27 Nov 2026, 4:01 PM CT · 86d9c17 · #157 · OS Build page revamp + fixes for failing PM steps
 - 27 Nov 2026, 3:17 PM CT · 43e6fdb · #155 · Remove founder phone number from LAVAALL Web and public lavaall.com pages
 - 27 Nov 2026, 1:07 PM CT · 92aa3b2 · #151 · OS PM: use the $50 budget by default, show failures, Retry
 - 27 Nov 2026, 11:16 AM CT · 66da68c · #132 · Add Cloudflare Turnstile to public forms
