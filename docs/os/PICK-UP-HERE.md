@@ -2,11 +2,11 @@
 
 Read this first. It points into the one shared memory; it is not a second memory. Every builder (Drake, Claude, Codex, the OS itself) reads this on start, then the files below, and changes them only through a draft PR.
 
-Updated 27 Nov 2026 (America/Chicago), Core phase of `2026-11-26-os-one-shot-build-prompt.md` (draft PR on `feature/os-shared-memory-core`, stacked on Phase 0's #129).
+Updated 27 Nov 2026 (America/Chicago), Phase 1 of `2026-11-26-os-one-shot-build-prompt.md` (draft PR on `feature/os-knowledge-folders`). Phase 0 (#129) and Core (#130) are merged.
 
 ## Read next, in order
 
-1. `docs/os/knowledge/README.md` — how the shared memory works. Business folders arrive in Phase 1.
+1. `docs/os/knowledge/README.md` — how the shared memory works, and the five business folders.
 2. `docs/os/DECISIONS.md` — the decisions log. Extend it; never fork a second log.
 3. `docs/os/knowledge/ACTIVITY.md` — what landed (sha, PR, time).
 4. `tools/lavaall-ai/RULES.md` — standing rules (Sonnet only, never Opus; no deploy, merge, send, post or spend without Osman).
@@ -31,7 +31,7 @@ Osman, 26 Nov 2026, 7:01 PM CT: do not rebase #103 or #105, do not close #107. L
 
 Other open PRs exist (`gh pr list`); do not triage or close them unless Osman asks.
 
-## Core phase (draft, not merged)
+## Core phase (merged, #130)
 
 - `docs/os/knowledge/` is the one tree. `scripts/build-knowledge-pack.js` compiles it to `api/os/_data/knowledge.json` (with a content hash); run it after any edit there, and `--check` fails if the pack is stale. The test `tests/test-os-knowledge.js` fails too.
 - `api/ops/_os_knowledge.js`: `GET /ops/os/knowledge` (founder only). KV holds only a cache keyed to the git hash; a newer git hash wins and a KV-only fact is never served.
@@ -39,9 +39,13 @@ Other open PRs exist (`gh pr list`); do not triage or close them unless Osman as
 - Chat: `composePrompt` adds `docs/os/knowledge/<group>/README.md` as a reference brief when a business folder has one.
 - `.github/workflows/os-activity-log.yml` + `scripts/os-activity-line.js`: after a merge on `main`, one line in `ACTIVITY.md` on a new branch and a draft PR. Commits that only touch the log or the pack are skipped.
 
+## Phase 1 (draft)
+
+Five folders from repo sources only: `lavaall/`, `salonehire/`, `web/`, `starlink/` (founder only, with `RULES.md`), `saloneworks/`. Every brief line cites a path and date; box-only sources are listed in each `SOURCES.md` as not copied yet. "SalonWeb" routes to `web`. The public chat pack is unchanged.
+
 ## Next action
 
-Phase 1: business knowledge folders (`lavaall/`, `salonehire/`, `web/`, the private fourth line, and `saloneworks/` if sourced), each with `README.md` and `SOURCES.md`. Blocked on box sources (below).
+Phase 2: skills and tools import. Blocked on the box (`/home/box/agent-data/workflows/`). Fill the Phase 1 gaps from the box at the same time.
 
 ## Waiting on Osman
 

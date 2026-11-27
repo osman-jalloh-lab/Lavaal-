@@ -19,7 +19,7 @@ const KEY = 'lavaall-os-knowledge-cache-v1';
 const REPO_NEW_FILE = 'https://github.com/osman-jalloh-lab/Lavaal-/new/main';
 const ROOT = 'docs/os/knowledge/';
 const MAX_NOTE = 2000;
-const BUSINESSES = Object.freeze(['lavaall', 'web', 'salonehire', 'saloneworks']);
+const BUSINESSES = Object.freeze(['lavaall', 'web', 'salonehire', 'saloneworks', 'starlink']);
 
 function routeOf(req) {
   const q = queryOf(req);
@@ -147,6 +147,33 @@ async function handleKnowledge(req, res, opts) {
   return true;
 }
 
+// Which business folder a name means. Aliases come from each folder's README "aliases:" line (sourced there, mostly
+// from tools/lavaall-ai/projects.json); the folder id itself also matches. Longest alias wins, so "SalonWeb" goes to
+// web and never to SaloneWorks. Returns '' when nothing matches.
+function aliasTable(pack) {
+  const p = isPack(pack) ? pack : PACK;
+  const rows = [];
+  p.files.forEach((f) => {
+    const m = /^docs\/os\/knowledge\/([a-z0-9-]+)\/README\.md$/.exec(f.path);
+    if (!m) return;
+    rows.push({ alias: m[1], business: m[1] });
+    const line = /^aliases:\s*(.+?)\s*(\[src:[^\]]*\])?\s*$/m.exec(f.text);
+    if (line) line[1].split(',').map((a) => a.trim()).filter(Boolean).forEach((a) => rows.push({ alias: a, business: m[1] }));
+  });
+  return rows.sort((a, b) => b.alias.length - a.alias.length);
+}
+function norm(s) { return ` ${String(s || '').toLowerCase().replace(/[^a-z0-9/]+/g, ' ').trim()} `; }
+function resolveBusiness(text, pack) {
+  const hay = norm(text);
+  const squashed = hay.replace(/\s+/g, '');
+  for (const row of aliasTable(pack)) {
+    const a = norm(row.alias);
+    if (a.trim().length < 2) continue;
+    if (hay.includes(a) || (a.trim().length >= 6 && squashed.includes(a.replace(/\s+/g, '')))) return row.business;
+  }
+  return '';
+}
+
 // What the OS page embeds (no client fetch): the files in the pack, their business, and the base of the propose link.
 function knowledgeView(pack) {
   const p = isPack(pack) ? pack : PACK;
@@ -158,4 +185,4 @@ function knowledgeView(pack) {
   };
 }
 
-module.exports = { BUSINESSES, knowledgeView, KEY, PACK, briefFor, canonicalOnly, handleKnowledge, loadKnowledge, proposeNote, resolveKnowledge, routeOf };
+module.exports = { BUSINESSES, aliasTable, knowledgeView, resolveBusiness, KEY, PACK, briefFor, canonicalOnly, handleKnowledge, loadKnowledge, proposeNote, resolveKnowledge, routeOf };
