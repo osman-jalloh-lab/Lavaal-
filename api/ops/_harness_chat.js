@@ -699,6 +699,8 @@ module.exports = {
   findProject,
   handleHarnessChat,
   harnessKind,
+  keyFor,
   modelFor,
+  runHarness,
   usageSnapshot,
 };

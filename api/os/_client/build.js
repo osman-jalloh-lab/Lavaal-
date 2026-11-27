@@ -121,7 +121,77 @@
       .catch(function () { jobs = []; })
       .then(function () { var host = root.querySelector('#bd-jobs'); if (host) host.innerHTML = jobsHtml(); });
   }
+  // ---- Project manager (Phase 6) ----
+  // Up to five goals at once. The PM splits each into steps and gives each step to the agent best at it; steps of
+  // different goals run side by side. Plan is a free preview; Approve saves it and holds the builds; the page then
+  // moves each plan forward while it is open.
+  var pmPlans = null;
+  var pmPreview = null;
+  var pmTimer = null;
+  function stepHtml(st) {
+    var out = st.output ? '<details><summary class="dim">output</summary><pre class="sm-text">' + esc(String(st.output).slice(0, 1500)) + '</pre></details>' : '';
+    return '<li><span class="tag">' + esc(st.state) + '</span> <b>' + esc(st.kind) + '</b> → ' + esc(st.label) + ' <span class="dim">(' + esc(st.why) + ')</span>' + out + '</li>';
+  }
+  function planHtml(p) {
+    return '<div class="bl-item"><div class="bl-top"><span class="tag">' + esc(p.state) + '</span><span class="bl-title">' + esc(p.goal) + '</span></div>' +
+      '<p class="note">' + esc(p.business) + ' · ' + esc(p.repo) + ' · <code>' + esc(p.branch) + '</code></p><ol class="pm-steps">' + p.steps.map(stepHtml).join('') + '</ol></div>';
+  }
+  function pmCard() {
+    return '<section class="card mt bd-start"><div class="ch"><h3>Project manager</h3><div class="r"><span class="pill">Up to 5 goals</span></div></div>' +
+      '<form id="pm-form" autocomplete="off"><label class="sr" for="pm-goals">Goals</label>' +
+        '<textarea id="pm-goals" rows="4" maxlength="3000" placeholder="One goal per line, e.g.&#10;Build a landing page for SaloneHire employers&#10;Research competitors for LAVAALL Web in Freetown&#10;Fix the footer typo on lavaall.com"></textarea>' +
+        '<div class="bd-row"><button class="btn" type="submit" data-pm="plan">Plan</button><button class="btn pri" type="button" data-pm="approve">Approve and run</button></div></form>' +
+      '<p class="note">Research goes to Grok, specs and drafts to DeepSeek, and code to Codex, Claude Sonnet or Claude Opus, whichever fits and is free. Plan is a free preview. Approve and run starts the research and design steps here and queues the builds for the box runner. Everything counts toward the $50 monthly cap. Builds open draft PRs only.</p>' +
+      '<p class="note" id="pm-msg" role="status" aria-live="polite"></p>' +
+      '<div id="pm-preview">' + (pmPreview ? '<div class="sect">Preview</div>' + pmPreview.map(planHtml).join('') : '') + '</div>' +
+      '<div class="sect">Plans</div><div id="pm-plans">' + (pmPlans === null ? '<p class="note">Loading plans…</p>' : pmPlans.length ? pmPlans.map(planHtml).join('') : '<div class="empty"><b>No plans yet.</b></div>') + '</div></section>';
+  }
+  function paintPm(root) {
+    var a = root.querySelector('#pm-plans'); var b = root.querySelector('#pm-preview');
+    if (a) a.innerHTML = pmPlans && pmPlans.length ? pmPlans.map(planHtml).join('') : '<div class="empty"><b>No plans yet.</b></div>';
+    if (b) b.innerHTML = pmPreview ? '<div class="sect">Preview</div>' + pmPreview.map(planHtml).join('') : '';
+  }
+  function loadPlans(root) {
+    return builderApi('GET', '/pm').then(function (d) { pmPlans = Array.isArray(d.plans) ? d.plans : []; })
+      .catch(function () { pmPlans = []; }).then(function () { paintPm(root); });
+  }
+  // While the page is open, move every unfinished plan one step forward at the same time, every few seconds.
+  function tickPlans(root) {
+    if (!document.body.contains(root)) { clearInterval(pmTimer); pmTimer = null; return; }
+    var open = (pmPlans || []).filter(function (p) { return p.state === 'approved'; });
+    if (!open.length) return;
+    Promise.all(open.map(function (p) { return builderApi('POST', '/pm/advance', { id: p.id }).catch(function () { return null; }); }))
+      .then(function () { return loadPlans(root); }).then(function () { loadJobs(root); });
+  }
+  function mountPm(root) {
+    var form = root.querySelector('#pm-form');
+    if (!form) return;
+    var msg = root.querySelector('#pm-msg');
+    loadPlans(root);
+    if (pmTimer) clearInterval(pmTimer);
+    pmTimer = setInterval(function () { tickPlans(root); }, 6000);
+    function goals() { return root.querySelector('#pm-goals').value.split('\n').map(function (g) { return g.trim(); }).filter(Boolean); }
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!goals().length) return;
+      builderApi('POST', '/pm/plan', { goals: goals() }).then(function (d) { pmPreview = d.plans || []; paintPm(root); if (msg) msg.textContent = 'Preview only. Nothing is saved or spent yet.'; })
+        .catch(function (err) { if (msg) msg.textContent = 'Could not plan: ' + err.message.replace(/_/g, ' ') + '.'; });
+    });
+    root.querySelector('[data-pm="approve"]').addEventListener('click', function () {
+      var g = goals();
+      if (!g.length) return;
+      if (!window.confirm('Approve ' + g.length + (g.length === 1 ? ' goal' : ' goals') + '? Research and design run now; builds queue for the box runner and open draft PRs. All of it counts toward the $50 cap.')) return;
+      builderApi('POST', '/pm/approve', { goals: g }).then(function () {
+        pmPreview = null; root.querySelector('#pm-goals').value = '';
+        if (msg) msg.textContent = 'Approved. The plans below move forward while this page is open.';
+        return loadPlans(root);
+      }).then(function () { tickPlans(root); })
+        .catch(function (err) { if (msg) msg.textContent = 'Not approved: ' + err.message.replace(/_/g, ' ') + '.'; });
+    });
+  }
+
   function mountBuilder(root) {
+    mountPm(root);
     var form = root.querySelector('#bd-form');
     if (!form) return;
     loadJobs(root);
@@ -149,13 +219,13 @@
         var n = items.filter(function (i) { return i.status === l.key; }).length;
         return '<div class="card kpi t-' + l.tint + '"><span>' + esc(l.label) + '</span><b class="num">' + (log ? n : '—') + '</b><i>' + (log ? 'items' : 'no build log yet') + '</i></div>';
       }).join('') + '</div>';
-      if (!log) return head + builderCard() + overviewHtml([]) + tiles + '<section class="card mt">' + OS.empty('No build log has been received yet.', 'build') + '</section>';
+      if (!log) return head + pmCard() + builderCard() + overviewHtml([]) + tiles + '<section class="card mt">' + OS.empty('No build log has been received yet.', 'build') + '</section>';
       var lanes = LANES.map(function (l) {
         var rows = items.filter(function (i) { return i.status === l.key; });
         return '<section class="card mt bl-lane' + (l.key === 'waiting' && rows.length ? ' wait' : '') + '"><div class="ch"><h3>' + esc(l.label) + '</h3><div class="r"><span class="num">' + rows.length + '</span></div></div>' +
           (rows.length ? rows.map(item).join('') : '<div class="empty"><b>' + esc(l.empty) + '</b></div>') + '</section>';
       }).join('');
-      return head + builderCard() + overviewHtml(items) + '<div class="sect">All work</div>' + tiles + lanes;
+      return head + pmCard() + builderCard() + overviewHtml(items) + '<div class="sect">All work</div>' + tiles + lanes;
     },
     mount: function (root) {
       mountBuilder(root);

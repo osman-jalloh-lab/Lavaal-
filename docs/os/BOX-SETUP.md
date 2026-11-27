@@ -64,4 +64,4 @@ and the draft PR link.
 
 ## After the first good run
 
-When Osman wants it to run on its own, schedule `tick` every few minutes (one job per tick) with `OS_RUNNER_ENABLED=1`. To stop it at once: `touch ~/.os-runner-stop`.
+When Osman wants it to run on its own, schedule `tick` every minute with `OS_RUNNER_ENABLED=1`. Starting it up to three times a minute lets Codex, Claude Sonnet and Claude Opus each work on a job at once (each builder has its own lock). To stop it at once: `touch ~/.os-runner-stop`.

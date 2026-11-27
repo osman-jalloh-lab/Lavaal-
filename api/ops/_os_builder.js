@@ -70,6 +70,10 @@ function capCheck(env, spentUsd, job) {
 }
 
 function monthKey(env, now) { return approvals.rootFor(env) + 'builder-spend:' + new Date(now || Date.now()).toISOString().slice(0, 7); }
+function lockKey(env, job) {
+  const who = job && job.executor === 'claude' ? `claude-${job.model === 'opus' ? 'opus' : 'sonnet'}` : 'codex';
+  return approvals.rootFor(env) + 'builder-lock:' + who;
+}
 function jobKey(env, id) { return approvals.rootFor(env) + 'builder-jobs:' + id; }
 function queueKey(env) { return approvals.rootFor(env) + 'builder-jobs:queue'; }
 
@@ -130,4 +134,4 @@ async function handleBuilder(req, res, opts) {
   }
 }
 
-module.exports = { BUILDERS, CAP_NAME, DEFAULT_OPUS_ESTIMATE_USD, OPUS_ESTIMATE_NAME, validBuilder, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };
+module.exports = { lockKey, BUILDERS, CAP_NAME, DEFAULT_OPUS_ESTIMATE_USD, OPUS_ESTIMATE_NAME, validBuilder, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };
