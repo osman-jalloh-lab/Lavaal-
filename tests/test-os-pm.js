@@ -230,6 +230,17 @@ const kinds = (p) => p.steps.map((s) => `${s.kind}:${s.agent}`).join(' > ');
     check('models: a configured model the provider lists is kept', kept === 'grok-3');
     check('models: with no model list, the configured default is used', offline === harness.modelFor('grok', '', { XAI_API_KEY: 'x' }));
   }
+  {
+    const harness = require(path.join(root, 'api/ops/_harness_chat.js'));
+    let body;
+    const capture = async (u, i) => { body = JSON.parse(i.body); const j = { choices: [{ message: { content: 'ok' } }] }; return { ok: true, status: 200, headers: { get: () => 'application/json' }, json: async () => j, text: async () => JSON.stringify(j) }; };
+    await harness.runHarness('grok', 'grok-4.7', { system: 's', user: 'u' }, { XAI_API_KEY: 'x' }, capture);
+    const g47 = body.reasoning_effort;
+    await harness.runHarness('grok', 'grok-4.20-0309-non-reasoning', { system: 's', user: 'u' }, { XAI_API_KEY: 'x' }, capture);
+    const g420 = body.reasoning_effort;
+    await harness.runHarness('deepseek', 'deepseek-chat', { system: 's', user: 'u' }, { DEEPSEEK_API_KEY: 'x' }, capture);
+    check('grok: 4.5 to 4.9 are asked for low reasoning effort so they answer inside the time box; others are not', g47 === 'low' && g420 === undefined && body.reasoning_effort === undefined);
+  }
   check('the Build page shows a direct answer on the card, with no repo or branch', /px-answer/.test(page) && /an answer, no code and no PR/.test(page));
 
   const failed = results.filter((r) => !r.pass);

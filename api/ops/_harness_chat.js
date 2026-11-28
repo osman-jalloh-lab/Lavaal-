@@ -383,6 +383,9 @@ async function callOpenAICompatible(fetchImpl, env, url, key, model, prompt) {
       url.includes('openai.com')
         ? Object.assign({ max_completion_tokens: MAX_OUTPUT_TOKENS }, /^(o\d|gpt-5)/i.test(model) ? {} : { temperature: 0.2 })
         : { temperature: 0.2, max_tokens: MAX_OUTPUT_TOKENS },
+      // Grok 4.5 to 4.9 reason before answering, at high effort unless told otherwise. That can outrun the time a
+      // /ops call has (Vercel stops it at 30 s), so OS calls ask for low effort: still a reasoned answer, much faster.
+      url.includes('api.x.ai') && /^grok-4\.[5-9](?!\d)/i.test(model) ? { reasoning_effort: 'low' } : {},
     )),
   });
   if (!res.ok) {
