@@ -22,6 +22,7 @@ const approvals = require('../../api/ops/_approvals');
 const builder = require('../../api/ops/_os_builder');
 const { UNTRUSTED_BEGIN, UNTRUSTED_END } = require('../../api/ops/_untrusted');
 const progress = require('./progress');
+const platform = require('./platform');
 const { runClaudeSession } = require('./claude-session');
 
 const SHA = /^[a-f0-9]{40}$/;
@@ -66,7 +67,10 @@ function activityLine(job, sha, prUrl, nowMs) {
 function run(cmd, args, options = {}) {
   return new Promise((resolve, reject) => {
     if (!options.env) return reject(new Error('missing_command_environment'));
-    const child = spawn(cmd, args, { cwd: options.cwd, env: options.env, stdio: ['ignore', 'pipe', 'pipe'] });
+    // Never through a shell: on Windows an npm .cmd shim is resolved to the script it starts (platform.js).
+    let bin;
+    try { bin = platform.binFor(cmd, options.binEnv || options.env); } catch (e) { return reject(new Error(e && e.message === 'bin_not_found' ? cmd + '_not_found' : 'command_failed')); }
+    const child = spawn(bin.cmd, [...bin.pre, ...args], { cwd: options.cwd, env: options.env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     let out = '';
     // With onLine, stdout is an event stream: each whole line goes to onLine and nothing is kept in memory.
     const lines = typeof options.onLine === 'function' ? progress.lineSplitter(options.onLine) : null;
@@ -88,7 +92,8 @@ function run(cmd, args, options = {}) {
 function codexAuthSource(env) {
   const e = env || {};
   if (e.OS_RUNNER_CODEX_AUTH_FILE) return e.OS_RUNNER_CODEX_AUTH_FILE;
-  const codexHome = e.CODEX_HOME || (e.HOME ? path.join(e.HOME, '.codex') : '');
+  const home = platform.homeOf(e);
+  const codexHome = e.CODEX_HOME || (home ? path.join(home, '.codex') : '');
   return codexHome ? path.join(codexHome, 'auth.json') : '';
 }
 function prepareCodexHome(env, home) {
@@ -108,7 +113,8 @@ function prepareCodexHome(env, home) {
 function claudeAuthSource(env) {
   const e = env || {};
   if (e.OS_RUNNER_CLAUDE_AUTH_FILE) return e.OS_RUNNER_CLAUDE_AUTH_FILE;
-  return e.HOME ? path.join(e.HOME, '.claude', '.credentials.json') : '';
+  const home = platform.homeOf(e);
+  return home ? path.join(home, '.claude', '.credentials.json') : '';
 }
 function prepareClaudeHome(env, home) {
   const src = claudeAuthSource(env);
@@ -165,7 +171,7 @@ function insideWorktree(p, cwd) {
   if (raw.startsWith('~') || raw.includes('\0')) return false;
   const base = realish(cwd);
   const full = realish(path.resolve(cwd, raw));
-  return full === base || full.startsWith(base + path.sep);
+  return platform.samePrefix(full, base);
 }
 // A glob may not climb out of the checkout or start from the root of the disk.
 function safeGlob(g) {
@@ -215,11 +221,12 @@ function makeDecider({ cwd, say, ask, maxCards = MAX_CARDS }) {
 // The real box adapter. Codex and the tests get a bare environment (no GitHub or KV credentials); only git and gh
 // get the publishing credentials, with repository hooks disabled.
 function realAdapter({ env = process.env } = {}) {
-  const runtime = { PATH: env.PATH || '/usr/bin:/bin', LANG: env.LANG || 'C.UTF-8' };
-  const publisher = Object.assign({}, runtime);
-  ['HOME', 'XDG_CONFIG_HOME', 'GH_CONFIG_DIR', 'GH_TOKEN', 'GITHUB_TOKEN', 'SSH_AUTH_SOCK'].forEach((n) => { if (typeof env[n] === 'string') publisher[n] = env[n]; });
-  const git = (args, o) => run('git', ['-c', 'core.hooksPath=/dev/null', ...args], Object.assign({}, o, { env: publisher }));
-  const gh = (args, o) => run('gh', args, Object.assign({}, o, { env: publisher }));
+  const runtime = platform.baseEnv(env);
+  const publisher = Object.assign({}, runtime, platform.publisherVars(env));
+  // Hooks from a cloned repository never run: git's hooks path is an empty folder (no /dev/null on Windows).
+  const hooks = platform.emptyHooksDir(path.join(os.tmpdir(), 'lavaall-os-runner'));
+  const git = (args, o) => run('git', ['-c', `core.hooksPath=${hooks}`, ...args], Object.assign({ binEnv: env }, o, { env: publisher }));
+  const gh = (args, o) => run('gh', args, Object.assign({ binEnv: env }, o, { env: publisher }));
   let work = '';
   let dir = '';
   return {
@@ -239,17 +246,18 @@ function realAdapter({ env = process.env } = {}) {
       if (job.executor === 'claude') prepareClaudeHome(env, home); else prepareCodexHome(env, home);
       if (typeof onCodexStart === 'function') await onCodexStart();
       const [bin, args, input] = builderCommand(job);
-      const builderEnv = Object.assign({}, runtime, { HOME: home, CODEX_HOME: path.join(home, '.codex'), TMPDIR: home });
+      const builderEnv = Object.assign({}, runtime, platform.isolatedHome(home), { CODEX_HOME: path.join(home, '.codex') });
       const onLine = (line) => progress.progressFromLine(job.executor === 'claude' ? 'claude' : 'codex', line, work).forEach((i) => say(i.kind, i.text));
       if (job.executor === 'claude') {
-        await runClaudeSession({ bin, args, prompt: input, cwd: work, timeout, env: builderEnv, onLine, decide: makeDecider({ cwd: work, say, ask }) });
+        const cb = platform.binFor(bin, env);
+        await runClaudeSession({ bin: cb.cmd, args: [...cb.pre, ...args], prompt: input, cwd: work, timeout, env: builderEnv, onLine, decide: makeDecider({ cwd: work, say, ask }) });
       } else {
-        await run(bin, args, { cwd: work, timeout, env: builderEnv, onLine });
+        await run(bin, args, { cwd: work, timeout, env: builderEnv, binEnv: env, onLine });
       }
       say('stage', 'Running the tests');
-      const tests = job.repo === 'osman-jalloh-lab/Lavaal-' ? ['node', ['tests/run-safe-suite.js']] : ['python3', ['-m', 'pytest', 'tests/', '-q']];
+      const tests = job.repo === 'osman-jalloh-lab/Lavaal-' ? [process.execPath, ['tests/run-safe-suite.js']] : platform.pythonCmd();
       try {
-        await run(tests[0], tests[1], { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, TMPDIR: home, APP_ENV: 'test', EMAIL_ENABLED: 'false' }) });
+        await run(tests[0], tests[1], { cwd: work, timeout, binEnv: env, env: Object.assign({}, runtime, platform.isolatedHome(home), { APP_ENV: 'test', EMAIL_ENABLED: 'false' }) });
       } catch (e) { say('error', 'Tests failed; no PR was opened'); throw e; }
       say('stage', 'Tests passed');
       await git(['add', '-A'], { cwd: work, timeout });
@@ -270,7 +278,7 @@ function realAdapter({ env = process.env } = {}) {
       const md = fs.readFileSync(file, 'utf8');
       const i = md.indexOf('\n- ');
       fs.writeFileSync(file, i === -1 ? `${md.trimEnd()}\n\n${line}\n` : `${md.slice(0, i + 1)}${line}\n${md.slice(i + 1)}`);
-      if (fs.existsSync(path.join(work, 'scripts/build-knowledge-pack.js'))) await run('node', ['scripts/build-knowledge-pack.js'], { cwd: work, env: runtime });
+      if (fs.existsSync(path.join(work, 'scripts/build-knowledge-pack.js'))) await run(process.execPath, ['scripts/build-knowledge-pack.js'], { cwd: work, env: runtime });
       await git(['add', '-A'], { cwd: work });
       await git(['commit', '-m', 'docs(os): builder activity line'], { cwd: work });
       await git(['push', 'origin', `HEAD:refs/heads/${job.branch}`], { cwd: work });

@@ -1,5 +1,7 @@
 # Box setup for the OS builder (run once, on Drake's box)
 
+**On Windows?** Follow `docs/os/BOX-SETUP-WINDOWS.md` instead: two PowerShell scripts do all of this.
+
 This is the prompt to hand the agent on the box (or follow by hand). It turns on the builder that `/os` → **Build** → "Start a build" feeds. Read `docs/os/BUILDER.md` and `docs/os/TRUST.md` first.
 
 Two steps need Osman at the keyboard: the two logins (they open a browser sign-in), and copying the KV settings from Vercel. Never paste a key or token into chat, a commit or a log.
