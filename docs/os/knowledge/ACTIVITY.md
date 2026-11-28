@@ -4,6 +4,7 @@ What landed on `main` in `osman-jalloh-lab/Lavaal-`, newest first. One line per 
 
 New lines are added by the `os-activity-log` GitHub Action, which opens a draft PR for each merge (it never writes to `main`). Earlier lines below were copied from `git log origin/main --merges` on 26 Nov 2026.
 
+- 28 Nov 2026, 12:42 AM CT · 880a622 · #167 · OS PM: direct answers for questions, shared memory in every step, live model names
 - 28 Nov 2026, 12:42 AM CT · 7eb0387 · #166 · OS builder: every Claude file call checked against the worktree
 - 28 Nov 2026, 12:15 AM CT · d978567 · #162 · OS builder: approval and question cards for Claude builds
 - 28 Nov 2026, 12:10 AM CT · 3397bab · #163 · OS design system v2: calm agentic-OS shell, elevation tokens, agent identity colours
