@@ -142,7 +142,7 @@
       else if (check[a.id] && check[a.id].ok) { st = 'ok'; why = 'working · ' + check[a.id].model; }
       else if (check[a.id]) { st = 'bad'; why = check[a.id].why; }
       else { st = 'unk'; why = 'could not check; press Check now'; }
-      return '<li class="bx-agent"><i class="dot ' + st + '" aria-hidden="true"></i><div><b>' + esc(a.label) + ' <span>· ' + esc(a.role) + '</span></b>' +
+      return '<li class="bx-agent" data-agent="' + esc(a.id) + '"><i class="dot ' + st + '" aria-hidden="true"></i><div><b>' + esc(a.label) + ' <span>· ' + esc(a.role) + '</span></b>' +
         '<small class="' + (st === 'bad' ? 'pm-why' : 'dim') + '">' + esc(why) + '</small></div></li>';
     }).join('');
     return '<div class="bx-k">Team <button class="linkbtn" type="button" data-check="1">Check now</button></div><ul class="bx-team">' + rows + '</ul>';
@@ -185,7 +185,7 @@
     var out = !st.output ? '' : bad ? '<div class="pm-why">' + esc(String(st.output).slice(0, 300)) + '</div>'
       : pr ? '<a class="bx-pr" href="' + esc(pr[1]) + '" target="_blank" rel="noopener">Open draft PR</a>'
       : '<details><summary>Read output</summary><pre class="sm-text">' + esc(String(st.output).slice(0, 4000)) + '</pre></details>';
-    return '<li class="px-step s-' + esc(st.state) + '"><div class="px-top"><i class="dot" aria-hidden="true"></i><b>' + esc(KIND[st.kind] || st.kind) + '</b><span class="px-who">' + esc(st.label) + '</span></div>' +
+    return '<li class="px-step s-' + esc(st.state) + '" data-agent="' + esc(st.agent || '') + '"><div class="px-top"><i class="dot" aria-hidden="true"></i><b>' + esc(KIND[st.kind] || st.kind) + '</b><span class="px-who">' + esc(st.label) + '</span></div>' +
       '<div class="px-st">' + esc(STATE[st.state] || st.state) + '</div><p class="px-why dim">' + esc(st.why) + '</p>' + out +
       (st.kind === 'build' && st.jobId ? progressHtml(jobById(st.jobId)) : '') + '</li>';
   }
