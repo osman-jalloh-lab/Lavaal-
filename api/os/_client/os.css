@@ -665,3 +665,84 @@
 .os-root .lp-row.k-error .dot{background:var(--bad)}.os-root .lp-row.k-error span{color:var(--bad)}
 .os-root .lp-more summary{cursor:pointer;font-size:12px;color:var(--accent)}.os-root .lp-more[open]{margin-bottom:4px}
 @media (prefers-reduced-motion:reduce){.os-root .lp-pulse{animation:none}}
+
+/* ==== Design system v2 (docs/design/DESIGN.md) ====
+   The calm "agentic OS" look: one surface for page and sidebar, cards a step lighter, soft tinted elevation,
+   an accent wash for "you are here", small-caps labels, tabular numbers, one identity colour per agent.
+   LAVAALL colours and fonts; patterns only. Contrast targets: body text 7:1+, muted text 4.5:1+ (aim 5.3:1),
+   input edges and focus ring 3:1 against what they sit on. Motion: transform and opacity only. */
+.os-root{--r-base:8px;--r-sm:calc(var(--r-base) - 2px);--r-ctl:calc(var(--r-base) + 1px);--r-card:calc(var(--r-base) * 1.75);--r-lg:calc(var(--r-base) * 2)}
+.os-root[data-theme=dark]{
+  --accent-soft:color-mix(in srgb,var(--accent) 13%,transparent);--accent-line:color-mix(in srgb,var(--accent) 34%,transparent);
+  --elev-0:0 0 0 1px var(--line);
+  --elev-1:0 1px 2px rgba(2,4,14,.45),0 0 0 1px var(--line);
+  --elev-2:0 6px 18px -6px rgba(2,4,14,.6),0 0 0 1px var(--line);
+  --elev-3:0 18px 44px -12px rgba(2,4,14,.72),0 0 0 1px var(--line2);
+  --edge:rgba(244,249,255,.26);--accent-ink:var(--accent);--cap:var(--tx3);
+}
+.os-root[data-theme=light]{
+  --accent-soft:color-mix(in srgb,var(--accent) 10%,transparent);--accent-line:color-mix(in srgb,var(--accent) 30%,transparent);
+  --elev-0:0 0 0 1px var(--line);
+  --elev-1:0 1px 2px rgba(20,30,60,.06),0 0 0 1px var(--line);
+  --elev-2:0 6px 18px -6px rgba(20,30,60,.14),0 0 0 1px var(--line);
+  --elev-3:0 18px 44px -12px rgba(20,30,60,.22),0 0 0 1px var(--line2);
+  --edge:rgba(10,10,20,.32);--accent-ink:#006A8F;--cap:var(--muted);
+}
+/* agent identity colours: one per agent, the same everywhere it shows */
+.os-root{--ag-grok:var(--c-orange);--ag-deepseek:var(--accent);--ag-codex:var(--ok);--ag-sonnet:var(--c-violet);--ag-opus:#C77DFF}
+.os-root [data-agent=grok]{--ag:var(--ag-grok)}.os-root [data-agent=deepseek]{--ag:var(--ag-deepseek)}
+.os-root [data-agent=codex],.os-root [data-agent=codex-chat]{--ag:var(--ag-codex)}
+.os-root [data-agent=claude-sonnet]{--ag:var(--ag-sonnet)}.os-root [data-agent=claude-opus]{--ag:var(--ag-opus)}
+
+/* type: 13px base, small-caps captions, tabular numbers */
+.os-root body{font-size:13px;line-height:20px}
+.os-root .num,.os-root b,.os-root td{font-variant-numeric:tabular-nums}
+
+/* shell: sidebar shares the page surface, a single hairline divides them */
+.os-root .side{width:224px;background:var(--bg);padding:14px 10px}
+.os-root .navlbl{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--cap);padding:16px 13px 6px;font-weight:600}
+.os-root .nav a{padding:8px 13px;border-radius:var(--r-ctl);font-size:12.5px;font-weight:500;transition:background var(--t-fast,180ms) var(--ease-out,ease),color var(--t-fast,180ms) var(--ease-out,ease)}
+.os-root .nav a:hover{background:var(--hover);color:var(--text)}
+.os-root .nav a.on{background:var(--accent-soft);color:var(--accent-ink);box-shadow:none}
+.os-root .nav a.on svg{color:var(--accent-ink)}
+.os-root .search{border-color:var(--edge);background:var(--bg);border-radius:var(--r-ctl)}
+.os-root main{background:var(--bg)}
+.os-root header{height:58px;padding:0 34px;background:var(--bg)}
+.os-root #view{padding:30px 34px 64px}
+
+/* page header: title, one muted line, actions, then a rule */
+.os-root .ph{padding-bottom:18px;margin-bottom:26px;border-bottom:1px solid var(--line);align-items:center}
+.os-root .ph h1{font-size:24px;line-height:30px;letter-spacing:-.02em}
+.os-root .ph p{color:var(--muted);font-size:13px;margin-top:4px}
+
+/* surfaces: cards a step lighter than the page, soft elevation instead of heavy borders */
+.os-root .card{border-color:transparent;box-shadow:var(--elev-1);border-radius:var(--r-card)}
+.os-root .card:hover{box-shadow:var(--elev-2)}
+.os-root .btn{border-radius:var(--r-ctl);border-color:var(--edge)}
+.os-root .btn.pri{background:var(--accent);border-color:var(--accent);color:#04131C;font-weight:600}
+.os-root input,.os-root select,.os-root textarea{border-color:var(--edge)}
+
+/* stat tiles: small-caps label, big tabular value */
+.os-root .kpi{padding:16px 18px}
+.os-root .kpi span{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.os-root .kpi b{font-size:24px;line-height:30px;font-weight:650;margin-top:6px;letter-spacing:-.01em}
+
+/* Build page in the new system */
+.os-root .bx-k{font-size:10.5px;letter-spacing:.09em;font-weight:600;opacity:1;color:var(--muted)}
+.os-root .bx-ask{font-family:var(--display);font-size:22px;letter-spacing:-.02em}
+.os-root .bx-compose textarea{border-radius:var(--r-lg);background:var(--bg)}
+.os-root .bx-seg{border-color:var(--edge)}
+.os-root .bx-seg button.on{background:var(--accent-soft);color:var(--accent-ink);box-shadow:inset 0 0 0 1px var(--accent-line)}
+.os-root .bx-agent{padding:8px 10px;border-radius:var(--r-ctl);background:linear-gradient(90deg,color-mix(in srgb,var(--ag,var(--line)) 10%,transparent),transparent 70%)}
+.os-root .bx-agent b::before{content:"";display:inline-block;width:6px;height:6px;border-radius:2px;margin-right:7px;vertical-align:2px;background:var(--ag,var(--tx3))}
+.os-root .px{border-radius:var(--r-lg)}
+.os-root .px-step{border-color:transparent;border-radius:var(--r-lg);box-shadow:var(--elev-0);background:radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--ag,var(--line)) 14%,transparent),transparent 62%),var(--panel)}
+.os-root .px-who{color:var(--ag,inherit);opacity:1;font-weight:600}
+.os-root .px-step.s-failed,.os-root .px-step.s-blocked{box-shadow:0 0 0 1px color-mix(in srgb,var(--bad) 60%,transparent)}
+/* designed wait state: a slow shimmer on a running step, never a spinner */
+.os-root .px-step.s-running{position:relative;overflow:hidden}
+.os-root .px-step.s-running::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--ag,var(--accent)) 12%,transparent) 50%,transparent 70%);transform:translateX(-100%);animation:dsx 2.4s var(--ease-out,ease) infinite;pointer-events:none}
+@keyframes dsx{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.os-root .px-step.s-running::after{animation:none;opacity:0}.os-root .nav a,.os-root .card{transition:none}}
+@media(max-width:759px){.os-root header{padding:0 16px;height:52px}.os-root #view{padding:18px 16px 88px}.os-root .ph{margin-bottom:18px;padding-bottom:14px}}
+.os-root .kpi.t-b,.os-root .kpi.t-v,.os-root .kpi.t-o,.os-root .kpi.t-g{border-color:transparent}

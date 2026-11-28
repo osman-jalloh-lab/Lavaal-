@@ -119,7 +119,10 @@ async function call(area, extra) {
   check('light theme tokens exist', /\.os-root\[data-theme=light\]\{[^}]*--bg:#F4F9FF/.test(cssText));
   check('no :root, html or body-level token leaks', !/(^|[}\s,]):root\b/.test(cssText));
   check('/ops palette v2 is not used', !/#2EC4FF|#3DDC97|#FCE7F3|#FAF8F5/i.test(cssText));
-  check('no drop shadows (box-shadow only for the active-nav inset bar)', (cssText.match(/box-shadow:[^;}]*/g) || []).every((s) => /inset 2px 0 0 var\(--accent\)/.test(s)));
+  // Design system v2 (docs/design/DESIGN.md): drop shadows live only in the --elev-0..3 tokens; components use those
+  // tokens, 1px rings, insets or none. No ad-hoc shadows.
+  check('shadows only through the elevation tokens', (cssText.match(/box-shadow:[^;}]*/g) || []).every((s) => /inset 2px 0 0 var\(--accent\)|^box-shadow:(var\(--elev-[0-3]\)|none|inset |0 0 0 1px )/.test(s)));
+  check('elevation tokens defined for both themes', ['dark', 'light'].every((t) => new RegExp('\\.os-root\\[data-theme=' + t + '\\]\\{[^}]*--elev-3:').test(cssText)));
   check('card radius 14px, control radius 8px', /--r-card:14px/.test(cssText) && /--r-ctl:8px/.test(cssText));
   check('tabular numbers on KPIs', /\.kpi b\{[^}]*\}/.test(cssText) && /font-variant-numeric:tabular-nums/.test(cssText));
   check('mobile breakpoint under 760px', /@media\(max-width:759px\)/.test(cssText));
