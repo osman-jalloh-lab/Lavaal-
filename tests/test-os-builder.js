@@ -247,7 +247,8 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     && !builder.validBuilder('claude', 'haiku') && !builder.validBuilder('deepseek', '') && !builder.validBuilder('codex', 'opus') && !builder.validBuilder('claude', ''));
   const cc = runner.builderCommand({ executor: 'claude', model: 'opus', objective: 'x' });
   check('Claude Code runs in print mode with file tools only (no shell, no web)', cc[0] === 'claude' && cc[1].includes('-p') && cc[1][cc[1].indexOf('--model') + 1] === 'opus'
-    && cc[1][cc[1].indexOf('--allowedTools') + 1] === 'Read,Edit,Write,Glob,Grep' && /Bash/.test(cc[1][cc[1].indexOf('--disallowedTools') + 1]) && !cc[1].includes('--dangerously-skip-permissions'));
+    && !cc[1].includes('--allowedTools') && cc[1][cc[1].indexOf('--permission-mode') + 1] === 'default' && /Bash/.test(cc[1][cc[1].indexOf('--disallowedTools') + 1])
+    && /WebFetch/.test(cc[1][cc[1].indexOf('--disallowedTools') + 1]) && !cc[1].includes('--dangerously-skip-permissions') && !cc[1].includes('acceptEdits'));
   { const w = runner.builderCommand({ executor: 'claude', model: 'weird', objective: 'x' })[1]; check('Claude Sonnet is the default model name for the claude builder command', w[w.indexOf('--model') + 1] === 'sonnet'); }
   check('an Opus run is charged more ($6 default) than Codex or Sonnet ($2)', builder.runEstimate({}, { executor: 'claude', model: 'opus' }) === 6 && builder.runEstimate({}, { executor: 'claude', model: 'sonnet' }) === 2 && builder.runEstimate({}, { executor: 'codex' }) === 2);
   check('an Opus run that would pass the budget asks first while a $2 run still fits (spent 46 of 50)', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'claude', model: 'opus' }).error === 'needs_ok' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'codex' }).ok);
@@ -369,6 +370,22 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     check('cards: shell and web are refused without asking', ['Bash', 'WebFetch', 'WebSearch', 'BashOutput'].every((t) => P(t, {}).action === 'refuse'));
     check('cards: a path outside the worktree is refused, inside is allowed', P('Read', { file_path: '/etc/passwd' }).action === 'refuse' && P('Edit', { file_path: path.join(W, '..', 'other', 'x.js') }).action === 'refuse'
       && P('Write', { file_path: path.join(W, 'api', 'x.js') }).action === 'allow' && P('Grep', { path: 'src' }).action === 'allow');
+    // Tight file boundary: symlinks, globs and home paths cannot reach outside the checkout.
+    {
+      const fsx = require('fs'); const osx = require('os');
+      const box = fsx.mkdtempSync(path.join(osx.tmpdir(), 'os-bound-'));
+      const wt = path.join(box, 'worktree'); const outside = path.join(box, 'secret');
+      fsx.mkdirSync(wt); fsx.mkdirSync(outside); fsx.writeFileSync(path.join(outside, 'key.txt'), 'x');
+      fsx.symlinkSync(outside, path.join(wt, 'link'));
+      const Q = (tool, input) => runner.permissionFor(tool, input, wt);
+      check('boundary: a symlink inside the checkout cannot read or write outside it', Q('Read', { file_path: path.join(wt, 'link', 'key.txt') }).action === 'refuse'
+        && Q('Write', { file_path: 'link/new.txt' }).action === 'refuse' && Q('Grep', { path: 'link' }).action === 'refuse');
+      check('boundary: new files and folders inside the checkout are allowed', Q('Write', { file_path: 'api/new/x.js' }).action === 'allow' && Q('Edit', { file_path: path.join(wt, 'a.js') }).action === 'allow');
+      check('boundary: globs cannot climb out or start at the disk root', Q('Glob', { pattern: '../**' }).action === 'refuse' && Q('Glob', { pattern: '/etc/*' }).action === 'refuse'
+        && Q('Grep', { pattern: 'key', glob: '../../**/*.env' }).action === 'refuse' && Q('Glob', { pattern: 'src/**/*.js' }).action === 'allow' && Q('Grep', { pattern: "from '../lib'" }).action === 'allow');
+      check('boundary: home paths are refused', Q('Read', { file_path: '~/.ssh/id_rsa' }).action === 'refuse' && Q('Glob', { pattern: '~/*' }).action === 'refuse');
+      fsx.rmSync(box, { recursive: true, force: true });
+    }
     check('cards: Claude\'s own task list is allowed', P('TodoWrite', { todos: [] }).action === 'allow');
     const q = P('AskUserQuestion', { questions: [{ question: 'Which colour?', options: [{ label: 'Sky' }, { label: 'Lime' }] }] });
     check('cards: a question becomes a question card with its options', q.action === 'question' && q.questions.length === 1 && q.questions[0].question === 'Which colour?' && q.questions[0].options.join() === 'Sky,Lime');
