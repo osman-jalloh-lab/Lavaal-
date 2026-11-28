@@ -1,4 +1,4 @@
-// api/ops/_os_ingest.js — the POST handler behind api/os/ingest/[feed].js.
+// api/ops/_os_ingest.js — the nine-feed handler behind api/os/ingest/[feed].js.
 // Underscore-prefixed, so Vercel does not treat it as a function.
 //
 // Auth is the same bearer the inbox push and routine health already use (OPS_CEO_BRIDGE_SECRET, at least 16
@@ -6,7 +6,7 @@
 // revealed. Never logs a payload, a token or a header.
 
 const { header, noStore, timingSafeEqualString } = require('./_lib');
-const { FEEDS, applyPayload, maxBytesFor, readFeed, validate, writeFeed } = require('./_os_feeds');
+const { FEEDS, applyPayload, maxBytesFor, readFeed, repoStatusView, validate, writeFeed } = require('./_os_feeds');
 const DATA_PACK = require('../os/_data/index.js');
 
 function deskIds() {
@@ -70,12 +70,22 @@ async function handleIngest(req, res, opts) {
   // 1. Auth first, before the method, the feed name or the body are looked at.
   if (!authorized(req, env)) return send(res, 401, { error: 'unauthorized' });
 
-  // 2. Method and feed.
-  if (String(req.method || 'GET').toUpperCase() !== 'POST') {
-    return send(res, 405, { error: 'method_not_allowed' }, { Allow: 'POST' });
-  }
+  // 2. POST is supported for every feed; repo-status also supports GET.
+  const method = String(req.method || 'GET').toUpperCase();
   const feed = feedName(req);
+  const allow = feed === 'repo-status' ? 'GET, POST' : 'POST';
+  if (method !== 'POST' && !(method === 'GET' && feed === 'repo-status')) {
+    return send(res, 405, { error: 'method_not_allowed' }, { Allow: allow });
+  }
   if (!FEEDS.includes(feed)) return send(res, 404, { error: 'not_found' });
+  if (method === 'GET') {
+    try {
+      const record = await readFeed(feed, opts, { strict: true });
+      return send(res, 200, Object.assign({ ok: true, feed }, repoStatusView(record)));
+    } catch {
+      return send(res, 503, { error: 'store_unavailable' });
+    }
+  }
 
   // 3. Size cap, declared and actual. 20 KB for every feed except notes (see _os_feeds.js).
   const cap = maxBytesFor(feed);
@@ -94,7 +104,7 @@ async function handleIngest(req, res, opts) {
 
   // 5. Merge and write to this feed's own key.
   try {
-    const existing = await readFeed(feed, opts);
+    const existing = await readFeed(feed, opts, feed === 'repo-status' ? { strict: true } : undefined);
     const record = applyPayload(feed, existing, checked.value, now);
     await writeFeed(feed, record, opts);
     return send(res, 200, { ok: true, feed, received: Array.isArray(checked.value) ? checked.value.length : 1 });

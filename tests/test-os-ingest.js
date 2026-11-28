@@ -78,6 +78,14 @@ GOOD['daily-recap'] = [
   { id: 'grok-2026-10-23', agent: 'grok', project: 'starlink', date: today, happened: 'Planned the go-live checklist.', built: 'Launch page draft', blocked: '', next: 'Final QA', updated: '2026-10-23T14:00:00Z' },
   { id: 'claude-2026-10-23', agent: 'claude', project: 'lavaall-os', date: today, happened: 'Built the live calendar.', built: '', blocked: 'Needs the merge.', next: '', updated: '2026-10-23T13:00:00Z' },
 ];
+GOOD['repo-status'] = {
+  repo: 'osman-jalloh-lab/Lavaal-', branch: 'main', generatedAt: '2026-10-23T14:00:00Z', since: '2026-10-23T13:00:00Z', trigger: 'schedule', headSha: 'abcdef1',
+  summary: { merges: 1, commits: 1, checksPass: 1, checksFail: 0, checksPending: 0, checksOther: 0 },
+  merges: [{ pr: 1, sha: 'abcdef1', title: 'A change', branch: 'feature/change', at: '2026-10-23T13:30:00Z', kind: 'merge' }],
+  commits: [{ sha: 'abcdef1', title: 'A change', at: '2026-10-23T13:30:00Z' }],
+  checks: [{ name: 'Tests', runId: 1, sha: 'abcdef1', result: 'pass', pr: 1, url: 'https://github.com/org/repo/actions/runs/1' }],
+};
+const repoOf = (over) => Object.assign({}, GOOD['repo-status'], over);
 const recapOf = (over) => [Object.assign({}, GOOD['daily-recap'][0], over)];
 const noteOf = (over) => Object.assign({}, GOOD.notes[0], over);
 const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
@@ -250,6 +258,22 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
     ['a phone number in next', recapOf({ next: 'call 202-555-0188' })],
     ['over 40 entries', Array.from({ length: 41 }, (_, i) => Object.assign({}, GOOD['daily-recap'][0], { id: 'r' + i }))],
   ];
+  BAD['repo-status'] = [
+    ['extra field', repoOf({ logs: 'x' })],
+    ['invalid repo', repoOf({ repo: 'bad repo' })],
+    ['invalid sha', repoOf({ headSha: 'ABCDEF1' })],
+    ['future time', repoOf({ generatedAt: '2026-12-01T00:00:00Z' })],
+    ['since after generated', repoOf({ since: '2026-10-23T14:30:00Z' })],
+    ['invalid trigger', repoOf({ trigger: 'manual' })],
+    ['invalid count', repoOf({ summary: { ...GOOD['repo-status'].summary, merges: -1 } })],
+    ['extra summary field', repoOf({ summary: { ...GOOD['repo-status'].summary, extra: 1 } })],
+    ['too many merges', repoOf({ merges: Array(21).fill(GOOD['repo-status'].merges[0]) })],
+    ['email title', repoOf({ merges: [{ ...GOOD['repo-status'].merges[0], title: 'someone@example.com' }] })],
+    ['phone branch', repoOf({ branch: '202-555-0188' })],
+    ['email check name', repoOf({ checks: [{ ...GOOD['repo-status'].checks[0], name: 'someone@example.com' }] })],
+    ['invalid check url', repoOf({ checks: [{ ...GOOD['repo-status'].checks[0], url: 'https://evil.example/1' }] })],
+    ['extra commit field', repoOf({ commits: [{ ...GOOD['repo-status'].commits[0], author: 'x' }] })],
+  ];
   for (const feed of feeds.FEEDS) {
     const cases = BAD[feed];
     const outcomes = [];
@@ -316,6 +340,39 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
     await post('morning-brief', { date: today, text: 'Replaced.' }, { kv });
     check('morning-brief: the latest post is the brief', JSON.parse(kv.data.get('lavaall-os-feed-morning-brief-v1')).text === 'Replaced.');
     check('a damaged stored record reads as "no data", not a crash', feeds.normalizeRecord('spend', { receivedAt: 1, rows: [{ nope: 1 }] }) === null && feeds.normalizeRecord('outreach-stats', { receivedAt: 1, days: { x: {} } }) === null && feeds.normalizeRecord('morning-brief', 'junk') === null);
+  }
+
+  // Repo status is read separately and keeps a compact bounded history.
+  {
+    for (const method of ['GET', 'POST']) {
+      for (const auth of [null, 'Bearer wrong', `Bearer ${TOKEN.slice(0, -1)}`]) {
+        const r = await post('repo-status', GOOD['repo-status'], { method, auth });
+        check(`repo-status ${method}: unauthorized request issues no KV command`, r.res.statusCode === 401 && r.kv.cmds.length === 0);
+      }
+    }
+    const store = makeKv();
+    const emptyRepo = await post('repo-status', undefined, { method: 'GET', kv: store });
+    check('repo-status: empty GET reads once and returns an empty view', emptyRepo.res.statusCode === 200 && emptyRepo.res.body.latest === null && Array.isArray(emptyRepo.res.body.history) && emptyRepo.res.body.history.length === 0 && store.cmds.length === 1 && store.cmds[0][0] === 'GET');
+    for (let i = 0; i < 30; i++) {
+      const value = repoOf({ generatedAt: new Date(NOW - (30 - i) * 1000).toISOString().replace('.000Z', 'Z'), headSha: i.toString(16).padStart(7, '0') });
+      await post('repo-status', value, { kv: store });
+    }
+    store.cmds.length = 0;
+    const latest = await post('repo-status', undefined, { method: 'GET', kv: store });
+    const history = latest.res.body.history || [];
+    check('repo-status: GET uses one GET, returns latest and 24 compact newest-first rows', latest.res.statusCode === 200 && store.cmds.length === 1 && store.cmds[0][0] === 'GET' && latest.res.body.latest.headSha === '000001d' && history.length === 24 && history[0].headSha === '000001d' && history[23].headSha === '0000006' && history.every((row) => Object.keys(row).sort().join() === 'generatedAt,headSha,summary,trigger'));
+    const failure = makeKv();
+    failure.fetchImpl = async (url, init) => { failure.cmds.push(JSON.parse(init.body)); throw new Error('store unavailable'); };
+    const failedGet = await post('repo-status', undefined, { method: 'GET', kv: failure });
+    const failedPost = await post('repo-status', GOOD['repo-status'], { kv: failure });
+    check('repo-status: failed reads return 503 and never SET', failedGet.res.statusCode === 503 && failedPost.res.statusCode === 503 && failure.cmds.every((cmd) => cmd[0] === 'GET'));
+    const put = await post('repo-status', undefined, { method: 'PUT' });
+    check('repo-status: unsupported methods advertise GET and POST', put.res.statusCode === 405 && put.res.headers.allow === 'GET, POST');
+    const oversize = await post('repo-status', repoOf({ branch: 'x'.repeat(21000) }));
+    check('repo-status: body over 20 KB is rejected before KV', oversize.res.statusCode === 413 && oversize.kv.cmds.length === 0);
+    const damaged = { receivedAt: NOW, latest: GOOD['repo-status'], history: [{ generatedAt: GOOD['repo-status'].generatedAt, trigger: 'schedule', headSha: 'abcdef1', summary: GOOD['repo-status'].summary, extra: 1 }] };
+    check('repo-status: damaged stored history is rejected', feeds.normalizeRecord('repo-status', damaged) === null);
+    check('ingest implementation never calls GitHub', ['api/ops/_os_feeds.js', 'api/ops/_os_ingest.js', 'api/os/ingest/[feed].js'].every((f) => !fs.readFileSync(path.join(root, f), 'utf8').includes('api.github.com')));
   }
 
   // ================= 6. a good payload is rendered by the real client ===========================================
@@ -412,7 +469,7 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
   check('only the ingest modules write, and only with SET on a lavaall-os-feed key', (src.match(/'SET'/g) || []).length === 1 && /KEY_PREFIX = 'lavaall-os-feed-'/.test(src));
   check('no payload, token or header is logged', !/console\.(log|error|warn)\([^)]*(body|token|authorization|req\.)/i.test(src));
   const docs = fs.readFileSync(path.join(root, 'api/os/_data/INGEST.md'), 'utf8');
-  check('INGEST.md has one curl example per feed, with the secret shown as $TOKEN', feeds.FEEDS.every((f) => docs.includes('curl -sS -X POST https://www.lavaall.com/api/os/ingest/' + f + ' \\')) && (docs.match(/curl -sS -X POST/g) || []).length === 8 && (docs.match(/-H "Authorization: Bearer \$TOKEN"/g) || []).length === 8);
+  check('INGEST.md has one curl example per feed, with the secret shown as $TOKEN', feeds.FEEDS.every((f) => docs.includes('curl -sS -X POST https://www.lavaall.com/api/os/ingest/' + f + ' \\')) && (docs.match(/curl -sS -X POST/g) || []).length === 9 && (docs.match(/-H "Authorization: Bearer \$TOKEN"/g) || []).length === 10);
   const banned = new RegExp(['Star' + 'link', 'Gui' + 'nea', '@gmail', '@g\\.', '[A-Za-z0-9_-]{32,}'].join('|'));
   check('INGEST.md holds no real secret, email, lead name or banned public-copy term', !banned.test(docs.replace(/https?:\/\/\S+/g, '')));
   try {
@@ -447,6 +504,52 @@ const buildOf = (over) => [Object.assign({}, GOOD['build-log'][0], over)];
     }
     check('/os, /ops and /web vercel routes stay unchanged; the homepage and /os may only add a scoped same-origin microphone policy', osRoutesIntact);
   } catch { check('vercel.json and the auth code are not changed (git unavailable, skipped)', true); }
+
+  {
+    const producer = require(path.join(root, 'scripts/os-repo-status.js'));
+    const logs = [];
+    let calls = [];
+    const mock = (watermark, rich = false) => async (url, init) => {
+      calls.push({ url, method: init.method, body: init.body });
+      if (url === producer.INGEST_URL && init.method === 'GET') return watermark === null ? { ok: false } : { ok: true, json: async () => ({ latest: { generatedAt: watermark } }) };
+      if (url === producer.INGEST_URL && init.method === 'POST') return { ok: true, status: 200 };
+      if (url.includes('/pulls?')) return { ok: true, json: async () => rich ? [{ number: 1, title: 'Contact someone@example.com', head: { ref: 'feature/x' }, merged_at: '2026-10-23T14:30:00Z', merge_commit_sha: 'abcdef123456', author: { name: 'Private Name', email: 'someone@example.com' }, diff: 'private diff text' }] : [] };
+      if (url.includes('/commits?')) return { ok: true, json: async () => rich ? [{ sha: 'abcdef123456', commit: { message: 'Change\nprivate log text', committer: { date: '2026-10-23T14:30:00Z', name: 'Private Name', email: 'someone@example.com' } } }] : [] };
+      if (url.includes('/git/ref/')) return { ok: true, json: async () => ({ object: { sha: 'abcdef123456' } }) };
+      if (url.includes('/actions/runs?')) return { ok: true, json: async () => ({ workflow_runs: rich ? [{ name: 'Tests', id: 2, head_sha: 'abcdef123456', status: 'completed', conclusion: 'success', pull_requests: [], html_url: 'https://github.com/org/repo/actions/runs/2', logs: 'private log text' }] : [] }) };
+      throw new Error('unexpected host');
+    };
+    const skip = await producer.run({ env: {}, fetchImpl: () => { throw new Error('must not fetch'); }, log: (line) => logs.push(line) });
+    check('producer: missing secret skips without any fetch', skip === 0 && logs.pop() === 'os-repo-status: skipped (ingest secret not configured)');
+    const opts = { env: {}, secret: TOKEN, githubToken: 'test-github-token', now: NOW, log: (line) => logs.push(line) };
+    let code = await producer.run({ ...opts, ingestUrl: 'https://evil.example/', fetchImpl: mock(null) });
+    let posts = calls.filter((c) => c.method === 'POST');
+    let digest = JSON.parse(posts[0].body);
+    check('producer: quiet heartbeat posts once to safe default and falls back 70 minutes', code === 0 && posts.length === 1 && posts[0].url === producer.INGEST_URL && digest.since === '2026-10-23T13:50:00Z' && digest.generatedAt === '2026-10-23T15:00:00Z' && Object.values(digest.summary).every((n) => n === 0) && ['merges', 'commits', 'checks'].every((k) => digest[k].length === 0) && feeds.validate('repo-status', digest, { now: NOW }).ok);
+    calls = [];
+    code = await producer.run({ ...opts, fetchImpl: mock('2026-10-01T00:00:00Z', true) });
+    posts = calls.filter((c) => c.method === 'POST');
+    digest = JSON.parse(posts[0].body);
+    const serialized = JSON.stringify(digest);
+    check('producer: watermark clamps at 48 hours; private source fields never enter digest', code === 0 && posts.length === 1 && digest.since === '2026-10-21T15:00:00Z' && Object.keys(digest).sort().join() === 'branch,checks,commits,generatedAt,headSha,merges,repo,since,summary,trigger' && !/@|Private Name|private diff|private log|author|committer/.test(serialized) && /\[email\]|\[title withheld\]/.test(digest.merges[0].title) && feeds.validate('repo-status', digest, { now: NOW }).ok && logs.every((line) => !line.includes(TOKEN)));
+    calls = [];
+    await producer.run({ ...opts, fetchImpl: mock('2026-10-23T14:20:00Z') });
+    check('producer: valid watermark is used', JSON.parse(calls.find((c) => c.method === 'POST').body).since === '2026-10-23T14:20:00Z');
+    const large = repoOf({ checks: Array(20).fill({ ...GOOD['repo-status'].checks[0], name: 'x'.repeat(100) }), commits: Array(20).fill({ ...GOOD['repo-status'].commits[0], title: 'x'.repeat(140) }), merges: Array(20).fill({ ...GOOD['repo-status'].merges[0], title: 'x'.repeat(140), branch: 'x'.repeat(100) }) });
+    const trimmed = producer.trim(large);
+    check('producer: maximal rows fit the 19 KB target after trimming', !!trimmed && Buffer.byteLength(JSON.stringify(trimmed)) <= 19 * 1024 && feeds.validate('repo-status', trimmed, { now: NOW }).ok);
+  }
+
+  {
+    const workflow = fs.readFileSync(path.join(root, '.github/workflows/os-repo-status.yml'), 'utf8');
+    check('repo-status workflow: hourly, main push and manual triggers', /cron:\s*['"]0 \* \* \* \*['"]/.test(workflow) && /push:\s*\n\s*branches:\s*\[main\]/.test(workflow) && /workflow_dispatch:/.test(workflow));
+    const permissions = (workflow.match(/^permissions:\s*\n((?:[ \t]+.*\n)+)/m) || [])[1] || '';
+    check('repo-status workflow: only three read permissions', permissions.trim().split('\n').map((line) => line.trim()).sort().join('|') === 'actions: read|contents: read|pull-requests: read' && !/\bwrite\b/.test(workflow));
+    check('repo-status workflow: secret referenced once in env', (workflow.match(/secrets\.OPS_CEO_BRIDGE_SECRET/g) || []).length === 1 && /OPS_CEO_BRIDGE_SECRET:\s*\$\{\{ secrets\.OPS_CEO_BRIDGE_SECRET \}\}/.test(workflow));
+    check('repo-status workflow: no shell exposure or attacker-controlled expressions', !/\b(?:echo|printenv)\b|set -x|bash -x|github\.event\.|head_ref|pull_request(?:_target)?:/.test(workflow) && !/^\s*run:.*\$\{\{/m.test(workflow));
+    const actions = [...workflow.matchAll(/\buses:\s*([^\s#]+)/g)].map((m) => m[1]);
+    check('repo-status workflow: checkout is the only action and pinned to a full SHA', actions.length === 1 && /^actions\/checkout@[0-9a-f]{40}$/.test(actions[0]));
+  }
 
   const failedChecks = results.filter((r) => !r.pass);
   results.forEach((r) => console.log(`${r.pass ? 'ok  ' : 'FAIL'} ${r.name}`));
