@@ -7,6 +7,7 @@
 //
 // POST /ops/os/builder/approve  { repo, branch, objective }  -> { job_id, approval_id, state: 'queued' }
 // GET  /ops/os/builder                                         -> { jobs: [...] }   (latest 20; a job that ran has progress: [...])
+// POST /ops/os/builder/answer   { job_id, rid, decision, answers? } -> Osman's answer to one card of a running build
 'use strict';
 const crypto = require('node:crypto');
 const { json, readBody, looksLikeAgentRequest, queryOf } = require('./_lib');
@@ -105,7 +106,29 @@ function lockKey(env, job) {
 function jobKey(env, id) { return approvals.rootFor(env) + 'builder-jobs:' + id; }
 // Live progress lines the box runner writes for a job (scripts/os-runner/progress.js): a list, newest last.
 function progressKey(env, id) { return jobKey(env, id) + ':progress'; }
-const PROGRESS_STATES = ['running', 'draft_opened', 'no_changes', 'failed'];
+const PROGRESS_STATES = ['running', 'needs_you', 'draft_opened', 'no_changes', 'failed'];
+
+// Cards: while a Claude build runs, the runner may park the job as 'needs_you' with job.ask = { rid, kind, tool,
+// detail, questions, expiresAt }. kind 'approval' asks to allow one tool call once; kind 'question' is Claude asking
+// Osman something. His answer is written once to answerKey, with a builder_answer approval bound to answerHash.
+const ASK_KINDS = ['approval', 'question'];
+const RID_RE = /^q-[a-f0-9-]{36}$/;
+const MAX_ANSWER = 500;
+function answerKey(env, jobId, rid) { return jobKey(env, jobId) + ':answer:' + rid; }
+function answerHash(a) {
+  const p = a || {};
+  const answers = Array.isArray(p.answers) ? p.answers.map((x) => String(x == null ? '' : x)) : [];
+  return crypto.createHash('sha256').update(JSON.stringify({ jobId: String(p.jobId || ''), rid: String(p.rid || ''), decision: String(p.decision || ''), answers })).digest('hex');
+}
+// What decisions fit a card: approval -> allow | deny; question -> answer (one non-empty answer per question) | deny.
+function validAnswer(ask, decision, answers) {
+  if (!ask || !ASK_KINDS.includes(ask.kind)) return false;
+  if (decision === 'deny') return !answers || (Array.isArray(answers) && answers.length === 0);
+  if (ask.kind === 'approval') return decision === 'allow' && (!answers || answers.length === 0);
+  const qs = Array.isArray(ask.questions) ? ask.questions : [];
+  return decision === 'answer' && Array.isArray(answers) && qs.length > 0 && answers.length === qs.length
+    && answers.every((x) => typeof x === 'string' && x.trim() && x.length <= MAX_ANSWER);
+}
 async function readProgress(call, env, id) {
   const rows = await call(['LRANGE', progressKey(env, id), 0, -1]);
   const out = [];
@@ -124,7 +147,7 @@ function routeOf(req) {
   const area = String((Array.isArray(q.area) ? q.area[0] : q.area) || '').replace(/^\/+|\/+$/g, '');
   const p = String(req.url || '').split('?')[0].replace(/^\/+|\/+$/g, '').replace(/^ops\//, '');
   const r = area || p;
-  return ['os/builder', 'os/builder/approve', 'os/builder/budget'].includes(r) ? r : '';
+  return ['os/builder', 'os/builder/approve', 'os/builder/budget', 'os/builder/answer'].includes(r) ? r : '';
 }
 
 async function handleBuilder(req, res, opts) {
@@ -167,6 +190,33 @@ async function handleBuilder(req, res, opts) {
       json(res, 200, { budget: await budgetState(env, (a) => approvals.command(env, fetchImpl, a), now) });
       return true;
     }
+    if (route === 'os/builder/answer') {
+      // Osman answers one card from a running build. One answer per card, bound by a single-use approval.
+      if (method !== 'POST') { json(res, 405, { error: 'method_not_allowed' }); return true; }
+      if (!approvals.isApprover(session.email)) { json(res, 403, { error: 'approver_not_allowed' }); return true; }
+      const b = readBody(req) || {};
+      const jobId = String(b.job_id || '');
+      const rid = String(b.rid || '');
+      const decision = String(b.decision || '');
+      const answers = Array.isArray(b.answers) ? b.answers.map((x) => String(x == null ? '' : x).trim()) : undefined;
+      if (!/^job-[a-f0-9-]{36}$/.test(jobId) || !RID_RE.test(rid)) { json(res, 400, { error: 'card_invalid' }); return true; }
+      let job = null;
+      try { job = JSON.parse(await approvals.command(env, fetchImpl, ['GET', jobKey(env, jobId)]) || 'null'); } catch { job = null; }
+      if (!job || job.state !== 'needs_you' || !job.ask || job.ask.rid !== rid) { json(res, 409, { error: 'card_not_waiting' }); return true; }
+      if (!(Date.parse(job.ask.expiresAt) > now)) { json(res, 409, { error: 'card_expired' }); return true; }
+      if (!validAnswer(job.ask, decision, answers)) { json(res, 400, { error: 'answer_invalid' }); return true; }
+      if (await approvals.command(env, fetchImpl, ['GET', answerKey(env, jobId, rid)])) { json(res, 409, { error: 'already_answered' }); return true; }
+      const clean = decision === 'answer' ? answers : [];
+      const hash = answerHash({ jobId, rid, decision, answers: clean });
+      const minted = await approvals.mintApproval(env, fetchImpl, session, { action: 'builder_answer', requestHash: hash, summary: `${decision} ${job.ask.tool || ''}`.trim().slice(0, 120) }, now);
+      if (minted.status !== 201) { json(res, minted.status, minted.body); return true; }
+      const used = await approvals.consumeApproval(env, fetchImpl, { id: minted.body.approval_id, action: 'builder_answer', requestHash: hash, consumer: 'builder_answer:' + rid }, now);
+      if (!used.ok) { json(res, used.status, { error: used.error }); return true; }
+      const record = { decision, answers: clean, approvalId: minted.body.approval_id, at: new Date(now).toISOString() };
+      if (await approvals.command(env, fetchImpl, ['SET', answerKey(env, jobId, rid), JSON.stringify(record), 'NX', 'EX', 3600]) !== 'OK') { json(res, 409, { error: 'already_answered' }); return true; }
+      json(res, 200, { ok: true, decision });
+      return true;
+    }
     if (method !== 'POST') { json(res, 405, { error: 'method_not_allowed' }); return true; }
     if (!approvals.isApprover(session.email)) { json(res, 403, { error: 'approver_not_allowed' }); return true; }
     const body = readBody(req) || {};
@@ -194,4 +244,4 @@ async function handleBuilder(req, res, opts) {
   }
 }
 
-module.exports = { budgetState, extraKey, holdForOk, holdKey, lockKey, progressKey, readProgress, BUILDERS, CAP_NAME, DEFAULT_OPUS_ESTIMATE_USD, OPUS_ESTIMATE_NAME, validBuilder, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };
+module.exports = { answerHash, answerKey, validAnswer, ASK_KINDS, MAX_ANSWER, budgetState, extraKey, holdForOk, holdKey, lockKey, progressKey, readProgress, BUILDERS, CAP_NAME, DEFAULT_OPUS_ESTIMATE_USD, OPUS_ESTIMATE_NAME, validBuilder, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };

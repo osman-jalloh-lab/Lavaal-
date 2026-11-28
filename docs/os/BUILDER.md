@@ -16,7 +16,7 @@ Phase 4 of `2026-11-26-os-one-shot-build-prompt.md`. **Draft pull requests only.
    - The approval was minted by the founder session, for this exact request, and its single-use marker belongs to this job.
 3. **The run.** The runner:
    - makes a fresh clone and an isolated worktree on the feature branch;
-   - runs the builder in an empty home. **Codex** runs with `exec --json --sandbox workspace-write`. **Claude Code** runs with `-p --model sonnet|opus --permission-mode acceptEdits --output-format stream-json --verbose`, with file tools only (Read, Edit, Write, Glob, Grep) and no shell or web. Their event output feeds the live progress below. Only its login (`~/.claude/.credentials.json`, or `OS_RUNNER_CLAUDE_AUTH_FILE`) is copied in.
+   - runs the builder in an empty home. **Codex** runs with `exec --json --sandbox workspace-write`. **Claude Code** runs with `-p --model sonnet|opus --permission-mode acceptEdits --input-format stream-json --output-format stream-json --verbose --permission-prompt-tool stdio`, with file tools only (Read, Edit, Write, Glob, Grep) and no shell or web; anything else it wants becomes a card (see "Cards"). Their event output feeds the live progress below. Only its login (`~/.claude/.credentials.json`, or `OS_RUNNER_CLAUDE_AUTH_FILE`) is copied in.
    - Codex details: Only the Codex login (`auth.json`, from `OS_RUNNER_CODEX_AUTH_FILE` or the box's `~/.codex`) is copied in, with mode 0600. If there is no login, the job fails before Codex starts, and nothing is charged. The environment has no GitHub or KV credentials, and the objective is wrapped as untrusted text;
    - runs the repo's tests (`node tests/run-safe-suite.js` or pytest) and commits;
    - pushes the branch and opens a **draft** PR.
@@ -31,6 +31,22 @@ While a build runs, the Build page shows what the builder is doing, under the jo
 - The last line says how the run ended: draft PR opened and checked on GitHub, no changes, or "Stopped:" with the reason.
 - Progress is best effort. A KV error while writing progress never fails or slows a build.
 - `GET /ops/os/builder` returns `progress` for jobs that ran. The page refreshes every 6 seconds while a job is queued or running and the tab is visible.
+
+## Cards: Claude asks, Osman answers
+
+A Claude build can stop and ask instead of guessing or failing. Codex is unchanged: `codex exec` has no way to ask.
+- Claude runs with `--input-format stream-json --permission-prompt-tool stdio` (`scripts/os-runner/claude-session.js`). The task goes in on stdin. Any tool call that is not already allowed comes to the runner as a permission request.
+- The runner decides first (`permissionFor` in `scripts/os-runner/index.js`):
+  - **Refused, never asked:** shell and web (Bash, WebFetch, WebSearch), and any path outside the worktree.
+  - **Allowed:** the file tools inside the worktree, and Claude's own task list.
+  - **Question card:** Claude asks Osman something (`AskUserQuestion`, up to four questions).
+  - **Approval card:** any other tool (a sub-agent, a skill, an MCP tool). Its input is shown clipped and redacted. Osman can allow it once or say no.
+- While a card waits, the job is `needs_you` and carries `job.ask`. The Build page shows the card under the job or plan step.
+- Osman answers with `POST /ops/os/builder/answer` `{ job_id, rid, decision, answers? }`. Only his signed-in session can, and only for the card that is waiting. It mints a single-use `builder_answer` approval bound to the job, the card, the decision and the exact answer text, uses it at once, and writes the answer once.
+- The runner checks that approval before acting. An answer without a valid approval is a no.
+- **No answer in 15 minutes is a no.** So is the run ending. At most 5 cards per run; after that Claude must make the safest choice and say so in its summary.
+- A question's answer goes back to Claude as text, and nothing runs. "Allow once" lets that one call through, not later ones.
+- Waiting does not count against the 20-minute work timer, and the builder lock is kept alive while a card waits.
 
 ## Budget: pause and ask, not a wall
 

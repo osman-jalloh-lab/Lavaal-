@@ -190,7 +190,7 @@ async function builderLoad(env, call) {
   for (const id of Array.isArray(ids) ? ids : []) {
     try {
       const j = JSON.parse(await call(['GET', builder.jobKey(env, id)]) || 'null');
-      if (!j || !['queued', 'running', 'held'].includes(j.state)) continue;
+      if (!j || !['queued', 'running', 'needs_you', 'held'].includes(j.state)) continue;
       const a = j.executor === 'claude' ? (j.model === 'opus' ? 'claude-opus' : 'claude-sonnet') : 'codex';
       load[a] += 1;
     } catch { /* skip */ }

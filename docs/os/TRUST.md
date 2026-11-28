@@ -11,6 +11,7 @@ Only `osmanjalloh104@gmail.com`, from a live signed-in `/os` session. An agent s
 | Action | Gate on `main` today |
 |---|---|
 | Code run (builder) | `code_run` approval from the founder session (bound to the task, branch, builder and model), plus `OS_RUNNER_ENABLED=1` and `OS_BUILDER_MONTHLY_CAP_USD` on the box. Draft PRs only (`docs/os/BUILDER.md`). |
+| A card from a running Claude build (allow one tool call once, or answer a question) | `builder_answer` approval from the founder session, single use, bound to the job, the card, the decision and the answer text, checked by the runner before it acts. No answer in 15 minutes, or the run ending, is a no. Shell, web and paths outside the worktree are refused without a card (`docs/os/BUILDER.md`, "Cards"). |
 | Merge, deploy, DNS, env | No OS endpoint does these. The builder has no merge, deploy or DNS step, and the chat prompt says not to. Osman does them himself. |
 | Send, post, spend | No OS endpoint sends or posts. The chat is told not to send or spend. The Gmail work on `/os` is drafts only. |
 | Intake | Not on `main`. Draft #105 is left as it is; when intake lands, it uses the same approval record. |

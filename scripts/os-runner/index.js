@@ -22,6 +22,7 @@ const approvals = require('../../api/ops/_approvals');
 const builder = require('../../api/ops/_os_builder');
 const { UNTRUSTED_BEGIN, UNTRUSTED_END } = require('../../api/ops/_untrusted');
 const progress = require('./progress');
+const { runClaudeSession } = require('./claude-session');
 
 const SHA = /^[a-f0-9]{40}$/;
 
@@ -124,14 +125,65 @@ function prepareClaudeHome(env, home) {
 // The command each builder runs inside the worktree. Claude Code gets file tools only (no shell, no web), in
 // print mode, with the model Osman picked; Codex gets its workspace-write sandbox. Both print one JSON event per line
 // (Claude: stream-json, which needs --verbose; Codex: --json) so the Build page can show live progress.
+// Claude also talks JSON on stdin: the task goes in as a message (the third item here), and any tool call that is not
+// already allowed comes back to the runner as a permission request (--permission-prompt-tool stdio, see permissionFor).
 function builderCommand(job) {
   if (job.executor === 'claude') {
     const model = job.model === 'opus' ? 'opus' : 'sonnet';
-    return ['claude', ['-p', promptFor(job), '--model', model, '--permission-mode', 'acceptEdits',
+    return ['claude', ['-p', '--model', model, '--permission-mode', 'acceptEdits',
       '--allowedTools', 'Read,Edit,Write,Glob,Grep', '--disallowedTools', 'Bash,WebFetch,WebSearch',
-      '--output-format', 'stream-json', '--verbose']];
+      '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio'], promptFor(job)];
   }
   return ['codex', ['exec', '--json', '--sandbox', 'workspace-write', promptFor(job)]];
+}
+
+// What the runner does with a Claude permission request, before anyone is asked:
+//   refuse   shell and web (never asked), and any path outside the worktree
+//   allow    the file tools inside the worktree, and Claude's own task list
+//   question Claude asks Osman something (AskUserQuestion): a question card
+//   approval anything else (a sub-agent, a skill, an MCP tool): an approval card, allow once or say no
+const REFUSED_TOOLS = ['Bash', 'BashOutput', 'KillShell', 'KillBash', 'WebFetch', 'WebSearch'];
+const FILE_TOOLS = ['Read', 'Edit', 'MultiEdit', 'Write', 'Glob', 'Grep', 'NotebookEdit'];
+function insideWorktree(p, cwd) {
+  if (!p) return true;
+  const full = path.resolve(cwd, String(p));
+  const base = path.resolve(cwd);
+  return full === base || full.startsWith(base + path.sep);
+}
+function permissionFor(tool, input, cwd) {
+  const name = String(tool || '');
+  const i = input && typeof input === 'object' ? input : {};
+  if (REFUSED_TOOLS.includes(name)) return { action: 'refuse', message: 'This builder has no shell or web access. Use the file tools in this checkout.' };
+  const paths = ['file_path', 'path', 'notebook_path'].map((k) => i[k]).filter((v) => typeof v === 'string' && v);
+  if (!paths.every((p) => insideWorktree(p, cwd))) return { action: 'refuse', message: 'Stay inside this checkout. Nothing else on the box is open to this build.' };
+  if (FILE_TOOLS.includes(name) || name === 'TodoWrite') return { action: 'allow' };
+  if (name === 'AskUserQuestion') {
+    const qs = Array.isArray(i.questions) ? i.questions.slice(0, 4) : [];
+    const questions = qs.filter((q) => q && typeof q.question === 'string' && q.question.trim()).map((q) => ({
+      question: progress.clip(q.question, 300),
+      options: (Array.isArray(q.options) ? q.options : []).slice(0, 6).map((o) => progress.clip(o && typeof o === 'object' ? o.label : o, 80)).filter(Boolean),
+    }));
+    if (!questions.length || questions.length !== (Array.isArray(i.questions) ? i.questions.length : 0)) return { action: 'refuse', message: 'Ask at most four short questions, each with its text.' };
+    return { action: 'question', questions };
+  }
+  return { action: 'approval', detail: progress.clip(JSON.stringify(i, (k, v) => (/token|secret|password|authorization|cookie|api.?key|credential/i.test(k) ? '[redacted]' : v)), 600) };
+}
+
+// One run's answer to each Claude permission request: the policy above, then a card for Osman when it needs one. At
+// most MAX_CARDS cards per run; after that Claude is told to make its own call. With no way to ask, a card is a no.
+const MAX_CARDS = 5;
+function makeDecider({ cwd, say, ask, maxCards = MAX_CARDS }) {
+  const note = typeof say === 'function' ? say : () => {};
+  let cards = 0;
+  return async ({ tool, input }) => {
+    const p = permissionFor(tool, input, cwd);
+    if (p.action === 'allow') return { behavior: 'allow' };
+    if (p.action === 'refuse') { note('warn', 'Refused ' + progress.clip(tool, 40) + ': ' + p.message); return { behavior: 'deny', message: p.message }; }
+    if (typeof ask !== 'function') return { behavior: 'deny', message: 'Nobody can answer on this run. Make the safest choice and say so in your summary.' };
+    if (cards >= maxCards) return { behavior: 'deny', message: 'You have asked enough for this run. Make the safest choice and say so in your summary.' };
+    cards += 1;
+    return ask(p.action === 'question' ? { kind: 'question', tool: 'AskUserQuestion', questions: p.questions } : { kind: 'approval', tool: progress.clip(tool, 60), detail: p.detail });
+  };
 }
 
 // The real box adapter. Codex and the tests get a bare environment (no GitHub or KV credentials); only git and gh
@@ -146,7 +198,8 @@ function realAdapter({ env = process.env } = {}) {
   let dir = '';
   return {
     // report(kind, text) is optional: it adds one line to the job's live progress on the Build page.
-    async execute(job, timeout, onCodexStart, report) {
+    // ask(card) is optional: it parks the job for Osman's answer to one card and resolves to allow or deny.
+    async execute(job, timeout, onCodexStart, report, ask) {
       const say = typeof report === 'function' ? report : () => {};
       dir = fs.mkdtempSync(path.join(os.tmpdir(), 'os-build-'));
       const clone = path.join(dir, 'repo');
@@ -159,9 +212,14 @@ function realAdapter({ env = process.env } = {}) {
       say('stage', 'Starting the builder');
       if (job.executor === 'claude') prepareClaudeHome(env, home); else prepareCodexHome(env, home);
       if (typeof onCodexStart === 'function') await onCodexStart();
-      const [bin, args] = builderCommand(job);
-      await run(bin, args, { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, CODEX_HOME: path.join(home, '.codex'), TMPDIR: home }),
-        onLine: (line) => progress.progressFromLine(job.executor === 'claude' ? 'claude' : 'codex', line, work).forEach((i) => say(i.kind, i.text)) });
+      const [bin, args, input] = builderCommand(job);
+      const builderEnv = Object.assign({}, runtime, { HOME: home, CODEX_HOME: path.join(home, '.codex'), TMPDIR: home });
+      const onLine = (line) => progress.progressFromLine(job.executor === 'claude' ? 'claude' : 'codex', line, work).forEach((i) => say(i.kind, i.text));
+      if (job.executor === 'claude') {
+        await runClaudeSession({ bin, args, prompt: input, cwd: work, timeout, env: builderEnv, onLine, decide: makeDecider({ cwd: work, say, ask }) });
+      } else {
+        await run(bin, args, { cwd: work, timeout, env: builderEnv, onLine });
+      }
       say('stage', 'Running the tests');
       const tests = job.repo === 'osman-jalloh-lab/Lavaal-' ? ['node', ['tests/run-safe-suite.js']] : ['python3', ['-m', 'pytest', 'tests/', '-q']];
       try {
@@ -196,7 +254,11 @@ function realAdapter({ env = process.env } = {}) {
   };
 }
 
-async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, exists = fs.existsSync, now = () => Date.now(), timeout = 20 * 60 * 1000 } = {}) {
+const CARD_MS = 15 * 60 * 1000;
+const CARD_POLL_MS = 3000;
+
+async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, exists = fs.existsSync, now = () => Date.now(), timeout = 20 * 60 * 1000,
+  wait = (ms) => new Promise((r) => setTimeout(r, ms)), cardMs = CARD_MS, pollMs = CARD_POLL_MS } = {}) {
   if (!builder.runnerEnabled(env, exists)) return { state: 'disabled' };
   const call = (args) => approvals.command(env, fetchImpl, args);
   try { await call(['SET', approvals.rootFor(env) + 'builder-heartbeat', new Date(now()).toISOString()]); } catch { /* the page just shows "not seen" */ }
@@ -255,6 +317,43 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
   // Live progress for the Build page: short, redacted lines in KV under the job (progress.js). Best effort only.
   const log = progress.progressLog({ call, key: builder.progressKey(env, job.id), now });
   const report = (kind, text) => { try { log.add(kind, text); } catch { /* never fails the build */ } };
+  // A card: park the job as 'needs_you' with job.ask, wait for Osman's answer (POST /ops/os/builder/answer), check its
+  // single-use builder_answer approval, then go on. No answer in cardMs is a no. The builder lock is kept alive while
+  // waiting. If the run ends while a card waits, the card is dropped and nothing here touches the job again.
+  let runEnded = false;
+  const ask = async (card) => {
+    const rid = 'q-' + require('node:crypto').randomUUID();
+    const start = now();
+    job.ask = { rid, kind: card.kind, tool: String(card.tool || ''), detail: String(card.detail || ''), questions: Array.isArray(card.questions) ? card.questions : [],
+      at: new Date(start).toISOString(), expiresAt: new Date(start + cardMs).toISOString() };
+    job.state = 'needs_you';
+    report('wait', card.kind === 'question' ? 'Waiting on you: Claude has a question' : 'Waiting on you: allow ' + job.ask.tool + ' once?');
+    await log.flush();
+    await save();
+    let rec = null;
+    while (!runEnded && now() - start < cardMs) {
+      await wait(pollMs);
+      try { await call(['EXPIRE', lock, Math.ceil(timeout / 1000) + 120]); } catch { /* the lock keeps its old expiry */ }
+      try { rec = JSON.parse(await call(['GET', builder.answerKey(env, job.id, rid)]) || 'null'); } catch { rec = null; }
+      if (rec) break;
+    }
+    if (runEnded) return { behavior: 'deny', message: 'The run has ended.' };
+    const asked = job.ask;
+    delete job.ask;
+    job.state = 'running';
+    await save();
+    if (!rec) { report('warn', 'No answer in ' + Math.round(cardMs / 60000) + ' minutes; Claude was told no'); return { behavior: 'deny', message: 'Osman did not answer in time. Do not do this; finish without it and say what you needed in your summary.' }; }
+    const answers = rec.decision === 'answer' && Array.isArray(rec.answers) ? rec.answers.map((x) => String(x)) : [];
+    const verified = builder.validAnswer(asked, rec.decision, answers) && await approvals.verifyConsumed(env, fetchImpl, {
+      id: rec.approvalId, action: 'builder_answer', requestHash: builder.answerHash({ jobId: job.id, rid, decision: rec.decision, answers }), consumer: 'builder_answer:' + rid });
+    if (!verified) { report('warn', 'An answer could not be verified; Claude was told no'); return { behavior: 'deny', message: 'The answer could not be verified. Do not do this.' }; }
+    if (rec.decision === 'allow') { report('stage', 'You allowed ' + asked.tool + ' once'); return { behavior: 'allow' }; }
+    if (rec.decision === 'deny') { report('stage', asked.kind === 'question' ? 'You skipped the question' : 'You said no to ' + asked.tool); return { behavior: 'deny', message: 'Osman said no. Do not try this again; finish without it.' }; }
+    // A question's answer goes back as the text of the tool result (a deny carrying the message): Claude reads it and
+    // nothing runs.
+    report('stage', 'You answered Claude\'s question');
+    return { behavior: 'deny', message: 'Osman answered:\n' + asked.questions.map((q, n) => `Q: ${q.question}\nA: ${progress.clip(answers[n], 500)}`).join('\n') };
+  };
   // Charge the flat run estimate when Codex is about to start (once), whatever happens after. If an adapter ever
   // reports a real cost above the estimate, the difference is charged too.
   let charged = 0;
@@ -264,7 +363,7 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
     await call(['INCRBYFLOAT', builder.monthKey(env, now()), String(cap.next)]);
   };
   try {
-    const out = await a.execute(job, timeout, charge, report);
+    const out = await a.execute(job, timeout, charge, report, ask);
     const verified = Boolean(out && out.prUrl) && await verifyRunEvidence({ repo: job.repo, branch: job.branch, sha: out.sha, prUrl: out.prUrl, githubGet: (e) => a.githubGet(e) });
     if (verified) {
       const line = activityLine(job, out.sha, out.prUrl, now());
@@ -283,6 +382,8 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
     job.result = { sha: '', prUrl: '', verified: false, error: e && e.message === 'codex_not_logged_in' ? 'Codex is not logged in on the box (run codex login)'
       : e && e.message === 'claude_not_logged_in' ? 'Claude Code is not logged in on the box (run claude, then /login)' : 'execution failed', chargedUsd: charged };
   } finally {
+    runEnded = true;
+    delete job.ask;
     if (a.cleanup) { try { a.cleanup(); } catch { /* best effort */ } }
   }
   report(job.state === 'draft_opened' ? 'done' : job.state === 'no_changes' ? 'stage' : 'error',
@@ -305,4 +406,4 @@ if (require.main === module) {
     .catch(() => { process.stdout.write(JSON.stringify({ state: 'failed' }) + '\n'); process.exitCode = 1; });
 }
 
-module.exports = { activityLine, builderCommand, claudeAuthSource, codexAuthSource, prepareClaudeHome, prepareCodexHome, promptFor, realAdapter, tick, verifyRunEvidence };
+module.exports = { activityLine, builderCommand, claudeAuthSource, codexAuthSource, makeDecider, MAX_CARDS, permissionFor, prepareClaudeHome, prepareCodexHome, promptFor, realAdapter, tick, verifyRunEvidence };
