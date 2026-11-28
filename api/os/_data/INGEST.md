@@ -1,11 +1,11 @@
 # LAVAALL OS live feeds (ingest)
 
-Eight authenticated POST endpoints feed `/os`. `/os` itself stays read-only: it only reads what these write.
+Nine authenticated POST feeds use the ingest endpoint. The first eight feed `/os`. `/os` itself stays read-only: it only reads what these write.
 
 - **URL:** `https://www.lavaall.com/api/os/ingest/<feed>` (one function, `api/os/ingest/[feed].js`).
 - **Auth:** `Authorization: Bearer $TOKEN`, where `$TOKEN` is the value of the existing `OPS_CEO_BRIDGE_SECRET` (the bearer the inbox push and routine health already use). No new env var. Without it the answer is `401 {"error":"unauthorized"}` and nothing is stored.
 - **Body:** JSON, `Content-Type: application/json`, at most 20 KB (the `notes` feed: 900 KB).
-- **Answers:** `200 {"ok":true,"feed":"…","received":n}`, `401`, `404` (unknown feed), `405` (not POST), `413` (too large), `400` (not JSON), `422 {"error":"invalid_shape","field":"[0].usd"}` (the field path only, never a value), `503` (store unavailable).
+- **Answers:** `200 {"ok":true,"feed":"…","received":n}`, `401`, `404` (unknown feed), `405` (method not allowed), `413` (too large), `400` (not JSON), `422 {"error":"invalid_shape","field":"[0].usd"}` (the field path only, never a value), `503` (store unavailable).
 - **Strict shapes:** exactly the keys shown, no extra keys. Nothing is stored unless the whole payload is valid.
 - **Storage:** each feed has its own new KV key, `lavaall-os-feed-<feed>-v1`. The existing store key is never touched. Preview deploys write to a `preview:`-prefixed key, so a preview never writes production data.
 - **Never send** secrets, lead names, customer emails or addresses. Outreach is counts only.
@@ -126,4 +126,32 @@ curl -sS -X POST https://www.lavaall.com/api/os/ingest/daily-recap \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '[{"id":"grok-2026-11-26-lavaall-os","agent":"grok","project":"lavaall-os","date":"2026-11-26","happened":"Reviewed the live calendar and inbox.","built":"","blocked":"","next":"Post tomorrow morning brief","updated":"2026-11-26T23:00:00Z"}]'
+```
+
+
+## 9. repo-status
+
+A compact repository heartbeat produced by `.github/workflows/os-repo-status.yml` via `scripts/os-repo-status.js`. Each POST replaces the latest digest and prepends a server-built summary row to history (maximum 24 rows). The POST never includes history. No logs, diffs, emails or author names may be sent. The notes privacy filter applies to titles, names and branches.
+
+| Field | POST value |
+| --- | --- |
+| `repo`, `branch` | Repository `owner/name` (each part up to 100 characters); branch is 1 to 100 characters. |
+| `generatedAt`, `since` | UTC times; `since` is no later than `generatedAt`. |
+| `trigger`, `headSha` | `schedule`, `push` or `workflow_dispatch`; seven lowercase hex characters. |
+| `summary` | Exactly `merges`, `commits`, `checksPass`, `checksFail`, `checksPending`, `checksOther`: counts from 0 to 100000. |
+| `merges` | Up to 20 `{pr, sha, title, branch, at, kind}` rows; positive PR number, seven-character SHA, title up to 140 characters, branch up to 100, UTC time, and kind `merge` or `activity-log`. |
+| `commits` | Up to 20 `{sha, title, at}` rows with seven-character SHA, title up to 140 characters and UTC time. |
+| `checks` | Up to 20 `{name, runId, sha, result, pr, url}` rows. Name is up to 100 characters; run ID and optional PR are positive integers; SHA has seven characters; result is `pass`, `fail`, `pending`, `cancelled` or `skipped`; URL is a GitHub Actions run or pull request URL. |
+
+```sh
+curl -sS -X POST https://www.lavaall.com/api/os/ingest/repo-status \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"repo":"owner/repo","branch":"main","generatedAt":"2026-10-23T14:00:00Z","since":"2026-10-23T13:00:00Z","trigger":"schedule","headSha":"abcdef1","summary":{"merges":0,"commits":0,"checksPass":0,"checksFail":0,"checksPending":0,"checksOther":0},"merges":[],"commits":[],"checks":[]}'
+```
+
+The same bearer can read the latest digest and compact history without loading `/os`:
+
+```sh
+curl -sS https://www.lavaall.com/api/os/ingest/repo-status -H "Authorization: Bearer $TOKEN"
 ```

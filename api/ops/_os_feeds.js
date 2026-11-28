@@ -13,7 +13,7 @@ const path = require('path');
 
 const { formatChicago } = require('./_routine_health');
 
-const FEEDS = Object.freeze(['morning-brief', 'routine-health', 'spend', 'outreach-stats', 'desk-status', 'notes', 'build-log', 'daily-recap']);
+const FEEDS = Object.freeze(['morning-brief', 'routine-health', 'spend', 'outreach-stats', 'desk-status', 'notes', 'build-log', 'daily-recap', 'repo-status']);
 const MAX_BYTES = 20 * 1024;
 // The notes pack is a few hundred notes of text, so that one feed gets a larger cap. 900 KB stays under Vercel's
 // 4.5 MB request limit and Upstash's 1 MB request size; every other feed keeps 20 KB.
@@ -298,7 +298,69 @@ function mergeRecap(existing, value) {
   return all.filter((e) => days.includes(e.date)).slice(0, MAX_RECAP_STORED);
 }
 
+const REPO_SUMMARY_KEYS = ['merges', 'commits', 'checksPass', 'checksFail', 'checksPending', 'checksOther'];
+const REPO_TRIGGERS = ['schedule', 'push', 'workflow_dispatch'];
+const SHA_RE = /^[0-9a-f]{7}$/;
+
+function validateRepoSummary(summary) {
+  return exactKeys(summary, REPO_SUMMARY_KEYS) && REPO_SUMMARY_KEYS.every((k) => Number.isInteger(summary[k]) && summary[k] >= 0 && summary[k] <= 100000);
+}
+
+function validateRepoRow(row, ctx) {
+  return exactKeys(row, ['generatedAt', 'trigger', 'headSha', 'summary']) && pastIso(row.generatedAt, ctx.now) &&
+    REPO_TRIGGERS.includes(row.trigger) && typeof row.headSha === 'string' && SHA_RE.test(row.headSha) && validateRepoSummary(row.summary);
+}
+
+function validateRepoStatus(body, ctx) {
+  if (!exactKeys(body, ['repo', 'branch', 'generatedAt', 'since', 'trigger', 'headSha', 'summary', 'merges', 'commits', 'checks'])) return bad('body');
+  if (typeof body.repo !== 'string' || !/^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/.test(body.repo)) return bad('repo');
+  function safeText(value, max) {
+    const text = plain(value, 1, max, false);
+    return text !== null && !dropReasons({ title: text }).length ? text : null;
+  }
+  const branch = safeText(body.branch, 100);
+  if (branch === null) return bad('branch');
+  if (!pastIso(body.generatedAt, ctx.now)) return bad('generatedAt');
+  if (!pastIso(body.since, ctx.now) || Date.parse(body.since) > Date.parse(body.generatedAt)) return bad('since');
+  if (!REPO_TRIGGERS.includes(body.trigger)) return bad('trigger');
+  if (typeof body.headSha !== 'string' || !SHA_RE.test(body.headSha)) return bad('headSha');
+  if (!exactKeys(body.summary, REPO_SUMMARY_KEYS)) return bad('summary');
+  for (const k of REPO_SUMMARY_KEYS) if (!Number.isInteger(body.summary[k]) || body.summary[k] < 0 || body.summary[k] > 100000) return bad(`summary.${k}`);
+  const value = { repo: body.repo, branch, generatedAt: body.generatedAt, since: body.since, trigger: body.trigger, headSha: body.headSha, summary: { ...body.summary }, merges: [], commits: [], checks: [] };
+  for (const type of ['merges', 'commits', 'checks']) {
+    if (!Array.isArray(body[type]) || body[type].length > 20) return bad(type);
+    for (let i = 0; i < body[type].length; i += 1) {
+      const r = body[type][i]; const base = `${type}[${i}]`;
+      const keys = type === 'merges' ? ['pr', 'sha', 'title', 'branch', 'at', 'kind'] : type === 'commits' ? ['sha', 'title', 'at'] : ['name', 'runId', 'sha', 'result', 'pr', 'url'];
+      if (!exactKeys(r, keys)) return bad(base);
+      if (typeof r.sha !== 'string' || !SHA_RE.test(r.sha)) return bad(`${base}.sha`);
+      if (type === 'checks') {
+        const name = safeText(r.name, 100);
+        if (name === null) return bad(`${base}.name`);
+        if (!Number.isSafeInteger(r.runId) || r.runId <= 0) return bad(`${base}.runId`);
+        if (!['pass', 'fail', 'pending', 'cancelled', 'skipped'].includes(r.result)) return bad(`${base}.result`);
+        if (r.pr !== null && (!Number.isSafeInteger(r.pr) || r.pr <= 0)) return bad(`${base}.pr`);
+        if (typeof r.url !== 'string' || !/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/(?:actions\/runs|pull)\/\d+$/.test(r.url)) return bad(`${base}.url`);
+        value.checks.push({ name, runId: r.runId, sha: r.sha, result: r.result, pr: r.pr, url: r.url });
+      } else {
+        const title = safeText(r.title, 140);
+        if (title === null) return bad(`${base}.title`);
+        if (!pastIso(r.at, ctx.now)) return bad(`${base}.at`);
+        if (type === 'merges') {
+          if (!Number.isSafeInteger(r.pr) || r.pr <= 0) return bad(`${base}.pr`);
+          const b = safeText(r.branch, 100);
+          if (b === null) return bad(`${base}.branch`);
+          if (!['merge', 'activity-log'].includes(r.kind)) return bad(`${base}.kind`);
+          value.merges.push({ pr: r.pr, sha: r.sha, title, branch: b, at: r.at, kind: r.kind });
+        } else value.commits.push({ sha: r.sha, title, at: r.at });
+      }
+    }
+  }
+  return { ok: true, value };
+}
+
 const VALIDATORS = {
+  'repo-status': validateRepoStatus,
   'daily-recap': validateRecap,
   'build-log': validateBuildLog,
   notes: validateNotes,
@@ -321,6 +383,10 @@ function dayOf(row) { return row.date; }
 function applyPayload(feed, existing, value, now) {
   const receivedAt = Number.isFinite(now) ? now : Date.now();
   switch (feed) {
+    case 'repo-status': {
+      const row = { generatedAt: value.generatedAt, trigger: value.trigger, headSha: value.headSha, summary: value.summary };
+      return { receivedAt, latest: value, history: [row, ...(existing && Array.isArray(existing.history) ? existing.history : [])].slice(0, 24) };
+    }
     case 'morning-brief':
       return { date: value.date, text: value.text, receivedAt };
     case 'routine-health':
@@ -391,13 +457,14 @@ function decode(raw) {
 }
 
 // GET only. Returns a normalized record, or null when absent or unreadable.
-async function readFeed(feed, opts) {
+async function readFeed(feed, opts, mode) {
   const env = (opts && opts.env) || process.env;
   const fetchImpl = (opts && opts.fetchImpl) || globalThis.fetch;
   try {
     let raw = null;
     if (kvOn(env)) {
       const payload = await kvCall(['GET', feedKey(feed, env)], env, fetchImpl);
+      if (mode && mode.strict && (!isObject(payload) || !Object.prototype.hasOwnProperty.call(payload, 'result') || payload.error)) throw new Error('kv_failed');
       raw = decode(payload && payload.result);
     } else if (filePathFor(feed, env)) {
       const file = filePathFor(feed, env);
@@ -405,8 +472,10 @@ async function readFeed(feed, opts) {
     } else if (!env.VERCEL) {
       raw = memory[feed] || null;
     }
+    if (mode && mode.strict && env.VERCEL && !kvOn(env)) throw new Error('store_unavailable');
     return normalizeRecord(feed, raw);
-  } catch {
+  } catch (err) {
+    if (mode && mode.strict) throw err;
     return null;
   }
 }
@@ -438,6 +507,11 @@ function normalizeRecord(feed, raw) {
   const ctx = { now: Number.MAX_SAFE_INTEGER / 4, deskIds: null };
   const rec = { receivedAt: raw.receivedAt };
   switch (feed) {
+    case 'repo-status': {
+      const latest = validateRepoStatus(raw.latest, ctx);
+      if (!latest.ok || !Array.isArray(raw.history) || raw.history.length > 24 || !raw.history.every((row) => validateRepoRow(row, ctx))) return null;
+      return Object.assign(rec, { latest: latest.value, history: raw.history.map((row) => ({ generatedAt: row.generatedAt, trigger: row.trigger, headSha: row.headSha, summary: { ...row.summary } })) });
+    }
     case 'morning-brief': {
       const v = validateBrief({ date: raw.date, text: raw.text }, ctx);
       return v.ok ? Object.assign(rec, v.value) : null;
@@ -498,16 +572,18 @@ function normalizeRecord(feed, raw) {
   }
 }
 
-// Reads all seven. One unreadable feed never hides the others.
+// Reads the original eight. One unreadable feed never hides the others.
 async function readFeeds(opts) {
   if (opts && opts.feeds !== undefined) return opts.feeds;
-  const [brief, health, spend, outreach, desks, notes, build, recap] = await Promise.all(FEEDS.map((f) => readFeed(f, opts)));
+  const [brief, health, spend, outreach, desks, notes, build, recap] = await Promise.all(['morning-brief', 'routine-health', 'spend', 'outreach-stats', 'desk-status', 'notes', 'build-log', 'daily-recap'].map((f) => readFeed(f, opts)));
   return { brief, health, spend, outreach, desks, notes, build, recap };
 }
 
 // ---- views for the adapter (pure) --------------------------------------------------------------------
 
 const TONE = { ok: 'ok', late: 'warn', skipped: 'warn', failed: 'bad' };
+
+function repoStatusView(rec) { return rec ? { latest: rec.latest, history: rec.history } : { latest: null, history: [] }; }
 
 function briefView(rec) {
   return rec ? { date: rec.date, text: rec.text } : null;
@@ -642,6 +718,7 @@ module.exports = {
   notesView,
   outreachView,
   readFeed,
+  repoStatusView,
   readFeeds,
   resetFeeds,
   spendRows,

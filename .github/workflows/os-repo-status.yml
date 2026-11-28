@@ -1,0 +1,28 @@
+name: LAVAALL OS repo status
+on:
+  schedule:
+    - cron: '0 * * * *'
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+concurrency:
+  group: os-repo-status
+  cancel-in-progress: false
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.repository == 'osman-jalloh-lab/Lavaal-'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: node scripts/os-repo-status.js
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          OPS_CEO_BRIDGE_SECRET: ${{ secrets.OPS_CEO_BRIDGE_SECRET }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
