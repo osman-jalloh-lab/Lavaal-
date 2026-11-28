@@ -240,7 +240,7 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     fs.rmSync(tmp, { recursive: true, force: true });
   }
   const runnerSrc = fs.readFileSync(path.join(root, 'scripts/os-runner/index.js'), 'utf8');
-  check('the real adapter copies the right login and charges before the builder starts', /if \(job\.executor === 'claude'\) prepareClaudeHome\(env, home\); else prepareCodexHome\(env, home\);\s*if \(typeof onCodexStart === 'function'\) await onCodexStart\(\);\s*const \[bin, args, input\] = builderCommand\(job\);[\s\S]{0,700}?await runClaudeSession\(\{ bin, args[\s\S]{0,200}?await run\(bin, args/.test(runnerSrc));
+  check('the real adapter copies the right login and charges before the builder starts', /if \(job\.executor === 'claude'\) prepareClaudeHome\(env, home\); else prepareCodexHome\(env, home\);\s*if \(typeof onCodexStart === 'function'\) await onCodexStart\(\);\s*const \[bin, args, input\] = builderCommand\(job\);[\s\S]{0,800}?await runClaudeSession\(\{ bin: cb\.cmd, args: \[\.\.\.cb\.pre, \.\.\.args\][\s\S]{0,200}?await run\(bin, args/.test(runnerSrc));
 
   // Claude Code builder (Sonnet or Opus, picked per job by Osman).
   check('builders: codex, claude sonnet, claude opus; nothing else', builder.validBuilder('codex', '') && builder.validBuilder('claude', 'sonnet') && builder.validBuilder('claude', 'opus')
