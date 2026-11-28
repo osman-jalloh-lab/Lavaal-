@@ -16,7 +16,7 @@ Phase 4 of `2026-11-26-os-one-shot-build-prompt.md`. **Draft pull requests only.
    - The approval was minted by the founder session, for this exact request, and its single-use marker belongs to this job.
 3. **The run.** The runner:
    - makes a fresh clone and an isolated worktree on the feature branch;
-   - runs the builder in an empty home. **Codex** runs with `exec --json --sandbox workspace-write`. **Claude Code** runs with `-p --model sonnet|opus --permission-mode acceptEdits --input-format stream-json --output-format stream-json --verbose --permission-prompt-tool stdio`, with file tools only (Read, Edit, Write, Glob, Grep) and no shell or web; anything else it wants becomes a card (see "Cards"). Their event output feeds the live progress below. Only its login (`~/.claude/.credentials.json`, or `OS_RUNNER_CLAUDE_AUTH_FILE`) is copied in.
+   - runs the builder in an empty home. **Codex** runs with `exec --json --sandbox workspace-write`. **Claude Code** runs with `-p --model sonnet|opus --permission-mode default --input-format stream-json --output-format stream-json --verbose --permission-prompt-tool stdio`, with file tools only and no shell or web. No tool is pre-allowed, so every edit goes through the worktree check first; anything else it wants becomes a card (see "Cards"). Their event output feeds the live progress below. Only its login (`~/.claude/.credentials.json`, or `OS_RUNNER_CLAUDE_AUTH_FILE`) is copied in.
    - Codex details: Only the Codex login (`auth.json`, from `OS_RUNNER_CODEX_AUTH_FILE` or the box's `~/.codex`) is copied in, with mode 0600. If there is no login, the job fails before Codex starts, and nothing is charged. The environment has no GitHub or KV credentials, and the objective is wrapped as untrusted text;
    - runs the repo's tests (`node tests/run-safe-suite.js` or pytest) and commits;
    - pushes the branch and opens a **draft** PR.
@@ -37,7 +37,7 @@ While a build runs, the Build page shows what the builder is doing, under the jo
 A Claude build can stop and ask instead of guessing or failing. Codex is unchanged: `codex exec` has no way to ask.
 - Claude runs with `--input-format stream-json --permission-prompt-tool stdio` (`scripts/os-runner/claude-session.js`). The task goes in on stdin. Any tool call that is not already allowed comes to the runner as a permission request.
 - The runner decides first (`permissionFor` in `scripts/os-runner/index.js`):
-  - **Refused, never asked:** shell and web (Bash, WebFetch, WebSearch), and any path outside the worktree.
+  - **Refused, never asked:** shell and web (Bash, WebFetch, WebSearch), and any path outside the worktree. Paths are checked where they really point (a symlink inside the checkout that leads outside is refused), `~` paths are refused, and Glob patterns or Grep file filters that start at `/` or climb with `..` are refused.
   - **Allowed:** the file tools inside the worktree, and Claude's own task list.
   - **Question card:** Claude asks Osman something (`AskUserQuestion`, up to four questions).
   - **Approval card:** any other tool (a sub-agent, a skill, an MCP tool). Its input is shown clipped and redacted. Osman can allow it once or say no.

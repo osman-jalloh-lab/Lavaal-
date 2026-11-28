@@ -122,7 +122,7 @@ function prepareClaudeHome(env, home) {
   return path.join(dest, '.credentials.json');
 }
 
-// The command each builder runs inside the worktree. Claude Code gets file tools only (no shell, no web), in
+// The command each builder runs inside the worktree. Claude Code gets file tools only (no shell, no web), each checked against the worktree, in
 // print mode, with the model Osman picked; Codex gets its workspace-write sandbox. Both print one JSON event per line
 // (Claude: stream-json, which needs --verbose; Codex: --json) so the Build page can show live progress.
 // Claude also talks JSON on stdin: the task goes in as a message (the third item here), and any tool call that is not
@@ -130,8 +130,10 @@ function prepareClaudeHome(env, home) {
 function builderCommand(job) {
   if (job.executor === 'claude') {
     const model = job.model === 'opus' ? 'opus' : 'sonnet';
-    return ['claude', ['-p', '--model', model, '--permission-mode', 'acceptEdits',
-      '--allowedTools', 'Read,Edit,Write,Glob,Grep', '--disallowedTools', 'Bash,WebFetch,WebSearch',
+    // No --allowedTools and no acceptEdits: a pre-allowed tool never asks, so it would skip the worktree check below.
+    // In default mode every edit, and every read the CLI is unsure of, comes to permissionFor first.
+    return ['claude', ['-p', '--model', model, '--permission-mode', 'default',
+      '--disallowedTools', 'Bash,BashOutput,KillShell,WebFetch,WebSearch',
       '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio'], promptFor(job)];
   }
   return ['codex', ['exec', '--json', '--sandbox', 'workspace-write', promptFor(job)]];
@@ -144,18 +146,42 @@ function builderCommand(job) {
 //   approval anything else (a sub-agent, a skill, an MCP tool): an approval card, allow once or say no
 const REFUSED_TOOLS = ['Bash', 'BashOutput', 'KillShell', 'KillBash', 'WebFetch', 'WebSearch'];
 const FILE_TOOLS = ['Read', 'Edit', 'MultiEdit', 'Write', 'Glob', 'Grep', 'NotebookEdit'];
+// The real location of a path, following symlinks. A path that does not exist yet (a new file) is resolved through
+// its nearest existing parent, so a symlinked folder inside the checkout cannot point a write outside it.
+function realish(p) {
+  let cur = path.resolve(p);
+  const rest = [];
+  for (;;) {
+    try { return path.join(fs.realpathSync(cur), ...rest); } catch { /* not there yet */ }
+    const up = path.dirname(cur);
+    if (up === cur) return path.resolve(p);
+    rest.unshift(path.basename(cur));
+    cur = up;
+  }
+}
 function insideWorktree(p, cwd) {
-  if (!p) return true;
-  const full = path.resolve(cwd, String(p));
-  const base = path.resolve(cwd);
+  if (p === undefined || p === null || p === '') return true;
+  const raw = String(p);
+  if (raw.startsWith('~') || raw.includes('\0')) return false;
+  const base = realish(cwd);
+  const full = realish(path.resolve(cwd, raw));
   return full === base || full.startsWith(base + path.sep);
+}
+// A glob may not climb out of the checkout or start from the root of the disk.
+function safeGlob(g) {
+  if (g === undefined || g === null || g === '') return true;
+  const s = String(g);
+  return !path.isAbsolute(s) && !s.startsWith('~') && !s.split(/[\\/]/).includes('..') && !/^[a-z]:/i.test(s);
 }
 function permissionFor(tool, input, cwd) {
   const name = String(tool || '');
   const i = input && typeof input === 'object' ? input : {};
   if (REFUSED_TOOLS.includes(name)) return { action: 'refuse', message: 'This builder has no shell or web access. Use the file tools in this checkout.' };
   const paths = ['file_path', 'path', 'notebook_path'].map((k) => i[k]).filter((v) => typeof v === 'string' && v);
-  if (!paths.every((p) => insideWorktree(p, cwd))) return { action: 'refuse', message: 'Stay inside this checkout. Nothing else on the box is open to this build.' };
+  // Glob's pattern is a path glob; Grep's pattern is a regex (left alone) and its glob is the path filter.
+  const globs = name === 'Glob' ? [i.pattern] : name === 'Grep' ? [i.glob] : [];
+  const pathish = globs.every(safeGlob);
+  if (!paths.every((p) => insideWorktree(p, cwd)) || !pathish) return { action: 'refuse', message: 'Stay inside this checkout. Nothing else on the box is open to this build.' };
   if (FILE_TOOLS.includes(name) || name === 'TodoWrite') return { action: 'allow' };
   if (name === 'AskUserQuestion') {
     const qs = Array.isArray(i.questions) ? i.questions.slice(0, 4) : [];
@@ -406,4 +432,4 @@ if (require.main === module) {
     .catch(() => { process.stdout.write(JSON.stringify({ state: 'failed' }) + '\n'); process.exitCode = 1; });
 }
 
-module.exports = { activityLine, builderCommand, claudeAuthSource, codexAuthSource, makeDecider, MAX_CARDS, permissionFor, prepareClaudeHome, prepareCodexHome, promptFor, realAdapter, tick, verifyRunEvidence };
+module.exports = { insideWorktree, safeGlob, activityLine, builderCommand, claudeAuthSource, codexAuthSource, makeDecider, MAX_CARDS, permissionFor, prepareClaudeHome, prepareCodexHome, promptFor, realAdapter, tick, verifyRunEvidence };
