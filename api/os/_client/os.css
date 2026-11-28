@@ -757,3 +757,6 @@
 @media (prefers-reduced-motion:reduce){.os-root .px-step.s-running::after{animation:none;opacity:0}.os-root .nav a,.os-root .card{transition:none}}
 @media(max-width:759px){.os-root header{padding:0 16px;height:52px}.os-root #view{padding:18px 16px 88px}.os-root .ph{margin-bottom:18px;padding-bottom:14px}}
 .os-root .kpi.t-b,.os-root .kpi.t-v,.os-root .kpi.t-o,.os-root .kpi.t-g{border-color:transparent}
+/* direct answers on the Build page: a question or research gets its answer on the card, full width */
+.os-root .px-steps.px-talk{grid-auto-flow:row}
+.os-root .px-answer{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13.5px;line-height:21px;color:var(--text);margin-top:6px;max-height:520px;overflow:auto}
