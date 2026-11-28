@@ -26,7 +26,10 @@ function fakeKv() {
     if (a[0] === 'GET') result = store.has(a[1]) ? store.get(a[1]) : null;
     else if (a[0] === 'SET') { const nx = a.includes('NX'); if (nx && store.has(a[1])) result = null; else { store.set(a[1], a[2]); result = 'OK'; } }
     else if (a[0] === 'LPUSH') { const l = lists.get(a[1]) || []; l.unshift(a[2]); lists.set(a[1], l); result = l.length; }
-    else if (a[0] === 'LRANGE') result = (lists.get(a[1]) || []).slice(a[2], a[3] + 1);
+    else if (a[0] === 'RPUSH') { const l = lists.get(a[1]) || []; l.push(...a.slice(2)); lists.set(a[1], l); result = l.length; }
+    else if (a[0] === 'LTRIM') { const l = lists.get(a[1]) || []; const s = a[2] < 0 ? Math.max(0, l.length + a[2]) : a[2]; const e = a[3] < 0 ? l.length + a[3] : a[3]; lists.set(a[1], l.slice(s, e + 1)); result = 'OK'; }
+    else if (a[0] === 'EXPIRE') { store.set('ttl:' + a[1], a[2]); result = 1; }
+    else if (a[0] === 'LRANGE') { const l = lists.get(a[1]) || []; result = l.slice(a[2], a[3] < 0 ? l.length + a[3] + 1 : a[3] + 1); }
     else if (a[0] === 'INCRBYFLOAT') { const v = Number(store.get(a[1]) || 0) + Number(a[2]); store.set(a[1], String(v)); result = String(v); }
     else if (a[0] === 'DEL') { store.delete(a[1]); result = 1; }
     return { ok: true, json: async () => ({ result }) };
@@ -279,6 +282,87 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     check('no Claude login: fails closed', threw === 'claude_not_logged_in');
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+
+  // Live progress (scripts/os-runner/progress.js): short, redacted lines in KV under the job; never fails a build.
+  const progress = require(path.join(root, 'scripts/os-runner/progress.js'));
+  {
+    const W = '/tmp/os-build-x/worktree';
+    const ev = (o) => JSON.stringify(o);
+    const edit = progress.progressFromLine('claude', ev({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Edit', input: { file_path: W + '/api/os/_client/build.js', old_string: 'SECRET BODY', new_string: 'x' } }] } }), W);
+    check('progress: a Claude edit shows the relative path and never the file contents', edit.length === 1 && edit[0].kind === 'edit' && edit[0].text === 'Editing api/os/_client/build.js');
+    const note = progress.progressFromLine('claude', ev({ type: 'assistant', message: { content: [{ type: 'text', text: 'Using key sk-abcdefghijklmnop and Bearer abc.def.ghi\nsecond line' }] } }), W);
+    check('progress: keys and bearer tokens are redacted, and only the first line of a note is kept', note.length === 1 && !/abcdefghijklmnop|abc\.def\.ghi|second line/.test(note[0].text) && /\[redacted\]/.test(note[0].text));
+    check('progress: a GitHub token is redacted', !/ghp_/.test(progress.redact('token ghp_ABCDEFGHIJKLmnop1234')));
+    check('progress: a long note is clipped', progress.progressFromLine('claude', ev({ type: 'assistant', message: { content: [{ type: 'text', text: 'a'.repeat(900) }] } }), W)[0].text.length <= progress.MAX_TEXT);
+    check('progress: a path outside the worktree shows only its last two parts', progress.relPath('/home/box/.claude/.credentials.json', W) === '.claude/.credentials.json');
+    const done = progress.progressFromLine('claude', ev({ type: 'result', subtype: 'success', is_error: false, num_turns: 12, duration_ms: 185000 }), W);
+    check('progress: the Claude result says finished with steps and minutes', done.length === 1 && done[0].text === 'Claude finished (12 steps, 3 min)');
+    const failed = progress.progressFromLine('claude', ev({ type: 'result', subtype: 'error_max_turns', is_error: true }), W);
+    check('progress: a Claude error result is an error line', failed.length === 1 && failed[0].kind === 'error');
+    const cx = progress.progressFromLine('codex', ev({ type: 'item.completed', item: { type: 'file_change', changes: [{ path: W + '/tests/test-x.js', kind: 'add' }, { path: W + '/README.md', kind: 'update' }] } }), W);
+    check('progress: Codex file changes show what was written and edited', cx.length === 2 && cx[0].text === 'Writing tests/test-x.js' && cx[1].text === 'Editing README.md');
+    check('progress: a Codex command shows no command text', progress.progressFromLine('codex', ev({ type: 'item.started', item: { type: 'command_execution', command: 'cat ~/.codex/auth.json' } }), W)[0].text === 'Running a command');
+    check('progress: plain text, broken JSON, arrays and unknown events give nothing', ['hello', '{"type":', '[1,2]', ev({ type: 'something_new' }), ''].every((l) => progress.progressFromLine('claude', l, W).length === 0 && progress.progressFromLine('codex', l, W).length === 0));
+
+    const lines = [];
+    const split = progress.lineSplitter((l) => lines.push(l));
+    split.push('{"a":1}\n{"b"'); split.push(':2}\n' + 'x'.repeat(300 * 1024)); split.push('still the long line\n{"c":3}\n'); split.end();
+    check('progress: the stream is split into whole lines and an oversized line is dropped', lines.length === 3 && lines[0] === '{"a":1}' && lines[1] === '{"b":2}' && lines[2] === '{"c":3}');
+
+    const kv = fakeKv();
+    const call = (a) => kv.fetchImpl('', { body: JSON.stringify(a) }).then((r) => r.json()).then((d) => d.result);
+    const log = progress.progressLog({ call, key: 'p', flushMs: 0, now: () => Date.parse('2026-11-27T12:00:00Z') });
+    for (let i = 0; i < 50; i++) log.add('edit', 'Editing file-' + i + '.js');
+    log.add('read', 'Reading a.js'); log.add('read', 'Reading a.js'); log.add('read', 'Reading a.js');
+    await log.flush();
+    const kept = kv.lists.get('p').map((x) => JSON.parse(x));
+    check('progress: only the last 40 lines are kept, with a week of expiry', kept.length === progress.MAX_ITEMS && kv.store.get('ttl:p') === progress.KEEP_SECONDS);
+    check('progress: repeats in a row fold into one line with a count', kept[kept.length - 1].text === 'Reading a.js (x3)' && kept[kept.length - 2].text === 'Editing file-49.js');
+    const broken = progress.progressLog({ call: async () => { throw new Error('kv down'); }, key: 'p', flushMs: 0 });
+    broken.add('stage', 'x');
+    let threw = false;
+    try { await broken.flush(); } catch { threw = true; }
+    check('progress: a KV failure while writing progress never throws', !threw);
+  }
+  {
+    const cc = runner.builderCommand({ executor: 'claude', model: 'sonnet', objective: 'x' })[1];
+    const cx = runner.builderCommand({ executor: 'codex', objective: 'x' })[1];
+    check('builders print JSON events: Claude stream-json with --verbose, Codex exec --json', cc[cc.indexOf('--output-format') + 1] === 'stream-json' && cc.includes('--verbose') && cx[0] === 'exec' && cx.includes('--json')
+      && cx[cx.indexOf('--sandbox') + 1] === 'workspace-write' && !cc.includes('--dangerously-skip-permissions'));
+  }
+  {
+    const kv = fakeKv(); const env = ON(kv);
+    const { out: q } = await approve(kv, GOOD);
+    const a = mockAdapter();
+    const inner = a.execute;
+    a.execute = async (job, timeout, onStart, report) => {
+      report('stage', 'Starting the builder');
+      progress.progressFromLine('claude', JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Write', input: { file_path: '/w/tests/test-new.js', content: 'x' } }] } }), '/w').forEach((i) => report(i.kind, i.text));
+      return inner(job, timeout, onStart);
+    };
+    const out = await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: a });
+    const lines = (kv.lists.get(builder.progressKey(env, q.job_id)) || []).map((x) => JSON.parse(x).text);
+    check('a run records its progress under the job and ends with the verified draft PR line', out.state === 'draft_opened'
+      && lines[0] === 'Starting the builder' && lines[1] === 'Writing tests/test-new.js' && lines[lines.length - 1] === 'Draft PR opened and checked on GitHub');
+    const res = mockRes();
+    await builder.handleBuilder(req('/ops/os/builder', 'GET'), res, { env, fetchImpl: kv.fetchImpl, session: FOUNDER });
+    const job = (JSON.parse(res.body).jobs || []).find((j) => j.id === q.job_id);
+    check('GET /ops/os/builder returns the progress lines for a job that ran', job && Array.isArray(job.progress) && job.progress.length === lines.length && job.progress[1].kind === 'edit');
+    const kv2 = fakeKv();
+    await approve(kv2, GOOD);
+    const res2 = mockRes();
+    await builder.handleBuilder(req('/ops/os/builder', 'GET'), res2, { env: ON(kv2), fetchImpl: kv2.fetchImpl, session: FOUNDER });
+    check('a queued job has no progress field', JSON.parse(res2.body).jobs.every((j) => j.progress === undefined));
+  }
+  {
+    const kv = fakeKv(); const env = ON(kv);
+    const { out: q } = await approve(kv, GOOD);
+    await runner.tick({ env, fetchImpl: kv.fetchImpl, adapter: mockAdapter({ failAfterCodex: true }) });
+    const lines = (kv.lists.get(builder.progressKey(env, q.job_id)) || []).map((x) => JSON.parse(x));
+    check('a failed run ends its progress with an error line', lines.length && lines[lines.length - 1].kind === 'error' && /^Stopped: /.test(lines[lines.length - 1].text));
+  }
+  const buildSrc = fs.readFileSync(path.join(root, 'api/os/_client/build.js'), 'utf8');
+  check('the Build page escapes every progress line', /esc\(p\.text\)/.test(buildSrc) && !/innerHTML\s*=\s*p\./.test(buildSrc));
 
   // Source guards and docs.
   const src = ['api/ops/_os_builder.js', 'api/ops/_approvals.js', 'scripts/os-runner/index.js'].map((f) => fs.readFileSync(path.join(root, f), 'utf8')).join('\n')

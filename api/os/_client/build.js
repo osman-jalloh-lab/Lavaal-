@@ -152,6 +152,32 @@
     var t = root.querySelector('#bx-team'); if (t) t.innerHTML = teamHtml();
   }
 
+  // ---- live progress: the short lines the box runner writes while a build runs (newest last) ----
+  var PROGRESS_SHOWN = 6;
+  function jobById(id) {
+    for (var i = 0; i < (jobs || []).length; i++) if (jobs[i].id === id) return jobs[i];
+    return null;
+  }
+  function progressRow(p) {
+    var k = /^(stage|edit|read|search|plan|tool|note|warn|error|done)$/.test(p.kind) ? p.kind : 'note';
+    return '<li class="lp-row k-' + k + '"><i class="dot" aria-hidden="true"></i><span>' + esc(p.text) + '</span><time class="num dim" datetime="' + esc(p.at) + '">' + esc(ago(p.at)) + '</time></li>';
+  }
+  function progressHtml(j) {
+    if (!j) return '';
+    var rows = Array.isArray(j.progress) ? j.progress : [];
+    var live = j.state === 'running';
+    if (!rows.length) return live ? '<div class="lp live"><div class="lp-h"><i class="lp-pulse" aria-hidden="true"></i>Working. The first update shows here in a few seconds.</div></div>' : '';
+    var recent = rows.slice(-PROGRESS_SHOWN);
+    var older = rows.slice(0, -PROGRESS_SHOWN);
+    return '<div class="lp' + (live ? ' live' : '') + '">' +
+      '<div class="lp-h">' + (live ? '<i class="lp-pulse" aria-hidden="true"></i>Live' : 'What happened') + '<span class="dim">· ' + rows.length + (rows.length === 1 ? ' update' : ' updates') + '</span></div>' +
+      (older.length ? '<details class="lp-more" data-lp="' + esc(j.id) + '"><summary>Show ' + older.length + ' earlier</summary><ol class="lp-list">' + older.map(progressRow).join('') + '</ol></details>' : '') +
+      '<ol class="lp-list"' + (live ? ' aria-live="polite"' : '') + '>' + recent.map(progressRow).join('') + '</ol></div>';
+  }
+  function anyJobMoving() {
+    return (jobs || []).some(function (j) { return j.state === 'queued' || j.state === 'running'; });
+  }
+
   // ---- projects: one card per plan, steps as a pipeline ----
   function stepHtml(st) {
     var bad = st.state === 'failed' || st.state === 'blocked' || /^Paused:/.test(String(st.output || ''));
@@ -160,7 +186,8 @@
       : pr ? '<a class="bx-pr" href="' + esc(pr[1]) + '" target="_blank" rel="noopener">Open draft PR</a>'
       : '<details><summary>Read output</summary><pre class="sm-text">' + esc(String(st.output).slice(0, 4000)) + '</pre></details>';
     return '<li class="px-step s-' + esc(st.state) + '"><div class="px-top"><i class="dot" aria-hidden="true"></i><b>' + esc(KIND[st.kind] || st.kind) + '</b><span class="px-who">' + esc(st.label) + '</span></div>' +
-      '<div class="px-st">' + esc(STATE[st.state] || st.state) + '</div><p class="px-why dim">' + esc(st.why) + '</p>' + out + '</li>';
+      '<div class="px-st">' + esc(STATE[st.state] || st.state) + '</div><p class="px-why dim">' + esc(st.why) + '</p>' + out +
+      (st.kind === 'build' && st.jobId ? progressHtml(jobById(st.jobId)) : '') + '</li>';
   }
   function planHtml(p, preview) {
     var label = preview ? 'Preview' : p.state === 'approved' ? 'Running' : p.state === 'done' ? 'Done' : p.state === 'stopped' ? 'Stopped' : p.state;
@@ -174,7 +201,7 @@
     var pr = j.result && j.result.prUrl ? '<a class="bx-pr" href="' + esc(j.result.prUrl) + '" target="_blank" rel="noopener">Open draft PR</a>' : '';
     var err = j.result && j.result.error ? '<div class="pm-why">' + esc(j.result.error) + '</div>' : '';
     return '<article class="card px"><header class="px-h"><span class="px-badge">' + esc(STATE[j.state] || j.state) + '</span><h3>' + esc(String(j.objective || '').slice(0, 140)) + '</h3></header>' +
-      '<p class="note">' + esc(who) + ' · ' + esc(j.repo) + ' · <code>' + esc(j.branch) + '</code></p>' + pr + err + '</article>';
+      '<p class="note">' + esc(who) + ' · ' + esc(j.repo) + ' · <code>' + esc(j.branch) + '</code></p>' + pr + err + progressHtml(j) + '</article>';
   }
   function projectsHtml() {
     if (pmPlans === null) return '<p class="note">Loading…</p>';
@@ -183,7 +210,13 @@
     return pmPlans.map(function (p) { return planHtml(p, false); }).join('') + single.map(jobHtml).join('');
   }
   function paintProjects(root) {
-    var a = root.querySelector('#pm-plans'); if (a) a.innerHTML = projectsHtml();
+    var a = root.querySelector('#pm-plans');
+    if (a) {
+      // A repaint every few seconds must not close an "earlier updates" list Osman opened.
+      var opened = Array.prototype.map.call(a.querySelectorAll('details[data-lp][open]'), function (d) { return d.getAttribute('data-lp'); });
+      a.innerHTML = projectsHtml();
+      opened.forEach(function (id) { var d = a.querySelector('details[data-lp="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); if (d) d.open = true; });
+    }
     var b = root.querySelector('#pm-preview'); if (b) b.innerHTML = pmPreview ? pmPreview.map(function (p) { return planHtml(p, true); }).join('') : '';
   }
 
@@ -199,11 +232,12 @@
     return builderApi('POST', '/pm/check', {}).then(function (d) { check = d.agents || {}; runnerSeenAt = d.runnerSeenAt || null; })
       .catch(function () { check = {}; }).then(function () { if (t) t.classList.remove('busy'); paintSide(root); });
   }
-  // While the page is open, every running plan moves one step forward at the same time, every few seconds.
+  // While the page is open, every running plan moves one step forward at the same time, every few seconds. A queued or
+  // running box build with no open plan still refreshes, so its live progress keeps moving.
   function tickPlans(root) {
     if (!document.body.contains(root)) { clearInterval(pmTimer); pmTimer = null; return; }
     var open = (pmPlans || []).filter(function (p) { return p.state === 'approved'; });
-    if (!open.length) return;
+    if (!open.length) { if (anyJobMoving() && !document.hidden) loadAll(root); return; }
     Promise.all(open.map(function (p) { return builderApi('POST', '/pm/advance', { id: p.id }).catch(function () { return null; }); }))
       .then(function () { return loadAll(root); });
   }
