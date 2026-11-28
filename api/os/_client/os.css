@@ -652,3 +652,16 @@
 .os-root .bx-log{margin-top:22px}.os-root .bx-log summary{cursor:pointer;font-size:14px;opacity:.8;padding:8px 0}
 @keyframes bxp{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.os-root .px-step.s-running .dot{animation:none}}
+/* live builder progress (scripts/os-runner/progress.js): newest line last, colour by kind, one pulsing dot while running */
+.os-root .lp{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px;min-width:0}
+.os-root .lp-h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--tx2)}
+.os-root .lp-pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;animation:bxp 1.2s ease-in-out infinite}
+.os-root .lp-list{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.os-root .lp-row{display:flex;align-items:baseline;gap:8px;font-size:12.5px;line-height:18px;min-width:0}
+.os-root .lp-row span{flex:1;min-width:0;overflow-wrap:anywhere}.os-root .lp-row time{font-size:11px;white-space:nowrap}
+.os-root .lp-row .dot{width:6px;height:6px;flex:0 0 6px;margin-top:0;align-self:center;background:var(--tx3)}
+.os-root .lp-row.k-edit .dot{background:var(--accent)}.os-root .lp-row.k-stage .dot,.os-root .lp-row.k-plan .dot{background:var(--c-violet)}
+.os-root .lp-row.k-done .dot{background:var(--ok)}.os-root .lp-row.k-warn .dot{background:var(--warn)}
+.os-root .lp-row.k-error .dot{background:var(--bad)}.os-root .lp-row.k-error span{color:var(--bad)}
+.os-root .lp-more summary{cursor:pointer;font-size:12px;color:var(--accent)}.os-root .lp-more[open]{margin-bottom:4px}
+@media (prefers-reduced-motion:reduce){.os-root .lp-pulse{animation:none}}

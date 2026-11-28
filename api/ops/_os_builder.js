@@ -6,7 +6,7 @@
 // opens a DRAFT pull request at most. Nothing in this harness merges, deploys, or touches DNS.
 //
 // POST /ops/os/builder/approve  { repo, branch, objective }  -> { job_id, approval_id, state: 'queued' }
-// GET  /ops/os/builder                                         -> { jobs: [...] }   (latest 20)
+// GET  /ops/os/builder                                         -> { jobs: [...] }   (latest 20; a job that ran has progress: [...])
 'use strict';
 const crypto = require('node:crypto');
 const { json, readBody, looksLikeAgentRequest, queryOf } = require('./_lib');
@@ -103,6 +103,20 @@ function lockKey(env, job) {
   return approvals.rootFor(env) + 'builder-lock:' + who;
 }
 function jobKey(env, id) { return approvals.rootFor(env) + 'builder-jobs:' + id; }
+// Live progress lines the box runner writes for a job (scripts/os-runner/progress.js): a list, newest last.
+function progressKey(env, id) { return jobKey(env, id) + ':progress'; }
+const PROGRESS_STATES = ['running', 'draft_opened', 'no_changes', 'failed'];
+async function readProgress(call, env, id) {
+  const rows = await call(['LRANGE', progressKey(env, id), 0, -1]);
+  const out = [];
+  for (const r of Array.isArray(rows) ? rows : []) {
+    try {
+      const p = JSON.parse(r);
+      if (p && typeof p.text === 'string') out.push({ at: String(p.at || '').slice(0, 30), kind: String(p.kind || 'note').slice(0, 12), text: p.text.slice(0, 200) });
+    } catch { /* skip a bad row */ }
+  }
+  return out;
+}
 function queueKey(env) { return approvals.rootFor(env) + 'builder-jobs:queue'; }
 
 function routeOf(req) {
@@ -131,6 +145,11 @@ async function handleBuilder(req, res, opts) {
       const jobs = [];
       for (const id of Array.isArray(ids) ? ids : []) {
         try { const j = JSON.parse(await approvals.command(env, fetchImpl, ['GET', jobKey(env, id)]) || 'null'); if (j) jobs.push(j); } catch { /* skip */ }
+      }
+      // Live progress only for jobs that ran; queued and held jobs have none yet.
+      for (const j of jobs) {
+        if (!PROGRESS_STATES.includes(j.state)) continue;
+        try { j.progress = await readProgress((a) => approvals.command(env, fetchImpl, a), env, j.id); } catch { j.progress = []; }
       }
       let budget = null;
       try { budget = await budgetState(env, (a) => approvals.command(env, fetchImpl, a), now); } catch { budget = null; }
@@ -175,4 +194,4 @@ async function handleBuilder(req, res, opts) {
   }
 }
 
-module.exports = { budgetState, extraKey, holdForOk, holdKey, lockKey, BUILDERS, CAP_NAME, DEFAULT_OPUS_ESTIMATE_USD, OPUS_ESTIMATE_NAME, validBuilder, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };
+module.exports = { budgetState, extraKey, holdForOk, holdKey, lockKey, progressKey, readProgress, BUILDERS, CAP_NAME, DEFAULT_OPUS_ESTIMATE_USD, OPUS_ESTIMATE_NAME, validBuilder, DEFAULT_RUN_ESTIMATE_USD, PROTECTED, REPOS, RUN_ESTIMATE_NAME, capCheck, runEstimate, handleBuilder, jobKey, monthKey, queueKey, routeOf, runnerEnabled, validBranch };

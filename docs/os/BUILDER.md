@@ -16,11 +16,21 @@ Phase 4 of `2026-11-26-os-one-shot-build-prompt.md`. **Draft pull requests only.
    - The approval was minted by the founder session, for this exact request, and its single-use marker belongs to this job.
 3. **The run.** The runner:
    - makes a fresh clone and an isolated worktree on the feature branch;
-   - runs the builder in an empty home. **Codex** runs with `--sandbox workspace-write`. **Claude Code** runs with `-p --model sonnet|opus --permission-mode acceptEdits`, with file tools only (Read, Edit, Write, Glob, Grep) and no shell or web. Only its login (`~/.claude/.credentials.json`, or `OS_RUNNER_CLAUDE_AUTH_FILE`) is copied in.
+   - runs the builder in an empty home. **Codex** runs with `exec --json --sandbox workspace-write`. **Claude Code** runs with `-p --model sonnet|opus --permission-mode acceptEdits --output-format stream-json --verbose`, with file tools only (Read, Edit, Write, Glob, Grep) and no shell or web. Their event output feeds the live progress below. Only its login (`~/.claude/.credentials.json`, or `OS_RUNNER_CLAUDE_AUTH_FILE`) is copied in.
    - Codex details: Only the Codex login (`auth.json`, from `OS_RUNNER_CODEX_AUTH_FILE` or the box's `~/.codex`) is copied in, with mode 0600. If there is no login, the job fails before Codex starts, and nothing is charged. The environment has no GitHub or KV credentials, and the objective is wrapped as untrusted text;
    - runs the repo's tests (`node tests/run-safe-suite.js` or pytest) and commits;
    - pushes the branch and opens a **draft** PR.
 4. **Verify, then record.** GitHub must show an open draft PR from that branch whose head is exactly the commit sha. Only then is the sha and PR URL written to the job record, and an "opened" line added to `docs/os/knowledge/ACTIVITY.md` on the same draft branch.
+
+## Live progress
+
+While a build runs, the Build page shows what the builder is doing, under the job (or under the build step of a plan).
+- The builders print one JSON event per line: Claude Code with `--output-format stream-json --verbose`, Codex with `codex exec --json`. Permissions and tools are unchanged.
+- `scripts/os-runner/progress.js` turns each event into one short line: the stage ("Running the tests"), the tool and a path relative to the worktree ("Editing api/os/_client/build.js"), or the first line of a note. It never shows file contents, command text or command output. Anything shaped like a key or token is replaced with `[redacted]`, and every line is clipped to 160 characters. Unknown events are skipped.
+- Lines go to KV at `builder-jobs:<id>:progress`, in batches every few seconds. Only the last 40 are kept, for 7 days. Repeats in a row are folded ("Reading a.js (x3)").
+- The last line says how the run ended: draft PR opened and checked on GitHub, no changes, or "Stopped:" with the reason.
+- Progress is best effort. A KV error while writing progress never fails or slows a build.
+- `GET /ops/os/builder` returns `progress` for jobs that ran. The page refreshes every 6 seconds while a job is queued or running and the tab is visible.
 
 ## Budget: pause and ask, not a wall
 

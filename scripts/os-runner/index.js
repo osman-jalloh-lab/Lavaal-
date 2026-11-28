@@ -21,6 +21,7 @@ const { spawn } = require('node:child_process');
 const approvals = require('../../api/ops/_approvals');
 const builder = require('../../api/ops/_os_builder');
 const { UNTRUSTED_BEGIN, UNTRUSTED_END } = require('../../api/ops/_untrusted');
+const progress = require('./progress');
 
 const SHA = /^[a-f0-9]{40}$/;
 
@@ -66,12 +67,15 @@ function run(cmd, args, options = {}) {
     if (!options.env) return reject(new Error('missing_command_environment'));
     const child = spawn(cmd, args, { cwd: options.cwd, env: options.env, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
-    child.stdout.on('data', (x) => { out += x; });
+    // With onLine, stdout is an event stream: each whole line goes to onLine and nothing is kept in memory.
+    const lines = typeof options.onLine === 'function' ? progress.lineSplitter(options.onLine) : null;
+    child.stdout.on('data', (x) => { if (lines) lines.push(x); else out += x; });
     child.stderr.resume();
     const timer = setTimeout(() => { try { child.kill('SIGKILL'); } catch { /* gone */ } }, options.timeout || 20 * 60 * 1000);
     child.on('error', () => { clearTimeout(timer); reject(new Error('command_failed')); });
     child.on('close', (code) => {
       clearTimeout(timer);
+      if (lines) lines.end();
       if (code === 0 || (options.accept && options.accept.includes(code))) resolve({ code, out: out.trim() });
       else reject(new Error('command_failed'));
     });
@@ -118,14 +122,16 @@ function prepareClaudeHome(env, home) {
 }
 
 // The command each builder runs inside the worktree. Claude Code gets file tools only (no shell, no web), in
-// print mode, with the model Osman picked; Codex gets its workspace-write sandbox.
+// print mode, with the model Osman picked; Codex gets its workspace-write sandbox. Both print one JSON event per line
+// (Claude: stream-json, which needs --verbose; Codex: --json) so the Build page can show live progress.
 function builderCommand(job) {
   if (job.executor === 'claude') {
     const model = job.model === 'opus' ? 'opus' : 'sonnet';
     return ['claude', ['-p', promptFor(job), '--model', model, '--permission-mode', 'acceptEdits',
-      '--allowedTools', 'Read,Edit,Write,Glob,Grep', '--disallowedTools', 'Bash,WebFetch,WebSearch']];
+      '--allowedTools', 'Read,Edit,Write,Glob,Grep', '--disallowedTools', 'Bash,WebFetch,WebSearch',
+      '--output-format', 'stream-json', '--verbose']];
   }
-  return ['codex', ['exec', '--sandbox', 'workspace-write', promptFor(job)]];
+  return ['codex', ['exec', '--json', '--sandbox', 'workspace-write', promptFor(job)]];
 }
 
 // The real box adapter. Codex and the tests get a bare environment (no GitHub or KV credentials); only git and gh
@@ -139,25 +145,35 @@ function realAdapter({ env = process.env } = {}) {
   let work = '';
   let dir = '';
   return {
-    async execute(job, timeout, onCodexStart) {
+    // report(kind, text) is optional: it adds one line to the job's live progress on the Build page.
+    async execute(job, timeout, onCodexStart, report) {
+      const say = typeof report === 'function' ? report : () => {};
       dir = fs.mkdtempSync(path.join(os.tmpdir(), 'os-build-'));
       const clone = path.join(dir, 'repo');
       work = path.join(dir, 'worktree');
+      say('stage', 'Getting a fresh copy of the repo');
       await git(['clone', '--no-checkout', '--', `https://github.com/${job.repo}.git`, clone], { timeout });
       await git(['-C', clone, 'worktree', 'add', '-b', job.branch, work, 'origin/HEAD'], { timeout });
       const home = path.join(dir, 'codex-home');
       fs.mkdirSync(home, { mode: 0o700 });
+      say('stage', 'Starting the builder');
       if (job.executor === 'claude') prepareClaudeHome(env, home); else prepareCodexHome(env, home);
       if (typeof onCodexStart === 'function') await onCodexStart();
       const [bin, args] = builderCommand(job);
-      await run(bin, args, { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, CODEX_HOME: path.join(home, '.codex'), TMPDIR: home }) });
+      await run(bin, args, { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, CODEX_HOME: path.join(home, '.codex'), TMPDIR: home }),
+        onLine: (line) => progress.progressFromLine(job.executor === 'claude' ? 'claude' : 'codex', line, work).forEach((i) => say(i.kind, i.text)) });
+      say('stage', 'Running the tests');
       const tests = job.repo === 'osman-jalloh-lab/Lavaal-' ? ['node', ['tests/run-safe-suite.js']] : ['python3', ['-m', 'pytest', 'tests/', '-q']];
-      await run(tests[0], tests[1], { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, TMPDIR: home, APP_ENV: 'test', EMAIL_ENABLED: 'false' }) });
+      try {
+        await run(tests[0], tests[1], { cwd: work, timeout, env: Object.assign({}, runtime, { HOME: home, TMPDIR: home, APP_ENV: 'test', EMAIL_ENABLED: 'false' }) });
+      } catch (e) { say('error', 'Tests failed; no PR was opened'); throw e; }
+      say('stage', 'Tests passed');
       await git(['add', '-A'], { cwd: work, timeout });
       const changed = await git(['diff', '--cached', '--quiet'], { cwd: work, timeout, accept: [1] });
       if (changed.code !== 1) return { sha: '', prUrl: '', tests: 'passed; no changes' };
       await git(['commit', '-m', `OS builder: ${String(job.objective).slice(0, 60)}`], { cwd: work, timeout });
       const sha = (await git(['rev-parse', 'HEAD'], { cwd: work, timeout })).out;
+      say('stage', 'Pushing the branch and opening a draft PR');
       await git(['push', 'origin', `HEAD:refs/heads/${job.branch}`], { cwd: work, timeout });
       const pr = await gh(['api', `repos/${job.repo}/pulls`, '-f', `title=OS builder: ${String(job.objective).slice(0, 60)}`, '-f', `head=${job.branch}`, '-f', 'base=main',
         '-f', 'body=Draft from an approved OS builder job. Review before merging; the builder never merges.', '-F', 'draft=true', '--jq', '.html_url'], { cwd: work, timeout });
@@ -236,6 +252,9 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
   const a = adapter || realAdapter({ env });
   job.state = 'running';
   await save();
+  // Live progress for the Build page: short, redacted lines in KV under the job (progress.js). Best effort only.
+  const log = progress.progressLog({ call, key: builder.progressKey(env, job.id), now });
+  const report = (kind, text) => { try { log.add(kind, text); } catch { /* never fails the build */ } };
   // Charge the flat run estimate when Codex is about to start (once), whatever happens after. If an adapter ever
   // reports a real cost above the estimate, the difference is charged too.
   let charged = 0;
@@ -245,7 +264,7 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
     await call(['INCRBYFLOAT', builder.monthKey(env, now()), String(cap.next)]);
   };
   try {
-    const out = await a.execute(job, timeout, charge);
+    const out = await a.execute(job, timeout, charge, report);
     const verified = Boolean(out && out.prUrl) && await verifyRunEvidence({ repo: job.repo, branch: job.branch, sha: out.sha, prUrl: out.prUrl, githubGet: (e) => a.githubGet(e) });
     if (verified) {
       const line = activityLine(job, out.sha, out.prUrl, now());
@@ -266,6 +285,9 @@ async function tick({ env = process.env, fetchImpl = globalThis.fetch, adapter, 
   } finally {
     if (a.cleanup) { try { a.cleanup(); } catch { /* best effort */ } }
   }
+  report(job.state === 'draft_opened' ? 'done' : job.state === 'no_changes' ? 'stage' : 'error',
+    job.state === 'draft_opened' ? 'Draft PR opened and checked on GitHub' : job.state === 'no_changes' ? 'Finished with no changes to commit' : 'Stopped: ' + (job.result.error || 'the run failed'));
+  await log.flush();
   await save();
   return job;
   }
