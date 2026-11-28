@@ -85,7 +85,7 @@
     { id: 'claude-sonnet', label: 'Claude Sonnet', role: 'Everyday code', box: true },
     { id: 'claude-opus', label: 'Claude Opus', role: 'Big builds', box: true }
   ];
-  var KIND = { research: 'Research', design: 'Design', draft: 'Write', build: 'Build' };
+  var KIND = { research: 'Research', answer: 'Answer', design: 'Design', draft: 'Write', build: 'Build' };
   var STATE = { needs_you: 'Waiting on you', waiting: 'Waiting', running: 'Working', done: 'Done', failed: 'Failed', blocked: 'Blocked', queued: 'Queued for the box', held: 'Waiting', cancelled: 'Cancelled' };
   var mode = 'team';
   var jobs = null;
@@ -223,17 +223,21 @@
     var pr = /Draft PR: (https:\/\/github\.com\/\S+)/.exec(String(st.output || ''));
     var out = !st.output ? '' : bad ? '<div class="pm-why">' + esc(String(st.output).slice(0, 300)) + '</div>'
       : pr ? '<a class="bx-pr" href="' + esc(pr[1]) + '" target="_blank" rel="noopener">Open draft PR</a>'
+      : st.direct ? '<div class="px-answer">' + esc(String(st.output).slice(0, 6000)) + '</div>'
       : '<details><summary>Read output</summary><pre class="sm-text">' + esc(String(st.output).slice(0, 4000)) + '</pre></details>';
     return '<li class="px-step s-' + esc(st.state) + '" data-agent="' + esc(st.agent || '') + '"><div class="px-top"><i class="dot" aria-hidden="true"></i><b>' + esc(KIND[st.kind] || st.kind) + '</b><span class="px-who">' + esc(st.label) + '</span></div>' +
       '<div class="px-st">' + esc(STATE[st.state] || st.state) + '</div><p class="px-why dim">' + esc(st.why) + '</p>' + out +
       (st.kind === 'build' && st.jobId ? cardHtml(jobById(st.jobId)) + progressHtml(jobById(st.jobId)) : '') + '</li>';
   }
   function planHtml(p, preview) {
+    // A question or research with nothing to build: the answer shows right on the card.
+    var talk = !(p.steps || []).some(function (st) { return st.kind === 'build'; });
     var label = preview ? 'Preview' : p.state === 'approved' ? 'Running' : p.state === 'done' ? 'Done' : p.state === 'stopped' ? 'Stopped' : p.state;
     return '<article class="card px s-' + esc(p.state) + '"><header class="px-h"><span class="px-badge">' + esc(label) + '</span><h3>' + esc(p.goal) + '</h3>' +
       (p.state === 'stopped' ? '<button class="btn" type="button" data-pm-retry="' + esc(p.id) + '">Retry</button>' : '') + '</header>' +
-      '<ol class="px-steps">' + p.steps.map(stepHtml).join('') + '</ol>' +
-      '<footer class="note">' + esc(OS.businessLabel ? OS.businessLabel(p.business) || p.business : p.business) + ' · ' + esc(p.repo) + ' · <code>' + esc(p.branch) + '</code></footer></article>';
+      '<ol class="px-steps' + (talk ? ' px-talk' : '') + '">' + p.steps.map(function (st, n) { return stepHtml(Object.assign({}, st, { direct: talk && n === p.steps.length - 1 })); }).join('') + '</ol>' +
+      '<footer class="note">' + esc(OS.businessLabel ? OS.businessLabel(p.business) || p.business : p.business) +
+      (talk ? ' · an answer, no code and no PR' : ' · ' + esc(p.repo) + ' · <code>' + esc(p.branch) + '</code>') + '</footer></article>';
   }
   function jobHtml(j) {
     var who = j.executor === 'claude' ? 'Claude ' + (j.model === 'opus' ? 'Opus' : 'Sonnet') : 'Codex';

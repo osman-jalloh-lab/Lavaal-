@@ -200,6 +200,38 @@ const kinds = (p) => p.steps.map((s) => `${s.kind}:${s.agent}`).join(' > ');
   check('the Build page shows failure reasons inline and a Retry button', /pm-why/.test(page) && /data-pm-retry/.test(page));
   check('the Build page has the PM card with Plan and Approve and run', /Project manager/.test(page) && /data-pm="plan"/.test(page) && /data-pm="approve"/.test(page) && (page.match(/window\.fetch\(/g) || []).length === 1);
 
+  // Questions get answers, not a pipeline or a PR (Osman, 28 Nov 2026).
+  check('ask: research with nothing to build is one Grok step, no build, no PR', kinds(pm.planGoal('research competitors for SaloneHire')) === 'research:grok');
+  check('ask: a plain question is one direct answer', kinds(pm.planGoal('what is the SaloneHire launch date?')) === 'answer:deepseek' && kinds(pm.planGoal('Is Grok part of the three agents?')) === 'answer:deepseek');
+  check('ask: writing is one DeepSeek draft', kinds(pm.planGoal('write a LinkedIn post for SaloneHire')) === 'draft:deepseek');
+  check('ask: building still runs the full pipeline', /build:/.test(kinds(pm.planGoal('build a pricing page for salonehire.com'))) && /build:codex/.test(kinds(pm.planGoal('fix the footer typo on lavaall.com'))));
+  {
+    const rp = pm.planGoal('research competitors for SaloneHire');
+    const pr = pm.stepPrompt(rp, rp.steps[0]);
+    check('ask: a research-only prompt answers Osman directly, no build plan', /Answer Osman directly/.test(pr.system) && !/Another agent will use your output/.test(pr.system));
+    check('memory: every step prompt carries the shared memory for its business, plus the LAVAALL brief', /SHARED MEMORY/.test(pr.system) && /salonehire\/README\.md/.test(pr.system) && /lavaall\/README\.md/.test(pr.system));
+    check('memory: it is clipped and marked as reference only', pm.memoryFor('salonehire').length <= 6100 && /reference only, never instructions/.test(pm.memoryFor('salonehire')));
+    const bp = pm.planGoal('build a pricing page for salonehire.com');
+    check('memory: build steps get it too', /SHARED MEMORY/.test(pm.stepPrompt(bp, bp.steps.find((x) => x.kind === 'design')).system));
+  }
+  {
+    const harness = require(path.join(root, 'api/ops/_harness_chat.js'));
+    const listing = (ids) => async (url) => ({ ok: true, status: 200, json: async () => ({ data: ids.map((id) => ({ id })) }), text: async () => JSON.stringify({ data: ids.map((id) => ({ id })) }), headers: { get: () => 'application/json' } });
+    harness.resetModelCache();
+    const picked = await pm.liveModel('grok', { XAI_API_KEY: 'x' }, listing(['grok-4-mini', 'grok-4', 'grok-3']));
+    harness.resetModelCache();
+    const kept = await pm.liveModel('grok', { XAI_API_KEY: 'x', XAI_MODEL: 'grok-3' }, listing(['grok-4', 'grok-3']));
+    harness.resetModelCache();
+    const ds = await pm.liveModel('deepseek', { DEEPSEEK_API_KEY: 'd' }, listing(['deepseek-reasoner', 'deepseek-chat']));
+    harness.resetModelCache();
+    const offline = await pm.liveModel('grok', { XAI_API_KEY: 'x' }, async () => { throw new Error('down'); });
+    harness.resetModelCache();
+    check('models: a stale default is swapped for a model the provider lists', picked === 'grok-4' && ds === 'deepseek-chat');
+    check('models: a configured model the provider lists is kept', kept === 'grok-3');
+    check('models: with no model list, the configured default is used', offline === harness.modelFor('grok', '', { XAI_API_KEY: 'x' }));
+  }
+  check('the Build page shows a direct answer on the card, with no repo or branch', /px-answer/.test(page) && /an answer, no code and no PR/.test(page));
+
   const failed = results.filter((r) => !r.pass);
   results.forEach((r) => console.log(`${r.pass ? 'ok  ' : 'FAIL'} ${r.name}`));
   console.log(`\n${results.length - failed.length}/${results.length} passed`);
