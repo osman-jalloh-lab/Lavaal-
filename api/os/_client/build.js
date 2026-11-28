@@ -86,7 +86,7 @@
     { id: 'claude-opus', label: 'Claude Opus', role: 'Big builds', box: true }
   ];
   var KIND = { research: 'Research', design: 'Design', draft: 'Write', build: 'Build' };
-  var STATE = { waiting: 'Waiting', running: 'Working', done: 'Done', failed: 'Failed', blocked: 'Blocked', queued: 'Queued for the box', held: 'Waiting', cancelled: 'Cancelled' };
+  var STATE = { needs_you: 'Waiting on you', waiting: 'Waiting', running: 'Working', done: 'Done', failed: 'Failed', blocked: 'Blocked', queued: 'Queued for the box', held: 'Waiting', cancelled: 'Cancelled' };
   var mode = 'team';
   var jobs = null;
   var budget = null;
@@ -159,13 +159,13 @@
     return null;
   }
   function progressRow(p) {
-    var k = /^(stage|edit|read|search|plan|tool|note|warn|error|done)$/.test(p.kind) ? p.kind : 'note';
+    var k = /^(stage|edit|read|search|plan|tool|note|wait|warn|error|done)$/.test(p.kind) ? p.kind : 'note';
     return '<li class="lp-row k-' + k + '"><i class="dot" aria-hidden="true"></i><span>' + esc(p.text) + '</span><time class="num dim" datetime="' + esc(p.at) + '">' + esc(ago(p.at)) + '</time></li>';
   }
   function progressHtml(j) {
     if (!j) return '';
     var rows = Array.isArray(j.progress) ? j.progress : [];
-    var live = j.state === 'running';
+    var live = j.state === 'running' || j.state === 'needs_you';
     if (!rows.length) return live ? '<div class="lp live"><div class="lp-h"><i class="lp-pulse" aria-hidden="true"></i>Working. The first update shows here in a few seconds.</div></div>' : '';
     var recent = rows.slice(-PROGRESS_SHOWN);
     var older = rows.slice(0, -PROGRESS_SHOWN);
@@ -175,7 +175,46 @@
       '<ol class="lp-list"' + (live ? ' aria-live="polite"' : '') + '>' + recent.map(progressRow).join('') + '</ol></div>';
   }
   function anyJobMoving() {
-    return (jobs || []).some(function (j) { return j.state === 'queued' || j.state === 'running'; });
+    return (jobs || []).some(function (j) { return j.state === 'queued' || j.state === 'running' || j.state === 'needs_you'; });
+  }
+
+  // ---- cards: a running Claude build asks Osman to allow one tool call once, or asks him a question ----
+  function minsLeft(iso) { var t = Date.parse(iso || ''); return t ? Math.max(0, Math.ceil((t - Date.now()) / 60000)) : 0; }
+  function cardHtml(j) {
+    var a = j && j.state === 'needs_you' ? j.ask : null;
+    if (!a || !a.rid) return '';
+    var left = minsLeft(a.expiresAt);
+    var when = left ? 'Answer within ' + left + ' min, or Claude is told no.' : 'Time is up; Claude is told no.';
+    var head = '<div class="ak-h"><i class="lp-pulse" aria-hidden="true"></i><b>' + (a.kind === 'question' ? 'Claude has a question' : 'Claude wants to use ' + esc(a.tool)) + '</b></div>';
+    var body;
+    if (a.kind === 'question') {
+      body = (a.questions || []).map(function (q, n) {
+        var id = 'ak-' + esc(a.rid) + '-' + n;
+        var opts = (q.options || []).map(function (o) { return '<button type="button" class="ak-opt" data-ak-pick="' + n + '" data-val="' + esc(o) + '">' + esc(o) + '</button>'; }).join('');
+        return '<div class="ak-q"><label for="' + id + '">' + esc(q.question) + '</label>' + (opts ? '<div class="ak-opts">' + opts + '</div>' : '') +
+          '<input id="' + id + '" class="ak-in" data-ak-q="' + n + '" maxlength="500" autocomplete="off" placeholder="' + (opts ? 'Pick one, or type your answer' : 'Type your answer') + '"></div>';
+      }).join('') +
+        '<div class="ak-act"><button class="btn pri" type="button" data-ak="answer">Send answer</button><button class="btn" type="button" data-ak="deny">Skip</button></div>';
+    } else {
+      body = (a.detail ? '<pre class="ak-detail">' + esc(a.detail) + '</pre>' : '') +
+        '<div class="ak-act"><button class="btn pri" type="button" data-ak="allow">Allow once</button><button class="btn" type="button" data-ak="deny">Say no</button></div>';
+    }
+    return '<div class="ak" role="group" aria-label="Waiting on you" data-ak-job="' + esc(j.id) + '" data-ak-rid="' + esc(a.rid) + '">' + head + body +
+      '<p class="ak-msg note" role="status" aria-live="polite">' + esc(when) + '</p></div>';
+  }
+  function answerCard(root, box, decision) {
+    var answers;
+    if (decision === 'answer') {
+      answers = Array.prototype.map.call(box.querySelectorAll('[data-ak-q]'), function (i) { return i.value.trim(); });
+      if (!answers.length || answers.some(function (x) { return !x; })) { box.querySelector('.ak-msg').textContent = 'Answer each question first.'; return; }
+    }
+    Array.prototype.forEach.call(box.querySelectorAll('button'), function (b) { b.disabled = true; });
+    builderApi('POST', '/answer', { job_id: box.getAttribute('data-ak-job'), rid: box.getAttribute('data-ak-rid'), decision: decision, answers: answers })
+      .then(function () { box.querySelector('.ak-msg').textContent = 'Sent. The build goes on.'; return loadAll(root); })
+      .catch(function (err) {
+        Array.prototype.forEach.call(box.querySelectorAll('button'), function (b) { b.disabled = false; });
+        box.querySelector('.ak-msg').textContent = 'Not sent: ' + err.message.replace(/_/g, ' ') + '.';
+      });
   }
 
   // ---- projects: one card per plan, steps as a pipeline ----
@@ -187,7 +226,7 @@
       : '<details><summary>Read output</summary><pre class="sm-text">' + esc(String(st.output).slice(0, 4000)) + '</pre></details>';
     return '<li class="px-step s-' + esc(st.state) + '" data-agent="' + esc(st.agent || '') + '"><div class="px-top"><i class="dot" aria-hidden="true"></i><b>' + esc(KIND[st.kind] || st.kind) + '</b><span class="px-who">' + esc(st.label) + '</span></div>' +
       '<div class="px-st">' + esc(STATE[st.state] || st.state) + '</div><p class="px-why dim">' + esc(st.why) + '</p>' + out +
-      (st.kind === 'build' && st.jobId ? progressHtml(jobById(st.jobId)) : '') + '</li>';
+      (st.kind === 'build' && st.jobId ? cardHtml(jobById(st.jobId)) + progressHtml(jobById(st.jobId)) : '') + '</li>';
   }
   function planHtml(p, preview) {
     var label = preview ? 'Preview' : p.state === 'approved' ? 'Running' : p.state === 'done' ? 'Done' : p.state === 'stopped' ? 'Stopped' : p.state;
@@ -201,7 +240,7 @@
     var pr = j.result && j.result.prUrl ? '<a class="bx-pr" href="' + esc(j.result.prUrl) + '" target="_blank" rel="noopener">Open draft PR</a>' : '';
     var err = j.result && j.result.error ? '<div class="pm-why">' + esc(j.result.error) + '</div>' : '';
     return '<article class="card px"><header class="px-h"><span class="px-badge">' + esc(STATE[j.state] || j.state) + '</span><h3>' + esc(String(j.objective || '').slice(0, 140)) + '</h3></header>' +
-      '<p class="note">' + esc(who) + ' · ' + esc(j.repo) + ' · <code>' + esc(j.branch) + '</code></p>' + pr + err + progressHtml(j) + '</article>';
+      '<p class="note">' + esc(who) + ' · ' + esc(j.repo) + ' · <code>' + esc(j.branch) + '</code></p>' + pr + err + cardHtml(j) + progressHtml(j) + '</article>';
   }
   function projectsHtml() {
     if (pmPlans === null) return '<p class="note">Loading…</p>';
@@ -214,8 +253,15 @@
     if (a) {
       // A repaint every few seconds must not close an "earlier updates" list Osman opened.
       var opened = Array.prototype.map.call(a.querySelectorAll('details[data-lp][open]'), function (d) { return d.getAttribute('data-lp'); });
+      // Nor wipe an answer Osman is typing into a card, or move his cursor.
+      var typed = Array.prototype.map.call(a.querySelectorAll('.ak-in'), function (i) { return { id: i.id, value: i.value, focus: document.activeElement === i, at: i.selectionStart }; });
       a.innerHTML = projectsHtml();
       opened.forEach(function (id) { var d = a.querySelector('details[data-lp="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); if (d) d.open = true; });
+      typed.forEach(function (t) {
+        var i = document.getElementById(t.id); if (!i || !a.contains(i)) return;
+        i.value = t.value;
+        if (t.focus) { i.focus(); try { i.setSelectionRange(t.at, t.at); } catch (e) { /* not a text field */ } }
+      });
     }
     var b = root.querySelector('#pm-preview'); if (b) b.innerHTML = pmPreview ? pmPreview.map(function (p) { return planHtml(p, true); }).join('') : '';
   }
@@ -273,6 +319,14 @@
         return;
       }
       if (t.closest('[data-check]')) { runCheck(root); return; }
+      var akPick = t.closest('[data-ak-pick]');
+      if (akPick) {
+        var akInput = akPick.closest('.ak-q').querySelector('.ak-in');
+        if (akInput) { akInput.value = akPick.getAttribute('data-val'); akInput.focus(); }
+        return;
+      }
+      var ak = t.closest('[data-ak]');
+      if (ak) { answerCard(root, ak.closest('.ak'), ak.getAttribute('data-ak')); return; }
       var retry = t.closest('[data-pm-retry]');
       if (retry) {
         builderApi('POST', '/pm/retry', { id: retry.getAttribute('data-pm-retry') })

@@ -240,7 +240,7 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     fs.rmSync(tmp, { recursive: true, force: true });
   }
   const runnerSrc = fs.readFileSync(path.join(root, 'scripts/os-runner/index.js'), 'utf8');
-  check('the real adapter copies the right login and charges before the builder starts', /if \(job\.executor === 'claude'\) prepareClaudeHome\(env, home\); else prepareCodexHome\(env, home\);\s*if \(typeof onCodexStart === 'function'\) await onCodexStart\(\);\s*const \[bin, args\] = builderCommand\(job\);\s*await run\(bin, args/.test(runnerSrc));
+  check('the real adapter copies the right login and charges before the builder starts', /if \(job\.executor === 'claude'\) prepareClaudeHome\(env, home\); else prepareCodexHome\(env, home\);\s*if \(typeof onCodexStart === 'function'\) await onCodexStart\(\);\s*const \[bin, args, input\] = builderCommand\(job\);[\s\S]{0,700}?await runClaudeSession\(\{ bin, args[\s\S]{0,200}?await run\(bin, args/.test(runnerSrc));
 
   // Claude Code builder (Sonnet or Opus, picked per job by Osman).
   check('builders: codex, claude sonnet, claude opus; nothing else', builder.validBuilder('codex', '') && builder.validBuilder('claude', 'sonnet') && builder.validBuilder('claude', 'opus')
@@ -248,7 +248,7 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
   const cc = runner.builderCommand({ executor: 'claude', model: 'opus', objective: 'x' });
   check('Claude Code runs in print mode with file tools only (no shell, no web)', cc[0] === 'claude' && cc[1].includes('-p') && cc[1][cc[1].indexOf('--model') + 1] === 'opus'
     && cc[1][cc[1].indexOf('--allowedTools') + 1] === 'Read,Edit,Write,Glob,Grep' && /Bash/.test(cc[1][cc[1].indexOf('--disallowedTools') + 1]) && !cc[1].includes('--dangerously-skip-permissions'));
-  check('Claude Sonnet is the default model name for the claude builder command', runner.builderCommand({ executor: 'claude', model: 'weird', objective: 'x' })[1][3] === 'sonnet');
+  { const w = runner.builderCommand({ executor: 'claude', model: 'weird', objective: 'x' })[1]; check('Claude Sonnet is the default model name for the claude builder command', w[w.indexOf('--model') + 1] === 'sonnet'); }
   check('an Opus run is charged more ($6 default) than Codex or Sonnet ($2)', builder.runEstimate({}, { executor: 'claude', model: 'opus' }) === 6 && builder.runEstimate({}, { executor: 'claude', model: 'sonnet' }) === 2 && builder.runEstimate({}, { executor: 'codex' }) === 2);
   check('an Opus run that would pass the budget asks first while a $2 run still fits (spent 46 of 50)', builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'claude', model: 'opus' }).error === 'needs_ok' && builder.capCheck({ OS_BUILDER_MONTHLY_CAP_USD: '50' }, 46, { executor: 'codex' }).ok);
   check('the approval binds the builder and model', approvals.requestHash(Object.assign({}, GOOD, { executor: 'claude', model: 'sonnet' })) !== approvals.requestHash(Object.assign({}, GOOD, { executor: 'claude', model: 'opus' })));
@@ -361,7 +361,155 @@ const GOOD = { repo: 'osman-jalloh-lab/Lavaal-', branch: 'os-build/test-change',
     const lines = (kv.lists.get(builder.progressKey(env, q.job_id)) || []).map((x) => JSON.parse(x));
     check('a failed run ends its progress with an error line', lines.length && lines[lines.length - 1].kind === 'error' && /^Stopped: /.test(lines[lines.length - 1].text));
   }
+  // Cards (PR 2): Claude asks over stdio; the runner refuses, allows, or asks Osman; his answer is a single-use approval.
+  const { runClaudeSession } = require(path.join(root, 'scripts/os-runner/claude-session.js'));
+  {
+    const W = path.resolve('/tmp/os-build-y/worktree');
+    const P = (tool, input) => runner.permissionFor(tool, input, W);
+    check('cards: shell and web are refused without asking', ['Bash', 'WebFetch', 'WebSearch', 'BashOutput'].every((t) => P(t, {}).action === 'refuse'));
+    check('cards: a path outside the worktree is refused, inside is allowed', P('Read', { file_path: '/etc/passwd' }).action === 'refuse' && P('Edit', { file_path: path.join(W, '..', 'other', 'x.js') }).action === 'refuse'
+      && P('Write', { file_path: path.join(W, 'api', 'x.js') }).action === 'allow' && P('Grep', { path: 'src' }).action === 'allow');
+    check('cards: Claude\'s own task list is allowed', P('TodoWrite', { todos: [] }).action === 'allow');
+    const q = P('AskUserQuestion', { questions: [{ question: 'Which colour?', options: [{ label: 'Sky' }, { label: 'Lime' }] }] });
+    check('cards: a question becomes a question card with its options', q.action === 'question' && q.questions.length === 1 && q.questions[0].question === 'Which colour?' && q.questions[0].options.join() === 'Sky,Lime');
+    check('cards: more than four questions are refused', P('AskUserQuestion', { questions: [1, 2, 3, 4, 5].map((n) => ({ question: 'Q' + n })) }).action === 'refuse');
+    const ap = P('Task', { description: 'review', api_key: 'sk-live-abcdefghijkl', prompt: 'Bearer abc.def' });
+    check('cards: any other tool becomes an approval card with a redacted detail', ap.action === 'approval' && !/sk-live|abc\.def/.test(ap.detail) && /review/.test(ap.detail));
+    const noAsk = runner.makeDecider({ cwd: W });
+    check('cards: with no way to ask, a card is a no', (await noAsk({ tool: 'Task', input: {} })).behavior === 'deny');
+    let asked = 0;
+    const capped = runner.makeDecider({ cwd: W, ask: async () => { asked += 1; return { behavior: 'allow' }; } });
+    for (let i = 0; i < runner.MAX_CARDS + 3; i++) await capped({ tool: 'Task', input: {} });
+    check('cards: at most ' + runner.MAX_CARDS + ' cards per run, then Claude decides itself', asked === runner.MAX_CARDS && (await capped({ tool: 'Task', input: {} })).behavior === 'deny');
+    const cc = runner.builderCommand({ executor: 'claude', model: 'sonnet', objective: 'Do X' });
+    check('cards: Claude asks over stdio, takes the task on stdin, and the prompt is not an argument', cc[1][cc[1].indexOf('--permission-prompt-tool') + 1] === 'stdio' && cc[1][cc[1].indexOf('--input-format') + 1] === 'stream-json'
+      && !cc[1].some((x) => /Do X/.test(x)) && /<<<UNTRUSTED-CONTENT>>>[\s\S]*Do X/.test(cc[2]));
+  }
+  {
+    // A fake Claude Code process speaking the stdio protocol.
+    const { EventEmitter } = require('events');
+    function fakeClaude(script) {
+      const sent = [];
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter(); child.stderr = { resume() {} };
+      const emit = (o) => setImmediate(() => child.stdout.emit('data', JSON.stringify(o) + '\n'));
+      child.kill = () => { setImmediate(() => child.emit('close', null)); };
+      child.stdin = new EventEmitter();
+      child.stdin.write = (s) => { const m = JSON.parse(s); sent.push(m); script(m, emit, child); return true; };
+      child.stdin.end = () => { setImmediate(() => child.emit('close', script.code === undefined ? 0 : script.code)); };
+      return { spawnImpl: () => child, sent };
+    }
+    const script = (m, emit) => {
+      if (m.type === 'control_request' && m.request.subtype === 'initialize') emit({ type: 'control_response', response: { subtype: 'success', request_id: m.request_id } });
+      if (m.type === 'user') {
+        emit({ type: 'control_request', request_id: 'r1', request: { subtype: 'can_use_tool', tool_name: 'Bash', input: { command: 'ls' } } });
+        emit({ type: 'control_request', request_id: 'r2', request: { subtype: 'can_use_tool', tool_name: 'Task', input: { description: 'x' } } });
+        emit({ type: 'control_request', request_id: 'r3', request: { subtype: 'hook_callback' } });
+      }
+      if (m.type === 'control_response' && m.response.request_id === 'r2') emit({ type: 'result', subtype: 'success', is_error: false });
+    };
+    const fc = fakeClaude(script);
+    const W = path.resolve('/tmp/w');
+    let ok = false;
+    try {
+      await runClaudeSession({ bin: 'claude', args: [], prompt: 'TASK', cwd: W, env: {}, timeout: 60, spawnImpl: fc.spawnImpl,
+        decide: runner.makeDecider({ cwd: W, ask: () => new Promise((r) => setTimeout(() => r({ behavior: 'allow' }), 150)) }) });
+      ok = true;
+    } catch { ok = false; }
+    const resp = (id) => (fc.sent.find((m) => m.type === 'control_response' && m.response.request_id === id) || {}).response;
+    check('session: initialize first, then the task as one user message', fc.sent[0].request.subtype === 'initialize' && fc.sent[1].type === 'user' && fc.sent[1].message.content === 'TASK');
+    check('session: shell is answered deny, an allowed card is answered allow with its input', resp('r1').response.behavior === 'deny' && resp('r2').response.behavior === 'allow' && resp('r2').response.updatedInput.description === 'x');
+    check('session: an unsupported request gets an error answer', resp('r3').subtype === 'error');
+    check('session: the work timer pauses while a card waits (60 ms budget, 150 ms answer) and the run succeeds', ok);
+    const bad = fakeClaude((m, emit) => {
+      if (m.type === 'control_request') emit({ type: 'control_response', response: { subtype: 'success', request_id: m.request_id } });
+      if (m.type === 'user') emit({ type: 'result', subtype: 'error_max_turns', is_error: true });
+    });
+    let rejected = false;
+    try { await runClaudeSession({ bin: 'claude', args: [], prompt: 'T', cwd: W, env: {}, timeout: 5000, spawnImpl: bad.spawnImpl, decide: async () => ({ behavior: 'deny' }) }); } catch { rejected = true; }
+    check('session: an error result fails the run', rejected);
+    const hang = fakeClaude(() => {});
+    let timedOut = false;
+    try { await runClaudeSession({ bin: 'claude', args: [], prompt: 'T', cwd: W, env: {}, timeout: 50, spawnImpl: hang.spawnImpl, decide: async () => ({ behavior: 'deny' }) }); } catch { timedOut = true; }
+    check('session: a run that never finishes is stopped by the work timer', timedOut);
+  }
+  {
+    // End to end in the runner: a card parks the job, Osman answers through the founder route, the runner verifies it.
+    let clock = Date.parse('2026-11-27T15:00:00Z');
+    const kv = fakeKv(); const env = ON(kv);
+    const { out: q } = await approve(kv, GOOD);
+    const answer = async (body, session) => {
+      const res = mockRes();
+      await builder.handleBuilder(req('/ops/os/builder/answer', 'POST', body), res, { env, fetchImpl: kv.fetchImpl, session: session === undefined ? FOUNDER : session, now: clock });
+      return { status: res.statusCode, out: JSON.parse(res.body || '{}') };
+    };
+    const seen = {};
+    const cardAdapter = (cards) => {
+      const a = mockAdapter();
+      const inner = a.execute;
+      a.execute = async (job, timeout, onStart, report, ask) => { seen.results = []; for (const c of cards) seen.results.push(await ask(c)); return inner(job, timeout, onStart); };
+      return a;
+    };
+    const waitThen = (fn) => async () => { clock += 3000; if (fn) { const f = fn; fn = null; await f(); } };
+    const getJob = () => JSON.parse(kv.store.get(builder.jobKey(env, q.job_id)));
+    const out = await runner.tick({ env, fetchImpl: kv.fetchImpl, now: () => clock, adapter: cardAdapter([{ kind: 'approval', tool: 'Task', detail: '{"description":"review"}' }]),
+      wait: waitThen(async () => {
+        const j = getJob();
+        seen.parked = j.state === 'needs_you' && j.ask && j.ask.kind === 'approval' && j.ask.tool === 'Task';
+        seen.stranger = (await answer({ job_id: j.id, rid: j.ask.rid, decision: 'allow' }, { email: 'someone@example.com' })).status;
+        seen.wrongRid = (await answer({ job_id: j.id, rid: 'q-' + '0'.repeat(8) + '-0000-0000-0000-' + '0'.repeat(12), decision: 'allow' })).status;
+        seen.wrongDecision = (await answer({ job_id: j.id, rid: j.ask.rid, decision: 'answer', answers: ['x'] })).status;
+        seen.first = await answer({ job_id: j.id, rid: j.ask.rid, decision: 'allow' });
+        seen.second = (await answer({ job_id: j.id, rid: j.ask.rid, decision: 'deny' })).status;
+      }) });
+    check('cards: the job is parked as needs_you with the card while it waits', seen.parked === true);
+    check('cards: only Osman can answer (403), only the waiting card (409), only a decision that fits it (400)', seen.stranger === 403 && seen.wrongRid === 409 && seen.wrongDecision === 400);
+    check('cards: Osman allows once, the runner verifies it, and the build goes on to a draft PR', seen.first.status === 200 && seen.results[0].behavior === 'allow' && out.state === 'draft_opened' && !getJob().ask);
+    check('cards: a card takes one answer only, and a second try mints nothing', seen.second === 409
+      && [...kv.store.values()].filter((v) => /"action":"builder_answer"/.test(v)).length === 1);
+    const lines = (kv.lists.get(builder.progressKey(env, q.job_id)) || []).map((x) => JSON.parse(x).text);
+    check('cards: progress says the job waited and that Osman allowed it', lines.includes('Waiting on you: allow Task once?') && lines.includes('You allowed Task once'));
+    const recs = [...kv.store.entries()].filter(([k]) => /approvals:appr-/.test(k)).map(([, v]) => JSON.parse(v));
+    check('cards: the answer is a founder-session builder_answer approval, used once', recs.some((r) => r.action === 'builder_answer' && r.createdVia === 'founder_session')
+      && [...kv.store.entries()].some(([k, v]) => /approvals-used:/.test(k) && /builder_answer:q-/.test(v)));
+  }
+  {
+    let clock = Date.parse('2026-11-27T16:00:00Z');
+    const kv = fakeKv(); const env = ON(kv);
+    const { out: q } = await approve(kv, GOOD);
+    const seen = {};
+    const a = mockAdapter(); const inner = a.execute;
+    a.execute = async (job, t, s, report, ask) => {
+      seen.q = await ask({ kind: 'question', tool: 'AskUserQuestion', questions: [{ question: 'Which colour?', options: ['Sky', 'Lime'] }] });
+      seen.timeout = await ask({ kind: 'approval', tool: 'Skill', detail: '' });
+      seen.forged = await ask({ kind: 'approval', tool: 'Task', detail: '' });
+      return inner(job, t, s);
+    };
+    let step = 0;
+    await runner.tick({ env, fetchImpl: kv.fetchImpl, now: () => clock, adapter: a, wait: async () => {
+      clock += 3000; step += 1;
+      const j = JSON.parse(kv.store.get(builder.jobKey(env, q.job_id)));
+      if (!j.ask) return;
+      if (j.ask.kind === 'question' && step === 1) {
+        const res = mockRes();
+        await builder.handleBuilder(req('/ops/os/builder/answer', 'POST', { job_id: j.id, rid: j.ask.rid, decision: 'answer', answers: ['Lime, please'] }), res, { env, fetchImpl: kv.fetchImpl, session: FOUNDER, now: clock });
+      }
+      if (j.ask.tool === 'Task') kv.store.set(builder.answerKey(env, j.id, j.ask.rid), JSON.stringify({ decision: 'allow', answers: [], approvalId: 'appr-' + '1'.repeat(8) + '-1111-1111-1111-' + '1'.repeat(12) }));
+    } });
+    check('cards: a question\'s answer reaches Claude as text and nothing runs', seen.q.behavior === 'deny' && /Q: Which colour\?\nA: Lime, please/.test(seen.q.message));
+    check('cards: no answer in 15 minutes is a no', seen.timeout.behavior === 'deny' && /did not answer in time/.test(seen.timeout.message));
+    check('cards: an answer written without a founder approval is a no', seen.forged.behavior === 'deny' && /could not be verified/.test(seen.forged.message));
+    const res = mockRes();
+    const j = JSON.parse(kv.store.get(builder.jobKey(env, q.job_id)));
+    await builder.handleBuilder(req('/ops/os/builder/answer', 'POST', { job_id: j.id, rid: 'q-' + '2'.repeat(8) + '-2222-2222-2222-' + '2'.repeat(12), decision: 'allow' }), res, { env, fetchImpl: kv.fetchImpl, session: FOUNDER, now: clock });
+    check('cards: a finished job takes no answers', res.statusCode === 409);
+  }
+  check('cards: builder_answer is an approval action next to code_run', approvals.ACTIONS.includes('builder_answer') && approvals.ACTIONS.includes('code_run'));
+  check('cards: the answer hash binds job, card, decision and answer text', builder.answerHash({ jobId: 'a', rid: 'b', decision: 'answer', answers: ['x'] }) !== builder.answerHash({ jobId: 'a', rid: 'b', decision: 'answer', answers: ['y'] })
+    && builder.answerHash({ jobId: 'a', rid: 'b', decision: 'allow' }) !== builder.answerHash({ jobId: 'a', rid: 'c', decision: 'allow' }));
+
   const buildSrc = fs.readFileSync(path.join(root, 'api/os/_client/build.js'), 'utf8');
+  check('the Build page escapes card text', /esc\(a\.tool\)/.test(buildSrc) && /esc\(q\.question\)/.test(buildSrc) && /esc\(a\.detail\)/.test(buildSrc) && /esc\(o\)/.test(buildSrc));
   check('the Build page escapes every progress line', /esc\(p\.text\)/.test(buildSrc) && !/innerHTML\s*=\s*p\./.test(buildSrc));
 
   // Source guards and docs.

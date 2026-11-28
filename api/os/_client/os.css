@@ -664,6 +664,17 @@
 .os-root .lp-row.k-done .dot{background:var(--ok)}.os-root .lp-row.k-warn .dot{background:var(--warn)}
 .os-root .lp-row.k-error .dot{background:var(--bad)}.os-root .lp-row.k-error span{color:var(--bad)}
 .os-root .lp-more summary{cursor:pointer;font-size:12px;color:var(--accent)}.os-root .lp-more[open]{margin-bottom:4px}
+.os-root .lp-row.k-wait .dot{background:var(--warn)}.os-root .lp-row.k-wait span{font-weight:600}
+/* cards: a running Claude build waits for Osman (allow once / say no, or answer a question) */
+.os-root .ak{margin-top:10px;border:1px solid color-mix(in srgb,var(--warn) 55%,var(--line));background:color-mix(in srgb,var(--warn) 7%,var(--panel));border-radius:12px;padding:12px 14px;display:grid;gap:10px;min-width:0}
+.os-root .ak-h{display:flex;align-items:center;gap:8px;font-size:13.5px}.os-root .ak-h .lp-pulse{background:var(--warn)}
+.os-root .ak-detail{margin:0;font:12px/18px var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:160px;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-ctl);padding:8px 10px;color:var(--tx2)}
+.os-root .ak-q{display:grid;gap:6px}.os-root .ak-q label{font-size:13px;font-weight:600}
+.os-root .ak-opts{display:flex;flex-wrap:wrap;gap:6px}
+.os-root .ak-opt{font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--line2);background:var(--panel)}.os-root .ak-opt:hover{background:var(--hover)}
+.os-root .ak-in{font:inherit;font-size:13px;width:100%;padding:6px 10px;border-radius:var(--r-ctl);border:1px solid var(--line2);background:var(--panel);color:var(--text)}
+.os-root .ak-act{display:flex;flex-wrap:wrap;gap:8px}.os-root .ak-msg{margin:0;font-size:12px}
+.os-root .ak button:disabled{opacity:.55;cursor:default}
 @media (prefers-reduced-motion:reduce){.os-root .lp-pulse{animation:none}}
 
 /* ==== Design system v2 (docs/design/DESIGN.md) ====

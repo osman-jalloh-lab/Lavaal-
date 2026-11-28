@@ -7,7 +7,9 @@
 const crypto = require('node:crypto');
 
 const APPROVERS = Object.freeze(['osmanjalloh104@gmail.com']);
-const ACTIONS = Object.freeze(['code_run']);
+// code_run: start one builder job. builder_answer: Osman's answer to one approval or question card from a running
+// builder job (allow once, say no, or the answer text); bound to that job, that request and that exact answer.
+const ACTIONS = Object.freeze(['code_run', 'builder_answer']);
 const TTL_MS = 15 * 60 * 1000;
 const ID_RE = /^appr-[a-f0-9-]{36}$/;
 const HASH_RE = /^[a-f0-9]{64}$/;
